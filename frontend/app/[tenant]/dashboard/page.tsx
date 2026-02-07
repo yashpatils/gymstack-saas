@@ -2,9 +2,11 @@ import {
   Badge,
   Button,
   Card,
+  EmptyState,
   PageHeader,
   PageShell,
   SectionTitle,
+  Skeleton,
   StatCard,
   Table,
 } from "../../components/ui";
@@ -69,6 +71,30 @@ export default function TenantDashboardPage() {
             ]}
           />
         </Card>
+      </section>
+
+      <section className="section">
+        <SectionTitle>Live activity</SectionTitle>
+        <div className="grid grid-2">
+          <Card
+            title="Member check-ins"
+            description="Streaming in near real time from connected kiosks."
+          >
+            <div className="skeleton-stack">
+              <Skeleton className="skeleton-line medium" />
+              <Skeleton className="skeleton-line" />
+              <Skeleton className="skeleton-line short" />
+            </div>
+          </Card>
+          <Card title="Incident alerts" description="Auto-detected issues to review.">
+            <EmptyState
+              title="No open incidents"
+              description="Everything looks stable across your locations."
+              icon={<span>✓</span>}
+              actions={<Button variant="ghost">Review history</Button>}
+            />
+          </Card>
+        </div>
       </section>
     </PageShell>
   );

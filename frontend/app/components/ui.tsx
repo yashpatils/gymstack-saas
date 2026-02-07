@@ -87,6 +87,34 @@ export function Button({
   return <button className={className}>{children}</button>;
 }
 
+export function Skeleton({ className }: { className?: string }) {
+  const combinedClassName = className ? `skeleton ${className}` : "skeleton";
+  return <div className={combinedClassName} aria-hidden="true" />;
+}
+
+export function EmptyState({
+  title,
+  description,
+  actions,
+  icon,
+}: {
+  title: string;
+  description: string;
+  actions?: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="empty-state">
+      {icon ? <div className="empty-icon">{icon}</div> : null}
+      <div>
+        <h4 className="empty-title">{title}</h4>
+        <p className="empty-description">{description}</p>
+      </div>
+      {actions ? <div className="empty-actions">{actions}</div> : null}
+    </div>
+  );
+}
+
 export function Table({
   headers,
   rows,

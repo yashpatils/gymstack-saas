@@ -2,9 +2,11 @@ import {
   Badge,
   Button,
   Card,
+  EmptyState,
   PageHeader,
   PageShell,
   SectionTitle,
+  Skeleton,
   Table,
 } from "../../components/ui";
 
@@ -61,6 +63,33 @@ export default function TenantMembersPage() {
             ]}
           />
         </Card>
+      </section>
+
+      <section className="section">
+        <SectionTitle>Engagement moments</SectionTitle>
+        <div className="grid grid-2">
+          <Card
+            title="Personalized outreach"
+            description="Building a new engagement segment."
+          >
+            <div className="skeleton-stack">
+              <Skeleton className="skeleton-line medium" />
+              <Skeleton className="skeleton-line" />
+              <Skeleton className="skeleton-line short" />
+            </div>
+          </Card>
+          <Card
+            title="Celebrations"
+            description="Milestones worth highlighting for your team."
+          >
+            <EmptyState
+              title="No milestones today"
+              description="Next birthday and anniversary alerts will appear here."
+              icon={<span>★</span>}
+              actions={<Button variant="secondary">Schedule highlight</Button>}
+            />
+          </Card>
+        </div>
       </section>
     </PageShell>
   );
