@@ -11,6 +11,7 @@ const navItems = [
   { label: "Members", href: "/members" },
   { label: "Trainers", href: "/trainers" },
   { label: "Billing", href: "/billing" },
+  { label: "Settings", href: "/settings" },
 ];
 
 export default function TenantLayout({
