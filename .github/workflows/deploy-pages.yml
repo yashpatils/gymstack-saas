@@ -2,7 +2,10 @@ name: Deploy to GitHub Pages
 
 on:
   push:
+<<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
+=======
     branches: ["main"]
+>>>>>>> main
   workflow_dispatch:
 
 permissions:
