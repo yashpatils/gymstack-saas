@@ -2,7 +2,7 @@ import React from "react";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "default" | "secondary" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg";
+  className?: string;
 };
 
 const buttonVariants: Record<NonNullable<ButtonProps["variant"]>, string> = {
@@ -12,25 +12,15 @@ const buttonVariants: Record<NonNullable<ButtonProps["variant"]>, string> = {
   ghost: "button ghost",
 };
 
-const buttonSizes: Record<NonNullable<ButtonProps["size"]>, string> = {
-  default: "",
-  sm: "px-4 py-2 text-sm",
-  lg: "px-6 py-3 text-base",
-};
-
 export function Button({
   children,
   variant = "default",
-  size = "default",
   className,
   ...props
 }: ButtonProps) {
   return (
     <button
-      className={`${buttonVariants[variant]} ${buttonSizes[size]} ${
-        className ?? ""
-      }`}
-      {...props}
+      className={`${buttonVariants[variant]} ${className ?? ""}`}
     >
       {children}
     </button>
