@@ -1,26 +1,21 @@
 import React from "react";
 
-type ButtonProps = {
-  children: React.ReactNode;
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "default" | "secondary" | "outline" | "ghost";
   size?: "default" | "sm" | "lg";
-  className?: string;
 };
 
 const buttonVariants: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default:
-    "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-400",
-  secondary:
-    "bg-white/10 text-white hover:bg-white/20 border border-white/10",
-  outline:
-    "border border-white/20 text-white hover:bg-white/10",
-  ghost: "text-white/70 hover:text-white hover:bg-white/10",
+  default: "button",
+  secondary: "button secondary",
+  outline: "button secondary",
+  ghost: "button ghost",
 };
 
 const buttonSizes: Record<NonNullable<ButtonProps["size"]>, string> = {
-  default: "h-11 px-6 text-sm",
-  sm: "h-9 px-4 text-sm",
-  lg: "h-12 px-8 text-base",
+  default: "",
+  sm: "px-4 py-2 text-sm",
+  lg: "px-6 py-3 text-base",
 };
 
 export function Button({
@@ -28,21 +23,31 @@ export function Button({
   variant = "default",
   size = "default",
   className,
+  ...props
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-full font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${buttonVariants[variant]} ${buttonSizes[size]} ${
+      className={`${buttonVariants[variant]} ${buttonSizes[size]} ${
         className ?? ""
       }`}
+      {...props}
     >
       {children}
     </button>
   );
 }
 
-export function Badge({ children }: { children: React.ReactNode }) {
+export function Badge({
+  children,
+  tone,
+  className,
+}: {
+  children: React.ReactNode;
+  tone?: "success" | "warning";
+  className?: string;
+}) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
+    <span className={`badge ${tone ?? ""} ${className ?? ""}`}>
       {children}
     </span>
   );
@@ -51,17 +56,22 @@ export function Badge({ children }: { children: React.ReactNode }) {
 export function Card({
   children,
   className,
+  title,
+  description,
+  footer,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
+  title?: string;
+  description?: string;
+  footer?: React.ReactNode;
 }) {
   return (
-    <div
-      className={`rounded-2xl border border-white/10 bg-slate-950/70 p-6 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.8)] ${
-        className ?? ""
-      }`}
-    >
+    <div className={`card ${className ?? ""}`}>
+      {title ? <h3>{title}</h3> : null}
+      {description ? <p>{description}</p> : null}
       {children}
+      {footer ? <div className="card-footer">{footer}</div> : null}
     </div>
   );
 }
@@ -82,6 +92,114 @@ export function CardTitle({ children }: { children: React.ReactNode }) {
 
 export function CardDescription({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-slate-300">{children}</p>;
+}
+
+export function PageShell({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <main className={`page ${className ?? ""}`}>{children}</main>;
+}
+
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <header className="page-header">
+      <div>
+        <h1 className="page-title">{title}</h1>
+        {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
+      </div>
+      {actions ? <div>{actions}</div> : null}
+    </header>
+  );
+}
+
+export function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="section-title">{children}</h2>;
+}
+
+export function StatCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
+  return (
+    <div className="card stat">
+      <span className="stat-label">{label}</span>
+      <div className="stat-value">{value}</div>
+      {detail ? <p>{detail}</p> : null}
+    </div>
+  );
+}
+
+export function Table({
+  headers,
+  rows,
+}: {
+  headers: React.ReactNode[];
+  rows: React.ReactNode[][];
+}) {
+  return (
+    <table className="table">
+      <thead>
+        <tr>
+          {headers.map((header, index) => (
+            <th key={`header-${index}`}>{header}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={`row-${rowIndex}`}>
+            {row.map((cell, cellIndex) => (
+              <td key={`cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={`skeleton ${className ?? ""}`} />;
+}
+
+export function EmptyState({
+  title,
+  description,
+  icon,
+  actions,
+}: {
+  title: string;
+  description: string;
+  icon?: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="empty-state">
+      {icon ? <div className="empty-icon">{icon}</div> : null}
+      <div>
+        <h3 className="empty-title">{title}</h3>
+        <p className="empty-description">{description}</p>
+      </div>
+      {actions ? <div className="empty-actions">{actions}</div> : null}
+    </div>
+  );
 }
 
 export function AccessDenied({
