@@ -11,6 +11,7 @@ const navItems = [
   { label: "Members", href: "/members" },
   { label: "Trainers", href: "/trainers" },
   { label: "Billing", href: "/billing" },
+  { label: "Settings", href: "/settings" },
 ];
 
 export default function TenantLayout({
@@ -20,20 +21,5 @@ export default function TenantLayout({
   children: React.ReactNode;
   params: { tenant: string };
 }) {
-  return (
-    <div className="sidebar-layout">
-      <aside className="sidebar">
-        <div className="logo">GymStack</div>
-        <p className="page-subtitle">Tenant: {params.tenant}</p>
-        <ul className="nav-list">
-          {navItems.map((item) => (
-            <li key={item.href} className="nav-item">
-              {item.label}
-            </li>
-          ))}
-        </ul>
-      </aside>
-      {children}
-    </div>
-  );
+  return <TenantShell tenantSlug={params.tenant}>{children}</TenantShell>;
 }
