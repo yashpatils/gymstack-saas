@@ -44,14 +44,9 @@ export default function TenantBillingPage() {
   return (
     <PageShell>
       <PageHeader
-        title="Billing"
-        subtitle="Stripe-inspired billing control center for subscriptions, invoices, and payment methods."
-        actions={
-          <div className="grid" style={{ gridAutoFlow: "column", gap: 12 }}>
-            <Button variant="secondary">Manage payment methods</Button>
-            <Button>Upgrade plan</Button>
-          </div>
-        }
+        title="Membership plan management"
+        subtitle="Design, launch, and maintain membership offerings with clear pricing, perks, and renewal controls."
+        actions={<Button>New plan</Button>}
       />
 
       <div className="grid grid-3">
@@ -60,94 +55,182 @@ export default function TenantBillingPage() {
           value="$84,120"
           detail="+8% from last month"
         />
-        <StatCard
-          label="Active subscriptions"
-          value="1,248"
-          detail="96% on annual plans"
+        <Card
+          title="Plan upgrades"
+          description="112 members upgraded this quarter."
+          footer={<Badge tone="success">Higher value mix</Badge>}
         />
-        <StatCard
-          label="Outstanding balance"
-          value="$1,920"
-          detail="4 invoices in collections"
+        <Card
+          title="Renewal risk"
+          description="26 members flagged for outreach."
+          footer={<Badge tone="warning">Save playbook running</Badge>}
         />
       </div>
 
       <section className="section">
-        <SectionTitle>Subscription management</SectionTitle>
-        <div className="grid grid-2">
-          <Card
-            title="Current subscription"
-            description="GymStack Scale · Billed annually · Renews Sep 30, 2024."
-            footer={<Badge tone="success">Active</Badge>}
-          >
-            <Table
-              headers={["Metric", "Value"]}
-              rows={[
-                ["Plan seats", "15 staff seats"],
-                ["Locations", "8 of 10 used"],
-                ["Members", "1,248 of 1,500"],
-                ["Support", "Priority success manager"],
-              ]}
-            />
-          </Card>
-          <Card title="Upcoming charges" description="Preview your next invoice.">
-            <Table
-              headers={["Item", "Amount", "Frequency"]}
-              rows={[
-                ["Base subscription", "$10,800", "Annual"],
-                ["Usage overage", "$1,040", "Monthly"],
-                ["Add-on analytics", "$640", "Annual"],
-              ]}
-            />
-            <div className="section">
-              <Badge tone="warning">Projected total $12,480</Badge>
+        <SectionTitle>Plans overview</SectionTitle>
+        <div className="plan-grid">
+          <div className="plan-card">
+            <div className="plan-card-header">
+              <div>
+                <h3>Standard</h3>
+                <p>Best for consistent gym-goers.</p>
+              </div>
+              <Badge>Live</Badge>
             </div>
-          </Card>
+            <div className="plan-price">
+              $59<span>/mo</span>
+            </div>
+            <ul className="plan-list">
+              <li>24/7 facility access</li>
+              <li>2 guest passes monthly</li>
+              <li>Basic wellness tracking</li>
+            </ul>
+            <div className="plan-actions">
+              <Button variant="secondary">Edit plan</Button>
+              <Button variant="ghost">Duplicate</Button>
+            </div>
+          </div>
+
+          <div className="plan-card featured">
+            <div className="plan-card-header">
+              <div>
+                <h3>Premium</h3>
+                <p>Top plan with coaching sessions.</p>
+              </div>
+              <Badge tone="success">Top plan</Badge>
+            </div>
+            <div className="plan-price">
+              $99<span>/mo</span>
+            </div>
+            <ul className="plan-list">
+              <li>Unlimited group classes</li>
+              <li>Quarterly body composition scan</li>
+              <li>Priority support</li>
+            </ul>
+            <div className="plan-actions">
+              <Button>Review perks</Button>
+              <Button variant="ghost">Message members</Button>
+            </div>
+          </div>
+
+          <div className="plan-card">
+            <div className="plan-card-header">
+              <div>
+                <h3>Elite</h3>
+                <p>High-touch training and recovery.</p>
+              </div>
+              <Badge tone="warning">Review</Badge>
+            </div>
+            <div className="plan-price">
+              $149<span>/mo</span>
+            </div>
+            <ul className="plan-list">
+              <li>Weekly 1:1 coaching</li>
+              <li>Unlimited recovery suite</li>
+              <li>Custom nutrition plan</li>
+            </ul>
+            <div className="plan-actions">
+              <Button variant="secondary">Adjust pricing</Button>
+              <Button variant="ghost">Pause enrollment</Button>
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="section">
-        <SectionTitle>Invoices</SectionTitle>
-        <Card
-          title="Recent invoices"
-          description="Download receipts and track payment status."
-        >
+        <div className="section-split">
+          <SectionTitle>Plan activity</SectionTitle>
+          <Button variant="secondary">Export report</Button>
+        </div>
+        <Card title="Active plans" description="Configure pricing, perks, and enrollment status.">
           <Table
-            headers={["Invoice", "Date", "Amount", "Payment method", "Status", ""]}
-            rows={invoices.map((invoice) => [
-              invoice.id,
-              invoice.date,
-              invoice.amount,
-              invoice.method,
-              invoice.status === "Paid" ? (
-                <Badge tone="success">Paid</Badge>
-              ) : (
-                <Badge tone="warning">Processing</Badge>
-              ),
-              <Button variant="ghost">Download PDF</Button>,
-            ])}
+            headers={["Plan", "Price", "Members", "Status", "Renewal cadence"]}
+            rows={[
+              ["Standard", "$59/mo", "772", <Badge>Live</Badge>, "Monthly"],
+              [
+                "Premium",
+                "$99/mo",
+                "348",
+                <Badge tone="success">Top plan</Badge>,
+                "Monthly",
+              ],
+              [
+                "Elite",
+                "$149/mo",
+                "128",
+                <Badge tone="warning">Review</Badge>,
+                "Quarterly",
+              ],
+            ]}
           />
         </Card>
       </section>
 
       <section className="section">
-        <SectionTitle>Payment methods</SectionTitle>
-        <div className="grid grid-3">
-          <Card
-            title="Primary card"
-            description="Visa ending 4242 · Expires 08/26"
-            footer={<Badge tone="success">Default</Badge>}
-          />
-          <Card
-            title="Backup bank account"
-            description="US Bank ·•• 7831 · Verified"
-            footer={<Badge>ACH enabled</Badge>}
-          />
-          <Card
-            title="Billing contacts"
-            description="3 recipients for invoice notifications."
-            footer={<Button variant="secondary">Manage contacts</Button>}
-          />
+        <SectionTitle>Modal previews</SectionTitle>
+        <div className="grid grid-2">
+          <div className="modal-preview">
+            <div className="modal-scrim" />
+            <div className="modal-card">
+              <div className="modal-header">
+                <div>
+                  <h3>Create a new plan</h3>
+                  <p>Launch a limited-time offer for summer.</p>
+                </div>
+                <Badge>Draft</Badge>
+              </div>
+              <div className="modal-body">
+                <div className="modal-row">
+                  <span>Billing cadence</span>
+                  <strong>Monthly</strong>
+                </div>
+                <div className="modal-row">
+                  <span>Included sessions</span>
+                  <strong>4 group + 1 PT</strong>
+                </div>
+                <div className="modal-row">
+                  <span>Intro discount</span>
+                  <strong>15% for 2 months</strong>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <Button variant="secondary">Save draft</Button>
+                <Button>Publish plan</Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-preview">
+            <div className="modal-scrim" />
+            <div className="modal-card">
+              <div className="modal-header">
+                <div>
+                  <h3>Pause enrollment</h3>
+                  <p>Manage demand before the fall rush.</p>
+                </div>
+                <Badge tone="warning">Requires review</Badge>
+              </div>
+              <div className="modal-body">
+                <div className="modal-row">
+                  <span>Plan impacted</span>
+                  <strong>Elite</strong>
+                </div>
+                <div className="modal-row">
+                  <span>Reopen date</span>
+                  <strong>Oct 15, 2024</strong>
+                </div>
+                <div className="modal-row">
+                  <span>Member communication</span>
+                  <strong>Notify active members</strong>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <Button variant="ghost">Cancel</Button>
+                <Button variant="secondary">Schedule pause</Button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </PageShell>
