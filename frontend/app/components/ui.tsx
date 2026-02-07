@@ -115,3 +115,27 @@ export function Table({
     </table>
   );
 }
+
+export function AccessDenied({
+  title,
+  message,
+  details,
+}: {
+  title: string;
+  message: string;
+  details?: string[];
+}) {
+  return (
+    <div className="card access-denied">
+      <h3 className="access-denied-title">{title}</h3>
+      <p>{message}</p>
+      {details?.length ? (
+        <ul className="access-denied-list">
+          {details.map((detail) => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}

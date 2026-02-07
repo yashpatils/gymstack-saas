@@ -5,8 +5,19 @@ import {
   SectionTitle,
   StatCard,
 } from "../components/ui";
+import { TenantRoleSnapshot } from "../components/tenant-role-snapshot";
 
-export default function TenantHomePage() {
+const staticTenants = ["atlas-fitness", "north-peak"];
+
+export function generateStaticParams() {
+  return staticTenants.map((tenant) => ({ tenant }));
+}
+
+export default function TenantHomePage({
+  params,
+}: {
+  params: { tenant: string };
+}) {
   return (
     <PageShell>
       <PageHeader
@@ -45,6 +56,11 @@ export default function TenantHomePage() {
             <p>Confirm coverage for peak evening times this week.</p>
           </div>
         </div>
+      </section>
+
+      <section className="section">
+        <SectionTitle>Role-based access snapshot</SectionTitle>
+        <TenantRoleSnapshot tenantSlug={params.tenant} />
       </section>
     </PageShell>
   );
