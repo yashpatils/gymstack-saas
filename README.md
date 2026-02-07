@@ -195,13 +195,6 @@ npm install
 npm run dev
 ```
 
-You can also run the frontend from the repo root:
-
-```bash
-npm install --prefix frontend
-npm run dev
-```
-
 Then open `http://localhost:3000` to view the landing page. Tenant and platform
 pages are accessible at:
 
@@ -212,9 +205,6 @@ pages are accessible at:
 - `http://localhost:3000/platform`
 - `http://localhost:3000/platform/tenants`
 - `http://localhost:3000/platform/plans`
-
-The backend is currently a skeleton (see `backend/src/guards/tenant.guard.ts`),
-so the UI runs in preview mode without live data until the API is wired up.
 
 ---
 
