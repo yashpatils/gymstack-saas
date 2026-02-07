@@ -195,13 +195,6 @@ npm install
 npm run dev
 ```
 
-You can also run the frontend from the repo root:
-
-```bash
-npm install --prefix frontend
-npm run dev
-```
-
 Then open `http://localhost:3000` to view the landing page. Tenant and platform
 pages are accessible at:
 
@@ -213,32 +206,9 @@ pages are accessible at:
 - `http://localhost:3000/platform/tenants`
 - `http://localhost:3000/platform/plans`
 
-The backend is currently a skeleton (see `backend/src/guards/tenant.guard.ts`),
-so the UI runs in preview mode without live data until the API is wired up.
-
 ---
 
-## 8. GitHub Pages Preview (no local setup)
-This repo ships with a GitHub Actions workflow that publishes a static preview
-to GitHub Pages on every push to `main`.
-
-1. In GitHub, go to **Settings → Pages** and set the source to **GitHub Actions**.
-2. Push to `main` (or run the workflow manually).
-
-Your preview will be available at:
-
-```
-https://<your-github-username>.github.io/<your-repo-name>/
-```
-
-Example routes:
-
-- `https://<your-github-username>.github.io/<your-repo-name>/acme/dashboard`
-- `https://<your-github-username>.github.io/<your-repo-name>/platform`
-
----
-
-## 9. Billing Logic
+## 8. Billing Logic
 **Platform Billing (Gym → SaaS):**
 - Stripe subscription per tenant.
 - Plan limits enforced (members, trainers, locations).
@@ -251,7 +221,7 @@ Example routes:
 
 ---
 
-## 10. Security & Scaling Considerations
+## 9. Security & Scaling Considerations
 - Postgres RLS and strict tenant_id scoping.
 - JWT short TTL + refresh tokens.
 - Rate limiting per tenant.
@@ -260,7 +230,7 @@ Example routes:
 
 ---
 
-## 11. MVP vs Full SaaS Roadmap
+## 10. MVP vs Full SaaS Roadmap
 **MVP:**
 - Tenant isolation (single gym only)
 - Member management
@@ -277,7 +247,7 @@ Example routes:
 
 ---
 
-## 12. Tech Stack Justification
+## 11. Tech Stack Justification
 - **Next.js:** fast SSR, modular routing.
 - **NestJS:** structured architecture and RBAC middleware.
 - **Postgres + RLS:** enforce tenant boundaries at DB level.
