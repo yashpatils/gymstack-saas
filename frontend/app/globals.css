@@ -176,6 +176,21 @@ main {
   font-size: 20px;
 }
 
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.button-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -193,6 +208,168 @@ main {
   color: var(--ink-600);
   font-weight: 600;
   background: rgba(15, 23, 42, 0.7);
+}
+
+.chart {
+  margin-top: 20px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.chart-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-600);
+  margin-top: 16px;
+}
+
+.chart-meta strong {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.chart-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 180px;
+  align-items: flex-end;
+}
+
+.chart-bar {
+  display: grid;
+  gap: 10px;
+  align-items: flex-end;
+  justify-items: center;
+}
+
+.chart-bar .bar {
+  display: block;
+  width: 100%;
+  max-width: 32px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.9), rgba(56, 189, 248, 0.5));
+  box-shadow: 0 12px 20px rgba(15, 23, 42, 0.6);
+  min-height: 16px;
+}
+
+.bar-label {
+  font-size: 12px;
+  color: var(--ink-500);
+}
+
+.chart-line {
+  position: relative;
+  min-height: 180px;
+  overflow: hidden;
+}
+
+.line-path {
+  position: absolute;
+  inset: 20px 16px 32px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(139, 92, 246, 0.25), rgba(59, 130, 246, 0.2));
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+}
+
+.line-point {
+  position: absolute;
+  transform: translate(-50%, 50%);
+  display: grid;
+  gap: 6px;
+  place-items: center;
+}
+
+.line-point span:first-child {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand-600);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.8);
+}
+
+.point-label {
+  font-size: 11px;
+  color: var(--ink-500);
+}
+
+.chart-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.stack-row {
+  display: grid;
+  gap: 10px;
+}
+
+.stack-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+.stack-label strong {
+  color: var(--ink-900);
+}
+
+.stack-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.stack-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.9), rgba(45, 212, 191, 0.6));
+}
+
+.chart-signal {
+  display: grid;
+  gap: 14px;
+}
+
+.chart-signal p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chart-signal strong {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.signal-tag {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.18);
+  color: #c4b5fd;
+}
+
+.signal-tag.success {
+  background: var(--success-100);
+  color: var(--success-600);
+}
+
+.signal-tag.warning {
+  background: var(--warning-100);
+  color: var(--warning-600);
 }
 
 .sidebar-layout {

@@ -9,6 +9,32 @@ import {
   Table,
 } from "../../components/ui";
 
+const growthBars = [
+  { label: "Mon", value: 48 },
+  { label: "Tue", value: 62 },
+  { label: "Wed", value: 70 },
+  { label: "Thu", value: 54 },
+  { label: "Fri", value: 86 },
+  { label: "Sat", value: 78 },
+  { label: "Sun", value: 58 },
+];
+
+const attendancePoints = [
+  { label: "6am", value: 30, left: "6%" },
+  { label: "8am", value: 58, left: "22%" },
+  { label: "10am", value: 68, left: "38%" },
+  { label: "12pm", value: 42, left: "54%" },
+  { label: "4pm", value: 76, left: "70%" },
+  { label: "7pm", value: 90, left: "86%" },
+];
+
+const segmentMix = [
+  { label: "Memberships", value: 52 },
+  { label: "PT", value: 28 },
+  { label: "Retail", value: 12 },
+  { label: "Corporate", value: 8 },
+];
+
 export default function TenantDashboardPage() {
   return (
     <PageShell>
@@ -35,6 +61,102 @@ export default function TenantDashboardPage() {
           detail="Slots with trainers assigned this week."
         />
       </div>
+
+      <section className="section">
+        <div className="section-header">
+          <SectionTitle>Analytics dashboard</SectionTitle>
+          <div className="button-group">
+            <Button variant="secondary">Export CSV</Button>
+            <Button variant="ghost">Download PDF</Button>
+          </div>
+        </div>
+        <div className="grid grid-2">
+          <Card
+            title="Member growth"
+            description="Daily check-ins vs. new sign-ups across the week."
+          >
+            <div className="chart chart-bars">
+              {growthBars.map((bar) => (
+                <div className="chart-bar" key={bar.label}>
+                  <span className="bar" style={{ height: `${bar.value}%` }} />
+                  <span className="bar-label">{bar.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="chart-meta">
+              <span>Avg. check-ins</span>
+              <strong>1,024 / day</strong>
+            </div>
+          </Card>
+          <Card
+            title="Class attendance"
+            description="Peak load across the day with staffing recommendations."
+          >
+            <div className="chart chart-line">
+              <div className="line-path" />
+              {attendancePoints.map((point) => (
+                <div
+                  className="line-point"
+                  key={point.label}
+                  style={{ left: point.left, bottom: `${point.value}%` }}
+                >
+                  <span />
+                  <span className="point-label">{point.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="chart-meta">
+              <span>Staffing forecast</span>
+              <strong>+3 coaches at 6pm</strong>
+            </div>
+          </Card>
+        </div>
+        <div className="grid grid-2 section">
+          <Card
+            title="Revenue mix"
+            description="Shift revenue toward higher margin services."
+          >
+            <div className="chart chart-stack">
+              {segmentMix.map((segment) => (
+                <div className="stack-row" key={segment.label}>
+                  <div className="stack-label">
+                    <span>{segment.label}</span>
+                    <strong>{segment.value}%</strong>
+                  </div>
+                  <div className="stack-track">
+                    <span
+                      className="stack-fill"
+                      style={{ width: `${segment.value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card
+            title="Retention signals"
+            description="Members at risk of churn or upsell ready."
+          >
+            <div className="chart chart-signal">
+              <div>
+                <p>High risk</p>
+                <strong>48 members</strong>
+                <span className="signal-tag warning">Needs outreach</span>
+              </div>
+              <div>
+                <p>Stable</p>
+                <strong>842 members</strong>
+                <span className="signal-tag success">On track</span>
+              </div>
+              <div>
+                <p>Upsell-ready</p>
+                <strong>96 members</strong>
+                <span className="signal-tag">Upgrade target</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </section>
 
       <section className="section">
         <SectionTitle>Today at a glance</SectionTitle>
