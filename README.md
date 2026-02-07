@@ -40,7 +40,7 @@ This repo ships with a GitHub Actions workflow that publishes a static preview
 to GitHub Pages on every push.
 
 1. In GitHub, go to **Settings → Pages** and set the source to **GitHub Actions**.
-2. Push to `main` (or run the workflow manually).
+2. Push to `main` (the deployment job only runs on `main`).
 
 Your preview will be available at:
 ```
