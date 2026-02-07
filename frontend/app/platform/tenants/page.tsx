@@ -1,19 +1,19 @@
-export default function PlatformTenantsPage() {
+type TenantHomeProps = {
+  params: { tenant: string };
+};
+
+export default function TenantHomePage({ params }: TenantHomeProps) {
   return (
     <main>
-      <h2 style={{ marginBottom: '0.5rem' }}>Tenants</h2>
+      <h2 style={{ marginBottom: '0.5rem' }}>Welcome</h2>
       <p style={{ color: '#475569' }}>
-        Review onboarding status, plan usage, and support tickets across all
-        gyms.
+        Choose a workspace module to manage {params.tenant}.
       </p>
-      <section style={{ marginTop: '1.5rem' }}>
-        <h3>Today&#39;s priorities</h3>
-        <ul>
-          <li>2 new tenant trials awaiting approval.</li>
-          <li>3 tenants nearing member limits.</li>
-          <li>1 escalation requiring platform admin review.</li>
-        </ul>
-      </section>
+      <ul style={{ marginTop: '1rem' }}>
+        <li>Review membership health on the dashboard.</li>
+        <li>Update trainers and member assignments.</li>
+        <li>Manage plans and billing settings.</li>
+      </ul>
     </main>
   );
 }
