@@ -1,19 +1,82 @@
 # GymStack SaaS — Multi-Tenant Multi-Gym Membership Platform
 
-## 1. Multi-Tenant Architecture Overview
-**Goal:** A scalable, production-grade SaaS platform where each gym or gym chain operates inside a fully isolated tenant workspace.
+GymStack is a SaaS platform for gyms and multi-location fitness brands. It
+provides isolated tenant workspaces, member management, trainer assignment,
+and subscription billing workflows.
+
+---
+
+## Quickstart
+
+### Frontend (local preview)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Or from the repo root:
+```bash
+npm install --prefix frontend
+npm run dev
+```
+
+Open:
+- `http://localhost:3000`
+- `http://localhost:3000/acme/dashboard`
+- `http://localhost:3000/acme/members`
+- `http://localhost:3000/acme/trainers`
+- `http://localhost:3000/acme/billing`
+- `http://localhost:3000/platform`
+- `http://localhost:3000/platform/tenants`
+- `http://localhost:3000/platform/plans`
+
+> Note: The backend is currently a skeleton (see `backend/src/guards/tenant.guard.ts`).
+
+---
+
+## GitHub Pages Preview (no local setup)
+This repo ships with a GitHub Actions workflow that publishes a static preview
+to GitHub Pages on every push.
+
+1. In GitHub, go to **Settings → Pages** and set the source to **GitHub Actions**.
+2. Push to `main` (or run the workflow manually).
+
+Your preview will be available at:
+```
+https://<your-github-username>.github.io/<your-repo-name>/
+```
+
+Example routes:
+- `https://<your-github-username>.github.io/<your-repo-name>/acme/dashboard`
+- `https://<your-github-username>.github.io/<your-repo-name>/platform`
+
+---
+
+## Repo Structure
+```
+backend/                # NestJS backend (skeleton)
+frontend/               # Next.js App Router UI
+db/                     # Database assets (schemas/seeds)
+```
+
+---
+
+## Multi-Tenant Architecture Overview
+**Goal:** A scalable, production-grade SaaS platform where each gym or gym
+chain operates inside a fully isolated tenant workspace.
 
 **Tenant types**
 - **Single Gym**: One location, one tenant.
-- **Gym Chain**: Multiple locations under a parent organization; still a single tenant with multiple locations.
+- **Gym Chain**: Multiple locations under a parent organization; still a single tenant.
 
-**High-level architecture (SaaS, multi-tenant):**
+**High-level architecture:**
 - **Frontend:** Next.js (App Router) with tenant-aware routing and branding.
 - **API:** Node.js (NestJS) with strict tenant scoping in all queries.
 - **Database:** PostgreSQL with tenant_id in every table + row-level security (RLS).
 - **Auth:** JWT + RBAC, tenant-bound claims.
 - **Realtime:** WebSockets (NestJS gateway) with tenant-aware channels.
-- **Payments:** Stripe (two billing flows: platform billing for gyms, gym billing for members).
+- **Payments:** Stripe (platform billing for gyms, gym billing for members).
 - **Infra:** Dockerized services, CI/CD, and managed Postgres.
 
 **Tenant isolation model:**
@@ -24,7 +87,7 @@
 
 ---
 
-## 2. Database Schema (Tenant Isolation)
+## Database Schema (Tenant Isolation)
 **All tables include tenant_id, and tenant_id is part of every unique/foreign key relationship.**
 
 ### Core entities
@@ -104,14 +167,9 @@
   - id (UUID, PK)
   - name, price, limits_json
 
-**Tenant data isolation:**
-- All foreign keys include tenant_id.
-- Unique constraints are composite (tenant_id, id) when needed.
-- RLS policies enforce tenant_id from session context.
-
 ---
 
-## 3. Auth & Authorization Flow
+## Auth & Authorization Flow
 1. **Login** → user credentials validated → JWT issued with:
    - user_id
    - tenant_id
@@ -129,29 +187,29 @@
 
 ---
 
-## 4. API Endpoints (Tenant & Role Checks)
+## API Endpoints (Tenant & Role Checks)
 **Platform admin (global):**
-- `GET /platform/tenants` (Platform Admin)
-- `POST /platform/plans` (Platform Admin)
+- `GET /platform/tenants`
+- `POST /platform/plans`
 
 **Tenant admin:**
-- `GET /tenant/members` (Tenant Admin)
-- `POST /tenant/membership-plans` (Tenant Admin)
-- `POST /tenant/trainers/assign` (Tenant Admin)
+- `GET /tenant/members`
+- `POST /tenant/membership-plans`
+- `POST /tenant/trainers/assign`
 
 **Trainer:**
-- `GET /trainer/members` (Trainer)
-- `POST /trainer/workout-plans` (Trainer)
+- `GET /trainer/members`
+- `POST /trainer/workout-plans`
 
 **Member:**
-- `GET /member/plans` (Member)
-- `POST /member/progress` (Member)
+- `GET /member/plans`
+- `POST /member/progress`
 
 Each route uses tenant-aware guards and query filters.
 
 ---
 
-## 5. Example Backend Middleware
+## Example Backend Middleware
 ```ts
 // NestJS Guard Example
 @Injectable()
@@ -168,7 +226,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 6. Example Frontend Structure (Next.js)
+## Example Frontend Structure (Next.js)
 ```
 /app
   /[tenant]
@@ -186,7 +244,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 7. Billing Logic
+## Billing Logic
 **Platform Billing (Gym → SaaS):**
 - Stripe subscription per tenant.
 - Plan limits enforced (members, trainers, locations).
@@ -199,7 +257,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 8. Security & Scaling Considerations
+## Security & Scaling Considerations
 - Postgres RLS and strict tenant_id scoping.
 - JWT short TTL + refresh tokens.
 - Rate limiting per tenant.
@@ -208,7 +266,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 9. MVP vs Full SaaS Roadmap
+## MVP vs Full SaaS Roadmap
 **MVP:**
 - Tenant isolation (single gym only)
 - Member management
@@ -225,7 +283,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 10. Tech Stack Justification
+## Tech Stack Justification
 - **Next.js:** fast SSR, modular routing.
 - **NestJS:** structured architecture and RBAC middleware.
 - **Postgres + RLS:** enforce tenant boundaries at DB level.
