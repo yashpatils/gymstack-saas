@@ -186,7 +186,29 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 7. Billing Logic
+## 7. Frontend Local Preview
+The frontend lives in `frontend/` and uses Next.js App Router. To run locally:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000` to view the landing page. Tenant and platform
+pages are accessible at:
+
+- `http://localhost:3000/acme/dashboard`
+- `http://localhost:3000/acme/members`
+- `http://localhost:3000/acme/trainers`
+- `http://localhost:3000/acme/billing`
+- `http://localhost:3000/platform`
+- `http://localhost:3000/platform/tenants`
+- `http://localhost:3000/platform/plans`
+
+---
+
+## 8. Billing Logic
 **Platform Billing (Gym → SaaS):**
 - Stripe subscription per tenant.
 - Plan limits enforced (members, trainers, locations).
@@ -199,7 +221,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 8. Security & Scaling Considerations
+## 9. Security & Scaling Considerations
 - Postgres RLS and strict tenant_id scoping.
 - JWT short TTL + refresh tokens.
 - Rate limiting per tenant.
