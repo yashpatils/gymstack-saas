@@ -79,6 +79,32 @@ const churnSignals = [
 
 const pieColors = ["#a78bfa", "#60a5fa", "#fbbf24", "#34d399"];
 
+const growthBars = [
+  { label: "Mon", value: 48 },
+  { label: "Tue", value: 62 },
+  { label: "Wed", value: 70 },
+  { label: "Thu", value: 54 },
+  { label: "Fri", value: 86 },
+  { label: "Sat", value: 78 },
+  { label: "Sun", value: 58 },
+];
+
+const attendancePoints = [
+  { label: "6am", value: 30, left: "6%" },
+  { label: "8am", value: 58, left: "22%" },
+  { label: "10am", value: 68, left: "38%" },
+  { label: "12pm", value: 42, left: "54%" },
+  { label: "4pm", value: 76, left: "70%" },
+  { label: "7pm", value: 90, left: "86%" },
+];
+
+const segmentMix = [
+  { label: "Memberships", value: 52 },
+  { label: "PT", value: 28 },
+  { label: "Retail", value: 12 },
+  { label: "Corporate", value: 8 },
+];
+
 export default function TenantDashboardPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10 text-slate-100">
