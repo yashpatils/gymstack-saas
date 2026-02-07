@@ -1,5 +1,11 @@
 import React from "react";
 
+const staticTenants = ["atlas-fitness", "north-peak"];
+
+export function generateStaticParams() {
+  return staticTenants.map((tenant) => ({ tenant }));
+}
+
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Members", href: "/members" },
