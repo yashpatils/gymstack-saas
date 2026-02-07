@@ -1,7 +1,6 @@
 import React from "react";
 
-type ButtonProps = {
-  children: React.ReactNode;
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "default" | "secondary" | "outline" | "ghost";
   className?: string;
 };
@@ -17,6 +16,7 @@ export function Button({
   children,
   variant = "default",
   className,
+  ...props
 }: ButtonProps) {
   return (
     <button
