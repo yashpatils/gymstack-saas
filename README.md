@@ -230,7 +230,7 @@ pages are accessible at:
 
 ---
 
-## 9. MVP vs Full SaaS Roadmap
+## 10. MVP vs Full SaaS Roadmap
 **MVP:**
 - Tenant isolation (single gym only)
 - Member management
@@ -247,7 +247,7 @@ pages are accessible at:
 
 ---
 
-## 10. Tech Stack Justification
+## 11. Tech Stack Justification
 - **Next.js:** fast SSR, modular routing.
 - **NestJS:** structured architecture and RBAC middleware.
 - **Postgres + RLS:** enforce tenant boundaries at DB level.
