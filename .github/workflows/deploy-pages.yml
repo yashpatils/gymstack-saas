@@ -30,9 +30,13 @@ jobs:
       - name: Install dependencies
         run: npm install --prefix frontend
 
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
       - name: Build static site
         env:
-          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: npm run build --prefix frontend
 
       - name: Upload Pages artifact
