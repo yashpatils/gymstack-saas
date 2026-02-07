@@ -186,7 +186,58 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 7. Billing Logic
+## 7. Frontend Local Preview
+The frontend lives in `frontend/` and uses Next.js App Router. To run locally:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000` to view the landing page. Tenant and platform
+pages are accessible at:
+
+- `http://localhost:3000/acme/dashboard`
+- `http://localhost:3000/acme/members`
+- `http://localhost:3000/acme/trainers`
+- `http://localhost:3000/acme/billing`
+- `http://localhost:3000/platform`
+- `http://localhost:3000/platform/tenants`
+- `http://localhost:3000/platform/plans`
+
+---
+
+## 8. Publish the frontend package to GitHub Packages
+GitHub Packages requires scoped package names and authentication via a personal
+access token (classic) with `read:packages` and `write:packages` scopes.
+
+1. Export your token (or set it in your shell profile):
+
+   ```bash
+   export GITHUB_TOKEN=YOUR_TOKEN
+   ```
+
+2. Ensure the frontend `.npmrc` has the GitHub Packages scope and registry:
+
+   ```
+   @gymstack-saas:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+   ```
+
+   If your GitHub organization or username differs, update the scope in both
+   `frontend/.npmrc` and `frontend/package.json`.
+
+3. Publish the package:
+
+   ```bash
+   cd frontend
+   npm publish
+   ```
+
+---
+
+## 9. Billing Logic
 **Platform Billing (Gym → SaaS):**
 - Stripe subscription per tenant.
 - Plan limits enforced (members, trainers, locations).
@@ -199,7 +250,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 8. Security & Scaling Considerations
+## 10. Security & Scaling Considerations
 - Postgres RLS and strict tenant_id scoping.
 - JWT short TTL + refresh tokens.
 - Rate limiting per tenant.
@@ -208,7 +259,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 9. MVP vs Full SaaS Roadmap
+## 11. MVP vs Full SaaS Roadmap
 **MVP:**
 - Tenant isolation (single gym only)
 - Member management
@@ -225,7 +276,7 @@ export class TenantGuard implements CanActivate {
 
 ---
 
-## 10. Tech Stack Justification
+## 12. Tech Stack Justification
 - **Next.js:** fast SSR, modular routing.
 - **NestJS:** structured architecture and RBAC middleware.
 - **Postgres + RLS:** enforce tenant boundaries at DB level.
