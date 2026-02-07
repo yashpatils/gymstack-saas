@@ -195,6 +195,7 @@ npm install
 npm run dev
 ```
 
+<<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
 You can also run the frontend from the repo root:
 
 ```bash
@@ -202,6 +203,8 @@ npm install --prefix frontend
 npm run dev
 ```
 
+=======
+>>>>>>> main
 Then open `http://localhost:3000` to view the landing page. Tenant and platform
 pages are accessible at:
 
@@ -213,6 +216,7 @@ pages are accessible at:
 - `http://localhost:3000/platform/tenants`
 - `http://localhost:3000/platform/plans`
 
+<<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
 The backend is currently a skeleton (see `backend/src/guards/tenant.guard.ts`),
 so the UI runs in preview mode without live data until the API is wired up.
 
@@ -239,6 +243,11 @@ Example routes:
 ---
 
 ## 9. Billing Logic
+=======
+---
+
+## 8. Billing Logic
+>>>>>>> main
 **Platform Billing (Gym → SaaS):**
 - Stripe subscription per tenant.
 - Plan limits enforced (members, trainers, locations).
@@ -251,7 +260,11 @@ Example routes:
 
 ---
 
+<<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
 ## 10. Security & Scaling Considerations
+=======
+## 9. Security & Scaling Considerations
+>>>>>>> main
 - Postgres RLS and strict tenant_id scoping.
 - JWT short TTL + refresh tokens.
 - Rate limiting per tenant.
@@ -260,7 +273,11 @@ Example routes:
 
 ---
 
+<<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
 ## 11. MVP vs Full SaaS Roadmap
+=======
+## 10. MVP vs Full SaaS Roadmap
+>>>>>>> main
 **MVP:**
 - Tenant isolation (single gym only)
 - Member management
@@ -277,7 +294,11 @@ Example routes:
 
 ---
 
+<<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
 ## 12. Tech Stack Justification
+=======
+## 11. Tech Stack Justification
+>>>>>>> main
 - **Next.js:** fast SSR, modular routing.
 - **NestJS:** structured architecture and RBAC middleware.
 - **Postgres + RLS:** enforce tenant boundaries at DB level.

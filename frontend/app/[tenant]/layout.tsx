@@ -31,7 +31,3 @@ export default function TenantLayout({
     </div>
   );
 }
-
-export function generateStaticParams() {
-  return [{ tenant: "acme" }];
-}
