@@ -55,6 +55,7 @@ main {
   max-width: 1200px;
   margin: 0 auto;
   padding: 32px 24px 80px;
+  animation: page-enter 0.5s ease both;
 }
 
 .page-header {
@@ -97,6 +98,12 @@ main {
   border-radius: 16px;
   padding: 20px;
   box-shadow: var(--glow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.6);
 }
 
 .card h3 {
@@ -159,18 +166,30 @@ main {
   color: #0b1120;
   cursor: pointer;
   box-shadow: 0 14px 32px rgba(76, 29, 149, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(76, 29, 149, 0.45);
+}
+
+.button:active {
+  transform: translateY(0);
 }
 
 .button.secondary {
   background: rgba(15, 23, 42, 0.6);
   color: var(--ink-700);
   border: 1px solid var(--border);
+  box-shadow: none;
 }
 
 .button.ghost {
   background: transparent;
   color: var(--ink-700);
   border: 1px dashed rgba(148, 163, 184, 0.35);
+  box-shadow: none;
 }
 
 .section {
@@ -524,6 +543,12 @@ main {
   color: var(--ink-700);
   background: rgba(15, 23, 42, 0.8);
   font-weight: 500;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.nav-item:hover {
+  transform: translateX(4px);
+  background: rgba(30, 41, 59, 0.9);
 }
 
 .session-card {
@@ -563,6 +588,7 @@ main {
   display: grid;
   gap: 20px;
   box-shadow: var(--shadow);
+  animation: hero-glow 10s ease infinite;
 }
 
 .hero h1 {
@@ -603,6 +629,79 @@ main {
   display: grid;
   gap: 12px;
   border: 1px solid var(--border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cta-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.skeleton {
+  border-radius: 12px;
+  background: linear-gradient(
+    120deg,
+    rgba(148, 163, 184, 0.12) 0%,
+    rgba(148, 163, 184, 0.28) 50%,
+    rgba(148, 163, 184, 0.12) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 12px;
+}
+
+.skeleton-line.short {
+  width: 40%;
+}
+
+.skeleton-line.medium {
+  width: 70%;
+}
+
+.skeleton-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.empty-state {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  text-align: left;
+}
+
+.empty-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(139, 92, 246, 0.18);
+  color: #c4b5fd;
+  font-weight: 700;
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.empty-description {
+  margin: 6px 0 0;
+  color: var(--ink-600);
+  font-size: 14px;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .tabs {
