@@ -5,10 +5,42 @@ import {
   PageHeader,
   PageShell,
   SectionTitle,
+  StatCard,
   Table,
 } from "../../components/ui";
 
 export default function TenantBillingPage() {
+  const invoices = [
+    {
+      id: "INV-2024-0913",
+      date: "Sep 01, 2024",
+      amount: "$12,480.00",
+      status: "Paid",
+      method: "Visa •••• 4242",
+    },
+    {
+      id: "INV-2024-0862",
+      date: "Aug 01, 2024",
+      amount: "$12,480.00",
+      status: "Paid",
+      method: "Visa •••• 4242",
+    },
+    {
+      id: "INV-2024-0725",
+      date: "Jul 01, 2024",
+      amount: "$11,920.00",
+      status: "Paid",
+      method: "ACH •• 7831",
+    },
+    {
+      id: "INV-2024-0630",
+      date: "Jun 01, 2024",
+      amount: "$11,640.00",
+      status: "Processing",
+      method: "ACH •• 7831",
+    },
+  ];
+
   return (
     <PageShell>
       <PageHeader
@@ -18,10 +50,10 @@ export default function TenantBillingPage() {
       />
 
       <div className="grid grid-3">
-        <Card
-          title="Monthly recurring revenue"
-          description="$84,120 across active memberships."
-          footer={<Badge tone="success">+8% this month</Badge>}
+        <StatCard
+          label="Monthly recurring revenue"
+          value="$84,120"
+          detail="+8% from last month"
         />
         <Card
           title="Plan upgrades"
