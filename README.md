@@ -206,9 +206,6 @@ pages are accessible at:
 - `http://localhost:3000/platform/tenants`
 - `http://localhost:3000/platform/plans`
 
-The backend is currently a skeleton (see `backend/src/guards/tenant.guard.ts`),
-so the UI runs in preview mode without live data until the API is wired up.
-
 ---
 
 ## 8. Billing Logic
