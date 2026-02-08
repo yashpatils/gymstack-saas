@@ -8,10 +8,32 @@ import {
   CardHeader,
   CardTitle,
 } from "./components/ui";
-import { useBackendAction } from "./components/use-backend-action";
+import { useState } from "react";
 
 export default function LandingPage() {
-  const { backendResponse, callBackend } = useBackendAction();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const [backendStatus, setBackendStatus] = useState<string | null>(null);
+  const [backendError, setBackendError] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<string | null>(null);
+
+  const handleBackendRequest = async (action: string) => {
+    setLastAction(action);
+    setBackendError(null);
+    try {
+      if (!apiUrl) {
+        throw new Error("Missing backend URL");
+      }
+      const response = await fetch(`${apiUrl}/health`);
+      if (!response.ok) {
+        throw new Error("Backend response error");
+      }
+      const data = await response.json();
+      setBackendStatus(data?.status ?? "ok");
+    } catch (error) {
+      setBackendStatus(null);
+      setBackendError("Unable to reach backend");
+    }
+  };
 
   return (
     <div className="relative overflow-hidden">
@@ -46,11 +68,11 @@ export default function LandingPage() {
             <Button
               variant="ghost"
               className="hidden lg:inline-flex"
-              onClick={() => callBackend("Sign in")}
+              onClick={() => handleBackendRequest("Sign in")}
             >
               Sign in
             </Button>
-            <Button onClick={() => callBackend("Book a demo")}>
+            <Button onClick={() => handleBackendRequest("Book a demo")}>
               Book a demo
             </Button>
           </div>
@@ -73,22 +95,26 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" onClick={() => callBackend("Start free")}>
+              <Button size="lg" onClick={() => handleBackendRequest("Start free")}>
                 Start free
               </Button>
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={() => callBackend("See the platform")}
+                onClick={() => handleBackendRequest("See the platform")}
               >
                 See the platform
               </Button>
             </div>
-            {backendResponse && (
-              <p className="text-sm text-slate-300">
-                Backend response: {backendResponse}
-              </p>
-            )}
+            <div className="space-y-1 text-sm text-slate-300">
+              {backendStatus && (
+                <p>
+                  Backend status{lastAction ? ` (${lastAction})` : ""}:{" "}
+                  {backendStatus}
+                </p>
+              )}
+              {backendError && <p className="text-rose-300">{backendError}</p>}
+            </div>
             <div className="flex flex-wrap gap-6 text-sm text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -172,7 +198,7 @@ export default function LandingPage() {
             </div>
             <Button
               variant="outline"
-              onClick={() => callBackend("Explore platform")}
+              onClick={() => handleBackendRequest("Explore platform")}
             >
               Explore platform
             </Button>
@@ -317,7 +343,7 @@ export default function LandingPage() {
             </div>
             <Button
               variant="outline"
-              onClick={() => callBackend("Compare plans")}
+              onClick={() => handleBackendRequest("Compare plans")}
             >
               Compare plans
             </Button>
@@ -380,7 +406,7 @@ export default function LandingPage() {
                 <Button
                   className="mt-8 w-full"
                   variant={plan.highlight ? "default" : "secondary"}
-                  onClick={() => callBackend(`Choose ${plan.title}`)}
+                  onClick={() => handleBackendRequest(`Choose ${plan.title}`)}
                 >
                   Choose {plan.title}
                 </Button>
@@ -401,7 +427,7 @@ export default function LandingPage() {
             </div>
             <Button
               variant="outline"
-              onClick={() => callBackend("Read case studies")}
+              onClick={() => handleBackendRequest("Read case studies")}
             >
               Read case studies
             </Button>
@@ -442,13 +468,13 @@ export default function LandingPage() {
               revenue, training, and member journeys.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" onClick={() => callBackend("Start free")}>
+              <Button size="lg" onClick={() => handleBackendRequest("Start free")}>
                 Start free
               </Button>
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={() => callBackend("Talk to sales")}
+                onClick={() => handleBackendRequest("Talk to sales")}
               >
                 Talk to sales
               </Button>
