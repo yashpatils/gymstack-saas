@@ -1,14 +1,10 @@
-"use client";
-
 import {
-  Button,
-  PageHeader,
   PageShell,
   SectionTitle,
   StatCard,
 } from "../components/ui";
 import { TenantRoleSnapshot } from "../components/tenant-role-snapshot";
-import { useBackendAction } from "../components/use-backend-action";
+import { TenantHomeHeader } from "./tenant-home-header";
 
 const staticTenants = ["atlas-fitness", "north-peak"];
 
@@ -21,24 +17,9 @@ export default function TenantHomePage({
 }: {
   params: { tenant: string };
 }) {
-  const { backendResponse, callBackend } = useBackendAction();
-
   return (
     <PageShell>
-      <PageHeader
-        title="Welcome back"
-        subtitle="Start with a quick snapshot or head straight to your daily operations."
-        actions={
-          <Button onClick={() => callBackend("Open dashboard")}>
-            Open dashboard
-          </Button>
-        }
-      />
-      {backendResponse ? (
-        <p className="text-sm text-slate-400">
-          Backend response: {backendResponse}
-        </p>
-      ) : null}
+      <TenantHomeHeader />
 
       <div className="grid grid-3">
         <StatCard
