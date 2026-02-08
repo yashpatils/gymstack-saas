@@ -7,6 +7,8 @@ import {
   CardTitle,
 } from "./components/ui";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function LandingPage() {
   return (
     <div className="relative overflow-hidden">
