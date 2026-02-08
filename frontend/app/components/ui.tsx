@@ -2,6 +2,7 @@ import React from "react";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "default" | "secondary" | "outline" | "ghost";
+  size?: "md" | "lg";
   className?: string;
 };
 
@@ -15,12 +16,14 @@ const buttonVariants: Record<NonNullable<ButtonProps["variant"]>, string> = {
 export function Button({
   children,
   variant = "default",
+  size = "md",
   className,
   ...props
 }: ButtonProps) {
   return (
     <button
-      className={`${buttonVariants[variant]} ${className ?? ""}`}
+      className={`${buttonVariants[variant]} ${size} ${className ?? ""}`}
+      {...props}
     >
       {children}
     </button>
