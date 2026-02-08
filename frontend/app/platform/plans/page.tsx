@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Badge,
   Button,
@@ -7,15 +9,27 @@ import {
   SectionTitle,
   Table,
 } from "../../components/ui";
+import { useBackendAction } from "../../components/use-backend-action";
 
 export default function PlatformPlansPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   return (
     <PageShell>
       <PageHeader
         title="Platform Plans"
         subtitle="Design and price subscription packages for tenant gyms."
-        actions={<Button>Create plan</Button>}
+        actions={
+          <Button onClick={() => callBackend("Create plan")}>
+            Create plan
+          </Button>
+        }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <Card

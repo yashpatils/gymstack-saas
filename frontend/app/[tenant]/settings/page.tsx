@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Badge,
   Button,
@@ -6,6 +8,7 @@ import {
   PageShell,
   SectionTitle,
 } from "../../components/ui";
+import { useBackendAction } from "../../components/use-backend-action";
 
 const rolePermissions = [
   {
@@ -86,6 +89,8 @@ const auditRows = [
 ];
 
 export default function TenantSettingsPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   return (
     <PageShell>
       <PageHeader
@@ -93,11 +98,23 @@ export default function TenantSettingsPage() {
         subtitle="Design role-based access across teams, locations, and compliance needs."
         actions={
           <div className="pill-row">
-            <Button variant="secondary">Export roles</Button>
-            <Button>Invite staff</Button>
+            <Button
+              variant="secondary"
+              onClick={() => callBackend("Export roles")}
+            >
+              Export roles
+            </Button>
+            <Button onClick={() => callBackend("Invite staff")}>
+              Invite staff
+            </Button>
           </div>
         }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <Card
@@ -121,16 +138,36 @@ export default function TenantSettingsPage() {
         <SectionTitle>Role workspace</SectionTitle>
         <div className="tabs">
           <div className="tab-list" role="tablist" aria-label="Role settings">
-            <button className="tab active" role="tab" aria-selected>
+            <button
+              className="tab active"
+              role="tab"
+              aria-selected
+              onClick={() => callBackend("Roles tab")}
+            >
               Roles
             </button>
-            <button className="tab" role="tab" aria-selected={false}>
+            <button
+              className="tab"
+              role="tab"
+              aria-selected={false}
+              onClick={() => callBackend("Permissions tab")}
+            >
               Permissions
             </button>
-            <button className="tab" role="tab" aria-selected={false}>
+            <button
+              className="tab"
+              role="tab"
+              aria-selected={false}
+              onClick={() => callBackend("Approval flow tab")}
+            >
               Approval flow
             </button>
-            <button className="tab" role="tab" aria-selected={false}>
+            <button
+              className="tab"
+              role="tab"
+              aria-selected={false}
+              onClick={() => callBackend("Audit log tab")}
+            >
               Audit log
             </button>
           </div>
@@ -144,7 +181,12 @@ export default function TenantSettingsPage() {
                   footer={
                     <div className="role-footer">
                       <Badge tone={role.tone}>{role.members}</Badge>
-                      <Button variant="ghost">Edit role</Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => callBackend("Edit role")}
+                      >
+                        Edit role
+                      </Button>
                     </div>
                   }
                 >

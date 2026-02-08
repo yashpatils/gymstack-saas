@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 import {
@@ -9,8 +11,11 @@ import {
   SectionTitle,
   Table,
 } from "../../components/ui";
+import { useBackendAction } from "../../components/use-backend-action";
 
 export default function TenantTrainersPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   const days = [
     "Monday",
     "Tuesday",
@@ -99,8 +104,17 @@ export default function TenantTrainersPage() {
       <PageHeader
         title="Trainers"
         subtitle="Balance coverage, manage availability, and track trainer impact."
-        actions={<Button>Schedule session</Button>}
+        actions={
+          <Button onClick={() => callBackend("Schedule session")}>
+            Schedule session
+          </Button>
+        }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <Card
@@ -133,8 +147,18 @@ export default function TenantTrainersPage() {
               </p>
             </div>
             <div className="calendar-actions">
-              <Button variant="secondary">Add session</Button>
-              <Button variant="ghost">Sync trainers</Button>
+              <Button
+                variant="secondary"
+                onClick={() => callBackend("Add session")}
+              >
+                Add session
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => callBackend("Sync trainers")}
+              >
+                Sync trainers
+              </Button>
             </div>
           </div>
           <div className="calendar-grid">

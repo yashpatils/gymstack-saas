@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Badge,
   Button,
@@ -7,15 +9,27 @@ import {
   SectionTitle,
   Table,
 } from "../../components/ui";
+import { useBackendAction } from "../../components/use-backend-action";
 
 export default function PlatformTenantsPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   return (
     <PageShell>
       <PageHeader
         title="Tenant Directory"
         subtitle="Monitor onboarding, health, and expansion opportunities."
-        actions={<Button>Invite tenant</Button>}
+        actions={
+          <Button onClick={() => callBackend("Invite tenant")}>
+            Invite tenant
+          </Button>
+        }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <Card

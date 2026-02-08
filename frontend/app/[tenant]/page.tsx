@@ -1,11 +1,10 @@
 import {
-  Button,
-  PageHeader,
   PageShell,
   SectionTitle,
   StatCard,
 } from "../components/ui";
 import { TenantRoleSnapshot } from "../components/tenant-role-snapshot";
+import { TenantHomeHeader } from "./tenant-home-header";
 
 const staticTenants = ["atlas-fitness", "north-peak"];
 
@@ -20,11 +19,7 @@ export default function TenantHomePage({
 }) {
   return (
     <PageShell>
-      <PageHeader
-        title="Welcome back"
-        subtitle="Start with a quick snapshot or head straight to your daily operations."
-        actions={<Button>Open dashboard</Button>}
-      />
+      <TenantHomeHeader />
 
       <div className="grid grid-3">
         <StatCard

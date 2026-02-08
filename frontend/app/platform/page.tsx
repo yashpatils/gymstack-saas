@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Badge,
   Button,
@@ -7,15 +9,27 @@ import {
   SectionTitle,
   StatCard,
 } from "../components/ui";
+import { useBackendAction } from "../components/use-backend-action";
 
 export default function PlatformOverviewPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   return (
     <PageShell>
       <PageHeader
         title="Platform Overview"
         subtitle="Track tenant success, revenue, and platform reliability at a glance."
-        actions={<Button>Generate report</Button>}
+        actions={
+          <Button onClick={() => callBackend("Generate report")}>
+            Generate report
+          </Button>
+        }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <StatCard

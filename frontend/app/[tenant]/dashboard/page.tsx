@@ -16,6 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useBackendAction } from "../../components/use-backend-action";
 
 const kpis = [
   {
@@ -106,6 +107,8 @@ const segmentMix = [
 ];
 
 export default function TenantDashboardPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10 text-slate-100">
       <header className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-950/70 p-6 shadow-[0_24px_60px_rgba(2,6,23,0.55)] md:flex-row md:items-center md:justify-between">
@@ -123,14 +126,25 @@ export default function TenantDashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button className="rounded-full bg-violet-500 px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-violet-500/30">
+          <button
+            className="rounded-full bg-violet-500 px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-violet-500/30"
+            onClick={() => callBackend("Create report")}
+          >
             Create report
           </button>
-          <button className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-slate-200">
+          <button
+            className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-slate-200"
+            onClick={() => callBackend("Invite staff")}
+          >
             Invite staff
           </button>
         </div>
       </header>
+      {backendResponse ? (
+        <p className="-mt-6 text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
