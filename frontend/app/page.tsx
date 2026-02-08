@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 import {
   Badge,
   Button,
@@ -10,6 +14,19 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function LandingPage() {
+  const [backendResponse, setBackendResponse] = useState<string | null>(null);
+
+  const handleStartFree = async () => {
+    if (!API_URL) {
+      setBackendResponse("Missing NEXT_PUBLIC_API_URL configuration.");
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/health`);
+    const data = await response.json();
+    setBackendResponse(JSON.stringify(data));
+  };
+
   return (
     <div className="relative overflow-hidden">
       <header className="border-b border-white/5">
@@ -64,11 +81,18 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg">Start free</Button>
+              <Button size="lg" onClick={handleStartFree}>
+                Start free
+              </Button>
               <Button size="lg" variant="secondary">
                 See the platform
               </Button>
             </div>
+            {backendResponse && (
+              <p className="text-sm text-slate-300">
+                Backend response: {backendResponse}
+              </p>
+            )}
             <div className="flex flex-wrap gap-6 text-sm text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
