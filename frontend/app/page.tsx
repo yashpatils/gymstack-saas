@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import {
   Badge,
   Button,
@@ -10,22 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "./components/ui";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { useBackendAction } from "./components/use-backend-action";
 
 export default function LandingPage() {
-  const [backendResponse, setBackendResponse] = useState<string | null>(null);
-
-  const handleStartFree = async () => {
-    if (!API_URL) {
-      setBackendResponse("Missing NEXT_PUBLIC_API_URL configuration.");
-      return;
-    }
-
-    const response = await fetch(`${API_URL}/health`);
-    const data = await response.json();
-    setBackendResponse(JSON.stringify(data));
-  };
+  const { backendResponse, callBackend } = useBackendAction();
 
   return (
     <div className="relative overflow-hidden">
@@ -57,10 +43,16 @@ export default function LandingPage() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="hidden lg:inline-flex">
+            <Button
+              variant="ghost"
+              className="hidden lg:inline-flex"
+              onClick={() => callBackend("Sign in")}
+            >
               Sign in
             </Button>
-            <Button>Book a demo</Button>
+            <Button onClick={() => callBackend("Book a demo")}>
+              Book a demo
+            </Button>
           </div>
         </div>
       </header>
@@ -81,10 +73,14 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" onClick={handleStartFree}>
+              <Button size="lg" onClick={() => callBackend("Start free")}>
                 Start free
               </Button>
-              <Button size="lg" variant="secondary">
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={() => callBackend("See the platform")}
+              >
                 See the platform
               </Button>
             </div>
@@ -174,7 +170,12 @@ export default function LandingPage() {
                 Designed for operators who scale fast.
               </h2>
             </div>
-            <Button variant="outline">Explore platform</Button>
+            <Button
+              variant="outline"
+              onClick={() => callBackend("Explore platform")}
+            >
+              Explore platform
+            </Button>
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             {[
@@ -314,7 +315,12 @@ export default function LandingPage() {
                 Predictable pricing that grows with your portfolio.
               </h2>
             </div>
-            <Button variant="outline">Compare plans</Button>
+            <Button
+              variant="outline"
+              onClick={() => callBackend("Compare plans")}
+            >
+              Compare plans
+            </Button>
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             {[
@@ -374,6 +380,7 @@ export default function LandingPage() {
                 <Button
                   className="mt-8 w-full"
                   variant={plan.highlight ? "default" : "secondary"}
+                  onClick={() => callBackend(`Choose ${plan.title}`)}
                 >
                   Choose {plan.title}
                 </Button>
@@ -392,7 +399,12 @@ export default function LandingPage() {
                 Operators switching to GymStack move faster.
               </h2>
             </div>
-            <Button variant="outline">Read case studies</Button>
+            <Button
+              variant="outline"
+              onClick={() => callBackend("Read case studies")}
+            >
+              Read case studies
+            </Button>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             {[
@@ -430,8 +442,14 @@ export default function LandingPage() {
               revenue, training, and member journeys.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg">Start free</Button>
-              <Button size="lg" variant="secondary">
+              <Button size="lg" onClick={() => callBackend("Start free")}>
+                Start free
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={() => callBackend("Talk to sales")}
+              >
                 Talk to sales
               </Button>
             </div>

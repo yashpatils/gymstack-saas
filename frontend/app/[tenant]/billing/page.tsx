@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Badge,
   Button,
@@ -8,8 +10,11 @@ import {
   StatCard,
   Table,
 } from "../../components/ui";
+import { useBackendAction } from "../../components/use-backend-action";
 
 export default function TenantBillingPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   const invoices = [
     {
       id: "INV-2024-0913",
@@ -46,8 +51,15 @@ export default function TenantBillingPage() {
       <PageHeader
         title="Membership plan management"
         subtitle="Design, launch, and maintain membership offerings with clear pricing, perks, and renewal controls."
-        actions={<Button>New plan</Button>}
+        actions={
+          <Button onClick={() => callBackend("New plan")}>New plan</Button>
+        }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <StatCard
@@ -87,8 +99,18 @@ export default function TenantBillingPage() {
               <li>Basic wellness tracking</li>
             </ul>
             <div className="plan-actions">
-              <Button variant="secondary">Edit plan</Button>
-              <Button variant="ghost">Duplicate</Button>
+              <Button
+                variant="secondary"
+                onClick={() => callBackend("Edit plan")}
+              >
+                Edit plan
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => callBackend("Duplicate")}
+              >
+                Duplicate
+              </Button>
             </div>
           </div>
 
@@ -109,8 +131,15 @@ export default function TenantBillingPage() {
               <li>Priority support</li>
             </ul>
             <div className="plan-actions">
-              <Button>Review perks</Button>
-              <Button variant="ghost">Message members</Button>
+              <Button onClick={() => callBackend("Review perks")}>
+                Review perks
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => callBackend("Message members")}
+              >
+                Message members
+              </Button>
             </div>
           </div>
 
@@ -131,8 +160,18 @@ export default function TenantBillingPage() {
               <li>Custom nutrition plan</li>
             </ul>
             <div className="plan-actions">
-              <Button variant="secondary">Adjust pricing</Button>
-              <Button variant="ghost">Pause enrollment</Button>
+              <Button
+                variant="secondary"
+                onClick={() => callBackend("Adjust pricing")}
+              >
+                Adjust pricing
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => callBackend("Pause enrollment")}
+              >
+                Pause enrollment
+              </Button>
             </div>
           </div>
         </div>
@@ -141,7 +180,12 @@ export default function TenantBillingPage() {
       <section className="section">
         <div className="section-split">
           <SectionTitle>Plan activity</SectionTitle>
-          <Button variant="secondary">Export report</Button>
+          <Button
+            variant="secondary"
+            onClick={() => callBackend("Export report")}
+          >
+            Export report
+          </Button>
         </div>
         <Card title="Active plans" description="Configure pricing, perks, and enrollment status.">
           <Table
@@ -195,8 +239,15 @@ export default function TenantBillingPage() {
                 </div>
               </div>
               <div className="modal-actions">
-                <Button variant="secondary">Save draft</Button>
-                <Button>Publish plan</Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => callBackend("Save draft")}
+                >
+                  Save draft
+                </Button>
+                <Button onClick={() => callBackend("Publish plan")}>
+                  Publish plan
+                </Button>
               </div>
             </div>
           </div>
@@ -226,8 +277,15 @@ export default function TenantBillingPage() {
                 </div>
               </div>
               <div className="modal-actions">
-                <Button variant="ghost">Cancel</Button>
-                <Button variant="secondary">Schedule pause</Button>
+                <Button variant="ghost" onClick={() => callBackend("Cancel")}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => callBackend("Schedule pause")}
+                >
+                  Schedule pause
+                </Button>
               </div>
             </div>
           </div>

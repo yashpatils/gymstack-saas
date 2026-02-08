@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Badge,
   Button,
@@ -9,8 +11,11 @@ import {
   Skeleton,
   Table,
 } from "../../components/ui";
+import { useBackendAction } from "../../components/use-backend-action";
 
 export default function TenantMembersPage() {
+  const { backendResponse, callBackend } = useBackendAction();
+
   return (
     <PageShell>
       <PageHeader
@@ -18,11 +23,23 @@ export default function TenantMembersPage() {
         subtitle="Manage member profiles, memberships, and engagement touchpoints."
         actions={
           <div className="pill-row">
-            <Button variant="secondary">Export roster</Button>
-            <Button>Add member</Button>
+            <Button
+              variant="secondary"
+              onClick={() => callBackend("Export roster")}
+            >
+              Export roster
+            </Button>
+            <Button onClick={() => callBackend("Add member")}>
+              Add member
+            </Button>
           </div>
         }
       />
+      {backendResponse ? (
+        <p className="text-sm text-slate-400">
+          Backend response: {backendResponse}
+        </p>
+      ) : null}
 
       <div className="grid grid-3">
         <Card
@@ -86,7 +103,14 @@ export default function TenantMembersPage() {
               title="No milestones today"
               description="Next birthday and anniversary alerts will appear here."
               icon={<span>★</span>}
-              actions={<Button variant="secondary">Schedule highlight</Button>}
+              actions={
+                <Button
+                  variant="secondary"
+                  onClick={() => callBackend("Schedule highlight")}
+                >
+                  Schedule highlight
+                </Button>
+              }
             />
           </Card>
         </div>
