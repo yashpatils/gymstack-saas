@@ -12,7 +12,7 @@ type SubscriptionPayload = {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private readonly stripe: Stripe | null;
+  private stripe?: Stripe;
 
   constructor(private readonly configService: ConfigService) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
@@ -20,19 +20,24 @@ export class BillingService {
       this.logger.warn(
         'Stripe is not configured. Missing STRIPE_SECRET_KEY; Stripe features will be unavailable.',
       );
-      this.stripe = null;
       return;
     }
+
+    this.stripe = new Stripe(secretKey);
   }
 
   private ensureStripeConfigured(): Stripe {
     if (!this.stripe) {
-      throw new Error('Stripe is not configured on this environment.');
+      throw new Error('Stripe is not configured');
     }
     return this.stripe;
   }
 
   async createCustomer(email: string, name?: string) {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
     return this.getStripe().customers.create({
       email,
       name,
@@ -40,6 +45,10 @@ export class BillingService {
   }
 
   async createSubscription(payload: SubscriptionPayload) {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
     const stripe = this.ensureStripeConfigured();
     const successUrl =
       payload.successUrl ??
@@ -56,7 +65,7 @@ export class BillingService {
       );
     }
 
-    return this.getStripe().checkout.sessions.create({
+    return stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: payload.customerId,
       line_items: [
@@ -71,7 +80,10 @@ export class BillingService {
   }
 
   handleWebhook(payload: Buffer, signature?: string | string[]) {
-    const stripe = this.ensureStripeConfigured();
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
       throw new Error('Missing STRIPE_WEBHOOK_SECRET configuration.');
@@ -109,7 +121,7 @@ export class BillingService {
 
   private getStripe(): Stripe {
     if (!this.stripe) {
-      throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY.');
+      throw new Error('Stripe is not configured');
     }
 
     return this.stripe;
