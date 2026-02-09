@@ -1,6 +1,8 @@
 import EditGymClient from "./edit-gym-client";
 
-export const dynamic = "force-dynamic";
+export function generateStaticParams() {
+  return [];
+}
 
 export default function EditGymPage({
   params,
