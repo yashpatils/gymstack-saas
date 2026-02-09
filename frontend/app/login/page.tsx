@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "../components/ui";
 
 export default function LoginPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -33,7 +35,15 @@ export default function LoginPage() {
         throw new Error("Login failed");
       }
 
+      const data = (await response.json()) as { accessToken?: string };
+
+      if (!data.accessToken) {
+        throw new Error("Missing access token");
+      }
+
+      localStorage.setItem("accessToken", data.accessToken);
       setMessage("Login successful.");
+      router.push("/dashboard");
     } catch (submitError) {
       setError("Unable to complete login.");
     }
