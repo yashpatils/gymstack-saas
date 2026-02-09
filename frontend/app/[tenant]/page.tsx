@@ -6,11 +6,7 @@ import {
 import { TenantRoleSnapshot } from "../components/tenant-role-snapshot";
 import { TenantHomeHeader } from "./tenant-home-header";
 
-const staticTenants = ["atlas-fitness", "north-peak"];
-
-export function generateStaticParams() {
-  return staticTenants.map((tenant) => ({ tenant }));
-}
+export const dynamic = "force-dynamic";
 
 export default function TenantHomePage({
   params,
