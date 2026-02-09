@@ -7,8 +7,12 @@ import { BillingModule } from './billing/billing.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 100,
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 100,
+        },
+      ],
     }),
     AuthModule,
     BillingModule,
