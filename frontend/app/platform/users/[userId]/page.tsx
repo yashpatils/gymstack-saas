@@ -15,12 +15,11 @@ import { apiFetch } from "../../../lib/api";
 
 type UserDetail = {
   id: string;
-  name: string;
   email: string;
   role?: string;
-  status?: string;
+  subscriptionStatus?: string;
   createdAt?: string;
-  lastActiveAt?: string;
+  updatedAt?: string;
 };
 
 export default function UserDetailPage() {
@@ -101,9 +100,6 @@ export default function UserDetailPage() {
           <Card title="Profile">
             <div className="space-y-2 text-sm text-slate-300">
               <p>
-                <span className="text-slate-400">Name:</span> {user.name}
-              </p>
-              <p>
                 <span className="text-slate-400">Email:</span> {user.email}
               </p>
               <p>
@@ -111,8 +107,8 @@ export default function UserDetailPage() {
                 {user.role ?? "Not assigned"}
               </p>
               <p>
-                <span className="text-slate-400">Status:</span>{" "}
-                {user.status ?? "Active"}
+                <span className="text-slate-400">Subscription:</span>{" "}
+                {user.subscriptionStatus ?? "Unknown"}
               </p>
             </div>
           </Card>
@@ -120,11 +116,15 @@ export default function UserDetailPage() {
             <div className="space-y-2 text-sm text-slate-300">
               <p>
                 <span className="text-slate-400">Created:</span>{" "}
-                {user.createdAt ?? "Unknown"}
+                {user.createdAt
+                  ? new Date(user.createdAt).toLocaleString()
+                  : "Unknown"}
               </p>
               <p>
-                <span className="text-slate-400">Last active:</span>{" "}
-                {user.lastActiveAt ?? "Unknown"}
+                <span className="text-slate-400">Updated:</span>{" "}
+                {user.updatedAt
+                  ? new Date(user.updatedAt).toLocaleString()
+                  : "Unknown"}
               </p>
             </div>
           </Card>

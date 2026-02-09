@@ -15,9 +15,9 @@ import { apiFetch } from "../../lib/api";
 type Gym = {
   id: string;
   name: string;
-  city?: string;
-  status?: string;
-  owner?: string;
+  ownerId: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export default function GymsPage() {
@@ -87,15 +87,14 @@ export default function GymsPage() {
         <p className="text-sm text-slate-400">Loading gyms...</p>
       ) : gyms.length ? (
         <Table
-          headers={["Gym", "City", "Owner", "Status", "Actions"]}
+          headers={["Gym", "Owner", "Updated", "Actions"]}
           rows={gyms.map((gym) => [
             <div key={`name-${gym.id}`}>
               <div className="font-medium text-white">{gym.name}</div>
               <div className="text-xs text-slate-400">{gym.id}</div>
             </div>,
-            gym.city ?? "-",
-            gym.owner ?? "-",
-            gym.status ?? "Active",
+            gym.ownerId,
+            gym.updatedAt ? new Date(gym.updatedAt).toLocaleString() : "-",
             <div key={`actions-${gym.id}`} className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"

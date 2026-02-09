@@ -4,11 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 import { Button } from "../components/ui";
-import { apiFetch } from "../../src/lib/api";
+import { apiFetch } from "../lib/api";
 
 type AuthResponse = {
-  accessToken?: string;
-  message?: string;
+  accessToken: string;
 };
 
 const authSchema = z.object({
@@ -40,25 +39,10 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await apiFetch("/auth/login", {
+      const data = await apiFetch<AuthResponse>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (errorText.includes("Cannot GET")) {
-          setError("Cannot GET: check the login route or HTTP method.");
-          return;
-        }
-        throw new Error(errorText || "Login failed.");
-      }
-
-      const data = (await response.json()) as { accessToken?: string };
-
-      if (!data.accessToken) {
-        throw new Error("Missing access token.");
-      }
 
       localStorage.setItem("accessToken", data.accessToken);
       setMessage("Login successful.");

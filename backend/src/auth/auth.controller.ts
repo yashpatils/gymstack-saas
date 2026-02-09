@@ -21,7 +21,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: { user: MeDto }): MeDto {
+  me(@Req() req: { user: MeDto & { id: string } }): MeDto {
     return { email: req.user.email, role: req.user.role };
   }
 }

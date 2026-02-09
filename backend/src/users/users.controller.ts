@@ -9,15 +9,15 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { Prisma } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
 import { User, UserRole } from './user.model';
 import { UsersService } from './users.service';
 
 @Controller('users')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

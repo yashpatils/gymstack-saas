@@ -11,10 +11,8 @@ import {
 import { apiFetch } from "../../../../lib/api";
 
 type UserForm = {
-  name: string;
   email: string;
   role?: string;
-  status?: string;
 };
 
 type EditUserClientProps = {
@@ -24,10 +22,8 @@ type EditUserClientProps = {
 export default function EditUserClient({ userId }: EditUserClientProps) {
   const router = useRouter();
   const [form, setForm] = useState<UserForm>({
-    name: "",
     email: "",
     role: "",
-    status: "active",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,10 +35,8 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
     try {
       const data = await apiFetch<UserForm>(`/users/${userId}`);
       setForm({
-        name: data.name ?? "",
         email: data.email ?? "",
         role: data.role ?? "",
-        status: data.status ?? "active",
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load user.");
@@ -63,7 +57,7 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
     setError(null);
     try {
       await apiFetch(`/users/${userId}`, {
-        method: "PUT",
+        method: "PATCH",
         body: form,
       });
       router.push(`/platform/users/${userId}`);
@@ -94,17 +88,6 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
         <Card title="User profile">
           <form className="space-y-4" onSubmit={handleSubmit}>
             <label className="grid gap-2 text-sm text-slate-300">
-              Name
-              <input
-                className="input"
-                value={form.name}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                required
-              />
-            </label>
-            <label className="grid gap-2 text-sm text-slate-300">
               Email
               <input
                 className="input"
@@ -124,22 +107,8 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, role: event.target.value }))
                 }
-                placeholder="platform_admin"
+                placeholder="ADMIN"
               />
-            </label>
-            <label className="grid gap-2 text-sm text-slate-300">
-              Status
-              <select
-                className="input"
-                value={form.status ?? "active"}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, status: event.target.value }))
-                }
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </select>
             </label>
             <div className="flex flex-wrap gap-3">
               <Button type="submit" disabled={saving}>

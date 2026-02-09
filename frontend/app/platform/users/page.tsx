@@ -14,10 +14,9 @@ import { apiFetch } from "../../lib/api";
 
 type User = {
   id: string;
-  name: string;
   email: string;
   role?: string;
-  status?: string;
+  subscriptionStatus?: string;
 };
 
 export default function UsersPage() {
@@ -75,15 +74,15 @@ export default function UsersPage() {
         <p className="text-sm text-slate-400">Loading users...</p>
       ) : users.length ? (
         <Table
-          headers={["Name", "Email", "Role", "Status", "Actions"]}
+          headers={["User", "Email", "Role", "Subscription", "Actions"]}
           rows={users.map((user) => [
             <div key={`name-${user.id}`}>
-              <div className="font-medium text-white">{user.name}</div>
+              <div className="font-medium text-white">{user.email}</div>
               <div className="text-xs text-slate-400">{user.id}</div>
             </div>,
             user.email,
             user.role ?? "-",
-            user.status ?? "Active",
+            user.subscriptionStatus ?? "Inactive",
             <div key={`actions-${user.id}`} className="flex flex-wrap gap-2">
               <Button
                 variant="ghost"
@@ -102,9 +101,7 @@ export default function UsersPage() {
                   Delete
                 </Button>
               ) : (
-                <span className="text-xs text-slate-500">
-                  Admin only
-                </span>
+                <span className="text-xs text-slate-500">Admin only</span>
               )}
             </div>,
           ])}

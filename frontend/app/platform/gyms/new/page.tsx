@@ -12,18 +12,12 @@ import { apiFetch } from "../../../lib/api";
 
 type GymForm = {
   name: string;
-  city: string;
-  owner: string;
-  status: string;
 };
 
 export default function NewGymPage() {
   const router = useRouter();
   const [form, setForm] = useState<GymForm>({
     name: "",
-    city: "",
-    owner: "",
-    status: "active",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,40 +62,6 @@ export default function NewGymPage() {
               }
               required
             />
-          </label>
-          <label className="grid gap-2 text-sm text-slate-300">
-            City
-            <input
-              className="input"
-              value={form.city}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, city: event.target.value }))
-              }
-            />
-          </label>
-          <label className="grid gap-2 text-sm text-slate-300">
-            Owner
-            <input
-              className="input"
-              value={form.owner}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, owner: event.target.value }))
-              }
-            />
-          </label>
-          <label className="grid gap-2 text-sm text-slate-300">
-            Status
-            <select
-              className="input"
-              value={form.status}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, status: event.target.value }))
-              }
-            >
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="closed">Closed</option>
-            </select>
           </label>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={saving}>
