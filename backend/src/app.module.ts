@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
-import { AuthModule } from './auth.module';
+import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
+import { GymsModule } from './gyms/gyms.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -21,7 +23,9 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     AuthModule,
     BillingModule,
+    GymsModule,
     PrismaModule,
+    UsersModule,
   ],
   controllers: [AppController],
 })

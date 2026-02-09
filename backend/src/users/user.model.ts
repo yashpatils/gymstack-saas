@@ -1,13 +1,11 @@
 export enum UserRole {
-  Admin = 'admin',
-  Owner = 'owner',
-  Trainer = 'trainer',
-  Member = 'member',
+  Admin = 'ADMIN',
+  Owner = 'OWNER',
+  User = 'USER',
 }
 
 export interface User {
   id: string;
   email: string;
   role: UserRole;
-  tenantId: string;
 }
