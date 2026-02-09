@@ -1,17 +1,35 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Roles } from '../auth/roles.decorator';
-import { RolesGuard } from '../guards/roles.guard';
-import { UserRole } from '../users/user.model';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { GymsService } from './gyms.service';
 
 @Controller('gyms')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class GymsController {
+  constructor(private readonly gymsService: GymsService) {}
+
+  @Get()
+  listGyms() {
+    return this.gymsService.listGyms();
+  }
+
   @Post()
-  @Roles(UserRole.Owner)
-  createGym(
-    @Body() _body: Record<string, unknown>,
-  ): { success: true } {
-    return { success: true };
+  createGym(@Body() data: Record<string, unknown>) {
+    return this.gymsService.createGym(data);
+  }
+
+  @Get(':id')
+  getGym(@Param('id') id: string) {
+    return this.gymsService.getGym(id);
+  }
+
+  @Patch(':id')
+  updateGym(
+    @Param('id') id: string,
+    @Body() data: Record<string, unknown>,
+  ) {
+    return this.gymsService.updateGym(id, data);
+  }
+
+  @Delete(':id')
+  deleteGym(@Param('id') id: string) {
+    return this.gymsService.deleteGym(id);
   }
 }
