@@ -11,14 +11,16 @@ type SubscriptionPayload = {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private readonly stripe?: Stripe;
+  private readonly stripe: Stripe | null;
 
   constructor() {
     const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (secretKey) {
-      this.stripe = new Stripe(secretKey, {
-        apiVersion: '2024-06-20',
-      });
+    if (!secretKey) {
+      this.logger.warn(
+        'Stripe is not configured. Missing STRIPE_SECRET_KEY; Stripe features will be unavailable.',
+      );
+      this.stripe = null;
+      return;
     }
   }
 
@@ -30,8 +32,7 @@ export class BillingService {
   }
 
   async createCustomer(email: string, name?: string) {
-    const stripe = this.ensureStripeConfigured();
-    return stripe.customers.create({
+    return this.getStripe().customers.create({
       email,
       name,
     });
@@ -50,7 +51,7 @@ export class BillingService {
       );
     }
 
-    return stripe.checkout.sessions.create({
+    return this.getStripe().checkout.sessions.create({
       mode: 'subscription',
       customer: payload.customerId,
       line_items: [
@@ -75,7 +76,7 @@ export class BillingService {
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = stripe.webhooks.constructEvent(
+    const event = this.getStripe().webhooks.constructEvent(
       payload,
       sig,
       webhookSecret,
@@ -99,5 +100,13 @@ export class BillingService {
     }
 
     return { received: true };
+  }
+
+  private getStripe(): Stripe {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY.');
+    }
+
+    return this.stripe;
   }
 }
