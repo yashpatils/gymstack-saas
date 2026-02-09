@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { AppModule } from './app.module';
 import express from 'express';
+import { securityConfig } from './config/security.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,7 +13,7 @@ async function bootstrap() {
   app.use(helmet());
   app.use(morgan('combined'));
   if (securityConfig.httpsRedirectEnabled) {
-    app.use((req, res, next) => {
+    app.use((req: any, res: any, next: any) => {
       const isSecure =
         req.secure || req.headers['x-forwarded-proto'] === 'https';
       if (isSecure) {

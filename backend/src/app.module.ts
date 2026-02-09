@@ -5,7 +5,14 @@ import { AuthModule } from './auth.module';
 import { BillingModule } from './billing/billing.module';
 
 @Module({
-  imports: [AuthModule, BillingModule],
+  imports: [
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 100,
+    }),
+    AuthModule,
+    BillingModule,
+  ],
   controllers: [AppController],
 })
 export class AppModule {}
