@@ -1,6 +1,6 @@
 "use client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from "../../src/lib/api";
 
 type CreateCustomerPayload = {
   email: string;
@@ -15,15 +15,8 @@ type CreateSubscriptionPayload = {
 };
 
 export async function createCustomer(payload: CreateCustomerPayload) {
-  if (!API_URL) {
-    throw new Error("Missing NEXT_PUBLIC_API_URL configuration.");
-  }
-
-  const response = await fetch(`${API_URL}/billing/create-customer`, {
+  const response = await apiFetch("/billing/create-customer", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(payload),
   });
 
@@ -35,15 +28,8 @@ export async function createCustomer(payload: CreateCustomerPayload) {
 }
 
 export async function createSubscription(payload: CreateSubscriptionPayload) {
-  if (!API_URL) {
-    throw new Error("Missing NEXT_PUBLIC_API_URL configuration.");
-  }
-
-  const response = await fetch(`${API_URL}/billing/create-subscription`, {
+  const response = await apiFetch("/billing/create-subscription", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(payload),
   });
 
