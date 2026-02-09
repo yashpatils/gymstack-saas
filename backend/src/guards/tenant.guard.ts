@@ -11,11 +11,11 @@ export class TenantGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user?.tenantId) {
-      throw new UnauthorizedException('Missing tenant context');
+    if (!user?.userId) {
+      throw new UnauthorizedException('Missing user context');
     }
 
-    request.tenantId = user.tenantId;
+    request.userId = user.userId;
     return true;
   }
 }

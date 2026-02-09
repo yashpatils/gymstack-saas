@@ -7,16 +7,20 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id           String   @id @default(uuid())
-  email        String
-  passwordHash String
-  tenantId     String
-  role         String   @default("member")
-  gyms         Gym[]
-  createdAt    DateTime @default(now())
+enum Role {
+  ADMIN
+  OWNER
+  USER
+}
 
-  @@unique([email, tenantId])
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  gyms      Gym[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Gym {
@@ -25,4 +29,5 @@ model Gym {
   ownerId   String
   owner     User     @relation(fields: [ownerId], references: [id])
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

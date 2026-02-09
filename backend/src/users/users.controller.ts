@@ -1,18 +1,38 @@
-import { Body, Controller, Delete, Get, Param, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { Prisma } from '@prisma/client';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../guards/roles.guard';
+import { User, UserRole } from './user.model';
 import { UsersService } from './users.service';
 
 @Controller('users')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @Roles(UserRole.Admin)
   listUsers() {
     return this.usersService.listUsers();
   }
 
   @Get(':id')
-  getUser(@Param('id') id: string) {
+  getUser(@Param('id') id: string, @Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user || (user.role !== UserRole.Admin && user.id !== id)) {
+      throw new ForbiddenException('Insufficient role');
+    }
     return this.usersService.getUser(id);
   }
 
@@ -20,11 +40,17 @@ export class UsersController {
   updateUser(
     @Param('id') id: string,
     @Body() data: Prisma.UserUpdateInput,
+    @Req() req: { user?: User },
   ) {
+    const user = req.user;
+    if (!user || (user.role !== UserRole.Admin && user.id !== id)) {
+      throw new ForbiddenException('Insufficient role');
+    }
     return this.usersService.updateUser(id, data);
   }
 
   @Delete(':id')
+  @Roles(UserRole.Admin)
   deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }

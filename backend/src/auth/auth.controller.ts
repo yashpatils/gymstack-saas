@@ -5,20 +5,17 @@ import { AuthService } from './auth.service';
 type SignupRequest = {
   email: string;
   password: string;
-  tenantId: string;
   role?: string;
 };
 
 type LoginRequest = {
   email: string;
   password: string;
-  tenantId: string;
 };
 
 export type AuthenticatedUser = {
   userId: string;
   email: string;
-  tenantId: string;
   role: string;
 };
 
