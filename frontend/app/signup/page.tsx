@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
+import { apiFetch } from "../../src/lib/api";
 
 type AuthResponse = {
   accessToken?: string;
@@ -9,38 +11,35 @@ type AuthResponse = {
 };
 
 export default function SignupPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
     setError(null);
 
-    if (!apiUrl) {
-      setError("Missing backend URL");
-      return;
-    }
-
-    setIsSubmitting(true);
-
     try {
-      const response = await fetch(`${apiUrl}/auth/signup`, {
+      const response = await apiFetch("/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = (await response.json()) as AuthResponse;
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || "Signup failed");
+        const errorText = await response.text();
+        if (errorText.includes("Cannot GET")) {
+          setError("Cannot GET: check the signup route or HTTP method.");
+          return;
+        }
+        throw new Error("Signup failed");
       }
 
       setMessage(data.message || "Signup successful.");
