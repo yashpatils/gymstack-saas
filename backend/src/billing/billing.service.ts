@@ -11,26 +11,34 @@ type SubscriptionPayload = {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private readonly stripe: Stripe;
+  private readonly stripe?: Stripe;
 
   constructor() {
     const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
-      throw new Error('Missing STRIPE_SECRET_KEY configuration.');
+    if (secretKey) {
+      this.stripe = new Stripe(secretKey, {
+        apiVersion: '2024-06-20',
+      });
     }
-    this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-06-20',
-    });
+  }
+
+  private ensureStripeConfigured(): Stripe {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured on this environment.');
+    }
+    return this.stripe;
   }
 
   async createCustomer(email: string, name?: string) {
-    return this.stripe.customers.create({
+    const stripe = this.ensureStripeConfigured();
+    return stripe.customers.create({
       email,
       name,
     });
   }
 
   async createSubscription(payload: SubscriptionPayload) {
+    const stripe = this.ensureStripeConfigured();
     const successUrl =
       payload.successUrl ?? process.env.STRIPE_SUCCESS_URL ?? '';
     const cancelUrl =
@@ -42,7 +50,7 @@ export class BillingService {
       );
     }
 
-    return this.stripe.checkout.sessions.create({
+    return stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: payload.customerId,
       line_items: [
@@ -57,6 +65,7 @@ export class BillingService {
   }
 
   handleWebhook(payload: Buffer, signature?: string | string[]) {
+    const stripe = this.ensureStripeConfigured();
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
       throw new Error('Missing STRIPE_WEBHOOK_SECRET configuration.');
@@ -66,7 +75,7 @@ export class BillingService {
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = this.stripe.webhooks.constructEvent(
+    const event = stripe.webhooks.constructEvent(
       payload,
       sig,
       webhookSecret,
