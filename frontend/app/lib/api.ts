@@ -11,6 +11,10 @@ export async function apiFetch<T>(
   const { body, headers, ...rest } = options;
   const resolvedHeaders = new Headers(headers);
   let resolvedBody: BodyInit | undefined;
+  const token =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("accessToken")
+      : null;
 
   if (body instanceof FormData) {
     resolvedBody = body;
