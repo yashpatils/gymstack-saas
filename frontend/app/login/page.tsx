@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
 import { apiFetch } from "../../src/lib/api";
 
+type AuthResponse = {
+  accessToken?: string;
+  message?: string;
+};
+
 export default function LoginPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const router = useRouter();
@@ -50,7 +55,13 @@ export default function LoginPage() {
       setMessage("Login successful.");
       router.push("/dashboard");
     } catch (submitError) {
-      setError("Unable to complete login.");
+      const errorMessage =
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to complete login.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,8 +98,8 @@ export default function LoginPage() {
               required
             />
           </label>
-          <Button className="w-full" type="submit">
-            Log in
+          <Button className="w-full" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </form>
         {message && <p className="text-sm text-emerald-300">{message}</p>}

@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
 import { apiFetch } from "../../src/lib/api";
 
+type AuthResponse = {
+  accessToken?: string;
+  message?: string;
+};
+
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,9 +42,15 @@ export default function SignupPage() {
         throw new Error("Signup failed");
       }
 
-      setMessage("Signup successful.");
+      setMessage(data.message || "Signup successful.");
     } catch (submitError) {
-      setError("Unable to complete signup.");
+      const errorMessage =
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to complete signup.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -76,8 +87,8 @@ export default function SignupPage() {
               required
             />
           </label>
-          <Button className="w-full" type="submit">
-            Create account
+          <Button className="w-full" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
         {message && <p className="text-sm text-emerald-300">{message}</p>}
