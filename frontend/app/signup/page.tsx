@@ -3,12 +3,18 @@
 import { useState } from "react";
 import { Button } from "../components/ui";
 
+type AuthResponse = {
+  accessToken?: string;
+  message?: string;
+};
+
 export default function SignupPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,6 +26,8 @@ export default function SignupPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const response = await fetch(`${apiUrl}/auth/signup`, {
         method: "POST",
@@ -29,13 +37,21 @@ export default function SignupPage() {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = (await response.json()) as AuthResponse;
+
       if (!response.ok) {
-        throw new Error("Signup failed");
+        throw new Error(data.message || "Signup failed");
       }
 
-      setMessage("Signup successful.");
+      setMessage(data.message || "Signup successful.");
     } catch (submitError) {
-      setError("Unable to complete signup.");
+      const errorMessage =
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to complete signup.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -72,8 +88,8 @@ export default function SignupPage() {
               required
             />
           </label>
-          <Button className="w-full" type="submit">
-            Create account
+          <Button className="w-full" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
         {message && <p className="text-sm text-emerald-300">{message}</p>}

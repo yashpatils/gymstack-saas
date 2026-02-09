@@ -1,14 +1,22 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "../components/ui";
 
+type AuthResponse = {
+  accessToken?: string;
+  message?: string;
+};
+
 export default function LoginPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,6 +28,8 @@ export default function LoginPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: "POST",
@@ -29,13 +39,27 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = (await response.json()) as AuthResponse;
+
       if (!response.ok) {
-        throw new Error("Login failed");
+        throw new Error(data.message || "Login failed");
       }
 
-      setMessage("Login successful.");
+      if (!data.accessToken) {
+        throw new Error("Missing access token");
+      }
+
+      localStorage.setItem("accessToken", data.accessToken);
+      setMessage(data.message || "Login successful.");
+      router.push("/dashboard");
     } catch (submitError) {
-      setError("Unable to complete login.");
+      const errorMessage =
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to complete login.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -72,8 +96,8 @@ export default function LoginPage() {
               required
             />
           </label>
-          <Button className="w-full" type="submit">
-            Log in
+          <Button className="w-full" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </form>
         {message && <p className="text-sm text-emerald-300">{message}</p>}
