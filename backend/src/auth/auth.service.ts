@@ -3,18 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthenticatedUser } from './auth.controller';
-
-type SignupInput = {
-  email: string;
-  password: string;
-  role?: Role;
-};
-
-type LoginInput = {
-  email: string;
-  password: string;
-};
+import { MeDto } from './dto/me.dto';
+import { SignupDto } from './dto/signup.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +14,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signup(input: SignupInput): Promise<AuthenticatedUser> {
+  async signup(input: SignupDto): Promise<MeDto> {
     const { email, password, role } = input;
 
     if (!email || !password) {
@@ -47,14 +38,10 @@ export class AuthService {
       },
     });
 
-    return {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    return { email: user.email, role: user.role };
   }
 
-  async login(input: LoginInput): Promise<{ accessToken: string }> {
+  async login(input: LoginDto): Promise<{ accessToken: string }> {
     const { email, password } = input;
 
     if (!email || !password) {

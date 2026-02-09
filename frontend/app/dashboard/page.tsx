@@ -2,23 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch } from "../../src/lib/api";
 
 type MeResponse = {
   email: string;
+  role: string;
 };
 
 export default function DashboardPage() {
   const router = useRouter();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!apiUrl) {
-        router.replace("/login");
-        return;
-      }
-
       const token = localStorage.getItem("accessToken");
       if (!token) {
         router.replace("/login");
@@ -26,11 +22,7 @@ export default function DashboardPage() {
       }
 
       try {
-        const response = await fetch(`${apiUrl}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await apiFetch("/auth/me");
 
         if (!response.ok) {
           throw new Error("Unauthorized");
@@ -44,7 +36,7 @@ export default function DashboardPage() {
     };
 
     void fetchProfile();
-  }, [apiUrl, router]);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
@@ -53,8 +45,20 @@ export default function DashboardPage() {
           GymStack
         </p>
         <h1 className="text-3xl font-semibold">
-          {email ? `Welcome, ${email}` : "Loading your dashboard..."}
+          {user ? "Welcome back." : "Loading your dashboard..."}
         </h1>
+        {user && (
+          <div className="space-y-1 text-sm text-slate-200">
+            <p>
+              <span className="font-semibold text-white">Email:</span>{" "}
+              {user.email}
+            </p>
+            <p>
+              <span className="font-semibold text-white">Role:</span>{" "}
+              {user.role}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
