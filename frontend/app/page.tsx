@@ -43,6 +43,11 @@ export default function LandingPage() {
     }
   };
 
+  const handleStartFree = async () => {
+    await handleBackendRequest("Start Free");
+    router.push("/signup");
+  };
+
   return (
     <div className="relative overflow-hidden">
       <header className="border-b border-white/5">
@@ -103,7 +108,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" onClick={() => router.push("/signup")}>
+              <Button size="lg" onClick={handleStartFree}>
                 Start Free
               </Button>
               <Button
@@ -476,7 +481,7 @@ export default function LandingPage() {
               revenue, training, and member journeys.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" onClick={() => router.push("/signup")}>
+              <Button size="lg" onClick={handleStartFree}>
                 Start Free
               </Button>
               <Button
