@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "../components/ui";
+import { apiFetch } from "../../src/lib/api";
 
 export default function SignupPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -15,13 +15,8 @@ export default function SignupPage() {
     setMessage(null);
     setError(null);
 
-    if (!apiUrl) {
-      setError("Missing backend URL");
-      return;
-    }
-
     try {
-      const response = await fetch(`${apiUrl}/auth/signup`, {
+      const response = await apiFetch("/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
