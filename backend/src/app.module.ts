@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth.module';
 import { BillingModule } from './billing/billing.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BillingModule } from './billing/billing.module';
     }),
     AuthModule,
     BillingModule,
+    PrismaModule,
   ],
   controllers: [AppController],
 })
