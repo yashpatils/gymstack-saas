@@ -30,6 +30,9 @@ async function bootstrap() {
       return res.redirect(statusCode, redirectUrl);
     });
   }
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined');
+  }
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port);
 }
