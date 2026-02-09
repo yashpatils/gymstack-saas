@@ -24,5 +24,12 @@ export async function apiFetch(
 
   console.log("API response status:", response.status);
 
+  if (response.status === 401) {
+    localStorage.removeItem("accessToken");
+    if (typeof window !== "undefined") {
+      window.location.assign("/login");
+    }
+  }
+
   return response;
 }

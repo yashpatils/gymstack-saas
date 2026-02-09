@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch } from "../../src/lib/api";
 
 type MeResponse = {
   email: string;
@@ -26,11 +27,7 @@ export default function DashboardPage() {
       }
 
       try {
-        const response = await fetch(`${apiUrl}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await apiFetch("/auth/me");
 
         if (!response.ok) {
           throw new Error("Unauthorized");
