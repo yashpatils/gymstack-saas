@@ -9,12 +9,14 @@ import {
   CardTitle,
 } from "./components/ui";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [backendStatus, setBackendStatus] = useState<string | null>(null);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleBackendRequest = async (action: string) => {
     setLastAction(action);
@@ -68,9 +70,9 @@ export default function LandingPage() {
             <Button
               variant="ghost"
               className="hidden lg:inline-flex"
-              onClick={() => handleBackendRequest("Sign in")}
+              onClick={() => router.push("/login")}
             >
-              Sign in
+              Login
             </Button>
             <Button onClick={() => handleBackendRequest("Book a demo")}>
               Book a demo
@@ -95,8 +97,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" onClick={() => handleBackendRequest("Start free")}>
-                Start free
+              <Button size="lg" onClick={() => router.push("/signup")}>
+                Start Free
               </Button>
               <Button
                 size="lg"
@@ -468,8 +470,8 @@ export default function LandingPage() {
               revenue, training, and member journeys.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" onClick={() => handleBackendRequest("Start free")}>
-                Start free
+              <Button size="lg" onClick={() => router.push("/signup")}>
+                Start Free
               </Button>
               <Button
                 size="lg"
