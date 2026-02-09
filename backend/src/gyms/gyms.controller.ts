@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { GymsService } from './gyms.service';
 
 @Controller('gyms')
@@ -11,7 +12,7 @@ export class GymsController {
   }
 
   @Post()
-  createGym(@Body() data: Record<string, unknown>) {
+  createGym(@Body() data: Prisma.GymCreateInput) {
     return this.gymsService.createGym(data);
   }
 
@@ -23,7 +24,7 @@ export class GymsController {
   @Patch(':id')
   updateGym(
     @Param('id') id: string,
-    @Body() data: Record<string, unknown>,
+    @Body() data: Prisma.GymUpdateInput,
   ) {
     return this.gymsService.updateGym(id, data);
   }

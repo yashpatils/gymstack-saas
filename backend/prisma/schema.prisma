@@ -8,11 +8,15 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  gyms      Gym[]
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  email        String
+  passwordHash String
+  tenantId     String
+  role         String   @default("member")
+  gyms         Gym[]
+  createdAt    DateTime @default(now())
+
+  @@unique([email, tenantId])
 }
 
 model Gym {

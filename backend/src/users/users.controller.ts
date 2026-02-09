@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -18,7 +19,7 @@ export class UsersController {
   @Patch(':id')
   updateUser(
     @Param('id') id: string,
-    @Body() data: Record<string, unknown>,
+    @Body() data: Prisma.UserUpdateInput,
   ) {
     return this.usersService.updateUser(id, data);
   }

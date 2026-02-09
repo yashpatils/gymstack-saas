@@ -9,5 +9,5 @@ export interface User {
   id: string;
   email: string;
   role: UserRole;
-  tenantId?: string;
+  tenantId: string;
 }

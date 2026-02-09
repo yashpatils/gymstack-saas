@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,20 +11,17 @@ export class UsersService {
   }
 
   getUser(id: string) {
-    const userId = Number(id);
-    return this.prisma.user.findUnique({ where: { id: userId } });
+    return this.prisma.user.findUnique({ where: { id } });
   }
 
-  updateUser(id: string, data: Record<string, unknown>) {
-    const userId = Number(id);
+  updateUser(id: string, data: Prisma.UserUpdateInput) {
     return this.prisma.user.update({
-      where: { id: userId },
+      where: { id },
       data,
     });
   }
 
   deleteUser(id: string) {
-    const userId = Number(id);
-    return this.prisma.user.delete({ where: { id: userId } });
+    return this.prisma.user.delete({ where: { id } });
   }
 }
