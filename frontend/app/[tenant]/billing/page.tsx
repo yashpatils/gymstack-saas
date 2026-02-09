@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { loadStripe } from "@stripe/stripe-js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Badge,
   Button,
@@ -15,7 +15,10 @@ import {
   Table,
 } from "../../components/ui";
 import { useBackendAction } from "../../components/use-backend-action";
-import { createCustomer, createSubscription } from "../../lib/billing";
+import {
+  createCheckoutSession,
+  getSubscriptionStatus,
+} from "../../lib/billing";
 import { defaultSession } from "../../lib/auth";
 
 const stripePromise = loadStripe(
@@ -28,6 +31,45 @@ export default function TenantBillingPage() {
     status: "idle" | "loading" | "error";
     message?: string;
   }>({ status: "idle" });
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    status: "idle" | "loading" | "ready" | "error";
+    value?: string;
+    customerId?: string | null;
+    subscriptionId?: string | null;
+    message?: string;
+  }>({ status: "idle" });
+
+  useEffect(() => {
+    let isMounted = true;
+    setSubscriptionStatus({ status: "loading" });
+    getSubscriptionStatus(defaultSession.userId)
+      .then((response) => {
+        if (!isMounted) {
+          return;
+        }
+        setSubscriptionStatus({
+          status: "ready",
+          value: response.subscriptionStatus,
+          customerId: response.stripeCustomerId,
+          subscriptionId: response.stripeSubscriptionId,
+        });
+      })
+      .catch((error) => {
+        if (!isMounted) {
+          return;
+        }
+        setSubscriptionStatus({
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to load subscription status.",
+        });
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleStartSubscription = async () => {
     setCheckoutState({ status: "loading" });
@@ -42,13 +84,8 @@ export default function TenantBillingPage() {
     }
 
     try {
-      const customerResponse = await createCustomer({
-        email: defaultSession.email,
-        name: defaultSession.name,
-      });
-
-      const subscriptionResponse = await createSubscription({
-        customerId: customerResponse.customerId,
+      const subscriptionResponse = await createCheckoutSession({
+        userId: defaultSession.userId,
         priceId,
       });
 
@@ -285,6 +322,38 @@ export default function TenantBillingPage() {
           </div>
           {checkoutState.status === "error" ? (
             <p className="mt-4 text-sm text-rose-300">{checkoutState.message}</p>
+          ) : null}
+        </Card>
+        <Card
+          title="Current subscription status"
+          description="Live status pulled from the billing service."
+        >
+          {subscriptionStatus.status === "loading" ? (
+            <p className="text-sm text-slate-400">
+              Loading subscription status...
+            </p>
+          ) : null}
+          {subscriptionStatus.status === "error" ? (
+            <p className="text-sm text-rose-300">
+              {subscriptionStatus.message}
+            </p>
+          ) : null}
+          {subscriptionStatus.status === "ready" ? (
+            <div className="grid gap-2 text-sm text-slate-200">
+              <div>
+                Status:{" "}
+                <Badge tone="success">
+                  {subscriptionStatus.value ?? "Unknown"}
+                </Badge>
+              </div>
+              <div className="text-slate-400">
+                Customer ID: {subscriptionStatus.customerId ?? "Not connected"}
+              </div>
+              <div className="text-slate-400">
+                Subscription ID:{" "}
+                {subscriptionStatus.subscriptionId ?? "Not started"}
+              </div>
+            </div>
           ) : null}
         </Card>
       </section>

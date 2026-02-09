@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
 
@@ -9,6 +9,13 @@ type CreateCustomerBody = {
 
 type CreateSubscriptionBody = {
   customerId: string;
+  priceId: string;
+  successUrl?: string;
+  cancelUrl?: string;
+};
+
+type CreateCheckoutBody = {
+  userId: string;
   priceId: string;
   successUrl?: string;
   cancelUrl?: string;
@@ -31,6 +38,21 @@ export class BillingController {
   async createSubscription(@Body() body: CreateSubscriptionBody) {
     const session = await this.billingService.createSubscription(body);
     return { checkoutUrl: session.url, sessionId: session.id };
+  }
+
+  @Post('checkout')
+  async createCheckoutSession(@Body() body: CreateCheckoutBody) {
+    const session = await this.billingService.createCheckoutSession(body);
+    return {
+      checkoutUrl: session.url,
+      sessionId: session.id,
+      customerId: session.customer,
+    };
+  }
+
+  @Get('status/:userId')
+  getSubscriptionStatus(@Param('userId') userId: string) {
+    return this.billingService.getSubscriptionStatus(userId);
   }
 
   @Post('webhook')
