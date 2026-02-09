@@ -195,6 +195,27 @@ npm install
 npm run dev
 ```
 
+## 8. Deployment Configuration
+
+### Frontend (Vercel / Netlify)
+Set the following environment variable:
+
+- `NEXT_PUBLIC_API_URL` — Base URL for the backend API (include the API prefix).
+  - Example: `https://api.your-domain.com/api`
+
+See `frontend/.env.example` for a template.
+
+### Backend (Railway)
+Set the following environment variables:
+
+- `DATABASE_URL` — PostgreSQL connection string.
+- `JWT_SECRET` — JWT signing secret.
+- `FRONTEND_URL` — Primary frontend origin for CORS.
+- `CORS_ORIGIN` — Optional comma-separated list of allowed origins (overrides `FRONTEND_URL`).
+- `API_PREFIX` — Global prefix for APIs (default: `api`).
+
+See `backend/.env.example` for a template.
+
 <<<<<<< codex/complete-project-ui-and-landing-page-upmnu9
 You can also run the frontend from the repo root:
 

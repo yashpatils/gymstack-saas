@@ -1,11 +1,12 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Role } from '@prisma/client';
 import { AuthService } from './auth.service';
 
 type SignupRequest = {
   email: string;
   password: string;
-  role?: string;
+  role?: Role;
 };
 
 type LoginRequest = {
@@ -16,7 +17,7 @@ type LoginRequest = {
 export type AuthenticatedUser = {
   userId: string;
   email: string;
-  role: string;
+  role: Role;
 };
 
 @Controller('auth')

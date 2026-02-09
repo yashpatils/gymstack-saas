@@ -11,7 +11,20 @@ import { securityConfig } from './config/security.config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use('/billing/webhook', express.raw({ type: 'application/json' }));
-  app.enableCors({ origin: '*' });
+  const configService = app.get(ConfigService);
+  const corsOrigin = configService.get<string>('CORS_ORIGIN');
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  const allowedOrigins = (corsOrigin ?? frontendUrl ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const defaultOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+  app.enableCors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : defaultOrigins,
+    credentials: true,
+  });
+  const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
+  app.setGlobalPrefix(apiPrefix, { exclude: ['billing/webhook'] });
   app.use(helmet());
   app.use(morgan('combined'));
   if (securityConfig.httpsRedirectEnabled) {
@@ -32,7 +45,6 @@ async function bootstrap() {
       return res.redirect(statusCode, redirectUrl);
     });
   }
-  const configService = app.get(ConfigService);
   const jwtSecret = configService.get<string>('JWT_SECRET');
   if (!jwtSecret) {
     const logger = new Logger('Bootstrap');
