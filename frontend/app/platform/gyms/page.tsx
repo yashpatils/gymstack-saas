@@ -9,6 +9,7 @@ import {
   PageShell,
   Table,
 } from "../../components/ui";
+import { useSession } from "../../components/session-provider";
 import { apiFetch } from "../../lib/api";
 
 type Gym = {
@@ -21,6 +22,10 @@ type Gym = {
 
 export default function GymsPage() {
   const router = useRouter();
+  const session = useSession();
+  const canDelete =
+    session.platformRole === "platform_admin" ||
+    session.tenants.some((tenant) => tenant.role === "tenant_owner");
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +48,10 @@ export default function GymsPage() {
   }, []);
 
   const handleDelete = async (gymId: string) => {
+    if (!canDelete) {
+      setError("You must be an owner or admin to delete gyms.");
+      return;
+    }
     if (!window.confirm("Delete this gym?")) {
       return;
     }
@@ -94,9 +103,15 @@ export default function GymsPage() {
               >
                 Edit
               </Button>
-              <Button variant="outline" onClick={() => handleDelete(gym.id)}>
-                Delete
-              </Button>
+              {canDelete ? (
+                <Button variant="outline" onClick={() => handleDelete(gym.id)}>
+                  Delete
+                </Button>
+              ) : (
+                <span className="text-xs text-slate-500">
+                  Owner or admin only
+                </span>
+              )}
             </div>,
           ])}
         />

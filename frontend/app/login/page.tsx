@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "../components/ui";
 import { apiFetch } from "../../src/lib/api";
 
@@ -10,8 +11,12 @@ type AuthResponse = {
   message?: string;
 };
 
+const authSchema = z.object({
+  email: z.string().email("Enter a valid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+});
+
 export default function LoginPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,9 +26,18 @@ export default function LoginPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true);
     setMessage(null);
     setError(null);
+
+    const validationResult = authSchema.safeParse({ email, password });
+    if (!validationResult.success) {
+      setError(
+        validationResult.error.issues[0]?.message ?? "Please check your input.",
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const response = await apiFetch("/auth/login", {
@@ -31,24 +45,19 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.status === 401) {
-        router.push("/login");
-        return;
-      }
-
       if (!response.ok) {
         const errorText = await response.text();
         if (errorText.includes("Cannot GET")) {
           setError("Cannot GET: check the login route or HTTP method.");
           return;
         }
-        throw new Error("Login failed");
+        throw new Error(errorText || "Login failed.");
       }
 
       const data = (await response.json()) as { accessToken?: string };
 
       if (!data.accessToken) {
-        throw new Error("Missing access token");
+        throw new Error("Missing access token.");
       }
 
       localStorage.setItem("accessToken", data.accessToken);

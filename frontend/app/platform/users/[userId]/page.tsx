@@ -10,6 +10,7 @@ import {
   PageHeader,
   PageShell,
 } from "../../../components/ui";
+import { useSession } from "../../../components/session-provider";
 import { apiFetch } from "../../../lib/api";
 
 type UserDetail = {
@@ -26,6 +27,8 @@ export default function UserDetailPage() {
   const router = useRouter();
   const params = useParams();
   const userId = params?.userId as string;
+  const session = useSession();
+  const canDelete = session.platformRole === "platform_admin";
   const [user, setUser] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +53,10 @@ export default function UserDetailPage() {
   }, [userId]);
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      setError("You must be an admin to delete users.");
+      return;
+    }
     if (!window.confirm("Delete this user?")) {
       return;
     }
@@ -74,9 +81,13 @@ export default function UserDetailPage() {
             >
               Edit user
             </Button>
-            <Button variant="outline" onClick={handleDelete}>
-              Delete
-            </Button>
+            {canDelete ? (
+              <Button variant="outline" onClick={handleDelete}>
+                Delete
+              </Button>
+            ) : (
+              <span className="text-xs text-slate-500">Admin only</span>
+            )}
           </div>
         }
       />
