@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -42,6 +43,7 @@ export default function SignupPage() {
         throw new Error("Signup failed");
       }
 
+      const data: AuthResponse = await response.json();
       setMessage(data.message || "Signup successful.");
     } catch (submitError) {
       const errorMessage =

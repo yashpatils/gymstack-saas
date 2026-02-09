@@ -1,11 +1,7 @@
 import React from "react";
 import { TenantShell } from "../components/tenant-shell";
 
-const staticTenants = ["atlas-fitness", "north-peak"];
-
-export function generateStaticParams() {
-  return staticTenants.map((tenant) => ({ tenant }));
-}
+export const dynamic = "force-dynamic";
 
 export default function TenantLayout({
   children,
