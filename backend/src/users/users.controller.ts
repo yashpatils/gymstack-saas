@@ -43,10 +43,10 @@ export class UsersController {
     @Req() req: { user?: User },
   ) {
     const user = req.user;
-    if (!user || (user.role !== UserRole.Admin && user.id !== id)) {
-      throw new ForbiddenException('Insufficient role');
+    if (!user) {
+      throw new ForbiddenException('Missing user');
     }
-    return this.usersService.updateUser(id, data);
+    return this.usersService.updateUserForRequester(id, data, user);
   }
 
   @Delete(':id')
