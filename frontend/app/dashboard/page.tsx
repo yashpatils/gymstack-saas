@@ -6,6 +6,7 @@ import { apiFetch } from "../../src/lib/api";
 
 type MeResponse = {
   email: string;
+  role: string;
 };
 
 export default function DashboardPage() {
@@ -44,8 +45,20 @@ export default function DashboardPage() {
           GymStack
         </p>
         <h1 className="text-3xl font-semibold">
-          {email ? `Welcome, ${email}` : "Loading your dashboard..."}
+          {user ? "Welcome back." : "Loading your dashboard..."}
         </h1>
+        {user && (
+          <div className="space-y-1 text-sm text-slate-200">
+            <p>
+              <span className="font-semibold text-white">Email:</span>{" "}
+              {user.email}
+            </p>
+            <p>
+              <span className="font-semibold text-white">Role:</span>{" "}
+              {user.role}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
