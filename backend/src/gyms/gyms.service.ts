@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -9,25 +10,22 @@ export class GymsService {
     return this.prisma.gym.findMany();
   }
 
-  createGym(data: Record<string, unknown>) {
+  createGym(data: Prisma.GymCreateInput) {
     return this.prisma.gym.create({ data });
   }
 
   getGym(id: string) {
-    const gymId = Number(id);
-    return this.prisma.gym.findUnique({ where: { id: gymId } });
+    return this.prisma.gym.findUnique({ where: { id } });
   }
 
-  updateGym(id: string, data: Record<string, unknown>) {
-    const gymId = Number(id);
+  updateGym(id: string, data: Prisma.GymUpdateInput) {
     return this.prisma.gym.update({
-      where: { id: gymId },
+      where: { id },
       data,
     });
   }
 
   deleteGym(id: string) {
-    const gymId = Number(id);
-    return this.prisma.gym.delete({ where: { id: gymId } });
+    return this.prisma.gym.delete({ where: { id } });
   }
 }
