@@ -11,9 +11,14 @@ type SubscriptionPayload = {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private readonly stripe: Stripe;
+  private stripe: Stripe | null = null;
 
-  constructor() {
+  constructor() {}
+
+  private getStripe(): Stripe {
+    if (this.stripe) {
+      return this.stripe;
+    }
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
       throw new Error('Missing STRIPE_SECRET_KEY configuration.');
@@ -21,10 +26,12 @@ export class BillingService {
     this.stripe = new Stripe(secretKey, {
       apiVersion: '2024-06-20',
     });
+    return this.stripe;
   }
 
   async createCustomer(email: string, name?: string) {
-    return this.stripe.customers.create({
+    const stripe = this.getStripe();
+    return stripe.customers.create({
       email,
       name,
     });
@@ -42,7 +49,8 @@ export class BillingService {
       );
     }
 
-    return this.stripe.checkout.sessions.create({
+    const stripe = this.getStripe();
+    return stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: payload.customerId,
       line_items: [
@@ -66,7 +74,8 @@ export class BillingService {
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = this.stripe.webhooks.constructEvent(
+    const stripe = this.getStripe();
+    const event = stripe.webhooks.constructEvent(
       payload,
       sig,
       webhookSecret,

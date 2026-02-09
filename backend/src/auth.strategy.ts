@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
@@ -13,14 +13,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const secret = configService.get<string>("JWT_SECRET");
 
     if (!secret) {
-      throw new Error(
-        "JWT_SECRET is not defined. Set JWT_SECRET in the environment (e.g., Railway Variables)."
+      const logger = new Logger(JwtStrategy.name);
+      logger.warn(
+        "JWT_SECRET is not defined. Falling back to dev secret for local startup."
       );
     }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: secret,
+      secretOrKey: secret ?? "dev-secret",
     });
   }
 

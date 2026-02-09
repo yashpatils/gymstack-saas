@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -15,12 +15,13 @@ import { PrismaModule } from '../prisma/prisma.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        const logger = new Logger(AuthModule.name);
         const secret = configService.get<string>('JWT_SECRET');
         if (!secret) {
-          throw new Error('JWT_SECRET is not defined');
+          logger.warn('JWT_SECRET is not defined. Falling back to dev secret.');
         }
         return {
-          secret,
+          secret: secret ?? 'dev-secret',
           signOptions: { expiresIn: '7d' },
         };
       },

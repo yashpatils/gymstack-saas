@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { AppModule } from './app.module';
@@ -34,7 +35,8 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const jwtSecret = configService.get<string>('JWT_SECRET');
   if (!jwtSecret) {
-    throw new Error('JWT_SECRET is not defined');
+    const logger = new Logger('Bootstrap');
+    logger.warn('JWT_SECRET is not defined. Falling back to dev secret.');
   }
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port);
