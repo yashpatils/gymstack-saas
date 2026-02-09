@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { AppModule } from './app.module';
@@ -30,7 +31,9 @@ async function bootstrap() {
       return res.redirect(statusCode, redirectUrl);
     });
   }
-  if (!process.env.JWT_SECRET) {
+  const configService = app.get(ConfigService);
+  const jwtSecret = configService.get<string>('JWT_SECRET');
+  if (!jwtSecret) {
     throw new Error('JWT_SECRET is not defined');
   }
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
