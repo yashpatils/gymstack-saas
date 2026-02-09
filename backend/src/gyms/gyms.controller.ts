@@ -28,6 +28,7 @@ export class GymsController {
   }
 
   @Post()
+  @Roles(UserRole.Owner, UserRole.Admin)
   createGym(@Body() data: Prisma.GymCreateInput, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {
@@ -45,6 +46,7 @@ export class GymsController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.Owner, UserRole.Admin)
   updateGym(
     @Param('id') id: string,
     @Body() data: Prisma.GymUpdateInput,

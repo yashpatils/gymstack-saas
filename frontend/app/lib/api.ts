@@ -1,17 +1,13 @@
+import { apiFetch as baseApiFetch } from "../../src/lib/api";
+
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: Record<string, unknown> | FormData;
 };
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  if (!API_URL) {
-    throw new Error("Missing NEXT_PUBLIC_API_URL configuration.");
-  }
-
   const { body, headers, ...rest } = options;
   const resolvedHeaders = new Headers(headers);
   let resolvedBody: BodyInit | undefined;
@@ -23,7 +19,7 @@ export async function apiFetch<T>(
     resolvedBody = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await baseApiFetch(path, {
     ...rest,
     headers: resolvedHeaders,
     body: resolvedBody,

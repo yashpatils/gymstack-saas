@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetch } from "../../src/lib/api";
 
 type MeResponse = {
   email: string;
@@ -11,7 +11,7 @@ type MeResponse = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<MeResponse | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -22,12 +22,14 @@ export default function DashboardPage() {
       }
 
       try {
-        const data = await apiFetch<MeResponse>("/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setUser(data);
+        const response = await apiFetch("/auth/me");
+
+        if (!response.ok) {
+          throw new Error("Unauthorized");
+        }
+
+        const data = (await response.json()) as MeResponse;
+        setEmail(data.email);
       } catch (error) {
         router.replace("/login");
       }

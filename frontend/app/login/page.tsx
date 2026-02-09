@@ -11,7 +11,6 @@ type AuthResponse = {
 };
 
 export default function LoginPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,24 +30,19 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.status === 401) {
-        router.push("/login");
-        return;
-      }
-
       if (!response.ok) {
         const errorText = await response.text();
         if (errorText.includes("Cannot GET")) {
           setError("Cannot GET: check the login route or HTTP method.");
           return;
         }
-        throw new Error("Login failed");
+        throw new Error(errorText || "Login failed.");
       }
 
       const data = (await response.json()) as { accessToken?: string };
 
       if (!data.accessToken) {
-        throw new Error("Missing access token");
+        throw new Error("Missing access token.");
       }
 
       localStorage.setItem("accessToken", data.accessToken);
