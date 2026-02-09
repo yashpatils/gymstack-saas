@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 type SubscriptionPayload = {
@@ -11,20 +12,27 @@ type SubscriptionPayload = {
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
-  private readonly stripe: Stripe;
+  private readonly stripe?: Stripe;
 
-  constructor() {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+  constructor(private readonly configService: ConfigService) {
+    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
-      throw new Error('Missing STRIPE_SECRET_KEY configuration.');
+      this.logger.warn('Missing STRIPE_SECRET_KEY configuration.');
+      return;
     }
-    this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-06-20',
-    });
+
+    this.stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
+  }
+
+  private getStripeClient(): Stripe {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured.');
+    }
+    return this.stripe;
   }
 
   async createCustomer(email: string, name?: string) {
-    return this.stripe.customers.create({
+    return this.getStripeClient().customers.create({
       email,
       name,
     });
@@ -32,9 +40,13 @@ export class BillingService {
 
   async createSubscription(payload: SubscriptionPayload) {
     const successUrl =
-      payload.successUrl ?? process.env.STRIPE_SUCCESS_URL ?? '';
+      payload.successUrl ??
+      this.configService.get<string>('STRIPE_SUCCESS_URL') ??
+      '';
     const cancelUrl =
-      payload.cancelUrl ?? process.env.STRIPE_CANCEL_URL ?? '';
+      payload.cancelUrl ??
+      this.configService.get<string>('STRIPE_CANCEL_URL') ??
+      '';
 
     if (!successUrl || !cancelUrl) {
       throw new Error(
@@ -42,7 +54,7 @@ export class BillingService {
       );
     }
 
-    return this.stripe.checkout.sessions.create({
+    return this.getStripeClient().checkout.sessions.create({
       mode: 'subscription',
       customer: payload.customerId,
       line_items: [
@@ -57,7 +69,8 @@ export class BillingService {
   }
 
   handleWebhook(payload: Buffer, signature?: string | string[]) {
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret =
+      this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
       throw new Error('Missing STRIPE_WEBHOOK_SECRET configuration.');
     }
@@ -66,7 +79,7 @@ export class BillingService {
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = this.stripe.webhooks.constructEvent(
+    const event = this.getStripeClient().webhooks.constructEvent(
       payload,
       sig,
       webhookSecret,
