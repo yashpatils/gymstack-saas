@@ -3,11 +3,11 @@ import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { AppModule } from './app.module';
-import { securityConfig } from './config/security.config';
+import express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enable('trust proxy');
+  app.use('/billing/webhook', express.raw({ type: 'application/json' }));
   app.enableCors({ origin: '*' });
   app.use(helmet());
   app.use(morgan('combined'));

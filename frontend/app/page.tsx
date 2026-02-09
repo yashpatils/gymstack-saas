@@ -10,9 +10,9 @@ import {
 } from "./components/ui";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "../src/lib/api";
 
 export default function LandingPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [backendStatus, setBackendStatus] = useState<string | null>(null);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
@@ -22,11 +22,17 @@ export default function LandingPage() {
     setLastAction(action);
     setBackendError(null);
     try {
-      if (!apiUrl) {
-        throw new Error("Missing backend URL");
+      const response = await apiFetch("/health");
+      if (response.status === 401) {
+        router.push("/login");
+        return;
       }
-      const response = await fetch(`${apiUrl}/health`);
       if (!response.ok) {
+        const errorText = await response.text();
+        if (errorText.includes("Cannot GET")) {
+          setBackendError("Cannot GET: check the health route or HTTP method.");
+          return;
+        }
         throw new Error("Backend response error");
       }
       const data = await response.json();
@@ -35,6 +41,11 @@ export default function LandingPage() {
       setBackendStatus(null);
       setBackendError("Unable to reach backend");
     }
+  };
+
+  const handleStartFree = async () => {
+    await handleBackendRequest("Start Free");
+    router.push("/signup");
   };
 
   return (
@@ -97,7 +108,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" onClick={() => router.push("/signup")}>
+              <Button size="lg" onClick={handleStartFree}>
                 Start Free
               </Button>
               <Button
@@ -470,7 +481,7 @@ export default function LandingPage() {
               revenue, training, and member journeys.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" onClick={() => router.push("/signup")}>
+              <Button size="lg" onClick={handleStartFree}>
                 Start Free
               </Button>
               <Button

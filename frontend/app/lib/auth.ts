@@ -101,6 +101,16 @@ const platformNavItems = [
     roles: ["platform_admin", "platform_ops", "support"],
   },
   {
+    label: "Users",
+    href: "/platform/users",
+    roles: ["platform_admin", "platform_ops"],
+  },
+  {
+    label: "Gyms",
+    href: "/platform/gyms",
+    roles: ["platform_admin", "platform_ops"],
+  },
+  {
     label: "Tenants",
     href: "/platform/tenants",
     roles: ["platform_admin", "platform_ops"],

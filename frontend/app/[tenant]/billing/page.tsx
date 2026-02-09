@@ -1,5 +1,7 @@
 "use client";
 
+import { loadStripe } from "@stripe/stripe-js";
+import { useState } from "react";
 import {
   Badge,
   Button,
@@ -11,9 +13,74 @@ import {
   Table,
 } from "../../components/ui";
 import { useBackendAction } from "../../components/use-backend-action";
+import { createCustomer, createSubscription } from "../../lib/billing";
+import { defaultSession } from "../../lib/auth";
+
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
+);
 
 export default function TenantBillingPage() {
   const { backendResponse, callBackend } = useBackendAction();
+  const [checkoutState, setCheckoutState] = useState<{
+    status: "idle" | "loading" | "error";
+    message?: string;
+  }>({ status: "idle" });
+
+  const handleStartSubscription = async () => {
+    setCheckoutState({ status: "loading" });
+
+    const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
+    if (!priceId) {
+      setCheckoutState({
+        status: "error",
+        message: "Missing NEXT_PUBLIC_STRIPE_PRICE_ID configuration.",
+      });
+      return;
+    }
+
+    try {
+      const customerResponse = await createCustomer({
+        email: defaultSession.email,
+        name: defaultSession.name,
+      });
+
+      const subscriptionResponse = await createSubscription({
+        customerId: customerResponse.customerId,
+        priceId,
+      });
+
+      const stripe = await stripePromise;
+      if (stripe && subscriptionResponse.sessionId) {
+        const result = await stripe.redirectToCheckout({
+          sessionId: subscriptionResponse.sessionId,
+        });
+        if (result.error) {
+          setCheckoutState({
+            status: "error",
+            message: result.error.message ?? "Stripe redirect failed.",
+          });
+        }
+        return;
+      }
+
+      if (subscriptionResponse.checkoutUrl) {
+        window.location.href = subscriptionResponse.checkoutUrl;
+        return;
+      }
+
+      setCheckoutState({
+        status: "error",
+        message: "Missing Stripe checkout URL.",
+      });
+    } catch (error) {
+      setCheckoutState({
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Unable to start checkout.",
+      });
+    }
+  };
 
   const invoices = [
     {
@@ -175,6 +242,49 @@ export default function TenantBillingPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="section">
+        <div className="section-split">
+          <SectionTitle>Stripe subscription setup</SectionTitle>
+          <Button
+            onClick={handleStartSubscription}
+            disabled={checkoutState.status === "loading"}
+          >
+            {checkoutState.status === "loading"
+              ? "Redirecting..."
+              : "Start Stripe checkout"}
+          </Button>
+        </div>
+        <Card
+          title="Connect Stripe billing"
+          description="Create a Stripe customer, attach a subscription, and redirect to checkout in test mode."
+        >
+          <div className="grid grid-2">
+            <div>
+              <p className="text-sm text-slate-400">
+                Customer: {defaultSession.name} ({defaultSession.email})
+              </p>
+              <p className="text-sm text-slate-400">
+                Price ID: {process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? "Unset"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">
+                Publishable key:{" "}
+                {process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+                  ? "Configured"
+                  : "Unset"}
+              </p>
+              <p className="text-sm text-slate-400">
+                API URL: {process.env.NEXT_PUBLIC_API_URL ?? "Unset"}
+              </p>
+            </div>
+          </div>
+          {checkoutState.status === "error" ? (
+            <p className="mt-4 text-sm text-rose-300">{checkoutState.message}</p>
+          ) : null}
+        </Card>
       </section>
 
       <section className="section">

@@ -1,41 +1,67 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
+import { apiFetch } from "../../src/lib/api";
+
+type AuthResponse = {
+  accessToken?: string;
+  message?: string;
+};
 
 export default function LoginPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
     setError(null);
 
-    if (!apiUrl) {
-      setError("Missing backend URL");
-      return;
-    }
-
     try {
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const response = await apiFetch("/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email, password }),
       });
 
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+
       if (!response.ok) {
+        const errorText = await response.text();
+        if (errorText.includes("Cannot GET")) {
+          setError("Cannot GET: check the login route or HTTP method.");
+          return;
+        }
         throw new Error("Login failed");
       }
 
+      const data = (await response.json()) as { accessToken?: string };
+
+      if (!data.accessToken) {
+        throw new Error("Missing access token");
+      }
+
+      localStorage.setItem("accessToken", data.accessToken);
       setMessage("Login successful.");
+      router.push("/dashboard");
     } catch (submitError) {
-      setError("Unable to complete login.");
+      const errorMessage =
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to complete login.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -72,8 +98,8 @@ export default function LoginPage() {
               required
             />
           </label>
-          <Button className="w-full" type="submit">
-            Log in
+          <Button className="w-full" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </form>
         {message && <p className="text-sm text-emerald-300">{message}</p>}

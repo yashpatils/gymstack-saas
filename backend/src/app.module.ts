@@ -1,16 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
-import { AuthController } from './auth.controller';
-import { securityConfig } from './config/security.config';
+import { AuthModule } from './auth.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
-  imports: [
-    ThrottlerModule.forRoot({
-      ttl: securityConfig.throttleTtl,
-      limit: securityConfig.throttleLimit,
-    }),
-  ],
-  controllers: [AppController, AuthController],
+  imports: [AuthModule, BillingModule],
+  controllers: [AppController],
 })
 export class AppModule {}
