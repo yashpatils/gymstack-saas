@@ -1,11 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
 import { apiFetch } from "../../src/lib/api";
 
 export default function LoginPage() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -38,9 +41,9 @@ export default function LoginPage() {
       }
 
       const data = (await response.json()) as { accessToken?: string };
-      if (!data?.accessToken) {
-        setError("Login failed to return an access token.");
-        return;
+
+      if (!data.accessToken) {
+        throw new Error("Missing access token");
       }
 
       localStorage.setItem("accessToken", data.accessToken);
