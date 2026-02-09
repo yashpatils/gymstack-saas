@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 type SubscriptionPayload = {
@@ -13,8 +14,8 @@ export class BillingService {
   private readonly logger = new Logger(BillingService.name);
   private readonly stripe: Stripe | null;
 
-  constructor() {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+  constructor(private readonly configService: ConfigService) {
+    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
       this.logger.warn(
         'Stripe is not configured. Missing STRIPE_SECRET_KEY; Stripe features will be unavailable.',
@@ -41,9 +42,13 @@ export class BillingService {
   async createSubscription(payload: SubscriptionPayload) {
     const stripe = this.ensureStripeConfigured();
     const successUrl =
-      payload.successUrl ?? process.env.STRIPE_SUCCESS_URL ?? '';
+      payload.successUrl ??
+      this.configService.get<string>('STRIPE_SUCCESS_URL') ??
+      '';
     const cancelUrl =
-      payload.cancelUrl ?? process.env.STRIPE_CANCEL_URL ?? '';
+      payload.cancelUrl ??
+      this.configService.get<string>('STRIPE_CANCEL_URL') ??
+      '';
 
     if (!successUrl || !cancelUrl) {
       throw new Error(
