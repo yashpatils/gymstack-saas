@@ -10,7 +10,7 @@ import {
 } from "./components/ui";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "../src/lib/api";
+import { apiFetch } from "./lib/api";
 
 export default function LandingPage() {
   const [backendStatus, setBackendStatus] = useState<string | null>(null);
@@ -22,24 +22,13 @@ export default function LandingPage() {
     setLastAction(action);
     setBackendError(null);
     try {
-      const response = await apiFetch("/health");
-      if (response.status === 401) {
-        router.push("/login");
-        return;
-      }
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (errorText.includes("Cannot GET")) {
-          setBackendError("Cannot GET: check the health route or HTTP method.");
-          return;
-        }
-        throw new Error("Backend response error");
-      }
-      const data = await response.json();
+      const data = await apiFetch<{ status?: string }>("/health");
       setBackendStatus(data?.status ?? "ok");
     } catch (error) {
       setBackendStatus(null);
-      setBackendError("Unable to reach backend");
+      setBackendError(
+        error instanceof Error ? error.message : "Unable to reach backend",
+      );
     }
   };
 

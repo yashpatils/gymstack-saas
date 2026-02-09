@@ -4,11 +4,11 @@ import { useState } from "react";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
-import { apiFetch } from "../../src/lib/api";
+import { apiFetch } from "../lib/api";
 
-type AuthResponse = {
-  accessToken?: string;
-  message?: string;
+type SignupResponse = {
+  email: string;
+  role: string;
 };
 
 const authSchema = z.object({
@@ -38,25 +38,12 @@ export default function SignupPage() {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const response = await apiFetch("/auth/signup", {
+      const data = await apiFetch<SignupResponse>("/auth/signup", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (errorText.includes("Cannot GET")) {
-          setError("Cannot GET: check the signup route or HTTP method.");
-          return;
-        }
-        throw new Error(errorText || "Signup failed.");
-      }
-
-      const data: AuthResponse = await response.json();
-      setMessage(data.message || "Signup successful.");
+      setMessage(`Signup successful for ${data.email}.`);
       router.push("/login");
     } catch (submitError) {
       const errorMessage =
