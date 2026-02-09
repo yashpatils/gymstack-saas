@@ -1,35 +1,28 @@
-export const apiFetch = async (
+export async function apiFetch(
   path: string,
-  options: RequestInit = {}
-): Promise<Response> => {
+  options: RequestInit = {},
+): Promise<Response> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
   if (!baseUrl) {
-    console.error("[apiFetch] Missing NEXT_PUBLIC_API_URL");
-    throw new Error("Missing backend URL");
+    console.log("API request blocked: missing NEXT_PUBLIC_API_URL");
+    throw new Error("Missing NEXT_PUBLIC_API_URL");
   }
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const headers = new Headers(options.headers);
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  if (options.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
+  const token = localStorage.getItem("accessToken");
   const url = `${baseUrl}${path}`;
-  console.info(`[apiFetch] ${url}`);
+
+  console.log("API request:", url);
 
   const response = await fetch(url, {
     ...options,
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(options.headers || {}),
+    },
   });
 
-  console.info(`[apiFetch] response ${response.status}`);
+  console.log("API response status:", response.status);
 
   return response;
-};
+}

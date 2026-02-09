@@ -23,7 +23,16 @@ export default function LandingPage() {
     setBackendError(null);
     try {
       const response = await apiFetch("/health");
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
       if (!response.ok) {
+        const errorText = await response.text();
+        if (errorText.includes("Cannot GET")) {
+          setBackendError("Cannot GET: check the health route or HTTP method.");
+          return;
+        }
         throw new Error("Backend response error");
       }
       const data = await response.json();

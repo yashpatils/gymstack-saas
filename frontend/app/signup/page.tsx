@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
 import { apiFetch } from "../../src/lib/api";
 
@@ -9,6 +10,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -18,13 +20,20 @@ export default function SignupPage() {
     try {
       const response = await apiFetch("/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email, password }),
       });
 
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+
       if (!response.ok) {
+        const errorText = await response.text();
+        if (errorText.includes("Cannot GET")) {
+          setError("Cannot GET: check the signup route or HTTP method.");
+          return;
+        }
         throw new Error("Signup failed");
       }
 
