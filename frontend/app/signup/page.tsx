@@ -42,6 +42,7 @@ export default function SignupPage() {
         throw new Error("Signup failed");
       }
 
+      const data: AuthResponse = await response.json();
       setMessage(data.message || "Signup successful.");
     } catch (submitError) {
       const errorMessage =
