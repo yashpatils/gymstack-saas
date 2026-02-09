@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
 import { apiFetch } from "../../src/lib/api";
@@ -9,6 +10,11 @@ type AuthResponse = {
   accessToken?: string;
   message?: string;
 };
+
+const authSchema = z.object({
+  email: z.string().email("Enter a valid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+});
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -23,6 +29,16 @@ export default function SignupPage() {
     setIsSubmitting(true);
     setMessage(null);
     setError(null);
+
+    const validationResult = authSchema.safeParse({ email, password });
+    if (!validationResult.success) {
+      setError(
+        validationResult.error.issues[0]?.message ?? "Please check your input.",
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const response = await apiFetch("/auth/signup", {
