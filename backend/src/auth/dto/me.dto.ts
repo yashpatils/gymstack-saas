@@ -1,4 +1,4 @@
 export class MeDto {
-  email: string;
-  role: string;
+  email!: string;
+  role!: string;
 }
