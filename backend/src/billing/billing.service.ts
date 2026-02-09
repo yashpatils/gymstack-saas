@@ -22,9 +22,13 @@ export class BillingService {
       this.stripe = null;
       return;
     }
-    this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-06-20',
-    });
+  }
+
+  private ensureStripeConfigured(): Stripe {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured on this environment.');
+    }
+    return this.stripe;
   }
 
   async createCustomer(email: string, name?: string) {
@@ -35,6 +39,7 @@ export class BillingService {
   }
 
   async createSubscription(payload: SubscriptionPayload) {
+    const stripe = this.ensureStripeConfigured();
     const successUrl =
       payload.successUrl ?? process.env.STRIPE_SUCCESS_URL ?? '';
     const cancelUrl =
@@ -61,6 +66,7 @@ export class BillingService {
   }
 
   handleWebhook(payload: Buffer, signature?: string | string[]) {
+    const stripe = this.ensureStripeConfigured();
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
       throw new Error('Missing STRIPE_WEBHOOK_SECRET configuration.');
