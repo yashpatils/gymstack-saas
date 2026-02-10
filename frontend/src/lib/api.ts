@@ -12,7 +12,7 @@ function normalizePath(path: string): string {
     return '';
   }
 
-  return `/${path}`.replace(/\/+/, '/').replace(/\/+$/g, '');
+  return `/${path}`.replace(/\/+/g, '/').replace(/\/+$/g, '');
 }
 
 export function buildApiUrl(path: string): string {
@@ -21,10 +21,10 @@ export function buildApiUrl(path: string): string {
   return `${base}${normalizedPath}`.replace(/([^:]\/)(\/+)/g, '$1');
 }
 
-export async function apiFetch(
+export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
-): Promise<Response> {
+): Promise<T> {
   const url = buildApiUrl(path);
   const token =
     typeof window !== 'undefined'
@@ -53,6 +53,7 @@ export async function apiFetch(
 
   const response = await fetch(url, {
     ...options,
+    body,
     credentials: 'omit',
     headers,
   });
@@ -82,5 +83,5 @@ export async function apiFetch(
     throw new Error(`${message} [${response.status}]`);
   }
 
-  return response;
+  return parsedBody as T;
 }
