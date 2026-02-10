@@ -8,22 +8,41 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { securityConfig } from './config/security.config';
 
+function ensureRequiredEnv(configService: ConfigService) {
+  const logger = new Logger('Bootstrap');
+  const required = ['DATABASE_URL', 'JWT_SECRET'] as const;
+
+  const missing = required.filter((key) => !configService.get<string>(key));
+  if (missing.length) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}`,
+    );
+  }
+
+  if (!configService.get<string>('STRIPE_SECRET_KEY')) {
+    logger.warn(
+      'STRIPE_SECRET_KEY is not set. Billing endpoints will return Stripe-not-configured errors.',
+    );
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use('/billing/webhook', express.raw({ type: 'application/json' }));
 
   const configService = app.get(ConfigService);
+  ensureRequiredEnv(configService);
+
   app.enableCors({
     origin: (origin, callback) => {
       const allowed = [
         'http://localhost:3000',
+        'https://gymstack-saas.vercel.app',
         'https://gymstack-saas-jw4voz3tb-yashs-projects-81128ebe.vercel.app',
       ];
 
-      // Allow no-origin requests (like curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Allow exact match + allow all Vercel preview URLs for this project
       const isAllowed =
         allowed.includes(origin) ||
         /^https:\/\/gymstack-saas-.*-yashs-projects-81128ebe\.vercel\.app$/.test(
@@ -61,12 +80,6 @@ async function bootstrap() {
       const redirectUrl = `https://${host}${req.originalUrl}`;
       return res.redirect(statusCode, redirectUrl);
     });
-  }
-
-  const jwtSecret = configService.get<string>('JWT_SECRET');
-  if (!jwtSecret) {
-    const logger = new Logger('Bootstrap');
-    logger.warn('JWT_SECRET is not defined. Falling back to dev secret.');
   }
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;

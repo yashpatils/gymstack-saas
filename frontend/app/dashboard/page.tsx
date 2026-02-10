@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
+import { requireAuth } from "../../src/lib/auth";
 
 type MeResponse = {
+  id: string;
   email: string;
   role: string;
 };
@@ -15,16 +17,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        router.replace("/login");
+      if (!requireAuth(router)) {
         return;
       }
 
       try {
         const data = await apiFetch<MeResponse>("/auth/me");
         setUser(data);
-      } catch (error) {
+      } catch {
         router.replace("/login");
       }
     };
@@ -43,6 +43,9 @@ export default function DashboardPage() {
         </h1>
         {user && (
           <div className="space-y-1 text-sm text-slate-200">
+            <p>
+              <span className="font-semibold text-white">ID:</span> {user.id}
+            </p>
             <p>
               <span className="font-semibold text-white">Email:</span>{" "}
               {user.email}

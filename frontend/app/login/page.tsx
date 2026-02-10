@@ -6,8 +6,15 @@ import { z } from "zod";
 import { Button } from "../components/ui";
 import { apiFetch } from "../lib/api";
 
+type AuthUser = {
+  id: string;
+  email: string;
+  role: string;
+};
+
 type AuthResponse = {
   accessToken: string;
+  user: AuthUser;
 };
 
 const authSchema = z.object({
@@ -45,7 +52,7 @@ export default function LoginPage() {
       });
 
       localStorage.setItem("accessToken", data.accessToken);
-      setMessage("Login successful.");
+      setMessage(`Login successful. Welcome ${data.user.email}.`);
       router.push("/dashboard");
     } catch (submitError) {
       const errorMessage =
