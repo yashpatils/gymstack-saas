@@ -13,7 +13,13 @@ type GymPayload = {
 };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  return apiFetch<T>(path, options);
+  const response = await apiFetch(path, options);
+
+  if (response.status === 204) {
+    return null as T;
+  }
+
+  return (await response.json()) as T;
 }
 
 export async function listGyms(): Promise<Gym[]> {

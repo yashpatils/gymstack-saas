@@ -33,10 +33,12 @@ export async function login(
   email: string,
   password: string,
 ): Promise<{ token: string; user: AuthUser }> {
-  const data = await apiFetch<AuthResponse>('/api/auth/login', {
+  const response = await apiFetch('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+
+  const data = (await response.json()) as AuthResponse;
   setToken(data.accessToken);
 
   return {
@@ -49,10 +51,12 @@ export async function signup(
   email: string,
   password: string,
 ): Promise<{ token: string; user: AuthUser }> {
-  const data = await apiFetch<AuthResponse>('/api/auth/signup', {
+  const response = await apiFetch('/api/auth/signup', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+
+  const data = (await response.json()) as AuthResponse;
   setToken(data.accessToken);
 
   return {
@@ -67,9 +71,11 @@ export async function me(): Promise<AuthUser> {
     throw new Error('Not authenticated.');
   }
 
-  return apiFetch<AuthUser>('/api/auth/me', {
+  const response = await apiFetch('/api/auth/me', {
     method: 'GET',
   });
+
+  return (await response.json()) as AuthUser;
 }
 
 export function logout(): void {

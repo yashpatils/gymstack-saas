@@ -21,15 +21,6 @@ export function buildApiUrl(path: string): string {
   return `${base}${normalizedPath}`.replace(/([^:]\/)(\/+)/g, '$1');
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-}
-
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -42,12 +33,18 @@ export async function apiFetch<T = unknown>(
 
   const headers = new Headers(options.headers ?? {});
 
-  let body = options.body;
-  if (isPlainObject(body)) {
-    body = JSON.stringify(body);
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+  let shouldSetJsonContentType = false;
+  if (!headers.has('Content-Type') && typeof options.body === 'string') {
+    try {
+      JSON.parse(options.body);
+      shouldSetJsonContentType = true;
+    } catch {
+      shouldSetJsonContentType = false;
     }
+  }
+
+  if (shouldSetJsonContentType) {
+    headers.set('Content-Type', 'application/json');
   }
 
   if (token) {
@@ -61,18 +58,29 @@ export async function apiFetch<T = unknown>(
     headers,
   });
 
-  const contentType = response.headers.get('content-type') ?? '';
-  const isJson = contentType.includes('application/json');
-  const parsedBody = isJson
-    ? ((await response.json()) as unknown)
-    : ((await response.text()) as unknown);
-
   if (!response.ok) {
-    const detail =
-      typeof parsedBody === 'string'
-        ? parsedBody
-        : JSON.stringify(parsedBody);
-    throw new Error(`Request failed (${response.status} ${response.statusText}): ${detail}`);
+    let message = `Request failed (${response.status} ${response.statusText})`;
+
+    try {
+      const data = (await response.json()) as {
+        error?: string;
+        message?: string | string[];
+      };
+
+      if (data?.error) {
+        message = data.error;
+      }
+
+      if (Array.isArray(data?.message)) {
+        message = data.message.join(', ');
+      } else if (data?.message) {
+        message = data.message;
+      }
+    } catch {
+      // Ignore non-JSON error bodies and keep the default message.
+    }
+
+    throw new Error(`${message} [${response.status}]`);
   }
 
   return parsedBody as T;
