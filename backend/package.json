@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && nest build",
-    "start": "node dist/main.js",
-    "start:prod": "npm run build && node dist/main.js",
+    "start": "npm run start:prod",
+    "start:prod": "prisma migrate deploy && node dist/main.js",
+    "postinstall": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
     "test": "jest"
   },
   "engines": {
