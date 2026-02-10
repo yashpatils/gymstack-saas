@@ -51,11 +51,11 @@ export default function DebugPage() {
         </button>
         <button
           type="button"
-          onClick={() => runTest('auth me', '/auth/me')}
+          onClick={() => runTest('auth me', '/api/auth/me')}
           disabled={loading}
           className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
         >
-          Test /auth/me
+          Test /api/auth/me
         </button>
         <button
           type="button"
