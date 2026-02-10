@@ -1,4 +1,4 @@
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -12,13 +12,16 @@ import { JwtStrategy } from './auth.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const logger = new Logger(AuthModule.name);
-        const secret = configService.get<string>('JWT_SECRET');
+        // JWT_SECRET must come from environment variables (for Railway set it in service variables).
+        const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
         if (!secret) {
-          logger.warn('JWT_SECRET is not defined. Falling back to dev secret.');
+          throw new Error(
+            'JWT_SECRET is required and must be provided via environment variables before starting the backend.',
+          );
         }
+
         return {
-          secret: secret ?? 'dev-secret',
+          secret,
           signOptions: { expiresIn: '1h' },
         };
       },

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -13,15 +13,18 @@ type JwtPayload = {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
-    const secret = configService.get<string>('JWT_SECRET');
+    // JWT_SECRET must be supplied via environment variables (e.g. Railway service variables).
+    const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
     if (!secret) {
-      const logger = new Logger(JwtStrategy.name);
-      logger.warn('JWT_SECRET is not defined. Falling back to dev secret.');
+      throw new Error(
+        'JWT_SECRET is required and must be provided via environment variables before starting the backend.',
+      );
     }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret ?? 'dev-secret',
+      secretOrKey: secret,
     });
   }
 

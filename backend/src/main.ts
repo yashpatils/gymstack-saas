@@ -10,6 +10,7 @@ import { securityConfig } from './config/security.config';
 
 function ensureRequiredEnv(configService: ConfigService) {
   const logger = new Logger('Bootstrap');
+  // Railway (and all deployments) must provide these via environment variables.
   const required = ['DATABASE_URL', 'JWT_SECRET'] as const;
 
   const missing = required.filter((key) => !configService.get<string>(key));
