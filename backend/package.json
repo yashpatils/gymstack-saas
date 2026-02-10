@@ -5,7 +5,7 @@
   "scripts": {
     "build": "prisma generate && nest build",
     "start": "npm run start:prod",
-    "start:prod": "npm run db:tables && prisma migrate status && prisma migrate deploy && node dist/main.js",
+    "start:prod": "bash scripts/start-prod.sh",
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
     "db:tables": "node scripts/db-check.js",
