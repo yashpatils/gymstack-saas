@@ -7,8 +7,12 @@ import { Button } from "../components/ui";
 import { apiFetch } from "../lib/api";
 
 type SignupResponse = {
-  email: string;
-  role: string;
+  message: string;
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  };
 };
 
 const authSchema = z.object({
@@ -35,6 +39,7 @@ export default function SignupPage() {
       setError(
         validationResult.error.issues[0]?.message ?? "Please check your input.",
       );
+      setIsSubmitting(false);
       return;
     }
 
@@ -43,7 +48,7 @@ export default function SignupPage() {
         method: "POST",
         body: { email, password },
       });
-      setMessage(`Signup successful for ${data.email}.`);
+      setMessage(data.message || `Signup successful for ${data.user.email}.`);
       router.push("/login");
     } catch (submitError) {
       const errorMessage =

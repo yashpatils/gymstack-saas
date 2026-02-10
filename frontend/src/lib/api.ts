@@ -1,8 +1,10 @@
+import { logout } from './auth';
+
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
   if (!base) {
     throw new Error(
-      'NEXT_PUBLIC_API_URL is not set. Add it in your frontend environment configuration.',
+      'NEXT_PUBLIC_API_URL is missing. Set it to https://gymstack-saas-production.up.railway.app in frontend environment variables.',
     );
   }
 
@@ -37,7 +39,7 @@ export async function apiFetch(
   });
 
   if (response.status === 401 && typeof window !== 'undefined') {
-    window.localStorage.removeItem('accessToken');
+    logout();
     window.location.assign('/login');
   }
 
@@ -45,8 +47,10 @@ export async function apiFetch(
     let message = `${response.status} ${response.statusText}`;
 
     try {
-      const data = (await response.json()) as { message?: string };
-      if (data?.message) {
+      const data = (await response.json()) as { message?: string | string[] };
+      if (Array.isArray(data?.message)) {
+        message = data.message.join(', ');
+      } else if (data?.message) {
         message = data.message;
       }
     } catch {

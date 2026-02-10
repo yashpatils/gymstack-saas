@@ -3,21 +3,27 @@
 import { useState } from 'react';
 import { apiFetch } from '../lib/api';
 
+type DebugResult = {
+  label: string;
+  ok: boolean;
+  payload: unknown;
+};
+
 export default function DebugPage() {
-  const [result, setResult] = useState<string>('Not tested yet');
+  const [result, setResult] = useState<DebugResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const testBackend = async () => {
+  const runTest = async (label: string, path: string) => {
     setLoading(true);
-    setResult('Testing...');
-
     try {
-      const data = await apiFetch<{ status: string }>('/health');
-      setResult(`Success: ${JSON.stringify(data)}`);
+      const data = await apiFetch<unknown>(path);
+      setResult({ label, ok: true, payload: data });
     } catch (error) {
-      setResult(
-        `Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      setResult({
+        label,
+        ok: false,
+        payload: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setLoading(false);
     }
@@ -26,20 +32,42 @@ export default function DebugPage() {
   return (
     <main className="mx-auto max-w-xl p-6">
       <h1 className="mb-4 text-2xl font-semibold">Frontend API Debug</h1>
-      <p className="mb-2">
+      <p className="mb-4">
         <strong>NEXT_PUBLIC_API_URL:</strong>{' '}
         {process.env.NEXT_PUBLIC_API_URL ?? 'Unset'}
       </p>
-      <button
-        type="button"
-        onClick={testBackend}
-        disabled={loading}
-        className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
-      >
-        {loading ? 'Testing...' : 'Test backend'}
-      </button>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => runTest('health', '/health')}
+          disabled={loading}
+          className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
+        >
+          Test /health
+        </button>
+        <button
+          type="button"
+          onClick={() => runTest('auth me', '/auth/me')}
+          disabled={loading}
+          className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
+        >
+          Test /auth/me
+        </button>
+        <button
+          type="button"
+          onClick={() => runTest('gyms', '/gyms')}
+          disabled={loading}
+          className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
+        >
+          Test /gyms
+        </button>
+      </div>
+
       <pre className="mt-4 whitespace-pre-wrap rounded bg-gray-100 p-3 text-sm">
-        {result}
+        {result
+          ? `${result.label} (${result.ok ? 'success' : 'error'})\n${JSON.stringify(result.payload, null, 2)}`
+          : 'Not tested yet'}
       </pre>
     </main>
   );

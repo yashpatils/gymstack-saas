@@ -10,18 +10,24 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  signup(@Body() body: SignupDto): Promise<MeDto> {
+  signup(@Body() body: SignupDto): Promise<{ message: string; user: MeDto }> {
     return this.authService.signup(body);
   }
 
   @Post('login')
-  login(@Body() body: LoginDto): Promise<{ accessToken: string }> {
+  login(
+    @Body() body: LoginDto,
+  ): Promise<{ accessToken: string; user: MeDto }> {
     return this.authService.login(body);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: { user: MeDto & { id: string } }): MeDto {
-    return { email: req.user.email, role: req.user.role };
+  me(@Req() req: { user: MeDto }): MeDto {
+    return {
+      id: req.user.id,
+      email: req.user.email,
+      role: req.user.role,
+    };
   }
 }

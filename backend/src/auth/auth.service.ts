@@ -14,7 +14,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signup(input: SignupDto): Promise<MeDto> {
+  async signup(input: SignupDto): Promise<{ message: string; user: MeDto }> {
     const { email, password, role } = input;
 
     if (!email || !password) {
@@ -38,10 +38,17 @@ export class AuthService {
       },
     });
 
-    return { email: user.email, role: user.role };
+    return {
+      message: 'Signup successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 
-  async login(input: LoginDto): Promise<{ accessToken: string }> {
+  async login(input: LoginDto): Promise<{ accessToken: string; user: MeDto }> {
     const { email, password } = input;
 
     if (!email || !password) {
@@ -69,6 +76,13 @@ export class AuthService {
       role: user.role,
     };
 
-    return { accessToken: this.jwtService.sign(payload) };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 }
