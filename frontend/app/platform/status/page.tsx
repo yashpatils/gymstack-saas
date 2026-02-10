@@ -18,9 +18,8 @@ export default function PlatformStatusPage() {
     setLoading(true);
 
     try {
-      const healthData = await apiFetch<{ status?: string }>("/health", {
-        method: "GET",
-      });
+      const healthResponse = await apiFetch("/health", { method: "GET" });
+      const healthData = (await healthResponse.json()) as { status?: string };
       setBackendStatus({
         healthy: true,
         message: healthData.status ?? "Backend is healthy.",
@@ -36,9 +35,8 @@ export default function PlatformStatusPage() {
     }
 
     try {
-      const dbData = await apiFetch<{ message?: string }>("/api/db/ping", {
-        method: "GET",
-      });
+      const dbResponse = await apiFetch("/api/db/ping", { method: "GET" });
+      const dbData = (await dbResponse.json()) as { message?: string };
       setDbStatus({
         healthy: true,
         message: dbData.message ?? "Database is reachable.",
