@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import express from 'express';
 import { AppModule } from './app.module';
 import { securityConfig } from './config/security.config';
+import { getRegisteredRoutes } from './debug/route-list.util';
 
 function ensureRequiredEnv(configService: ConfigService) {
   const logger = new Logger('Bootstrap');
@@ -60,7 +61,9 @@ async function bootstrap() {
   });
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
-  app.setGlobalPrefix(apiPrefix, { exclude: ['billing/webhook', 'health'] });
+  app.setGlobalPrefix(apiPrefix, {
+    exclude: ['billing/webhook', 'health', 'debug/routes'],
+  });
   app.use(helmet());
   app.use(morgan('combined'));
 
@@ -85,6 +88,16 @@ async function bootstrap() {
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port);
+
+  const server = app.getHttpServer();
+  const routes = getRegisteredRoutes(server);
+
+  if (routes.length) {
+    console.log('REGISTERED ROUTES:');
+    routes.forEach((route) => console.log(route));
+  } else {
+    console.log('Could not read Express router stack to list routes.');
+  }
 }
 
 bootstrap();
