@@ -16,13 +16,21 @@ export async function apiFetch(
   options: RequestInit = {},
 ): Promise<Response> {
   const base = getApiBaseUrl();
+  const apiPrefix = '/api';
   const token =
     typeof window !== 'undefined'
       ? window.localStorage.getItem('accessToken')
       : null;
 
   const urlPath = path.startsWith('/') ? path : `/${path}`;
-  const url = `${base}${urlPath}`;
+  const baseHasApiPrefix = /\/api\/?$/i.test(base);
+  const pathHasApiPrefix = /^\/api(?:\/|$)/i.test(urlPath);
+  const isUnprefixedRoute = /^\/health(?:\/|$)/i.test(urlPath);
+  const prefixedPath =
+    baseHasApiPrefix || pathHasApiPrefix || isUnprefixedRoute
+      ? urlPath
+      : `${apiPrefix}${urlPath}`;
+  const url = `${base}${prefixedPath}`;
 
   const headers = new Headers(options.headers ?? {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
