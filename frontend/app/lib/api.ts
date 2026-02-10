@@ -1,4 +1,4 @@
-import { apiFetch as baseApiFetch } from '../../src/lib/api';
+import { apiFetch as baseApiFetch, buildApiUrl as baseBuildApiUrl } from '../../src/lib/api';
 
 type ApiFetchOptions = Omit<RequestInit, 'body'> & {
   body?: Record<string, unknown> | FormData;
@@ -30,4 +30,8 @@ export async function apiFetch<T>(
   }
 
   return (await response.json()) as T;
+}
+
+export function buildApiUrl(path: string): string {
+  return baseBuildApiUrl(path);
 }
