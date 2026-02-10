@@ -28,7 +28,7 @@ model User {
   password            String
   role                Role               @default(USER)
   stripeCustomerId    String?            @unique
-  stripeSubscriptionId String?
+  stripeSubscriptionId String?            @unique
   subscriptionStatus  SubscriptionStatus @default(INACTIVE)
   gyms                Gym[]
   createdAt           DateTime           @default(now())
