@@ -7,8 +7,6 @@ import {
 } from "../components/ui";
 import { TenantRoleSnapshot } from "../components/tenant-role-snapshot";
 import { TenantHomeHeader } from "./tenant-home-header";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +15,6 @@ export default function TenantHomePage({
 }: {
   params: { tenant: string };
 }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.replace("/login");
-    }
-  }, [router]);
-
   return (
     <PageShell>
       <TenantHomeHeader />

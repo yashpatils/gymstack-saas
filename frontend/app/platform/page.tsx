@@ -10,20 +10,9 @@ import {
   StatCard,
 } from "../components/ui";
 import { useBackendAction } from "../components/use-backend-action";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function PlatformOverviewPage() {
   const { backendResponse, callBackend } = useBackendAction();
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.replace("/login");
-    }
-  }, [router]);
-
   return (
     <PageShell>
       <PageHeader

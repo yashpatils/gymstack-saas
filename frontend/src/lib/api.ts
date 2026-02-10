@@ -1,4 +1,4 @@
-import { logout } from './auth';
+import { getToken, logout } from './auth';
 
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
@@ -44,10 +44,7 @@ export async function apiFetch(
   options: RequestInit = {},
 ): Promise<Response> {
   const url = buildApiUrl(path);
-  const token =
-    typeof window !== 'undefined'
-      ? window.localStorage.getItem('accessToken')
-      : null;
+  const token = getToken();
 
   const headers = new Headers(options.headers ?? {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {

@@ -1,21 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Button } from "../components/ui";
-import { apiFetch } from "../lib/api";
-
-type AuthUser = {
-  id: string;
-  email: string;
-  role: string;
-};
-
-type AuthResponse = {
-  accessToken: string;
-  user: AuthUser;
-};
+import { useAuth } from "../../src/providers/AuthProvider";
 
 const authSchema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -24,15 +13,20 @@ const authSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, loading: authLoading, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/platform");
+    }
+  }, [authLoading, user, router]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMessage(null);
     setError(null);
 
     const validationResult = authSchema.safeParse({ email, password });
@@ -46,14 +40,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const data = await apiFetch<AuthResponse>("/auth/login", {
-        method: "POST",
-        body: { email, password },
-      });
-
-      localStorage.setItem("accessToken", data.accessToken);
-      setMessage(`Login successful. Welcome ${data.user.email}.`);
-      router.push("/dashboard");
+      await login(email, password);
+      router.push("/platform");
     } catch (submitError) {
       const errorMessage =
         submitError instanceof Error
@@ -102,7 +90,6 @@ export default function LoginPage() {
             {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </form>
-        {message && <p className="text-sm text-emerald-300">{message}</p>}
         {error && <p className="text-sm text-rose-300">{error}</p>}
       </div>
     </div>

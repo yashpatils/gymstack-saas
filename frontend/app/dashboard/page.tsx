@@ -1,62 +1,36 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
-import { requireAuth } from "../../src/lib/auth";
-
-type MeResponse = {
-  id: string;
-  email: string;
-  role: string;
-};
+import { ProtectedRoute } from "../../src/components/ProtectedRoute";
+import { useAuth } from "../../src/providers/AuthProvider";
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<MeResponse | null>(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!requireAuth(router)) {
-        return;
-      }
-
-      try {
-        const data = await apiFetch<MeResponse>("/auth/me");
-        setUser(data);
-      } catch {
-        router.replace("/login");
-      }
-    };
-
-    void fetchProfile();
-  }, [router]);
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-      <div className="mx-auto w-full max-w-2xl space-y-4 rounded-3xl border border-white/10 bg-slate-900/60 p-8">
-        <p className="text-xs uppercase tracking-[0.4em] text-slate-400">
-          GymStack
-        </p>
-        <h1 className="text-3xl font-semibold">
-          {user ? "Welcome back." : "Loading your dashboard..."}
-        </h1>
-        {user && (
-          <div className="space-y-1 text-sm text-slate-200">
-            <p>
-              <span className="font-semibold text-white">ID:</span> {user.id}
-            </p>
-            <p>
-              <span className="font-semibold text-white">Email:</span>{" "}
-              {user.email}
-            </p>
-            <p>
-              <span className="font-semibold text-white">Role:</span>{" "}
-              {user.role}
-            </p>
-          </div>
-        )}
+    <ProtectedRoute>
+      <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+        <div className="mx-auto w-full max-w-2xl space-y-4 rounded-3xl border border-white/10 bg-slate-900/60 p-8">
+          <p className="text-xs uppercase tracking-[0.4em] text-slate-400">
+            GymStack
+          </p>
+          <h1 className="text-3xl font-semibold">Welcome back.</h1>
+          {user && (
+            <div className="space-y-1 text-sm text-slate-200">
+              <p>
+                <span className="font-semibold text-white">ID:</span> {user.id}
+              </p>
+              <p>
+                <span className="font-semibold text-white">Email:</span>{" "}
+                {user.email}
+              </p>
+              <p>
+                <span className="font-semibold text-white">Role:</span>{" "}
+                {user.role}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

@@ -1,5 +1,6 @@
 import "./globals.css";
 import { SessionProvider } from "./components/session-provider";
+import { AuthProvider } from "../src/providers/AuthProvider";
 
 export const metadata = {
   title: "GymStack SaaS",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <AuthProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </AuthProvider>
       </body>
     </html>
   );

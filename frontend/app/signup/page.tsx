@@ -1,19 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "../components/ui";
-import { apiFetch } from "../lib/api";
-
-type SignupResponse = {
-  message: string;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
-};
+import { useAuth } from "../../src/providers/AuthProvider";
 
 const authSchema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -23,15 +14,20 @@ const authSchema = z.object({
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const { signup, loading: authLoading, user } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/platform");
+    }
+  }, [authLoading, user, router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-    setMessage(null);
     setError(null);
 
     const validationResult = authSchema.safeParse({ email, password });
@@ -44,12 +40,8 @@ export default function SignupPage() {
     }
 
     try {
-      const data = await apiFetch<SignupResponse>("/auth/signup", {
-        method: "POST",
-        body: { email, password },
-      });
-      setMessage(data.message || `Signup successful for ${data.user.email}.`);
-      router.push("/login");
+      await signup(email, password);
+      router.push("/platform");
     } catch (submitError) {
       const errorMessage =
         submitError instanceof Error
@@ -98,7 +90,6 @@ export default function SignupPage() {
             {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
-        {message && <p className="text-sm text-emerald-300">{message}</p>}
         {error && <p className="text-sm text-rose-300">{error}</p>}
       </div>
     </div>
