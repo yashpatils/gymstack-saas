@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { TenantShell } from "../components/tenant-shell";
+import { ProtectedRoute } from "../../src/components/ProtectedRoute";
 
 export const dynamic = "force-dynamic";
 
@@ -10,5 +13,9 @@ export default function TenantLayout({
   children: React.ReactNode;
   params: { tenant: string };
 }) {
-  return <TenantShell tenantSlug={params.tenant}>{children}</TenantShell>;
+  return (
+    <ProtectedRoute>
+      <TenantShell tenantSlug={params.tenant}>{children}</TenantShell>
+    </ProtectedRoute>
+  );
 }
