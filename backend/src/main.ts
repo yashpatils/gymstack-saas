@@ -8,55 +8,35 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { securityConfig } from './config/security.config';
 
-function normalizeOrigin(origin: string): string {
-  return origin.trim().replace(/\/+$/, '');
-}
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use('/billing/webhook', express.raw({ type: 'application/json' }));
 
   const configService = app.get(ConfigService);
-  const corsOrigin = configService.get<string>('CORS_ORIGIN');
-  const frontendUrl = configService.get<string>('FRONTEND_URL');
-
-  const configuredOrigins = [corsOrigin, frontendUrl]
-    .filter((value): value is string => Boolean(value))
-    .flatMap((value) => value.split(','))
-    .map(normalizeOrigin)
-    .filter(Boolean);
-
-  const defaultOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://yashpatils.github.io',
-  ];
-
-  const allowedOrigins =
-    configuredOrigins.length > 0 ? configuredOrigins : defaultOrigins;
-
   app.enableCors({
-    origin: (origin, cb) => {
-      if (!origin) {
-        return cb(null, true);
-      }
+    origin: (origin, callback) => {
+      const allowed = [
+        'http://localhost:3000',
+        'https://gymstack-saas-jw4voz3tb-yashs-projects-81128ebe.vercel.app',
+      ];
 
-      const normalizedOrigin = normalizeOrigin(origin);
-      const isAllowed = allowedOrigins.some(
-        (allowed) =>
-          normalizedOrigin === allowed || normalizedOrigin.startsWith(allowed),
-      );
+      // Allow no-origin requests (like curl, server-to-server)
+      if (!origin) return callback(null, true);
 
-      if (isAllowed) {
-        return cb(null, true);
-      }
+      // Allow exact match + allow all Vercel preview URLs for this project
+      const isAllowed =
+        allowed.includes(origin) ||
+        /^https:\/\/gymstack-saas-.*-yashs-projects-81128ebe\.vercel\.app$/.test(
+          origin,
+        );
 
-      return cb(new Error('CORS blocked'), false);
+      if (isAllowed) return callback(null, true);
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
     },
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
-    optionsSuccessStatus: 204,
   });
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
