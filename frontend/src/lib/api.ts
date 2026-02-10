@@ -1,24 +1,10 @@
-import { getToken, logout } from './auth';
-
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
   if (!base) {
-    throw new Error(
-      'NEXT_PUBLIC_API_URL is missing. Set it to https://gymstack-saas-production.up.railway.app in frontend environment variables.',
-    );
+    throw new Error('NEXT_PUBLIC_API_URL is missing. Set it in your frontend environment variables.');
   }
 
   return base.replace(/\/+$/, '');
-}
-
-export function getApiPrefix(): string {
-  const prefix = process.env.NEXT_PUBLIC_API_PREFIX ?? '/api';
-  if (!prefix) {
-    return '';
-  }
-
-  const normalized = prefix.startsWith('/') ? prefix : `/${prefix}`;
-  return normalized.replace(/\/+$/, '');
 }
 
 function normalizePath(path: string): string {
@@ -26,61 +12,68 @@ function normalizePath(path: string): string {
     return '';
   }
 
-  return `/${path}`.replace(/\/+/, '/').replace(/\/+$/g, '');
+  return `/${path}`.replace(/\/+/g, '/').replace(/\/+$/g, '');
 }
 
 export function buildApiUrl(path: string): string {
   const base = getApiBaseUrl();
-  const apiPrefix = getApiPrefix();
   const normalizedPath = normalizePath(path);
-  const prefixPart = apiPrefix ? `${apiPrefix}/` : '/';
-  const pathPart = normalizedPath.replace(/^\//, '');
-
-  return `${base}${prefixPart}${pathPart}`.replace(/([^:]\/)(\/+)/g, '$1');
+  return `${base}${normalizedPath}`.replace(/([^:]\/)(\/+)/g, '$1');
 }
 
-export async function apiFetch(
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
-): Promise<Response> {
+): Promise<T> {
   const url = buildApiUrl(path);
-  const token = getToken();
+  const token =
+    typeof window !== 'undefined'
+      ? window.localStorage.getItem('gymstack_token')
+      : null;
 
   const headers = new Headers(options.headers ?? {});
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
+
+  let body = options.body;
+  if (isPlainObject(body)) {
+    body = JSON.stringify(body);
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
   }
+
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(url, {
     ...options,
+    body,
     credentials: 'omit',
     headers,
   });
 
-  if (response.status === 401 && typeof window !== 'undefined') {
-    logout();
-    window.location.assign('/login');
-  }
+  const contentType = response.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+  const parsedBody = isJson
+    ? ((await response.json()) as unknown)
+    : ((await response.text()) as unknown);
 
   if (!response.ok) {
-    let message = `${response.status} ${response.statusText}`;
-
-    try {
-      const data = (await response.json()) as { message?: string | string[] };
-      if (Array.isArray(data?.message)) {
-        message = data.message.join(', ');
-      } else if (data?.message) {
-        message = data.message;
-      }
-    } catch {
-      // Ignore non-JSON error bodies and keep the default message.
-    }
-
-    throw new Error(message);
+    const detail =
+      typeof parsedBody === 'string'
+        ? parsedBody
+        : JSON.stringify(parsedBody);
+    throw new Error(`Request failed (${response.status} ${response.statusText}): ${detail}`);
   }
 
-  return response;
+  return parsedBody as T;
 }

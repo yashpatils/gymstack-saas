@@ -1,35 +1,19 @@
 import { apiFetch as baseApiFetch, buildApiUrl as baseBuildApiUrl } from '../../src/lib/api';
 
 type ApiFetchOptions = Omit<RequestInit, 'body'> & {
-  body?: Record<string, unknown> | FormData;
+  body?: Record<string, unknown> | FormData | BodyInit | null;
 };
 
-export async function apiFetch<T>(
+export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { body, headers, ...rest } = options;
-  const resolvedHeaders = new Headers(headers);
-  let resolvedBody: BodyInit | undefined;
+  const { body, ...rest } = options;
 
-  if (body instanceof FormData) {
-    resolvedBody = body;
-  } else if (body) {
-    resolvedHeaders.set('Content-Type', 'application/json');
-    resolvedBody = JSON.stringify(body);
-  }
-
-  const response = await baseApiFetch(path, {
+  return baseApiFetch<T>(path, {
     ...rest,
-    headers: resolvedHeaders,
-    body: resolvedBody,
+    body: body as BodyInit | null | undefined,
   });
-
-  if (response.status === 204) {
-    return null as T;
-  }
-
-  return (await response.json()) as T;
 }
 
 export function buildApiUrl(path: string): string {
