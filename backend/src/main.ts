@@ -9,6 +9,40 @@ import { AppModule } from './app.module';
 import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 
+function maskDatabaseUrlCredentials(url: string): string {
+  return url.replace(/:\/\/.*@/, '://****:****@');
+}
+
+function logDatabaseIdentity(configService: ConfigService) {
+  const logger = new Logger('Bootstrap');
+  const databaseUrl = configService.get<string>('DATABASE_URL');
+  const prismaSchema = process.env.PRISMA_SCHEMA;
+  const nodeEnv = process.env.NODE_ENV;
+
+  logger.log(`NODE_ENV: ${nodeEnv ?? 'undefined'}`);
+  logger.log(`PRISMA_SCHEMA: ${prismaSchema ?? 'undefined'}`);
+
+  if (!databaseUrl) {
+    logger.warn('DATABASE_URL is not set. Skipping database identity diagnostics.');
+    return;
+  }
+
+  const maskedUrl = maskDatabaseUrlCredentials(databaseUrl);
+  logger.log(`DATABASE_URL (masked): ${maskedUrl}`);
+
+  try {
+    const parsed = new URL(databaseUrl);
+    const databaseName = parsed.pathname.replace(/^\//, '') || '(not set)';
+    const schemaFromUrl = parsed.searchParams.get('schema') ?? '(not set)';
+
+    logger.log(
+      `Database identity => host: ${parsed.host}, database: ${databaseName}, schema: ${schemaFromUrl}`,
+    );
+  } catch {
+    logger.warn('DATABASE_URL is not a valid URL. Could not extract host/database/schema.');
+  }
+}
+
 function ensureRequiredEnv(configService: ConfigService) {
   const logger = new Logger('Bootstrap');
   // Railway (and all deployments) must provide these via environment variables.
@@ -34,6 +68,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   ensureRequiredEnv(configService);
+  logDatabaseIdentity(configService);
 
   app.enableCors({
     origin: (origin, callback) => {
