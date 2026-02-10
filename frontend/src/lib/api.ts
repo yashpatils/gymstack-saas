@@ -32,19 +32,21 @@ export async function apiFetch<T = unknown>(
       : null;
 
   const headers = new Headers(options.headers ?? {});
+  let requestBody: BodyInit | undefined = options.body as any;
 
-  let shouldSetJsonContentType = false;
-  if (!headers.has('Content-Type') && typeof options.body === 'string') {
-    try {
-      JSON.parse(options.body);
-      shouldSetJsonContentType = true;
-    } catch {
-      shouldSetJsonContentType = false;
+  const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+    !!v
+    && typeof v === 'object'
+    && !(v instanceof FormData)
+    && !(v instanceof URLSearchParams)
+    && !(v instanceof Blob)
+    && !(v instanceof ArrayBuffer);
+
+  if (isPlainObject(options.body)) {
+    requestBody = JSON.stringify(options.body);
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
     }
-  }
-
-  if (shouldSetJsonContentType) {
-    headers.set('Content-Type', 'application/json');
   }
 
   if (token) {
@@ -53,35 +55,28 @@ export async function apiFetch<T = unknown>(
 
   const response = await fetch(url, {
     ...options,
-    body,
+    body: requestBody,
     credentials: 'omit',
     headers,
   });
 
+  const contentType = response.headers.get('content-type') ?? '';
+
   if (!response.ok) {
-    let message = `Request failed (${response.status} ${response.statusText})`;
+    let errorBody: unknown;
 
-    try {
-      const data = (await response.json()) as {
-        error?: string;
-        message?: string | string[];
-      };
-
-      if (data?.error) {
-        message = data.error;
-      }
-
-      if (Array.isArray(data?.message)) {
-        message = data.message.join(', ');
-      } else if (data?.message) {
-        message = data.message;
-      }
-    } catch {
-      // Ignore non-JSON error bodies and keep the default message.
+    if (contentType.includes('application/json')) {
+      errorBody = await response.json();
+    } else {
+      errorBody = await response.text();
     }
 
-    throw new Error(`${message} [${response.status}]`);
+    throw new Error(`Request failed (${response.status} ${response.statusText}): ${typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody)}`);
   }
 
-  return parsedBody as T;
+  if (contentType.includes('application/json')) {
+    return (await response.json()) as T;
+  }
+
+  return (await response.text()) as T;
 }
