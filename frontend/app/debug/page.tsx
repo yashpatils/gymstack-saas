@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { apiFetch } from '../lib/api';
+import { apiFetch, buildApiUrl } from '../lib/api';
 
 type DebugResult = {
   label: string;
@@ -14,6 +14,9 @@ export default function DebugPage() {
   const [loading, setLoading] = useState(false);
 
   const runTest = async (label: string, path: string) => {
+    const finalUrl = buildApiUrl(path);
+    console.log(`[debug] Request URL (${label}): ${finalUrl}`);
+
     setLoading(true);
     try {
       const data = await apiFetch<unknown>(path);

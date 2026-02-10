@@ -21,35 +21,33 @@ export function getApiPrefix(): string {
   return normalized.replace(/\/+$/, '');
 }
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function normalizePath(path: string): string {
+  if (!path) {
+    return '';
+  }
+
+  return `/${path}`.replace(/\/+/, '/').replace(/\/+$/g, '');
+}
+
+export function buildApiUrl(path: string): string {
+  const base = getApiBaseUrl();
+  const apiPrefix = getApiPrefix();
+  const normalizedPath = normalizePath(path);
+  const prefixPart = apiPrefix ? `${apiPrefix}/` : '/';
+  const pathPart = normalizedPath.replace(/^\//, '');
+
+  return `${base}${prefixPart}${pathPart}`.replace(/([^:]\/)(\/+)/g, '$1');
 }
 
 export async function apiFetch(
   path: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const base = getApiBaseUrl();
-  const apiPrefix = getApiPrefix();
+  const url = buildApiUrl(path);
   const token =
     typeof window !== 'undefined'
       ? window.localStorage.getItem('accessToken')
       : null;
-
-  const urlPath = path.startsWith('/') ? path : `/${path}`;
-  const escapedPrefix = escapeRegex(apiPrefix);
-  const baseHasApiPrefix =
-    apiPrefix.length > 0 &&
-    new RegExp(`${escapedPrefix}(?:\\/)?$`, 'i').test(base);
-  const pathHasApiPrefix =
-    apiPrefix.length > 0 &&
-    new RegExp(`^${escapedPrefix}(?:\\/|$)`, 'i').test(urlPath);
-  const isUnprefixedRoute = /^\/health(?:\/|$)/i.test(urlPath);
-  const prefixedPath =
-    !apiPrefix || baseHasApiPrefix || pathHasApiPrefix || isUnprefixedRoute
-      ? urlPath
-      : `${apiPrefix}${urlPath}`;
-  const url = `${base}${prefixedPath}`;
 
   const headers = new Headers(options.headers ?? {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
