@@ -59,7 +59,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/platform");
+      router.replace("/onboarding");
     }
   }, [authLoading, user, router]);
 
@@ -78,7 +78,7 @@ export default function SignupPage() {
 
     try {
       await signup(email, password);
-      router.push("/platform");
+      router.push("/onboarding");
     } catch (submitError) {
       const errorMessage =
         submitError instanceof Error
