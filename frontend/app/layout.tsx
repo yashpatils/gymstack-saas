@@ -1,6 +1,7 @@
 import "./globals.css";
 import { SessionProvider } from "./components/session-provider";
 import { AuthProvider } from "../src/providers/AuthProvider";
+import { ToastProvider } from "../src/components/toast/ToastProvider";
 
 export const metadata = {
   title: "GymStack SaaS",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          <SessionProvider>{children}</SessionProvider>
+          <ToastProvider>
+            <SessionProvider>{children}</SessionProvider>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
