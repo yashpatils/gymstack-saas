@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MeDto } from './dto/me.dto';
@@ -91,5 +92,71 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<{ ok: true }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return { ok: true };
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashResetToken(token);
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        tokenHash,
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[auth] Password reset link for ${email}: http://localhost:3000/reset-password?token=${token}`,
+      );
+    }
+
+    return { ok: true };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ ok: true }> {
+    const tokenHash = this.hashResetToken(token);
+    const now = new Date();
+
+    const existingToken = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        usedAt: null,
+        expiresAt: {
+          gt: now,
+        },
+      },
+    });
+
+    if (!existingToken) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: existingToken.userId },
+        data: { password: passwordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: existingToken.id },
+        data: { usedAt: now },
+      }),
+    ]);
+
+    return { ok: true };
+  }
+
+  private hashResetToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 }
