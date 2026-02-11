@@ -13,6 +13,7 @@ const navItems = [
   { label: "Diagnostics", href: "/platform/diagnostics" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users", requires: "users" as const },
+  { label: "Audit", href: "/platform/audit", requires: "users" as const },
   { label: "Team", href: "/platform/team" },
   { label: "Billing", href: "/platform/billing", requires: "billing" as const },
   { label: "Settings", href: "/platform/settings" },
@@ -33,6 +34,7 @@ export default function PlatformLayout({
   const { user, loading, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
 
+  const role = user?.role ?? "MEMBER";
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";

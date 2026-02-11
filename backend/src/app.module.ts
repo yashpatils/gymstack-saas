@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
 import { BillingModule } from './billing/billing.module';
 import { DebugModule } from './debug/debug.module';
 import { GymsModule } from './gyms/gyms.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './users/users.module';
       ],
     }),
     AuthModule,
+    AuditModule,
     BillingModule,
     DebugModule,
     GymsModule,
