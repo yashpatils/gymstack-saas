@@ -25,6 +25,7 @@ function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('signup')
   signup(
     @Body() body: SignupDto,
@@ -33,6 +34,7 @@ export class AuthController {
     return this.authService.signup(body, getRequestContext(req));
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   login(
     @Body() body: LoginDto,
@@ -52,16 +54,19 @@ export class AuthController {
     };
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('logout')
   logout(): { ok: true } {
     return { ok: true };
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('forgot-password')
   forgotPassword(@Body() body: ForgotPasswordDto): Promise<{ ok: true }> {
     return this.authService.forgotPassword(body.email);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('reset-password')
   resetPassword(@Body() body: ResetPasswordDto): Promise<{ ok: true }> {
     return this.authService.resetPassword(body.token, body.newPassword);
