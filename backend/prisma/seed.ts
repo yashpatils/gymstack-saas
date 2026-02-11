@@ -4,55 +4,52 @@ const { PrismaClient, Role } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const demoOrgName = 'GymStack Demo Org';
+  const demoEmail = process.env.DEMO_EMAIL ?? 'demo@gymstack.dev';
+  const demoPassword = process.env.DEMO_PASSWORD ?? 'demo12345';
+  const demoGyms = ['Downtown Demo Gym', 'Riverside Demo Gym', 'Northside Demo Gym'];
 
-  if (!adminEmail || !adminPassword) {
-    throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD must be set to run seed');
-  }
+  const passwordHash = await bcrypt.hash(demoPassword, 10);
 
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
-  });
-
-  let adminUser = existingAdmin;
-
-  if (!adminUser) {
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
-
-    adminUser = await prisma.user.create({
-      data: {
-        email: adminEmail,
-        password: passwordHash,
-        role: Role.ADMIN,
-      },
-    });
-
-    console.log(`Created admin user: ${adminUser.email}`);
-  } else {
-    console.log(`Admin user already exists: ${adminUser.email}`);
-  }
-
-  const sampleGymName = 'Sample Gym';
-  const existingGym = await prisma.gym.findFirst({
-    where: {
-      ownerId: adminUser.id,
-      name: sampleGymName,
+  const demoUser = await prisma.user.upsert({
+    where: { email: demoEmail },
+    update: {
+      password: passwordHash,
+      role: Role.OWNER,
+    },
+    create: {
+      email: demoEmail,
+      password: passwordHash,
+      role: Role.OWNER,
     },
   });
 
-  if (!existingGym) {
-    const gym = await prisma.gym.create({
-      data: {
-        name: sampleGymName,
-        ownerId: adminUser.id,
+  console.log(`Demo user ready: ${demoUser.email}`);
+
+  for (const gymName of demoGyms) {
+    const existingGym = await prisma.gym.findFirst({
+      where: {
+        ownerId: demoUser.id,
+        name: gymName,
       },
     });
 
-    console.log(`Created sample gym: ${gym.name}`);
-  } else {
-    console.log(`Sample gym already exists: ${existingGym.name}`);
+    if (existingGym) {
+      console.log(`Demo gym already exists: ${existingGym.name}`);
+      continue;
+    }
+
+    const gym = await prisma.gym.create({
+      data: {
+        name: gymName,
+        ownerId: demoUser.id,
+      },
+    });
+
+    console.log(`Demo gym created: ${gym.name}`);
   }
+
+  console.log(`Demo org ready: ${demoOrgName}`);
 }
 
 main()
