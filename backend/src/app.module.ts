@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { DebugModule } from './debug/debug.module';
 import { GymsModule } from './gyms/gyms.module';
+import { InvitesModule } from './invites/invites.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
@@ -27,6 +28,7 @@ import { UsersModule } from './users/users.module';
     BillingModule,
     DebugModule,
     GymsModule,
+    InvitesModule,
     PrismaModule,
     OrganizationsModule,
     UsersModule,

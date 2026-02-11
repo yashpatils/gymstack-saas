@@ -11,6 +11,7 @@ const navItems = [
   { label: "Status", href: "/platform/status" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users" },
+  { label: "Team", href: "/platform/team" },
   { label: "Billing", href: "/platform/billing" },
   { label: "Settings", href: "/platform/settings" },
 ];

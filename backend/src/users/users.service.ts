@@ -3,6 +3,18 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from './user.model';
 
+const userSelect = {
+  id: true,
+  email: true,
+  role: true,
+  orgId: true,
+  subscriptionStatus: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,6 +36,7 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
       },
+      select: userSelect,
     });
   }
 
@@ -57,16 +70,7 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data,
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        subscriptionStatus: true,
-        stripeCustomerId: true,
-        stripeSubscriptionId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: userSelect,
     });
   }
 
