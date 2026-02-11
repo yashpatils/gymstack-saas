@@ -8,7 +8,7 @@ export type Gym = {
   updatedAt?: string;
 };
 
-type GymPayload = {
+export type GymInput = {
   name: string;
 };
 
@@ -17,28 +17,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function listGyms(): Promise<Gym[]> {
-  return request<Gym[]>('/gyms', { method: 'GET' });
+  return apiFetch<Gym[]>('/api/gyms', { method: 'GET' });
 }
 
-export async function createGym(payload: GymPayload): Promise<Gym> {
-  return request<Gym>('/gyms', {
+export async function createGym(payload: GymInput): Promise<Gym> {
+  return apiFetch<Gym>('/api/gyms', {
     method: 'POST',
     body: payload,
   });
 }
 
-export async function updateGym(
-  id: string,
-  payload: Partial<GymPayload>,
-): Promise<Gym> {
-  return request<Gym>(`/gyms/${id}`, {
+export async function updateGym(id: string, payload: GymInput): Promise<Gym> {
+  return apiFetch<Gym>(`/api/gyms/${id}`, {
     method: 'PATCH',
     body: payload,
   });
 }
 
 export async function deleteGym(id: string): Promise<void> {
-  await request<void>(`/gyms/${id}`, {
+  await apiFetch(`/api/gyms/${id}`, {
     method: 'DELETE',
   });
 }
