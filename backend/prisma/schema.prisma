@@ -41,23 +41,28 @@ model User {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   invites              Invite[]            @relation("InviteCreator")
-  notifications        Notification[]
+  auditLogs            AuditLog[]
 
   @@index([orgId])
 }
 
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  title     String
-  body      String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model AuditLog {
+  id         String   @id @default(uuid())
+  orgId      String?
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([userId, createdAt])
-  @@index([userId, readAt])
+  @@index([orgId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Invite {
