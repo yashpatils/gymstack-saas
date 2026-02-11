@@ -18,6 +18,7 @@ import { useAuth } from "../../../src/providers/AuthProvider";
 export default function GymsPage() {
   const { user } = useAuth();
   const toast = useToast();
+  const { user } = useAuth();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +267,15 @@ export default function GymsPage() {
           </Button>
         </form>
       </Card>
+
+      {loading ? (
+        <div className="space-y-3 rounded-md border border-white/10 p-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : null}
 
       <DataTable
         rows={gyms}

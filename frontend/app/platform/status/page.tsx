@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Skeleton } from "../../../src/components/ui/Skeleton";
 import { apiFetch } from "../../lib/api";
 import { Button, PageShell } from "../../components/ui";
 import PageHeader from "../../../src/components/PageHeader";
@@ -34,7 +35,22 @@ async function runCheck(path: string): Promise<CheckResult> {
   }
 }
 
-function ResultBlock({ result }: { result: CheckResult | null }) {
+function ResultBlock({
+  result,
+  loading,
+}: {
+  result: CheckResult | null;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-2/5" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+      </div>
+    );
+  }
   if (!result) {
     return <p className="text-sm text-slate-400">Not checked yet.</p>;
   }
@@ -145,24 +161,33 @@ export default function PlatformStatusPage() {
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
         <h2 className="font-medium">Backend health (GET /api/health)</h2>
-        <ResultBlock result={health} />
+        <ResultBlock result={health} loading={loading} />
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
         <h2 className="font-medium">DB ping (GET /api/db/ping)</h2>
-        <ResultBlock result={dbPing} />
+        <ResultBlock result={dbPing} loading={loading} />
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
         <h2 className="font-medium">Current user (GET /api/auth/me)</h2>
-        <ResultBlock result={currentUser} />
+        <ResultBlock result={currentUser} loading={loading} />
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
         <h2 className="font-medium">Debug JSON</h2>
-        <pre className="overflow-auto rounded-md bg-slate-950/60 p-3 text-xs text-slate-100">
-          {JSON.stringify(debugInfo, null, 2)}
-        </pre>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        ) : (
+          <pre className="overflow-auto rounded-md bg-slate-950/60 p-3 text-xs text-slate-100">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        )}
       </section>
     </PageShell>
   );

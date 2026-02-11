@@ -107,7 +107,10 @@ export default function PlatformBillingPage() {
         />
 
         {loading ? (
-          <p className="text-sm text-slate-300">Loading billing status...</p>
+          <div className="space-y-2 rounded-lg border border-white/10 bg-slate-900/40 p-4">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-7 w-40" />
+          </div>
         ) : (
           <div className="rounded-lg border border-white/10 bg-slate-900/40 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-400">Subscription status</p>

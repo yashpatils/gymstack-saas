@@ -163,6 +163,15 @@ export default function UsersPage() {
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
+      {loading ? (
+        <div className="space-y-3 rounded-md border border-white/10 p-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : null}
+
       <DataTable
         rows={users}
         columns={columns}
