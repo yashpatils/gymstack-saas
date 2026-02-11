@@ -62,7 +62,7 @@ export class GymsService {
       throw new NotFoundException('Gym not found');
     }
     if (user.role !== UserRole.Admin && gym.ownerId !== user.id) {
-      throw new ForbiddenException('Insufficient role');
+      throw new ForbiddenException('Insufficient permissions');
     }
     return this.prisma.gym.update({
       where: { id },
@@ -76,7 +76,7 @@ export class GymsService {
       throw new NotFoundException('Gym not found');
     }
     if (user.role !== UserRole.Admin && gym.ownerId !== user.id) {
-      throw new ForbiddenException('Insufficient role');
+      throw new ForbiddenException('Insufficient permissions');
     }
     return this.prisma.gym.delete({ where: { id } });
   }
