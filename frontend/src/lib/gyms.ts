@@ -23,7 +23,7 @@ export async function listGyms(): Promise<Gym[]> {
 export async function createGym(payload: GymPayload): Promise<Gym> {
   return request<Gym>('/gyms', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: payload,
   });
 }
 
@@ -33,7 +33,7 @@ export async function updateGym(
 ): Promise<Gym> {
   return request<Gym>(`/gyms/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(payload),
+    body: payload,
   });
 }
 

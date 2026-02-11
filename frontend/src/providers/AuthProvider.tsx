@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   type AuthUser,
+  getToken,
   login as loginRequest,
   logout as clearToken,
   me,
@@ -34,6 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const loadUser = async () => {
+      if (!getToken()) {
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const currentUser = await me();
         if (isMounted) {

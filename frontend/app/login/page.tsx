@@ -66,6 +66,9 @@ export default function LoginPage() {
           </p>
         </div>
         <form className="space-y-4" onSubmit={handleSubmit}>
+          {authLoading && (
+            <p className="text-sm text-slate-300">Checking existing session...</p>
+          )}
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Email
             <input
@@ -86,8 +89,12 @@ export default function LoginPage() {
               required
             />
           </label>
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Logging in..." : "Log in"}
+          <Button
+            className="w-full"
+            type="submit"
+            disabled={isSubmitting || authLoading}
+          >
+            {isSubmitting || authLoading ? "Logging in..." : "Log in"}
           </Button>
         </form>
         {error && <p className="text-sm text-rose-300">{error}</p>}

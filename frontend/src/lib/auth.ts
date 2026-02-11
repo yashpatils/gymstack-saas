@@ -35,15 +35,11 @@ export async function login(
 ): Promise<{ token: string; user: AuthUser }> {
   const data = await apiFetch<AuthResponse>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   });
 
   setToken(data.accessToken);
-
-  return {
-    token: data.accessToken,
-    user: data.user,
-  };
+  return data;
 }
 
 export async function signup(
@@ -52,15 +48,11 @@ export async function signup(
 ): Promise<{ token: string; user: AuthUser }> {
   const data = await apiFetch<AuthResponse>('/api/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   });
 
   setToken(data.accessToken);
-
-  return {
-    token: data.accessToken,
-    user: data.user,
-  };
+  return data;
 }
 
 export async function me(): Promise<AuthUser> {
