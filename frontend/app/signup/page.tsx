@@ -61,7 +61,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/platform");
+      router.replace("/onboarding");
     }
   }, [authLoading, user, router]);
 
@@ -80,8 +80,7 @@ export default function SignupPage() {
 
     try {
       await signup(email, password);
-      toast.success("Account created", "Your workspace is ready.");
-      router.push("/platform");
+      router.push("/onboarding");
     } catch (submitError) {
       const errorMessage =
         submitError instanceof Error
