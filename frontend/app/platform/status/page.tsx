@@ -6,30 +6,43 @@ import { apiFetch } from "../../lib/api";
 import { Button, PageShell } from "../../components/ui";
 import PageHeader from "../../../src/components/PageHeader";
 
-type CheckResult = {
+type StatusPayload = {
+  status: string;
+};
+
+type EndpointCheck = {
+  path: string;
   ok: boolean;
-  data?: unknown;
+  statusText: string;
+  responseTimeMs: number;
+  checkedAtIso: string;
   error?: string;
-  skipped?: boolean;
 };
 
-type DebugInfo = {
-  checkedAt: string | null;
-  tokenPresent: boolean;
-  health: CheckResult | null;
-  dbPing: CheckResult | null;
-  currentUser: CheckResult | null;
-};
+const AUTO_REFRESH_INTERVAL_MS = 10_000;
 
-const TOKEN_STORAGE_KEY = "gymstack_token";
+async function runTimedCheck(path: string): Promise<EndpointCheck> {
+  const startedAt = performance.now();
 
-async function runCheck(path: string): Promise<CheckResult> {
   try {
-    const data = await apiFetch<unknown>(path, { method: "GET" });
-    return { ok: true, data };
+    const payload = await apiFetch<StatusPayload>(path, { method: "GET" });
+    const responseTimeMs = Math.round(performance.now() - startedAt);
+    const statusText = payload.status?.toLowerCase() === "ok" ? "healthy" : "unhealthy";
+
+    return {
+      path,
+      ok: statusText === "healthy",
+      statusText,
+      responseTimeMs,
+      checkedAtIso: new Date().toISOString(),
+    };
   } catch (error) {
     return {
+      path,
       ok: false,
+      statusText: "unhealthy",
+      responseTimeMs: Math.round(performance.now() - startedAt),
+      checkedAtIso: new Date().toISOString(),
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
@@ -55,87 +68,76 @@ function ResultBlock({
     return <p className="text-sm text-slate-400">Not checked yet.</p>;
   }
 
-  if (result.skipped) {
-    return <p className="text-sm text-amber-300">Skipped: {result.error}</p>;
-  }
-
-  if (!result.ok) {
-    return <p className="text-sm text-rose-300">Error: {result.error}</p>;
-  }
-
   return (
-    <pre className="overflow-auto rounded-md bg-slate-950/60 p-3 text-xs text-slate-100">
-      {JSON.stringify(result.data, null, 2)}
-    </pre>
+    <dl className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
+      <div>
+        <dt className="text-slate-400">Status</dt>
+        <dd className="mt-1">
+          <StatusPill ok={result.ok} text={result.statusText} />
+        </dd>
+      </div>
+      <div>
+        <dt className="text-slate-400">Response time</dt>
+        <dd>{result.responseTimeMs} ms</dd>
+      </div>
+      <div className="sm:col-span-2">
+        <dt className="text-slate-400">Endpoint</dt>
+        <dd>{result.path}</dd>
+      </div>
+      <div className="sm:col-span-2">
+        <dt className="text-slate-400">Checked at</dt>
+        <dd>{new Date(result.checkedAtIso).toLocaleString()}</dd>
+      </div>
+      {result.error ? (
+        <div className="sm:col-span-2">
+          <dt className="text-slate-400">Error</dt>
+          <dd className="text-rose-300">{result.error}</dd>
+        </div>
+      ) : null}
+    </dl>
   );
 }
 
 export default function PlatformStatusPage() {
-  const [health, setHealth] = useState<CheckResult | null>(null);
-  const [dbPing, setDbPing] = useState<CheckResult | null>(null);
-  const [currentUser, setCurrentUser] = useState<CheckResult | null>(null);
-  const [checkedAt, setCheckedAt] = useState<string | null>(null);
+  const [backendStatus, setBackendStatus] = useState<EndpointCheck | null>(null);
+  const [dbStatus, setDbStatus] = useState<EndpointCheck | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const [tokenPresent, setTokenPresent] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
-  useEffect(() => {
-    setTokenPresent(Boolean(window.localStorage.getItem(TOKEN_STORAGE_KEY)));
-  }, []);
-
-  const debugInfo = useMemo<DebugInfo>(
-    () => ({
-      checkedAt,
-      tokenPresent,
-      health,
-      dbPing,
-      currentUser,
-    }),
-    [checkedAt, tokenPresent, health, dbPing, currentUser],
-  );
-
-  const runChecks = async () => {
+  const runChecks = useCallback(async () => {
     setLoading(true);
-    setCopyMessage(null);
 
-    const hasToken = Boolean(window.localStorage.getItem(TOKEN_STORAGE_KEY));
-    setTokenPresent(hasToken);
-
-    const [healthResult, dbResult] = await Promise.all([
-      runCheck("/api/health"),
-      runCheck("/api/db/ping"),
+    const [backendResult, dbResult] = await Promise.all([
+      runTimedCheck("/api/health"),
+      runTimedCheck("/api/db/ping"),
     ]);
 
-    setHealth(healthResult);
-    setDbPing(dbResult);
-
-    if (hasToken) {
-      const meResult = await runCheck("/api/auth/me");
-      setCurrentUser(meResult);
-    } else {
-      setCurrentUser({
-        ok: false,
-        skipped: true,
-        error: "No auth token in localStorage.",
-      });
-    }
-
-    setCheckedAt(new Date().toISOString());
+    setBackendStatus(backendResult);
+    setDbStatus(dbResult);
+    setLastCheckedAt(new Date().toISOString());
     setLoading(false);
-  };
+  }, []);
 
-  const handleCopy = async () => {
-    setCopyMessage(null);
-
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
-      setCopyMessage("Debug info copied.");
-    } catch (error) {
-      setCopyMessage(
-        error instanceof Error ? error.message : "Failed to copy debug info.",
-      );
+  useEffect(() => {
+    if (!autoRefresh) {
+      return;
     }
-  };
+
+    const id = window.setInterval(() => {
+      void runChecks();
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(id);
+  }, [autoRefresh, runChecks]);
+
+  const overallHealthy = useMemo(() => {
+    if (!backendStatus || !dbStatus) {
+      return null;
+    }
+
+    return backendStatus.ok && dbStatus.ok;
+  }, [backendStatus, dbStatus]);
 
   return (
     <PageShell className="max-w-4xl space-y-4 text-white">
