@@ -34,6 +34,13 @@ export function buildApiUrl(path: string): string {
   return `${base}${normalizedPath}`.replace(/([^:]\/)(\/+)/g, '$1');
 }
 
+export type ApiError = {
+  message: string;
+  statusCode?: number;
+  error?: string;
+  details?: unknown;
+};
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {},
@@ -48,7 +55,7 @@ export async function apiFetch<T = unknown>(
       : null;
 
   const headers = new Headers(options.headers ?? {});
-  let requestBody: BodyInit | undefined = options.body as any;
+  let requestBody: BodyInit | undefined;
 
   const isPlainObject = (v: unknown): v is Record<string, unknown> =>
     !!v
@@ -58,10 +65,14 @@ export async function apiFetch<T = unknown>(
     && !(v instanceof Blob)
     && !(v instanceof ArrayBuffer);
 
-  if (isPlainObject(options.body)) {
-    requestBody = JSON.stringify(options.body);
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+  if (options.body !== undefined) {
+    if (isPlainObject(options.body)) {
+      requestBody = JSON.stringify(options.body);
+      if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
+    } else {
+      requestBody = options.body as BodyInit;
     }
   }
 

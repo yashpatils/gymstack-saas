@@ -49,7 +49,7 @@ export async function updateGym(id: string, payload: GymInput): Promise<Gym> {
 }
 
 export async function deleteGym(id: string): Promise<void> {
-  await apiFetch(`/api/gyms/${id}`, {
+  await apiFetch<void>(`/api/gyms/${id}`, {
     method: 'DELETE',
   });
 }
