@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from './user.model';
@@ -7,8 +7,13 @@ import { User, UserRole } from './user.model';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listUsers() {
+  listUsers(orgId: string) {
     return this.prisma.user.findMany({
+      where: {
+        memberships: {
+          some: { orgId },
+        },
+      },
       select: {
         id: true,
         email: true,
@@ -22,9 +27,14 @@ export class UsersService {
     });
   }
 
-  getUser(id: string) {
-    return this.prisma.user.findUnique({
-      where: { id },
+  getUser(id: string, orgId: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        id,
+        memberships: {
+          some: { orgId },
+        },
+      },
       select: {
         id: true,
         email: true,
@@ -38,7 +48,12 @@ export class UsersService {
     });
   }
 
-  updateUser(id: string, data: Prisma.UserUpdateInput) {
+  async updateUser(id: string, orgId: string, data: Prisma.UserUpdateInput) {
+    const existing = await this.getUser(id, orgId);
+    if (!existing) {
+      throw new NotFoundException('User not found');
+    }
+
     return this.prisma.user.update({
       where: { id },
       data,
@@ -57,6 +72,7 @@ export class UsersService {
 
   updateUserForRequester(
     id: string,
+    orgId: string,
     data: Prisma.UserUpdateInput,
     requester: User,
   ) {
@@ -66,10 +82,15 @@ export class UsersService {
     if (requester.role !== UserRole.Admin && 'role' in data) {
       throw new ForbiddenException('Insufficient role');
     }
-    return this.updateUser(id, data);
+    return this.updateUser(id, orgId, data);
   }
 
-  deleteUser(id: string) {
+  async deleteUser(id: string, orgId: string) {
+    const existing = await this.getUser(id, orgId);
+    if (!existing) {
+      throw new NotFoundException('User not found');
+    }
+
     return this.prisma.user.delete({ where: { id } });
   }
 }

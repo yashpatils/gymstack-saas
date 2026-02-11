@@ -23,8 +23,13 @@ export class UsersController {
 
   @Get()
   @Roles(UserRole.Admin)
-  listUsers() {
-    return this.usersService.listUsers();
+  listUsers(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.usersService.listUsers(user.orgId);
   }
 
   @Get(':id')
@@ -33,7 +38,7 @@ export class UsersController {
     if (!user || (user.role !== UserRole.Admin && user.id !== id)) {
       throw new ForbiddenException('Insufficient role');
     }
-    return this.usersService.getUser(id);
+    return this.usersService.getUser(id, user.orgId);
   }
 
   @Patch(':id')
@@ -46,12 +51,17 @@ export class UsersController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.usersService.updateUserForRequester(id, data, user);
+    return this.usersService.updateUserForRequester(id, user.orgId, data, user);
   }
 
   @Delete(':id')
   @Roles(UserRole.Admin)
-  deleteUser(@Param('id') id: string) {
-    return this.usersService.deleteUser(id);
+  deleteUser(@Param('id') id: string, @Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.usersService.deleteUser(id, user.orgId);
   }
 }

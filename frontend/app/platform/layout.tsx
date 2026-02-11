@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "../../src/components/ProtectedRoute";
+import { apiFetch } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 const navItems = [
@@ -14,6 +15,12 @@ const navItems = [
   { label: "Settings", href: "/platform/settings" },
 ];
 
+type OrganizationResponse = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
 export default function PlatformLayout({
   children,
 }: {
@@ -21,12 +28,41 @@ export default function PlatformLayout({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [orgName, setOrgName] = useState<string>("-");
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
   }, [email]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrg = async () => {
+      try {
+        const org = await apiFetch<OrganizationResponse>("/api/org", {
+          method: "GET",
+        });
+
+        if (isMounted) {
+          setOrgName(org.name);
+        }
+      } catch {
+        if (isMounted) {
+          setOrgName("-");
+        }
+      }
+    };
+
+    if (user) {
+      void loadOrg();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   return (
     <ProtectedRoute>
@@ -61,6 +97,7 @@ export default function PlatformLayout({
             <div>
               <p className="platform-topbar-label">Platform</p>
               <p className="platform-topbar-email">{email}</p>
+              <p className="platform-topbar-label">Organization: {orgName}</p>
             </div>
 
             <details className="platform-user-menu">
