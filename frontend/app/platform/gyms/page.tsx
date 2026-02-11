@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   EmptyState,
-  PageHeader,
   PageShell,
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
@@ -226,6 +225,10 @@ export default function GymsPage() {
       <PageHeader
         title="Gyms"
         subtitle="Manage gym locations from one place."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Gyms" },
+        ]}
         actions={<Button onClick={loadGyms}>Refresh</Button>}
       />
 
