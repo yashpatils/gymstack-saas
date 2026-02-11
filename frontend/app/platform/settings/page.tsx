@@ -29,10 +29,13 @@ function maskApiBaseUrl(url: string): string {
 }
 
 export default function PlatformSettingsPage() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
+  const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
 
   const apiBaseUrl = useMemo(() => {
     try {
@@ -124,14 +127,26 @@ export default function PlatformSettingsPage() {
             <dt className="text-slate-400">API base URL</dt>
             <dd>{maskApiBaseUrl(apiBaseUrl)}</dd>
           </div>
-          <div>
-            <dt className="text-slate-400">Backend health</dt>
-            <dd>
-              <Link href="/platform/status" className="text-indigo-300 hover:text-indigo-200">
-                Open platform status checks
-              </Link>
-            </dd>
-          </div>
+          {showDebugLinks ? (
+            <>
+              <div>
+                <dt className="text-slate-400">Backend health</dt>
+                <dd>
+                  <Link href="/platform/status" className="text-indigo-300 hover:text-indigo-200">
+                    Open platform status checks
+                  </Link>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Diagnostics</dt>
+                <dd>
+                  <Link href="/platform/diagnostics" className="text-indigo-300 hover:text-indigo-200">
+                    Open deployment diagnostics
+                  </Link>
+                </dd>
+              </div>
+            </>
+          ) : null}
         </dl>
       </div>
 

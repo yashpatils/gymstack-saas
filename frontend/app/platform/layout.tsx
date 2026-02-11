@@ -9,8 +9,8 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { canManageBilling, canManageUsers } from "../../src/lib/rbac";
 
 const navItems = [
-  { label: "Status", href: "/platform/status" },
-  { label: "Diagnostics", href: "/platform/diagnostics" },
+  { label: "Status", href: "/platform/status", debugOnly: true },
+  { label: "Diagnostics", href: "/platform/diagnostics", debugOnly: true },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users", requires: "users" as const },
   { label: "Team", href: "/platform/team" },
@@ -32,6 +32,9 @@ export default function PlatformLayout({
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
+  const role = user?.role ?? null;
+  const isAdmin = role === "ADMIN";
+  const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -74,7 +77,7 @@ export default function PlatformLayout({
           <div className="platform-brand">GymStack Platform</div>
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
-              {navItems.map((item) => (
+              {navItems.filter((item) => !item.debugOnly || showDebugLinks).map((item) => (
                 <li key={item.href}>
                   <span className="platform-nav-link">{item.label}</span>
                 </li>
@@ -110,7 +113,7 @@ export default function PlatformLayout({
           <div className="platform-brand">GymStack Platform</div>
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
-              {navItems.map((item) => {
+              {navItems.filter((item) => !item.debugOnly || showDebugLinks).map((item) => {
                 const disabled =
                   (item.requires === "users" && !canManageUsers(role))
                   || (item.requires === "billing" && !canManageBilling(role));
