@@ -1,69 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { ProtectedRoute } from "../../../src/components/ProtectedRoute";
+import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
-import { apiFetch } from "../../../src/lib/api";
-
-type BillingStatusResponse = {
-  subscriptionStatus?: string;
-  stripeCustomerId?: string | null;
-  stripeSubscriptionId?: string | null;
-};
-
-type AuthMeResponse = {
-  id: string;
-  email: string;
-  subscriptionStatus?: string;
-  stripeConfigured?: boolean;
-};
-
-type CheckoutResponse = {
-  checkoutUrl?: string | null;
-  sessionId?: string;
-};
-
-type Plan = {
-  name: "Free" | "Pro" | "Business";
-  priceLabel: string;
-  features: string[];
-  priceId?: string;
-  ctaLabel: string;
-};
-
-const plans: Plan[] = [
-  {
-    name: "Free",
-    priceLabel: "$0 / month",
-    features: ["1 gym", "Basic scheduling", "Community support"],
-    ctaLabel: "Current tier",
-  },
-  {
-    name: "Pro",
-    priceLabel: "$49 / month",
-    features: ["Up to 5 gyms", "Advanced reports", "Email support"],
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
-    ctaLabel: "Upgrade to Pro",
-  },
-  {
-    name: "Business",
-    priceLabel: "$149 / month",
-    features: ["Unlimited gyms", "Priority support", "Custom onboarding"],
-    priceId: process.env.NEXT_PUBLIC_STRIPE_BUSINESS_PRICE_ID,
-    ctaLabel: "Upgrade to Business",
-  },
-];
-
-function formatStatus(status?: string): string {
-  if (!status) {
-    return "Free";
-  }
-
-  return status
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
+import {
+  createCheckout,
+  getBillingStatus,
+  type BillingStatusResponse,
+} from "../../../src/lib/billing";
+import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
+import { Button, PageShell } from "../../components/ui";
 
 function toFriendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : "Unknown error";
@@ -228,9 +175,16 @@ export default function PlatformBillingPage() {
   const billingDisabled = stripeConfigured === false;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-6 text-white">
-      <RequireAuth>
-        <h1 className="text-2xl font-semibold">Billing</h1>
+    <ProtectedRoute>
+      <PageShell className="max-w-2xl space-y-4 text-white">
+        <PageHeader
+          title="Billing"
+          subtitle="Review subscription status and upgrade options."
+          breadcrumbs={[
+            { label: "Platform", href: "/platform" },
+            { label: "Billing" },
+          ]}
+        />
 
         {billingDisabled ? (
           <div className="rounded-lg border border-amber-300/40 bg-amber-500/10 p-4 text-sm text-amber-100">
@@ -239,7 +193,10 @@ export default function PlatformBillingPage() {
         ) : null}
 
         {loading ? (
-          <p className="text-sm text-slate-300">Loading billing status...</p>
+          <div className="space-y-2 rounded-lg border border-white/10 bg-slate-900/40 p-4">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-7 w-40" />
+          </div>
         ) : (
           <div className="rounded-lg border border-white/10 bg-slate-900/40 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-400">Subscription status</p>
@@ -247,55 +204,14 @@ export default function PlatformBillingPage() {
           </div>
         )}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {plans.map((plan) => {
-            const isCurrent = currentStatus.toLowerCase() === plan.name.toLowerCase();
-            const disabled =
-              !plan.priceId ||
-              billingDisabled ||
-              !checkoutAvailable ||
-              isCurrent ||
-              upgradingPlan !== null;
-
-            return (
-              <article
-                key={plan.name}
-                className="flex h-full flex-col rounded-lg border border-white/10 bg-slate-900/40 p-4"
-              >
-                <h2 className="text-lg font-semibold">{plan.name}</h2>
-                <p className="mt-1 text-sm text-slate-300">{plan.priceLabel}</p>
-                <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-200">
-                  {plan.features.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
-                <div className="mt-6">
-                  {plan.priceId ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleCheckout(plan)}
-                      disabled={disabled}
-                      className="rounded-md border border-white/20 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {upgradingPlan === plan.name ? "Starting checkout..." : plan.ctaLabel}
-                    </button>
-                  ) : (
-                    <p className="text-sm text-slate-300">{plan.ctaLabel}</p>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </section>
-
-        {!checkoutAvailable ? (
-          <p className="text-sm text-amber-300">
-            Checkout is unavailable because /api/billing/checkout is not present.
-          </p>
+        {!isActiveSubscription(status?.subscriptionStatus) ? (
+          <Button type="button" onClick={handleUpgrade} disabled={upgrading} variant="secondary">
+            {upgrading ? "Starting checkout..." : "Upgrade"}
+          </Button>
         ) : null}
 
         {message ? <p className="text-sm text-amber-300">{message}</p> : null}
-      </RequireAuth>
-    </main>
+      </PageShell>
+    </ProtectedRoute>
   );
 }

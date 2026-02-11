@@ -33,7 +33,7 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<UserForm>(`/users/${userId}`);
+      const data = await apiFetch<UserForm>(`/api/users/${userId}`);
       setForm({
         email: data.email ?? "",
         role: data.role ?? "",
@@ -56,7 +56,7 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch<void>(`/users/${userId}`, {
+      await apiFetch<void>(`/api/users/${userId}`, {
         method: "PATCH",
         body: form,
       });
