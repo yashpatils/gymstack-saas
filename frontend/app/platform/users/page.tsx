@@ -7,8 +7,8 @@ import {
   EmptyState,
   PageHeader,
   PageShell,
-  Table,
 } from "../../components/ui";
+import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
 import { useSession } from "../../components/session-provider";
 import {
   User,
@@ -97,6 +97,58 @@ export default function UsersPage() {
     }
   };
 
+  const columns: DataTableColumn<User>[] = [
+    {
+      id: "email",
+      header: "Email",
+      cell: (user) => user.email,
+      sortable: true,
+      sortValue: (user) => user.email,
+      searchValue: (user) => user.email,
+    },
+    {
+      id: "role",
+      header: "Role",
+      cell: (user) => user.role ?? "-",
+      sortable: true,
+      sortValue: (user) => user.role ?? "",
+      searchValue: (user) => user.role ?? "",
+    },
+    {
+      id: "createdAt",
+      header: "Created",
+      cell: (user) => formatDate(user.createdAt),
+      sortable: true,
+      sortValue: (user) => user.createdAt ?? "",
+      searchValue: (user) => formatDate(user.createdAt),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: (user) => (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={() => router.push(`/platform/users/${user.id}`)}>
+            View
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={savingUserId === user.id}
+            onClick={() => handleEditRole(user)}
+          >
+            Edit role
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!canDelete || savingUserId === user.id}
+            onClick={() => handleDelete(user.id)}
+          >
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <PageShell>
       <PageHeader
@@ -107,46 +159,20 @@ export default function UsersPage() {
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
-      {loading ? (
-        <p className="text-sm text-slate-400">Loading users...</p>
-      ) : users.length ? (
-        <Table
-          headers={["Email", "Role", "Created", "Actions"]}
-          rows={users.map((user) => [
-            user.email,
-            user.role ?? "-",
-            formatDate(user.createdAt),
-            <div key={`actions-${user.id}`} className="flex flex-wrap gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => router.push(`/platform/users/${user.id}`)}
-              >
-                View
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={savingUserId === user.id}
-                onClick={() => handleEditRole(user)}
-              >
-                Edit role
-              </Button>
-              <Button
-                variant="outline"
-                disabled={!canDelete || savingUserId === user.id}
-                onClick={() => handleDelete(user.id)}
-              >
-                Delete
-              </Button>
-            </div>,
-          ])}
-        />
-      ) : (
-        <EmptyState
-          title="No users found"
-          description="Users will appear here once accounts are created."
-          actions={<Button onClick={loadUsers}>Reload</Button>}
-        />
-      )}
+      <DataTable
+        rows={users}
+        columns={columns}
+        getRowKey={(user) => user.id}
+        loading={loading}
+        searchPlaceholder="Search users..."
+        emptyState={
+          <EmptyState
+            title="No users found"
+            description="Users will appear here once accounts are created."
+            actions={<Button onClick={loadUsers}>Reload</Button>}
+          />
+        }
+      />
     </PageShell>
   );
 }
