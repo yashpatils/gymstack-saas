@@ -21,6 +21,9 @@ type FieldErrors = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const DEMO_EMAIL = "demo@gymstack.dev";
+const DEMO_PASSWORD = "demo12345";
+
 function validateCredentials(email: string, password: string): FieldErrors {
   const errors: FieldErrors = {};
 
@@ -61,6 +64,13 @@ export default function LoginPage() {
       router.replace("/platform");
     }
   }, [authLoading, user, router]);
+
+  const handleDemoAccount = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setFieldErrors({});
+    setError(null);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -162,7 +172,10 @@ export default function LoginPage() {
                   }
                 />
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
+                  <Button type="button" variant="ghost" size="sm" onClick={handleDemoAccount} disabled={isBusy}>
+                    Try demo account
+                  </Button>
                   <Link href="/forgot-password" className="text-sm text-indigo-200 hover:text-indigo-100">
                     Forgot password?
                   </Link>
