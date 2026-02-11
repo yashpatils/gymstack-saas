@@ -8,6 +8,7 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
+import { PrismaService } from './prisma/prisma.service';
 
 function maskDatabaseUrlCredentials(url: string): string {
   return url.replace(/:\/\/.*@/, '://****:****@');
@@ -62,13 +63,37 @@ function ensureRequiredEnv(configService: ConfigService) {
   }
 }
 
+async function logIntegrationStatus(
+  configService: ConfigService,
+  prismaService: PrismaService,
+) {
+  const logger = new Logger('Bootstrap');
+  const stripeEnabled = Boolean(configService.get<string>('STRIPE_SECRET_KEY'));
+
+  let databaseConnected = false;
+  try {
+    await prismaService.$queryRawUnsafe('SELECT 1');
+    databaseConnected = true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Database ping failed: ${message}`);
+  }
+
+  logger.log(
+    `Optional integrations => stripe: ${stripeEnabled ? 'enabled' : 'disabled'}`,
+  );
+  logger.log(`Database connected: ${databaseConnected ? 'yes' : 'no'}`);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use('/billing/webhook', express.raw({ type: 'application/json' }));
 
   const configService = app.get(ConfigService);
+  const prismaService = app.get(PrismaService);
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
+  await logIntegrationStatus(configService, prismaService);
 
   app.enableCors({
     origin: (origin, callback) => {
