@@ -11,6 +11,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 const navItems = [
   { label: "Status", href: "/platform/status" },
   { label: "Diagnostics", href: "/platform/diagnostics" },
+  { label: "Support", href: "/platform/support" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users", requires: "users" as const },
   { label: "Audit", href: "/platform/audit", requires: "users" as const },
