@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -13,6 +14,7 @@ import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { User, UserRole } from './user.model';
 import { UsersService } from './users.service';
 
@@ -30,6 +32,16 @@ export class UsersController {
     }
 
     return this.usersService.listUsers(user.orgId);
+  }
+
+  @Get('me')
+  getCurrentUser(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.usersService.getCurrentUser(user.id);
   }
 
   @Get(':id')
@@ -65,5 +77,26 @@ export class UsersController {
     }
 
     return this.usersService.deleteUser(id, user.orgId);
+  }
+
+  @Patch('me/password')
+  changeMyPassword(
+    @Body() body: ChangePasswordDto,
+    @Req() req: { user?: User },
+  ) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    if (body.currentPassword === body.newPassword) {
+      throw new BadRequestException('Unable to update password');
+    }
+
+    return this.usersService.changeOwnPassword(
+      user.id,
+      body.currentPassword,
+      body.newPassword,
+    );
   }
 }
