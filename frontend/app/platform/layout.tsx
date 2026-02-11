@@ -123,6 +123,7 @@ export default function PlatformLayout({
                       <span
                         className="platform-nav-link opacity-50"
                         title="Insufficient permissions"
+                        aria-disabled="true"
                       >
                         {item.label}
                       </span>
@@ -132,6 +133,7 @@ export default function PlatformLayout({
                         className={`platform-nav-link ${
                           isActive ? "platform-nav-link--active" : ""
                         }`}
+                        aria-current={isActive ? "page" : undefined}
                       >
                         {item.label}
                       </Link>
@@ -156,7 +158,7 @@ export default function PlatformLayout({
                 <span className="platform-avatar">{initials}</span>
               </summary>
               <div className="platform-user-dropdown">
-                <button type="button" className="button secondary" onClick={logout}>
+                <button type="button" className="button secondary" onClick={logout} aria-label="Log out">
                   Logout
                 </button>
               </div>

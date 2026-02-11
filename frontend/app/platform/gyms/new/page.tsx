@@ -70,7 +70,7 @@ export default function NewGymPage() {
         }
       />
 
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-rose-300" role="alert" aria-live="polite">{error}</p> : null}
 
       {!isActiveSubscription(subscriptionStatus) ? (
         <Card
@@ -90,9 +90,11 @@ export default function NewGymPage() {
 
       <Card title="Gym details">
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <label className="grid gap-2 text-sm text-slate-300">
+          <p className="sr-only" aria-live="polite" role="status">{error ?? ""}</p>
+          <label className="grid gap-2 text-sm text-slate-300" htmlFor="gym-name">
             Gym name
             <input
+              id="gym-name"
               className="input"
               value={form.name}
               onChange={(event) =>

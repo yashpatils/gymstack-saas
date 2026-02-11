@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   Button,
   Card,
   EmptyState,
   PageShell,
 } from "../../components/ui";
+import PageHeader from "../../../src/components/PageHeader";
+import { Skeleton } from "../../../src/components/ui/Skeleton";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
 import { Gym, createGym, deleteGym, listGyms, updateGym } from "../../../src/lib/gyms";
 import { useToast } from "../../../src/components/toast/ToastProvider";
@@ -18,7 +20,7 @@ import { useAuth } from "../../../src/providers/AuthProvider";
 export default function GymsPage() {
   const { user } = useAuth();
   const toast = useToast();
-  const { user } = useAuth();
+  const canEditGyms = true;
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,8 @@ export default function GymsPage() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [pendingDeleteGym, setPendingDeleteGym] = useState<Gym | null>(null);
+  const confirmDialogRef = useRef<HTMLDivElement | null>(null);
 
   const loadSubscriptionStatus = async () => {
     if (!user?.id) {
@@ -128,21 +132,30 @@ export default function GymsPage() {
     }
   };
 
-  const handleDelete = async (gymId: string) => {
+  const requestDelete = (gym: Gym) => {
     if (!canEditGyms) {
       setError("Insufficient permissions");
       return;
     }
 
-    if (!window.confirm("Delete this gym?")) {
+    setPendingDeleteGym(gym);
+  };
+
+  const closeDeleteDialog = () => {
+    setPendingDeleteGym(null);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDeleteGym) {
       return;
     }
 
-    setDeletingId(gymId);
+    setDeletingId(pendingDeleteGym.id);
     setError(null);
     try {
-      await deleteGym(gymId);
+      await deleteGym(pendingDeleteGym.id);
       toast.success("Gym deleted", "Gym was removed from the platform.");
+      closeDeleteDialog();
       await loadGyms();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unable to delete gym.";
@@ -152,6 +165,45 @@ export default function GymsPage() {
       setDeletingId(null);
     }
   };
+
+  useEffect(() => {
+    if (!pendingDeleteGym || !confirmDialogRef.current) {
+      return;
+    }
+
+    const container = confirmDialogRef.current;
+    const focusable = container.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first?.focus();
+
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDeleteDialog();
+        return;
+      }
+
+      if (event.key !== "Tab" || focusable.length === 0) {
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [pendingDeleteGym]);
 
   const columns: DataTableColumn<Gym>[] = [
     {
@@ -234,7 +286,7 @@ export default function GymsPage() {
             )}
             <Button
               variant="secondary"
-              onClick={() => handleDelete(gym.id)}
+              onClick={() => requestDelete(gym)}
               disabled={!canEditGyms || isDeleting}
               title={!canEditGyms ? "Insufficient permissions" : undefined}
             >
@@ -324,6 +376,31 @@ export default function GymsPage() {
           />
         }
       />
+
+      {pendingDeleteGym ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4" role="presentation">
+          <div
+            ref={confirmDialogRef}
+            className="w-full max-w-md rounded-xl border border-white/15 bg-slate-900 p-5 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-gym-title"
+            aria-describedby="delete-gym-description"
+          >
+            <h2 id="delete-gym-title" className="text-lg font-semibold text-white">Delete gym</h2>
+            <p id="delete-gym-description" className="mt-2 text-sm text-slate-300">
+              Are you sure you want to delete {pendingDeleteGym.name}? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <Button variant="ghost" onClick={closeDeleteDialog}>Cancel</Button>
+              <Button onClick={handleDelete} disabled={deletingId === pendingDeleteGym.id}>
+                {deletingId === pendingDeleteGym.id ? "Deleting..." : "Delete gym"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </PageShell>
   );
 }

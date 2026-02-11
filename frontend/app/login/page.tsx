@@ -54,6 +54,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isBusy = authLoading || isSubmitting;
+  const formErrorSummary = Object.values(fieldErrors).filter(Boolean).join(" ");
   const passwordHelper = useMemo(
     () => (showPassword ? "Make sure no one is looking at your screen." : "Use your GymStack account password."),
     [showPassword],
@@ -129,7 +130,7 @@ export default function LoginPage() {
                 <p className="mt-1 text-sm text-slate-300">Use your work email and password to access GymStack.</p>
               </div>
 
-              {error ? <Alert>{error}</Alert> : null}
+              {error ? <Alert role="alert">{error}</Alert> : null}
               {authLoading ? <Alert tone="info">Checking existing session...</Alert> : null}
 
               <Button variant="secondary" disabled className="gap-3">
@@ -140,6 +141,9 @@ export default function LoginPage() {
               <Divider label="or continue with email" />
 
               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+                <p className="sr-only" aria-live="polite" role="status">
+                  {formErrorSummary}
+                </p>
                 <Input
                   label="Email"
                   name="email"
