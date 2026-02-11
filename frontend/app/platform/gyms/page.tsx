@@ -7,8 +7,8 @@ import {
   EmptyState,
   PageHeader,
   PageShell,
-  Table,
 } from "../../components/ui";
+import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
 import {
   Gym,
   createGym,
@@ -112,6 +112,84 @@ export default function GymsPage() {
     }
   };
 
+  const columns: DataTableColumn<Gym>[] = [
+    {
+      id: "gym",
+      header: "Gym",
+      sortable: true,
+      sortValue: (gym) => gym.name,
+      searchValue: (gym) => `${gym.name} ${gym.id}`,
+      cell: (gym) => {
+        const isEditing = editingId === gym.id;
+
+        return (
+          <div>
+            {isEditing ? (
+              <input
+                className="input"
+                value={editingName}
+                onChange={(event) => setEditingName(event.target.value)}
+              />
+            ) : (
+              <div className="font-medium text-white">{gym.name}</div>
+            )}
+            <div className="text-xs text-slate-400">{gym.id}</div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "ownerId",
+      header: "Owner",
+      sortable: true,
+      sortValue: (gym) => gym.ownerId,
+      searchValue: (gym) => gym.ownerId,
+      cell: (gym) => gym.ownerId,
+    },
+    {
+      id: "updatedAt",
+      header: "Updated",
+      sortable: true,
+      sortValue: (gym) => gym.updatedAt ?? "",
+      searchValue: (gym) => (gym.updatedAt ? new Date(gym.updatedAt).toLocaleString() : ""),
+      cell: (gym) => (gym.updatedAt ? new Date(gym.updatedAt).toLocaleString() : "-"),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: (gym) => {
+        const isEditing = editingId === gym.id;
+        const isDeleting = deletingId === gym.id;
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            {isEditing ? (
+              <>
+                <Button onClick={() => handleSaveEdit(gym.id)} disabled={savingEdit}>
+                  {savingEdit ? "Saving..." : "Save"}
+                </Button>
+                <Button variant="ghost" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" onClick={() => startEdit(gym)}>
+                Edit
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => handleDelete(gym.id)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <PageShell>
       <PageHeader
@@ -139,65 +217,19 @@ export default function GymsPage() {
         </form>
       </Card>
 
-      {loading ? (
-        <p className="text-sm text-slate-400">Loading gyms...</p>
-      ) : gyms.length ? (
-        <Table
-          headers={["Gym", "Owner", "Updated", "Actions"]}
-          rows={gyms.map((gym) => {
-            const isEditing = editingId === gym.id;
-            const isDeleting = deletingId === gym.id;
-
-            return [
-              <div key={`name-${gym.id}`}>
-                {isEditing ? (
-                  <input
-                    className="input"
-                    value={editingName}
-                    onChange={(event) => setEditingName(event.target.value)}
-                  />
-                ) : (
-                  <div className="font-medium text-white">{gym.name}</div>
-                )}
-                <div className="text-xs text-slate-400">{gym.id}</div>
-              </div>,
-              gym.ownerId,
-              gym.updatedAt ? new Date(gym.updatedAt).toLocaleString() : "-",
-              <div key={`actions-${gym.id}`} className="flex flex-wrap gap-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      onClick={() => handleSaveEdit(gym.id)}
-                      disabled={savingEdit}
-                    >
-                      {savingEdit ? "Saving..." : "Save"}
-                    </Button>
-                    <Button variant="ghost" onClick={cancelEdit}>
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="secondary" onClick={() => startEdit(gym)}>
-                    Edit
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => handleDelete(gym.id)}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </Button>
-              </div>,
-            ];
-          })}
-        />
-      ) : (
-        <EmptyState
-          title="No gyms found"
-          description="Create your first gym to get started."
-        />
-      )}
+      <DataTable
+        rows={gyms}
+        columns={columns}
+        getRowKey={(gym) => gym.id}
+        loading={loading}
+        searchPlaceholder="Search gyms..."
+        emptyState={
+          <EmptyState
+            title="No gyms found"
+            description="Create your first gym to get started."
+          />
+        }
+      />
     </PageShell>
   );
 }
