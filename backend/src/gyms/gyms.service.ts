@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { User, UserRole } from '../users/user.model';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class GymsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   listGyms(orgId: string) {
@@ -17,14 +19,23 @@ export class GymsService {
     });
   }
 
-  createGym(orgId: string, ownerId: string, name: string) {
-    return this.prisma.gym.create({
+  async createGym(orgId: string, ownerId: string, name: string) {
+    const gym = await this.prisma.gym.create({
       data: {
         name,
         owner: { connect: { id: ownerId } },
         org: { connect: { id: orgId } },
       },
     });
+
+    await this.notificationsService.createForUser({
+      userId: ownerId,
+      type: 'gym.created',
+      title: 'Gym created',
+      body: `Gym "${gym.name}" was created successfully.`,
+    });
+
+    return gym;
   }
 
   getGym(id: string, orgId: string) {

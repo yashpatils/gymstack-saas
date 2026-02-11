@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { MembershipRole, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { MeDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -14,6 +15,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async signup(input: SignupDto): Promise<{ accessToken: string; user: MeDto }> {
@@ -57,6 +59,22 @@ export class AuthService {
 
       return { user, membership };
     });
+
+    await this.notificationsService.createForUser({
+      userId: created.user.id,
+      type: 'signup.success',
+      title: 'Welcome to GymStack',
+      body: 'Your account was created successfully.',
+    });
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      await this.notificationsService.createForUser({
+        userId: created.user.id,
+        type: 'billing.warning',
+        title: 'Billing is not configured',
+        body: 'Stripe is not configured yet. Billing flows will remain unavailable until setup is complete.',
+      });
+    }
 
     const payload = {
       sub: created.user.id,

@@ -9,6 +9,7 @@ import { GymsModule } from './gyms/gyms.module';
 import { InvitesModule } from './invites/invites.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { UsersModule } from './users/users.module';
     InvitesModule,
     PrismaModule,
     OrganizationsModule,
+    NotificationsModule,
     UsersModule,
   ],
   controllers: [AppController],
