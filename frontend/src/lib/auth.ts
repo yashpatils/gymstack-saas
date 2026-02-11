@@ -27,6 +27,7 @@ function setToken(token: string): void {
   }
 
   window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  document.cookie = `gymstack_token=${token}; Path=/; SameSite=Lax; Secure`;
 }
 
 export async function login(
@@ -74,4 +75,6 @@ export function logout(): void {
   }
 
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  document.cookie =
+    'gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure';
 }
