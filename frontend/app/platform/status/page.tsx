@@ -1,171 +1,189 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../lib/api";
 
-type CheckResult = {
+type StatusPayload = {
+  status: string;
+};
+
+type EndpointCheck = {
+  path: string;
   ok: boolean;
-  data?: unknown;
+  statusText: string;
+  responseTimeMs: number;
+  checkedAtIso: string;
   error?: string;
-  skipped?: boolean;
 };
 
-type DebugInfo = {
-  checkedAt: string | null;
-  tokenPresent: boolean;
-  health: CheckResult | null;
-  dbPing: CheckResult | null;
-  currentUser: CheckResult | null;
-};
+const AUTO_REFRESH_INTERVAL_MS = 10_000;
 
-const TOKEN_STORAGE_KEY = "gymstack_token";
+async function runTimedCheck(path: string): Promise<EndpointCheck> {
+  const startedAt = performance.now();
 
-async function runCheck(path: string): Promise<CheckResult> {
   try {
-    const data = await apiFetch<unknown>(path, { method: "GET" });
-    return { ok: true, data };
+    const payload = await apiFetch<StatusPayload>(path, { method: "GET" });
+    const responseTimeMs = Math.round(performance.now() - startedAt);
+    const statusText = payload.status?.toLowerCase() === "ok" ? "healthy" : "unhealthy";
+
+    return {
+      path,
+      ok: statusText === "healthy",
+      statusText,
+      responseTimeMs,
+      checkedAtIso: new Date().toISOString(),
+    };
   } catch (error) {
     return {
+      path,
       ok: false,
+      statusText: "unhealthy",
+      responseTimeMs: Math.round(performance.now() - startedAt),
+      checkedAtIso: new Date().toISOString(),
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
-function ResultBlock({ result }: { result: CheckResult | null }) {
+function StatusPill({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+        ok ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"
+      }`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function EndpointCard({ result }: { result: EndpointCheck | null }) {
   if (!result) {
     return <p className="text-sm text-slate-400">Not checked yet.</p>;
   }
 
-  if (result.skipped) {
-    return <p className="text-sm text-amber-300">Skipped: {result.error}</p>;
-  }
-
-  if (!result.ok) {
-    return <p className="text-sm text-rose-300">Error: {result.error}</p>;
-  }
-
   return (
-    <pre className="overflow-auto rounded-md bg-slate-950/60 p-3 text-xs text-slate-100">
-      {JSON.stringify(result.data, null, 2)}
-    </pre>
+    <dl className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
+      <div>
+        <dt className="text-slate-400">Status</dt>
+        <dd className="mt-1">
+          <StatusPill ok={result.ok} text={result.statusText} />
+        </dd>
+      </div>
+      <div>
+        <dt className="text-slate-400">Response time</dt>
+        <dd>{result.responseTimeMs} ms</dd>
+      </div>
+      <div className="sm:col-span-2">
+        <dt className="text-slate-400">Endpoint</dt>
+        <dd>{result.path}</dd>
+      </div>
+      <div className="sm:col-span-2">
+        <dt className="text-slate-400">Checked at</dt>
+        <dd>{new Date(result.checkedAtIso).toLocaleString()}</dd>
+      </div>
+      {result.error ? (
+        <div className="sm:col-span-2">
+          <dt className="text-slate-400">Error</dt>
+          <dd className="text-rose-300">{result.error}</dd>
+        </div>
+      ) : null}
+    </dl>
   );
 }
 
 export default function PlatformStatusPage() {
-  const [health, setHealth] = useState<CheckResult | null>(null);
-  const [dbPing, setDbPing] = useState<CheckResult | null>(null);
-  const [currentUser, setCurrentUser] = useState<CheckResult | null>(null);
-  const [checkedAt, setCheckedAt] = useState<string | null>(null);
+  const [backendStatus, setBackendStatus] = useState<EndpointCheck | null>(null);
+  const [dbStatus, setDbStatus] = useState<EndpointCheck | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const [tokenPresent, setTokenPresent] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
-  useEffect(() => {
-    setTokenPresent(Boolean(window.localStorage.getItem(TOKEN_STORAGE_KEY)));
-  }, []);
-
-  const debugInfo = useMemo<DebugInfo>(
-    () => ({
-      checkedAt,
-      tokenPresent,
-      health,
-      dbPing,
-      currentUser,
-    }),
-    [checkedAt, tokenPresent, health, dbPing, currentUser],
-  );
-
-  const runChecks = async () => {
+  const runChecks = useCallback(async () => {
     setLoading(true);
-    setCopyMessage(null);
 
-    const hasToken = Boolean(window.localStorage.getItem(TOKEN_STORAGE_KEY));
-    setTokenPresent(hasToken);
-
-    const [healthResult, dbResult] = await Promise.all([
-      runCheck("/api/health"),
-      runCheck("/api/db/ping"),
+    const [backendResult, dbResult] = await Promise.all([
+      runTimedCheck("/api/health"),
+      runTimedCheck("/api/db/ping"),
     ]);
 
-    setHealth(healthResult);
-    setDbPing(dbResult);
-
-    if (hasToken) {
-      const meResult = await runCheck("/api/auth/me");
-      setCurrentUser(meResult);
-    } else {
-      setCurrentUser({
-        ok: false,
-        skipped: true,
-        error: "No auth token in localStorage.",
-      });
-    }
-
-    setCheckedAt(new Date().toISOString());
+    setBackendStatus(backendResult);
+    setDbStatus(dbResult);
+    setLastCheckedAt(new Date().toISOString());
     setLoading(false);
-  };
+  }, []);
 
-  const handleCopy = async () => {
-    setCopyMessage(null);
-
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
-      setCopyMessage("Debug info copied.");
-    } catch (error) {
-      setCopyMessage(
-        error instanceof Error ? error.message : "Failed to copy debug info.",
-      );
+  useEffect(() => {
+    if (!autoRefresh) {
+      return;
     }
-  };
+
+    const id = window.setInterval(() => {
+      void runChecks();
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(id);
+  }, [autoRefresh, runChecks]);
+
+  const overallHealthy = useMemo(() => {
+    if (!backendStatus || !dbStatus) {
+      return null;
+    }
+
+    return backendStatus.ok && dbStatus.ok;
+  }, [backendStatus, dbStatus]);
 
   return (
     <main className="mx-auto max-w-4xl space-y-4 p-6 text-white">
       <h1 className="text-2xl font-semibold">Platform Status</h1>
       <p className="text-sm text-slate-300">
-        Quick checks for backend health, DB connectivity, and auth state.
+        Operational checks for backend availability and database connectivity.
       </p>
 
-      <div className="flex flex-wrap gap-2">
+      <section className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 p-4">
         <button
           type="button"
           onClick={runChecks}
           disabled={loading}
           className="rounded-md border border-white/20 px-3 py-2 text-sm disabled:opacity-60"
         >
-          {loading ? "Running..." : "Run Checks"}
+          {loading ? "Refreshing..." : "Refresh now"}
         </button>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="rounded-md border border-white/20 px-3 py-2 text-sm"
-        >
-          Copy Debug Info
-        </button>
-      </div>
 
-      {copyMessage ? <p className="text-sm text-slate-300">{copyMessage}</p> : null}
+        <label className="flex items-center gap-2 text-sm text-slate-200">
+          <input
+            type="checkbox"
+            checked={autoRefresh}
+            onChange={(event) => setAutoRefresh(event.target.checked)}
+            className="h-4 w-4 rounded border border-white/30 bg-slate-900"
+          />
+          Auto-refresh every {AUTO_REFRESH_INTERVAL_MS / 1000}s
+        </label>
 
-      <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">Backend health (GET /api/health)</h2>
-        <ResultBlock result={health} />
+        <div className="text-sm text-slate-300">
+          Last checked: {lastCheckedAt ? new Date(lastCheckedAt).toLocaleString() : "Never"}
+        </div>
+      </section>
+
+      <section className="rounded-md border border-white/10 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium">Overall</h2>
+          {overallHealthy === null ? (
+            <span className="text-sm text-slate-400">Unknown</span>
+          ) : (
+            <StatusPill ok={overallHealthy} text={overallHealthy ? "healthy" : "unhealthy"} />
+          )}
+        </div>
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">DB ping (GET /api/db/ping)</h2>
-        <ResultBlock result={dbPing} />
+        <h2 className="font-medium">Backend status</h2>
+        <EndpointCard result={backendStatus} />
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">Current user (GET /api/auth/me)</h2>
-        <ResultBlock result={currentUser} />
-      </section>
-
-      <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">Debug JSON</h2>
-        <pre className="overflow-auto rounded-md bg-slate-950/60 p-3 text-xs text-slate-100">
-          {JSON.stringify(debugInfo, null, 2)}
-        </pre>
+        <h2 className="font-medium">Database ping</h2>
+        <EndpointCard result={dbStatus} />
       </section>
     </main>
   );
