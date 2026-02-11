@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
-import { apiFetch } from "../../lib/api";
 import { getApiBaseUrl } from "../../../src/lib/api";
+import { apiFetch } from "../../lib/api";
 
 type AccountInfo = {
   id?: string;
@@ -79,12 +80,14 @@ export default function PlatformSettingsPage() {
 
   return (
     <section className="page space-y-6">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Account preferences and environment details.</p>
-        </div>
-      </header>
+      <PageHeader
+        title="Settings"
+        subtitle="Account preferences and environment details."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Settings" },
+        ]}
+      />
 
       <div className="card space-y-4">
         <h2 className="section-title">Account</h2>

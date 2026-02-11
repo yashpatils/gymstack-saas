@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Skeleton } from "../../../src/components/ui/Skeleton";
 import { apiFetch } from "../../lib/api";
+import { Button, PageShell } from "../../components/ui";
+import PageHeader from "../../../src/components/PageHeader";
 
 type CheckResult = {
   ok: boolean;
@@ -136,28 +138,23 @@ export default function PlatformStatusPage() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl space-y-4 p-6 text-white">
-      <h1 className="text-2xl font-semibold">Platform Status</h1>
-      <p className="text-sm text-slate-300">
-        Quick checks for backend health, DB connectivity, and auth state.
-      </p>
+    <PageShell className="max-w-4xl space-y-4 text-white">
+      <PageHeader
+        title="Platform Status"
+        subtitle="Quick checks for backend health, DB connectivity, and auth state."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Status" },
+        ]}
+      />
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={runChecks}
-          disabled={loading}
-          className="rounded-md border border-white/20 px-3 py-2 text-sm disabled:opacity-60"
-        >
+        <Button type="button" onClick={runChecks} disabled={loading} variant="secondary">
           {loading ? "Running..." : "Run Checks"}
-        </button>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="rounded-md border border-white/20 px-3 py-2 text-sm"
-        >
+        </Button>
+        <Button type="button" onClick={handleCopy} variant="ghost">
           Copy Debug Info
-        </button>
+        </Button>
       </div>
 
       {copyMessage ? <p className="text-sm text-slate-300">{copyMessage}</p> : null}
@@ -192,6 +189,6 @@ export default function PlatformStatusPage() {
           </pre>
         )}
       </section>
-    </main>
+    </PageShell>
   );
 }

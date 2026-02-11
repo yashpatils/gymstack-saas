@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "../../../src/components/ProtectedRoute";
+import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import {
   createCheckout,
@@ -9,7 +10,7 @@ import {
   type BillingStatusResponse,
 } from "../../../src/lib/billing";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
-import { Skeleton } from "../../../src/components/ui/Skeleton";
+import { Button, PageShell } from "../../components/ui";
 
 function toFriendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : "Unknown error";
@@ -95,8 +96,15 @@ export default function PlatformBillingPage() {
 
   return (
     <ProtectedRoute>
-      <main className="mx-auto max-w-2xl space-y-4 p-6 text-white">
-        <h1 className="text-2xl font-semibold">Billing</h1>
+      <PageShell className="max-w-2xl space-y-4 text-white">
+        <PageHeader
+          title="Billing"
+          subtitle="Review subscription status and upgrade options."
+          breadcrumbs={[
+            { label: "Platform", href: "/platform" },
+            { label: "Billing" },
+          ]}
+        />
 
         {loading ? (
           <div className="space-y-2 rounded-lg border border-white/10 bg-slate-900/40 p-4">
@@ -111,18 +119,13 @@ export default function PlatformBillingPage() {
         )}
 
         {!isActiveSubscription(status?.subscriptionStatus) ? (
-          <button
-            type="button"
-            onClick={handleUpgrade}
-            disabled={upgrading}
-            className="rounded-md border border-white/20 px-4 py-2 text-sm disabled:opacity-60"
-          >
+          <Button type="button" onClick={handleUpgrade} disabled={upgrading} variant="secondary">
             {upgrading ? "Starting checkout..." : "Upgrade"}
-          </button>
+          </Button>
         ) : null}
 
         {message ? <p className="text-sm text-amber-300">{message}</p> : null}
-      </main>
+      </PageShell>
     </ProtectedRoute>
   );
 }
