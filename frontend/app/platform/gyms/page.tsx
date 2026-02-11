@@ -316,6 +316,11 @@ export default function GymsPage() {
           <EmptyState
             title="No gyms found"
             description="Create your first gym to get started."
+            actions={
+              <Link href="/onboarding">
+                <Button>Create your first gym</Button>
+              </Link>
+            }
           />
         }
       />
