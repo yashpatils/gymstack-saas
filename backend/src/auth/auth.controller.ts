@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
