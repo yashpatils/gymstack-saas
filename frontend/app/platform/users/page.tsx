@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   Button,
   EmptyState,
-  PageHeader,
   PageShell,
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
+import PageHeader from "../../../src/components/PageHeader";
 import { useSession } from "../../components/session-provider";
 import {
   User,
@@ -32,8 +32,8 @@ function formatDate(value?: string) {
 
 export default function UsersPage() {
   const router = useRouter();
-  const session = useSession();
-  const canDelete = session.platformRole === "platform_admin";
+  const { role } = useAuth();
+  const canEdit = canManageUsers(role);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +57,8 @@ export default function UsersPage() {
   }, []);
 
   const handleDelete = async (userId: string) => {
-    if (!canDelete) {
-      setError("You must be a platform admin to delete users.");
+    if (!canEdit) {
+      setError("Insufficient permissions");
       return;
     }
 
@@ -79,6 +79,11 @@ export default function UsersPage() {
   };
 
   const handleEditRole = async (user: User) => {
+    if (!canEdit) {
+      setError("Insufficient permissions");
+      return;
+    }
+
     const nextRole = window.prompt("Set role", user.role ?? "");
 
     if (nextRole === null || nextRole === (user.role ?? "")) {
@@ -132,14 +137,16 @@ export default function UsersPage() {
           </Button>
           <Button
             variant="secondary"
-            disabled={savingUserId === user.id}
+            disabled={!canEdit || savingUserId === user.id}
+            title={!canEdit ? "Insufficient permissions" : undefined}
             onClick={() => handleEditRole(user)}
           >
             Edit role
           </Button>
           <Button
             variant="outline"
-            disabled={!canDelete || savingUserId === user.id}
+            disabled={!canEdit || savingUserId === user.id}
+            title={!canEdit ? "Insufficient permissions" : undefined}
             onClick={() => handleDelete(user.id)}
           >
             Delete
@@ -154,10 +161,23 @@ export default function UsersPage() {
       <PageHeader
         title="Users"
         subtitle="Manage users across the platform."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Users" },
+        ]}
         actions={<Button onClick={loadUsers}>Refresh</Button>}
       />
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+
+      {loading ? (
+        <div className="space-y-3 rounded-md border border-white/10 p-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : null}
 
       <DataTable
         rows={users}
