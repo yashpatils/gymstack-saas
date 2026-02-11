@@ -144,7 +144,7 @@ export default function PlatformLayout({
           <div className="platform-brand">GymStack Platform</div>
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
-              {navItems.map((item) => (
+              {navItems.filter((item) => !item.debugOnly || showDebugLinks).map((item) => (
                 <li key={item.href}>
                   <span className="platform-nav-link">{item.label}</span>
                 </li>

@@ -12,6 +12,39 @@ import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 
+const DEFAULT_FRONTEND_ALLOWLIST = [
+  'http://localhost:3000',
+  'https://gymstack-saas.vercel.app',
+  'https://gymstack-saas-jw4voz3tb-yashs-projects-81128ebe.vercel.app',
+];
+
+function isProductionEnvironment(configService: ConfigService): boolean {
+  return (configService.get<string>('NODE_ENV') ?? '').toLowerCase() === 'production';
+}
+
+function getCorsAllowlist(configService: ConfigService): string[] {
+  const envValue = configService.get<string>('FRONTEND_URL');
+  const configured =
+    envValue
+      ?.split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean) ?? [];
+
+  if (configured.length) {
+    return configured;
+  }
+
+  return DEFAULT_FRONTEND_ALLOWLIST;
+}
+
+function sanitizeErrorMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+
+  return raw
+    .replace(/(password|pwd|token|secret|apikey|api_key)=([^\s&]+)/gi, '$1=****')
+    .replace(/(postgres(?:ql)?:\/\/)([^\s@]+)@/gi, '$1****:****@');
+}
+
 function maskDatabaseUrlCredentials(url: string): string {
   return url.replace(/:\/\/.*@/, '://****:****@');
 }
@@ -20,7 +53,8 @@ function logDatabaseIdentity(configService: ConfigService) {
   const logger = new Logger('Bootstrap');
   const databaseUrl = configService.get<string>('DATABASE_URL');
   const prismaSchema = process.env.PRISMA_SCHEMA;
-  const nodeEnv = process.env.NODE_ENV;
+  const nodeEnv = configService.get<string>('NODE_ENV');
+  const isProduction = isProductionEnvironment(configService);
 
   logger.log(`NODE_ENV: ${nodeEnv ?? 'undefined'}`);
   logger.log(`PRISMA_SCHEMA: ${prismaSchema ?? 'undefined'}`);
@@ -30,17 +64,25 @@ function logDatabaseIdentity(configService: ConfigService) {
     return;
   }
 
-  const maskedUrl = maskDatabaseUrlCredentials(databaseUrl);
-  logger.log(`DATABASE_URL (masked): ${maskedUrl}`);
+  if (!isProduction) {
+    const maskedUrl = maskDatabaseUrlCredentials(databaseUrl);
+    logger.log(`DATABASE_URL (masked): ${maskedUrl}`);
+  } else {
+    logger.log('DATABASE_URL configured: yes');
+  }
 
   try {
     const parsed = new URL(databaseUrl);
     const databaseName = parsed.pathname.replace(/^\//, '') || '(not set)';
     const schemaFromUrl = parsed.searchParams.get('schema') ?? '(not set)';
 
-    logger.log(
-      `Database identity => host: ${parsed.host}, database: ${databaseName}, schema: ${schemaFromUrl}`,
-    );
+    if (!isProduction) {
+      logger.log(
+        `Database identity => host: ${parsed.host}, database: ${databaseName}, schema: ${schemaFromUrl}`,
+      );
+    } else {
+      logger.log(`Database identity => database: ${databaseName}, schema: ${schemaFromUrl}`);
+    }
   } catch {
     logger.warn('DATABASE_URL is not a valid URL. Could not extract host/database/schema.');
   }
@@ -77,7 +119,7 @@ async function logIntegrationStatus(
     await prismaService.$queryRawUnsafe('SELECT 1');
     databaseConnected = true;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = sanitizeErrorMessage(error);
     logger.warn(`Database ping failed: ${message}`);
   }
 
@@ -95,22 +137,18 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const prismaService = app.get(PrismaService);
+  const isProduction = isProductionEnvironment(configService);
+  const corsAllowlist = getCorsAllowlist(configService);
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
   await logIntegrationStatus(configService, prismaService);
 
   app.enableCors({
     origin: (origin, callback) => {
-      const allowed = [
-        'http://localhost:3000',
-        'https://gymstack-saas.vercel.app',
-        'https://gymstack-saas-jw4voz3tb-yashs-projects-81128ebe.vercel.app',
-      ];
-
       if (!origin) return callback(null, true);
 
       const isAllowed =
-        allowed.includes(origin) ||
+        corsAllowlist.includes(origin) ||
         /^https:\/\/gymstack-saas-.*-yashs-projects-81128ebe\.vercel\.app$/.test(
           origin,
         );
