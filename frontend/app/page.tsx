@@ -1,516 +1,186 @@
-"use client";
+import Link from "next/link";
+import { Badge, Card } from "./components/ui";
+import { MarketingFooter, MarketingNavbar } from "./components/marketing-chrome";
 
-import {
-  Badge,
-  Button,
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./components/ui";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiFetch } from "./lib/api";
+const featureList = [
+  {
+    title: "Membership + billing automation",
+    description:
+      "Automate renewals, retries, and plan upgrades without manual follow-up from your team.",
+  },
+  {
+    title: "Multi-location visibility",
+    description:
+      "Track KPIs, revenue, and retention for every location from one clean control center.",
+  },
+  {
+    title: "Trainer operations",
+    description:
+      "Coordinate schedules, classes, and payroll logic with built-in workflows for your staff.",
+  },
+  {
+    title: "Member engagement journeys",
+    description:
+      "Trigger onboarding, milestone, and reactivation campaigns with high-converting templates.",
+  },
+  {
+    title: "Smart alerts",
+    description:
+      "Get proactive signals for churn risk, payment failures, and attendance drops in real time.",
+  },
+  {
+    title: "Enterprise-ready controls",
+    description:
+      "Role-based access, auditability, and scalable controls for high-growth gym brands.",
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "GymStack helped us standardize operations across 14 locations in less than 8 weeks.",
+    name: "Avery Chen",
+    role: "Head of Operations, Apex Athletics",
+  },
+  {
+    quote:
+      "Our payment recovery improved immediately and our front desk team finally has breathing room.",
+    name: "Maya Robinson",
+    role: "COO, Peak Motion Studios",
+  },
+  {
+    quote:
+      "The product feels modern and the workflow tools made every location manager more consistent.",
+    name: "Luis Ortega",
+    role: "Regional Director, Core Society",
+  },
+];
 
 export default function LandingPage() {
-  const [backendStatus, setBackendStatus] = useState<string | null>(null);
-  const [backendError, setBackendError] = useState<string | null>(null);
-  const [lastAction, setLastAction] = useState<string | null>(null);
-  const router = useRouter();
-
-  const handleBackendRequest = async (action: string) => {
-    setLastAction(action);
-    setBackendError(null);
-    try {
-      const data = await apiFetch<{ status?: string }>("/health");
-      setBackendStatus(data?.status ?? "ok");
-    } catch (error) {
-      setBackendStatus(null);
-      setBackendError(
-        error instanceof Error ? error.message : "Unable to reach backend",
-      );
-    }
-  };
-
-  const handleStartFree = async () => {
-    await handleBackendRequest("Start Free");
-    router.push("/signup");
-  };
-
   return (
-    <div className="relative overflow-hidden">
-      <header className="border-b border-white/5">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 text-lg font-semibold text-indigo-200">
-              GS
-            </div>
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
-                GymStack
-              </p>
-              <p className="text-xs text-slate-500">Modern SaaS platform</p>
-            </div>
-          </div>
-          <nav className="hidden items-center gap-8 text-sm text-slate-300 lg:flex">
-            <a className="transition hover:text-white" href="#platform">
-              Platform
-            </a>
-            <a className="transition hover:text-white" href="#workflows">
-              Workflows
-            </a>
-            <a className="transition hover:text-white" href="#pricing">
-              Pricing
-            </a>
-            <a className="transition hover:text-white" href="#stories">
-              Stories
-            </a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              className="hidden lg:inline-flex"
-              onClick={() => router.push("/login")}
-            >
-              Login
-            </Button>
-            <Button onClick={() => handleBackendRequest("Book a demo")}>
-              Book a demo
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen">
+      <MarketingNavbar />
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-6 pb-28 pt-16">
-        <section className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-8">
-            <Badge>Stripe + Linear inspired</Badge>
-            <div className="space-y-4">
-              <h1 className="text-4xl font-semibold leading-tight text-white md:text-5xl">
-                Launch a premium multi-location gym brand with one unified SaaS
-                control center.
-              </h1>
-              <p className="text-lg text-slate-300">
-                GymStack orchestrates billing, staffing, and member engagement
-                with real-time intelligence, automated playbooks, and
-                beautifully-designed experiences your operators actually love.
-              </p>
-            </div>
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-6 py-16">
+        <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-6">
+            <Badge>Purpose-built for modern gym operators</Badge>
+            <h1 className="text-4xl font-semibold leading-tight text-white md:text-6xl">
+              Run every gym location from one polished operating platform.
+            </h1>
+            <p className="max-w-2xl text-lg text-slate-300">
+              GymStack unifies member billing, trainer workflows, and growth analytics so your team can scale faster with less overhead.
+            </p>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" onClick={handleStartFree}>
-                Start Free
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => handleBackendRequest("See the platform")}
-              >
-                See the platform
-              </Button>
-            </div>
-            <div className="space-y-1 text-sm text-slate-300">
-              {backendStatus && (
-                <p>
-                  Backend status{lastAction ? ` (${lastAction})` : ""}:{" "}
-                  {backendStatus}
-                </p>
-              )}
-              {backendError && <p className="text-rose-300">{backendError}</p>}
-            </div>
-            <div className="flex flex-wrap gap-6 text-sm text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                SOC2-ready workflows
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-indigo-400" />
-                Usage-based billing
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-sky-400" />
-                24/7 member monitoring
-              </div>
+              <Link href="/signup" className="button lg">
+                Start free trial
+              </Link>
+              <Link href="/pricing" className="button secondary lg">
+                View pricing
+              </Link>
             </div>
           </div>
-          <div className="space-y-6">
-            <Card className="space-y-6 bg-gradient-to-br from-white/10 via-slate-900/80 to-slate-950">
-              <CardHeader>
-                <CardTitle>Operational clarity in one glance</CardTitle>
-                <CardDescription>
-                  Consolidated dashboards across locations, trainers, and
-                  memberships with predictive alerts.
-                </CardDescription>
-              </CardHeader>
-              <div className="grid gap-4">
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                      Revenue
-                    </p>
-                    <p className="text-xl font-semibold">$1.82M</p>
-                  </div>
-                  <p className="text-sm text-emerald-400">+18% MoM</p>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                      Active Members
-                    </p>
-                    <p className="text-xl font-semibold">24,630</p>
-                  </div>
-                  <p className="text-sm text-indigo-300">98% retention</p>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                      Trainer utilization
-                    </p>
-                    <p className="text-xl font-semibold">86%</p>
-                  </div>
-                  <p className="text-sm text-sky-300">+9 locations</p>
-                </div>
-              </div>
-            </Card>
-            <div className="grid grid-cols-2 gap-4 text-sm text-slate-400">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Live sync for billing + CRM
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Automated dunning flows
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Trainer schedule optimizer
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Smart access control
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="space-y-10" id="platform">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
-                Platform
-              </p>
-              <h2 className="text-3xl font-semibold text-white">
-                Designed for operators who scale fast.
-              </h2>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => handleBackendRequest("Explore platform")}
-            >
-              Explore platform
-            </Button>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="space-y-5 bg-gradient-to-br from-indigo-500/10 via-slate-900/90 to-slate-950">
             {[
-              {
-                title: "Location intelligence",
-                description:
-                  "Unified performance across every gym with anomaly detection and trend surfacing.",
-              },
-              {
-                title: "Revenue orchestration",
-                description:
-                  "Automated billing recovery, plan changes, and revenue experiments with Stripe-level granularity.",
-              },
-              {
-                title: "Member lifecycle",
-                description:
-                  "Linear-inspired task lanes for onboarding, retention, and referral automation.",
-              },
+              { label: "Revenue captured", value: "$3.2M", detail: "+19% quarter-over-quarter" },
+              { label: "Active members", value: "28,904", detail: "98% monthly retention" },
+              { label: "Locations monitored", value: "42", detail: "Single source of truth" },
             ].map((item) => (
-              <Card key={item.title}>
-                <CardHeader>
-                  <CardTitle>{item.title}</CardTitle>
-                  <CardDescription>{item.description}</CardDescription>
-                </CardHeader>
-              </Card>
+              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.label}</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
+                <p className="mt-1 text-sm text-slate-300">{item.detail}</p>
+              </div>
             ))}
-          </div>
-        </section>
-
-        <section
-          className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]"
-          id="workflows"
-        >
-          <div className="space-y-6">
-            <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
-              Workflows
-            </p>
-            <h2 className="text-3xl font-semibold">
-              Build repeatable playbooks for every gym touchpoint.
-            </h2>
-            <p className="text-base text-slate-300">
-              Trigger automated sequences for new member activation, payroll
-              approvals, and equipment maintenance. GymStack integrates with
-              your existing stack while keeping the operator experience
-              effortless.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                "Member onboarding",
-                "Trainer payroll",
-                "Facility compliance",
-                "Community events",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-          <Card className="space-y-6">
-            <CardHeader>
-              <CardTitle>Automation overview</CardTitle>
-              <CardDescription>
-                Track every workflow with clear status, ownership, and impact.
-              </CardDescription>
-            </CardHeader>
-            <div className="space-y-4">
-              {[
-                {
-                  label: "Membership renewals",
-                  value: "92% on-time",
-                  tone: "text-emerald-400",
-                },
-                {
-                  label: "Payment recovery",
-                  value: "$124k saved",
-                  tone: "text-indigo-300",
-                },
-                {
-                  label: "Equipment maintenance",
-                  value: "15 open tasks",
-                  tone: "text-amber-300",
-                },
-              ].map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm"
-                >
-                  <span className="text-slate-300">{row.label}</span>
-                  <span className={`font-semibold ${row.tone}`}>
-                    {row.value}
-                  </span>
-                </div>
-              ))}
-            </div>
           </Card>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-3">
-          {[
-            {
-              value: "3.1x",
-              label: "Faster check-in throughput",
-              detail: "Reduce front desk time with unified member profiles.",
-            },
-            {
-              value: "97%",
-              label: "Revenue retention",
-              detail: "Dunning sequences keep membership revenue protected.",
-            },
-            {
-              value: "12 min",
-              label: "Average launch time",
-              detail: "Spin up a new location with reusable templates.",
-            },
-          ].map((stat) => (
-            <Card key={stat.label} className="space-y-3">
-              <p className="text-3xl font-semibold text-white">{stat.value}</p>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">
-                {stat.label}
-              </p>
-              <p className="text-sm text-slate-300">{stat.detail}</p>
-            </Card>
-          ))}
+        <section className="space-y-5" aria-label="Social proof">
+          <p className="text-center text-xs uppercase tracking-[0.3em] text-slate-500">
+            Trusted by scaling fitness brands
+          </p>
+          <div className="grid grid-cols-2 gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-sm font-medium text-slate-300 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              "Apex Fitness",
+              "Pulse Labs",
+              "Core Society",
+              "Velocity Clubs",
+              "Summit Training",
+              "Forge Athletics",
+            ].map((logo) => (
+              <div key={logo} className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-4">
+                {logo}
+              </div>
+            ))}
+          </div>
         </section>
 
-        <section className="space-y-10" id="pricing">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
-                Pricing
-              </p>
-              <h2 className="text-3xl font-semibold text-white">
-                Predictable pricing that grows with your portfolio.
-              </h2>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => handleBackendRequest("Compare plans")}
-            >
-              Compare plans
-            </Button>
+        <section className="space-y-8" id="features">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Features</p>
+            <h2 className="text-3xl font-semibold text-white md:text-4xl">
+              Everything your team needs to scale efficiently.
+            </h2>
           </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {[
-              {
-                title: "Launch",
-                price: "$299",
-                detail: "Per location / month",
-                features: [
-                  "Core CRM + billing",
-                  "Gym templates",
-                  "Email support",
-                ],
-              },
-              {
-                title: "Scale",
-                price: "$799",
-                detail: "Per location / month",
-                features: [
-                  "Automation workflows",
-                  "Trainer scheduling",
-                  "Priority support",
-                ],
-                highlight: true,
-              },
-              {
-                title: "Enterprise",
-                price: "Custom",
-                detail: "For 25+ locations",
-                features: [
-                  "Dedicated success team",
-                  "Custom integrations",
-                  "Advanced security",
-                ],
-              },
-            ].map((plan) => (
-              <Card
-                key={plan.title}
-                className={
-                  plan.highlight
-                    ? "border-indigo-400/60 bg-gradient-to-b from-indigo-500/20 via-slate-950/80 to-slate-950"
-                    : ""
-                }
-              >
-                <CardHeader>
-                  <CardTitle>{plan.title}</CardTitle>
-                  <CardDescription>{plan.detail}</CardDescription>
-                </CardHeader>
-                <p className="mt-6 text-3xl font-semibold">{plan.price}</p>
-                <ul className="mt-6 space-y-3 text-sm text-slate-300">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="mt-8 w-full"
-                  variant={plan.highlight ? "default" : "secondary"}
-                  onClick={() => handleBackendRequest(`Choose ${plan.title}`)}
-                >
-                  Choose {plan.title}
-                </Button>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {featureList.map((feature) => (
+              <Card key={feature.title} className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
+                <p className="text-sm text-slate-300">{feature.description}</p>
               </Card>
             ))}
           </div>
         </section>
 
-        <section className="space-y-10" id="stories">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
-                Stories
-              </p>
-              <h2 className="text-3xl font-semibold">
-                Operators switching to GymStack move faster.
-              </h2>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => handleBackendRequest("Read case studies")}
-            >
-              Read case studies
-            </Button>
+        <section className="space-y-8">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Testimonials</p>
+            <h2 className="text-3xl font-semibold text-white">Teams love the GymStack experience.</h2>
           </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            {[
-              {
-                quote:
-                  "We opened five new studios in one quarter and still kept every billing touchpoint under control.",
-                name: "Jamie Lee",
-                role: "COO, Flexline Fitness",
-              },
-              {
-                quote:
-                  "GymStack gave us Linear-style execution lanes for everything from equipment upgrades to onboarding.",
-                name: "Marcus Nunez",
-                role: "VP Operations, Studio Forge",
-              },
-            ].map((story) => (
-              <Card key={story.name} className="space-y-6">
-                <p className="text-lg text-slate-100">“{story.quote}”</p>
+          <div className="grid gap-5 lg:grid-cols-3">
+            {testimonials.map((item) => (
+              <Card key={item.name} className="space-y-5">
+                <p className="text-base text-slate-200">“{item.quote}”</p>
                 <div>
-                  <p className="text-sm font-semibold text-white">{story.name}</p>
-                  <p className="text-xs text-slate-400">{story.role}</p>
+                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <p className="text-xs text-slate-400">{item.role}</p>
                 </div>
               </Card>
             ))}
           </div>
         </section>
 
-        <section className="rounded-3xl border border-white/10 bg-gradient-to-r from-indigo-500/20 via-slate-950/80 to-slate-950 p-10 text-center">
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-6">
-            <h2 className="text-3xl font-semibold text-white">
-              Ready to orchestrate every gym location in minutes?
-            </h2>
-            <p className="text-base text-slate-300">
-              Book a personalized walkthrough and see how GymStack harmonizes
-              revenue, training, and member journeys.
-            </p>
+        <section className="rounded-3xl border border-white/10 bg-slate-900/70 p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">FAQ</p>
+              <h2 className="text-2xl font-semibold text-white">Got questions before switching?</h2>
+              <p className="text-slate-300">Read answers about onboarding, integrations, and support.</p>
+            </div>
+            <Link href="/faq" className="button secondary">
+              Explore FAQ
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-indigo-400/30 bg-gradient-to-r from-indigo-500/20 via-slate-900 to-slate-950 p-10 text-center">
+          <div className="mx-auto max-w-2xl space-y-5">
+            <h2 className="text-3xl font-semibold text-white md:text-4xl">Ready to modernize your gym operations?</h2>
+            <p className="text-slate-300">Start your free trial today and see how GymStack helps your team move faster with less admin work.</p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" onClick={handleStartFree}>
-                Start Free
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => handleBackendRequest("Talk to sales")}
-              >
-                Talk to sales
-              </Button>
+              <Link href="/signup" className="button lg">
+                Start free trial
+              </Link>
+              <Link href="/pricing" className="button secondary lg">
+                Compare plans
+              </Link>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/5 py-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 px-6 text-center text-sm text-slate-500 md:flex-row md:text-left">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
-              GymStack SaaS
-            </p>
-            <p className="text-sm text-slate-400">
-              Launch, manage, and scale premium gym experiences.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-6 text-sm">
-            <a className="transition hover:text-white" href="#platform">
-              Platform
-            </a>
-            <a className="transition hover:text-white" href="#workflows">
-              Workflows
-            </a>
-            <a className="transition hover:text-white" href="#pricing">
-              Pricing
-            </a>
-            <a className="transition hover:text-white" href="#stories">
-              Stories
-            </a>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
