@@ -2,11 +2,12 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { Role } from '@prisma/client';
+import { MembershipRole, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MeDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { normalizeRole } from './role.util';
 
 @Injectable()
 export class AuthService {
@@ -61,7 +62,7 @@ export class AuthService {
       sub: created.user.id,
       id: created.user.id,
       email: created.user.email,
-      role: created.user.role,
+      role: normalizeRole(created.user.role),
       orgId: created.membership.orgId,
     };
 
@@ -70,7 +71,7 @@ export class AuthService {
       user: {
         id: created.user.id,
         email: created.user.email,
-        role: created.user.role,
+        role: normalizeRole(created.user.role),
         orgId: created.membership.orgId,
       },
     };
@@ -109,7 +110,7 @@ export class AuthService {
       sub: user.id,
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: normalizeRole(user.role),
       orgId: membership.orgId,
     };
 
@@ -118,7 +119,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: normalizeRole(user.role),
         orgId: membership.orgId,
       },
     };

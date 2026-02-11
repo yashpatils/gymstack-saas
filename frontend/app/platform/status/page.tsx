@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Skeleton } from "../../../src/components/ui/Skeleton";
 import { apiFetch } from "../../lib/api";
+import { Button, PageShell } from "../../components/ui";
+import PageHeader from "../../../src/components/PageHeader";
 
 type StatusPayload = {
   status: string;
@@ -45,19 +48,22 @@ async function runTimedCheck(path: string): Promise<EndpointCheck> {
   }
 }
 
-function StatusPill({ ok, text }: { ok: boolean; text: string }) {
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-        ok ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"
-      }`}
-    >
-      {text}
-    </span>
-  );
-}
-
-function EndpointCard({ result }: { result: EndpointCheck | null }) {
+function ResultBlock({
+  result,
+  loading,
+}: {
+  result: CheckResult | null;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-2/5" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+      </div>
+    );
+  }
   if (!result) {
     return <p className="text-sm text-slate-400">Not checked yet.</p>;
   }
@@ -134,57 +140,57 @@ export default function PlatformStatusPage() {
   }, [backendStatus, dbStatus]);
 
   return (
-    <main className="mx-auto max-w-4xl space-y-4 p-6 text-white">
-      <h1 className="text-2xl font-semibold">Platform Status</h1>
-      <p className="text-sm text-slate-300">
-        Operational checks for backend availability and database connectivity.
-      </p>
+    <PageShell className="max-w-4xl space-y-4 text-white">
+      <PageHeader
+        title="Platform Status"
+        subtitle="Quick checks for backend health, DB connectivity, and auth state."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Status" },
+        ]}
+      />
 
-      <section className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 p-4">
-        <button
-          type="button"
-          onClick={runChecks}
-          disabled={loading}
-          className="rounded-md border border-white/20 px-3 py-2 text-sm disabled:opacity-60"
-        >
-          {loading ? "Refreshing..." : "Refresh now"}
-        </button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" onClick={runChecks} disabled={loading} variant="secondary">
+          {loading ? "Running..." : "Run Checks"}
+        </Button>
+        <Button type="button" onClick={handleCopy} variant="ghost">
+          Copy Debug Info
+        </Button>
+      </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-200">
-          <input
-            type="checkbox"
-            checked={autoRefresh}
-            onChange={(event) => setAutoRefresh(event.target.checked)}
-            className="h-4 w-4 rounded border border-white/30 bg-slate-900"
-          />
-          Auto-refresh every {AUTO_REFRESH_INTERVAL_MS / 1000}s
-        </label>
+      {copyMessage ? <p className="text-sm text-slate-300">{copyMessage}</p> : null}
 
-        <div className="text-sm text-slate-300">
-          Last checked: {lastCheckedAt ? new Date(lastCheckedAt).toLocaleString() : "Never"}
-        </div>
-      </section>
-
-      <section className="rounded-md border border-white/10 p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">Overall</h2>
-          {overallHealthy === null ? (
-            <span className="text-sm text-slate-400">Unknown</span>
-          ) : (
-            <StatusPill ok={overallHealthy} text={overallHealthy ? "healthy" : "unhealthy"} />
-          )}
-        </div>
+      <section className="space-y-2 rounded-md border border-white/10 p-4">
+        <h2 className="font-medium">Backend health (GET /api/health)</h2>
+        <ResultBlock result={health} loading={loading} />
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">Backend status</h2>
-        <EndpointCard result={backendStatus} />
+        <h2 className="font-medium">DB ping (GET /api/db/ping)</h2>
+        <ResultBlock result={dbPing} loading={loading} />
       </section>
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">Database ping</h2>
-        <EndpointCard result={dbStatus} />
+        <h2 className="font-medium">Current user (GET /api/auth/me)</h2>
+        <ResultBlock result={currentUser} loading={loading} />
       </section>
-    </main>
+
+      <section className="space-y-2 rounded-md border border-white/10 p-4">
+        <h2 className="font-medium">Debug JSON</h2>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        ) : (
+          <pre className="overflow-auto rounded-md bg-slate-950/60 p-3 text-xs text-slate-100">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        )}
+      </section>
+    </PageShell>
   );
 }

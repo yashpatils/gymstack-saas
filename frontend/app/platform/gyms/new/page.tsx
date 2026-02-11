@@ -46,7 +46,7 @@ export default function NewGymPage() {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch<void>("/gyms", { method: "POST", body: form });
+      await apiFetch<void>("/api/gyms", { method: "POST", body: form });
       toast.success("Gym created", "The gym was added successfully.");
       router.push("/platform/gyms");
     } catch (err) {
