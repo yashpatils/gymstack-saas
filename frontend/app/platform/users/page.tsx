@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   Button,
   EmptyState,
-  PageHeader,
   PageShell,
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
+import PageHeader from "../../../src/components/PageHeader";
 import { useSession } from "../../components/session-provider";
 import {
   User,
@@ -154,10 +154,23 @@ export default function UsersPage() {
       <PageHeader
         title="Users"
         subtitle="Manage users across the platform."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Users" },
+        ]}
         actions={<Button onClick={loadUsers}>Refresh</Button>}
       />
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+
+      {loading ? (
+        <div className="space-y-3 rounded-md border border-white/10 p-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : null}
 
       <DataTable
         rows={users}
