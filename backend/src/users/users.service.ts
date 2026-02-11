@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from './user.model';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -23,7 +25,10 @@ const userSelect = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   listUsers(orgId: string) {
     return this.prisma.user.findMany({
@@ -44,16 +49,7 @@ export class UsersService {
           some: { orgId },
         },
       },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        subscriptionStatus: true,
-        stripeCustomerId: true,
-        stripeSubscriptionId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: userSelect,
     });
   }
 
@@ -70,7 +66,7 @@ export class UsersService {
     });
   }
 
-  updateUserForRequester(
+  async updateUserForRequester(
     id: string,
     orgId: string,
     data: UpdateUserDto,
@@ -85,16 +81,41 @@ export class UsersService {
     if (!canManageUsers && 'role' in data) {
       throw new ForbiddenException('Insufficient permissions');
     }
-    return this.updateUser(id, orgId, data);
+
+    const updatedUser = await this.updateUser(id, orgId, data);
+
+    await this.auditService.log({
+      orgId,
+      userId: requester.id,
+      action: 'user.update',
+      entityType: 'user',
+      entityId: updatedUser.id,
+      metadata: {
+        updatedFields: Object.keys(data),
+      },
+    });
+
+    return updatedUser;
   }
 
-  async deleteUser(id: string, orgId: string) {
+  async deleteUser(id: string, orgId: string, requesterId: string) {
     const existing = await this.getUser(id, orgId);
     if (!existing) {
       throw new NotFoundException('User not found');
     }
 
-    return this.prisma.user.delete({ where: { id } });
+    const deletedUser = await this.prisma.user.delete({ where: { id } });
+
+    await this.auditService.log({
+      orgId,
+      userId: requesterId,
+      action: 'user.delete',
+      entityType: 'user',
+      entityId: deletedUser.id,
+      metadata: { email: deletedUser.email },
+    });
+
+    return deletedUser;
   }
 
   getCurrentUser(userId: string) {

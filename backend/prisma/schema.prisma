@@ -41,33 +41,28 @@ model User {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   invites              Invite[]            @relation("InviteCreator")
-  memberships          Membership[]
+  auditLogs            AuditLog[]
 
   @@index([orgId])
 }
 
+model AuditLog {
+  id         String   @id @default(uuid())
+  orgId      String?
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-model Organization {
-  id          String       @id @default(uuid())
-  name        String
-  gyms        Gym[]
-  memberships Membership[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-}
-
-model Membership {
-  id        String         @id @default(uuid())
-  userId    String
-  orgId     String
-  role      MembershipRole @default(MEMBER)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  @@unique([userId, orgId])
   @@index([orgId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Invite {

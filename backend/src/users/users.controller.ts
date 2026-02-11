@@ -76,7 +76,7 @@ export class UsersController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.usersService.deleteUser(id, user.orgId);
+    return this.usersService.deleteUser(id, user.orgId, user.id);
   }
 
   @Patch('me/password')
