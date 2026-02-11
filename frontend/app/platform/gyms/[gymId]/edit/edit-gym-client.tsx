@@ -92,7 +92,7 @@ export default function EditGymClient({ gymId }: EditGymClientProps) {
         }
       />
 
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-rose-300" role="alert" aria-live="polite">{error}</p> : null}
 
       {loading ? (
         <p className="text-sm text-slate-400">Loading gym...</p>
@@ -116,6 +116,7 @@ export default function EditGymClient({ gymId }: EditGymClientProps) {
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
+            <p className="sr-only" aria-live="polite" role="status">{error ?? ""}</p>
             {activeTab === "details" ? (
               <label className="grid gap-2 text-sm text-slate-300">
                 Gym name

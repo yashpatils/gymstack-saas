@@ -198,6 +198,7 @@ export default function PlatformLayout({
                       <span
                         className="platform-nav-link opacity-50"
                         title="Insufficient permissions"
+                        aria-disabled="true"
                       >
                         {item.label}
                       </span>
@@ -207,6 +208,7 @@ export default function PlatformLayout({
                         className={`platform-nav-link ${
                           isActive ? "platform-nav-link--active" : ""
                         }`}
+                        aria-current={isActive ? "page" : undefined}
                       >
                         {item.label}
                       </Link>
