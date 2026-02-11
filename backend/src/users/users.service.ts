@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from './user.model';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const userSelect = {
   id: true,
@@ -52,7 +53,7 @@ export class UsersService {
     });
   }
 
-  async updateUser(id: string, orgId: string, data: Prisma.UserUpdateInput) {
+  async updateUser(id: string, orgId: string, data: UpdateUserDto) {
     const existing = await this.getUser(id, orgId);
     if (!existing) {
       throw new NotFoundException('User not found');
@@ -68,7 +69,7 @@ export class UsersService {
   async updateUserForRequester(
     id: string,
     orgId: string,
-    data: Prisma.UserUpdateInput,
+    data: UpdateUserDto,
     requester: User,
   ) {
     const canManageUsers = [UserRole.Admin, UserRole.Owner].includes(requester.role);

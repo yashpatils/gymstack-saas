@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { Request } from 'express';
 import { AuthController } from '../auth.controller';
 
 describe('AuthController', () => {
@@ -47,15 +48,20 @@ describe('AuthController', () => {
   });
 
   it('returns the user email on me', () => {
-    const response = controller.me({
+    const req: Partial<Request> & { user?: { email?: string } } = {
       user: { email: 'test@example.com' },
-    } as { user: { email: string } });
+    };
+
+    const response = controller.me(req as Request & { user?: { email?: string } });
 
     expect(response).toEqual({ email: 'test@example.com' });
   });
 
   it('throws when user email is missing on me', () => {
-    expect(() => controller.me({ user: {} } as { user: { email?: string } }))
-      .toThrow(BadRequestException);
+    const req: Partial<Request> & { user?: { email?: string } } = { user: {} };
+
+    expect(() =>
+      controller.me(req as Request & { user?: { email?: string } }),
+    ).toThrow(BadRequestException);
   });
 });

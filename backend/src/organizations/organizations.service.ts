@@ -24,8 +24,8 @@ export class OrganizationsService {
   }
 
   async renameOrg(orgId: string, userId: string, name: string) {
-    const membership = await this.prisma.membership.findUnique({
-      where: { userId },
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, orgId },
     });
 
     if (!membership || membership.orgId !== orgId) {

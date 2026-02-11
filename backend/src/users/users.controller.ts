@@ -10,11 +10,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserRole } from './user.model';
 import { UsersService } from './users.service';
 
@@ -58,7 +58,7 @@ export class UsersController {
   @Roles(UserRole.Owner, UserRole.Admin)
   updateUser(
     @Param('id') id: string,
-    @Body() data: Prisma.UserUpdateInput,
+    @Body() data: UpdateUserDto,
     @Req() req: { user?: User },
   ) {
     const user = req.user;
