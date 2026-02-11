@@ -5,5 +5,6 @@ export * from "./Card";
 export * from "./Divider";
 export * from "./Input";
 export * from "./Label";
+export * from "./Skeleton";
 export * from "./Spinner";
 export * from "./Toast";

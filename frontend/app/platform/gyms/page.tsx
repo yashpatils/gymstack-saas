@@ -6,27 +6,19 @@ import {
   Button,
   Card,
   EmptyState,
-  PageHeader,
   PageShell,
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
-import {
-  Gym,
-  createGym,
-  deleteGym,
-  listGyms,
-  updateGym,
-} from "../../../src/lib/gyms";
-import { getBillingStatus } from "../../../src/lib/billing";
-import { useAuth } from "../../../src/providers/AuthProvider";
-import { canManageGyms } from "../../../src/lib/rbac";
-import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
+import { Gym, createGym, deleteGym, listGyms, updateGym } from "../../../src/lib/gyms";
 import { useToast } from "../../../src/components/toast/ToastProvider";
+import { getBillingStatus } from "../../../src/lib/billing";
+import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
+import { useAuth } from "../../../src/providers/AuthProvider";
 
 export default function GymsPage() {
+  const { user } = useAuth();
   const toast = useToast();
-  const { user, role } = useAuth();
-  const canEditGyms = canManageGyms(role);
+  const { user } = useAuth();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +32,6 @@ export default function GymsPage() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-
 
   const loadSubscriptionStatus = async () => {
     if (!user?.id) {
@@ -181,7 +172,9 @@ export default function GymsPage() {
                 onChange={(event) => setEditingName(event.target.value)}
               />
             ) : (
-              <div className="font-medium text-white">{gym.name}</div>
+              <Link href={`/platform/gyms/${gym.id}`} className="font-medium text-white hover:text-indigo-300">
+                {gym.name}
+              </Link>
             )}
             <div className="text-xs text-slate-400">{gym.id}</div>
           </div>
@@ -213,6 +206,9 @@ export default function GymsPage() {
 
         return (
           <div className="flex flex-wrap gap-2">
+            <Link href={`/platform/gyms/${gym.id}`}>
+              <Button variant="secondary">View</Button>
+            </Link>
             {isEditing ? (
               <>
                 <Button
@@ -237,7 +233,7 @@ export default function GymsPage() {
               </Button>
             )}
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => handleDelete(gym.id)}
               disabled={!canEditGyms || isDeleting}
               title={!canEditGyms ? "Insufficient permissions" : undefined}
@@ -255,6 +251,10 @@ export default function GymsPage() {
       <PageHeader
         title="Gyms"
         subtitle="Manage gym locations from one place."
+        breadcrumbs={[
+          { label: "Platform", href: "/platform" },
+          { label: "Gyms" },
+        ]}
         actions={<Button onClick={loadGyms}>Refresh</Button>}
       />
 
@@ -296,6 +296,15 @@ export default function GymsPage() {
           </Button>
         </form>
       </Card>
+
+      {loading ? (
+        <div className="space-y-3 rounded-md border border-white/10 p-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : null}
 
       <DataTable
         rows={gyms}
