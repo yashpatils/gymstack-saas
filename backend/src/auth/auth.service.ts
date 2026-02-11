@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { MembershipRole, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { MeDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -14,9 +15,13 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditService,
   ) {}
 
-  async signup(input: SignupDto): Promise<{ accessToken: string; user: MeDto }> {
+  async signup(
+    input: SignupDto,
+    context?: { ip?: string; userAgent?: string },
+  ): Promise<{ accessToken: string; user: MeDto }> {
     const { email, password, role } = input;
 
     if (!email || !password) {
@@ -58,6 +63,22 @@ export class AuthService {
       return { user, membership };
     });
 
+    await this.notificationsService.createForUser({
+      userId: created.user.id,
+      type: 'signup.success',
+      title: 'Welcome to GymStack',
+      body: 'Your account was created successfully.',
+    });
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      await this.notificationsService.createForUser({
+        userId: created.user.id,
+        type: 'billing.warning',
+        title: 'Billing is not configured',
+        body: 'Stripe is not configured yet. Billing flows will remain unavailable until setup is complete.',
+      });
+    }
+
     const payload = {
       sub: created.user.id,
       id: created.user.id,
@@ -65,6 +86,17 @@ export class AuthService {
       role: normalizeRole(created.user.role),
       orgId: created.membership.orgId,
     };
+
+    await this.auditService.log({
+      orgId: created.membership.orgId,
+      userId: created.user.id,
+      action: 'auth.signup',
+      entityType: 'user',
+      entityId: created.user.id,
+      metadata: { email: created.user.email },
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+    });
 
     return {
       accessToken: this.jwtService.sign(payload),
@@ -77,7 +109,10 @@ export class AuthService {
     };
   }
 
-  async login(input: LoginDto): Promise<{ accessToken: string; user: MeDto }> {
+  async login(
+    input: LoginDto,
+    context?: { ip?: string; userAgent?: string },
+  ): Promise<{ accessToken: string; user: MeDto }> {
     const { email, password } = input;
 
     if (!email || !password) {
@@ -92,7 +127,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const membership = await this.prisma.membership.findUnique({
+    const membership = await this.prisma.membership.findFirst({
       where: { userId: user.id },
     });
 
@@ -113,6 +148,17 @@ export class AuthService {
       role: normalizeRole(user.role),
       orgId: membership.orgId,
     };
+
+    await this.auditService.log({
+      orgId: membership.orgId,
+      userId: user.id,
+      action: 'auth.login',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: { email: user.email },
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+    });
 
     return {
       accessToken: this.jwtService.sign(payload),

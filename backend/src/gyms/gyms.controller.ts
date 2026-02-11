@@ -10,12 +10,13 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
 import { User, UserRole } from '../users/user.model';
 import { GymsService } from './gyms.service';
+import { CreateGymDto } from './dto/create-gym.dto';
+import { UpdateGymDto } from './dto/update-gym.dto';
 
 @Controller('gyms')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,7 +34,7 @@ export class GymsController {
 
   @Post()
   @Roles(UserRole.Owner, UserRole.Admin)
-  createGym(@Body() data: Prisma.GymCreateInput, @Req() req: { user?: User }) {
+  createGym(@Body() data: CreateGymDto, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {
       throw new ForbiddenException('Missing user');
@@ -56,7 +57,7 @@ export class GymsController {
   @Roles(UserRole.Owner, UserRole.Admin)
   updateGym(
     @Param('id') id: string,
-    @Body() data: Prisma.GymUpdateInput,
+    @Body() data: UpdateGymDto,
     @Req() req: { user?: User },
   ) {
     const user = req.user;
@@ -70,7 +71,7 @@ export class GymsController {
   @Roles(UserRole.Admin)
   updateGymOwner(
     @Param('id') id: string,
-    @Body() data: Prisma.GymUpdateInput,
+    @Body() data: UpdateGymDto,
     @Req() req: { user?: User },
   ) {
     const user = req.user;
