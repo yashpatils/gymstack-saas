@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-const isGitHubPagesExport = process.env.NEXT_DEPLOY_TARGET === "github-pages";
+const isGitHubPagesExport = process.env.DEPLOY_TARGET === "gh-pages";
 
 const nextConfig = {
   reactStrictMode: true,
