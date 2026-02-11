@@ -2,14 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RequireAuth } from "../../src/components/RequireAuth";
 import { apiFetch } from "../../src/lib/api";
-import {
-  defaultFeatureFlags,
-  FeatureFlags,
-  getFeatureFlags,
-} from "../../src/lib/settings";
 import { canManageBilling, canManageUsers, normalizeRole } from "../../src/lib/rbac";
 import { useAuth } from "../../src/providers/AuthProvider";
 
@@ -18,6 +13,7 @@ const navItems = [
   { label: "Diagnostics", href: "/platform/diagnostics" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users", requires: "users" as const },
+  { label: "Audit", href: "/platform/audit", requires: "users" as const },
   { label: "Team", href: "/platform/team" },
   { label: "Billing", href: "/platform/billing", requires: "billing" as const },
   { label: "Settings", href: "/platform/settings" },
@@ -30,6 +26,15 @@ type OrganizationResponse = {
   createdAt: string;
 };
 
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export default function PlatformLayout({
   children,
 }: {
@@ -38,14 +43,56 @@ export default function PlatformLayout({
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(defaultFeatureFlags);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const role = normalizeRole(user?.role);
 
+  const role = user?.role ?? "MEMBER";
   const email = user?.email ?? "platform.user@gymstack.app";
   const role = normalizeRole(user?.role);
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
   }, [email]);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((notification) => !notification.readAt).length,
+    [notifications],
+  );
+
+  const loadNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+
+    try {
+      const latest = await apiFetch<NotificationItem[]>("/api/notifications", {
+        method: "GET",
+        cache: "no-store",
+      });
+      setNotifications(latest);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, []);
+
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      const updated = await apiFetch<NotificationItem>(`/api/notifications/${id}/read`, {
+        method: "POST",
+      });
+
+      setNotifications((current) =>
+        current.map((notification) =>
+          notification.id === updated.id
+            ? { ...notification, readAt: updated.readAt }
+            : notification,
+        ),
+      );
+    } catch {
+      // no-op
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -81,13 +128,13 @@ export default function PlatformLayout({
 
     if (user) {
       void loadOrg();
-      void loadFeatureFlags();
+      void loadNotifications();
     }
 
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [loadNotifications, user]);
 
   if (loading) {
     return (
@@ -178,16 +225,61 @@ export default function PlatformLayout({
               <p className="platform-topbar-label">Organization: {orgName}</p>
             </div>
 
-            <details className="platform-user-menu">
-              <summary className="platform-user-trigger" aria-label="User menu">
-                <span className="platform-avatar">{initials}</span>
-              </summary>
-              <div className="platform-user-dropdown">
-                <button type="button" className="button secondary" onClick={logout}>
-                  Logout
-                </button>
-              </div>
-            </details>
+            <div className="platform-topbar-actions">
+              <details className="platform-notification-menu">
+                <summary
+                  className="platform-notification-trigger"
+                  aria-label="Notifications"
+                  onClick={() => {
+                    void loadNotifications();
+                  }}
+                >
+                  <span aria-hidden="true">🔔</span>
+                  {unreadCount > 0 ? (
+                    <span className="platform-notification-badge">{unreadCount}</span>
+                  ) : null}
+                </summary>
+                <div className="platform-notification-dropdown">
+                  <p className="platform-notification-title">Notifications</p>
+                  {notificationsLoading ? (
+                    <p className="platform-notification-empty">Loading...</p>
+                  ) : notifications.length === 0 ? (
+                    <p className="platform-notification-empty">No notifications yet.</p>
+                  ) : (
+                    <ul className="platform-notification-list">
+                      {notifications.map((notification) => (
+                        <li key={notification.id} className="platform-notification-item">
+                          <p className="platform-notification-item-title">{notification.title}</p>
+                          <p className="platform-notification-item-body">{notification.body}</p>
+                          {!notification.readAt ? (
+                            <button
+                              type="button"
+                              className="platform-notification-read"
+                              onClick={() => {
+                                void markAsRead(notification.id);
+                              }}
+                            >
+                              Mark as read
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </details>
+
+              <details className="platform-user-menu">
+                <summary className="platform-user-trigger" aria-label="User menu">
+                  <span className="platform-avatar">{initials}</span>
+                </summary>
+                <div className="platform-user-dropdown">
+                  <button type="button" className="button secondary" onClick={logout}>
+                    Logout
+                  </button>
+                </div>
+              </details>
+            </div>
           </header>
 
           <main className="platform-main-content">{children}</main>
