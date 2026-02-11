@@ -16,8 +16,10 @@ import {
   listGyms,
   updateGym,
 } from "../../../src/lib/gyms";
+import { useToast } from "../../../src/components/toast/ToastProvider";
 
 export default function GymsPage() {
+  const toast = useToast();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,9 +61,12 @@ export default function GymsPage() {
     try {
       await createGym({ name: newGymName.trim() });
       setNewGymName("");
+      toast.success("Gym created", "New gym added to the platform.");
       await loadGyms();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create gym.");
+      const errorMessage = err instanceof Error ? err.message : "Unable to create gym.";
+      setError(errorMessage);
+      toast.error("Create gym failed", errorMessage);
     } finally {
       setCreating(false);
     }
@@ -87,9 +92,12 @@ export default function GymsPage() {
     try {
       await updateGym(gymId, { name: editingName.trim() });
       cancelEdit();
+      toast.success("Gym updated", "Gym details were saved.");
       await loadGyms();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update gym.");
+      const errorMessage = err instanceof Error ? err.message : "Unable to update gym.";
+      setError(errorMessage);
+      toast.error("Update gym failed", errorMessage);
     } finally {
       setSavingEdit(false);
     }
@@ -104,9 +112,12 @@ export default function GymsPage() {
     setError(null);
     try {
       await deleteGym(gymId);
+      toast.success("Gym deleted", "Gym was removed from the platform.");
       await loadGyms();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete gym.");
+      const errorMessage = err instanceof Error ? err.message : "Unable to delete gym.";
+      setError(errorMessage);
+      toast.error("Delete gym failed", errorMessage);
     } finally {
       setDeletingId(null);
     }

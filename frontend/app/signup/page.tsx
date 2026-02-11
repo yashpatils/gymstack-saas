@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { useToast } from "../../src/components/toast/ToastProvider";
 import {
   Alert,
   Button,
@@ -47,6 +48,7 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { signup, loading: authLoading, user } = useAuth();
+  const toast = useToast();
 
   const isBusy = authLoading || isSubmitting;
   const passwordHelper = useMemo(
@@ -85,6 +87,7 @@ export default function SignupPage() {
           ? submitError.message
           : "Unable to complete signup.";
       setError(errorMessage);
+      toast.error("Signup failed", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
