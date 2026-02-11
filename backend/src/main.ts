@@ -6,6 +6,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import express from 'express';
 import { AppModule } from './app.module';
+import { HttpExceptionWithRequestIdFilter } from './common/http-exception.filter';
+import { requestIdMiddleware } from './common/request-id.middleware';
 import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
@@ -86,8 +88,10 @@ async function logIntegrationStatus(
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use('/billing/webhook', express.raw({ type: 'application/json' }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
   const configService = app.get(ConfigService);
   const prismaService = app.get(PrismaService);
@@ -116,7 +120,7 @@ async function bootstrap() {
       return callback(new Error(`CORS blocked for origin: ${origin}`), false);
     },
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
     credentials: false,
   });
 
@@ -124,6 +128,10 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix, {
     exclude: ['billing/webhook', 'health', 'api/health', 'debug/routes'],
   });
+
+  app.use(requestIdMiddleware);
+
+  app.useGlobalFilters(new HttpExceptionWithRequestIdFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -133,7 +141,10 @@ async function bootstrap() {
     }),
   );
   app.use(helmet());
-  app.use(morgan('combined'));
+  morgan.token('request-id', (req) => req.requestId ?? '-');
+  app.use(
+    morgan(':method :url :status :res[content-length] - :response-time ms request_id=:request-id'),
+  );
 
   if (securityConfig.httpsRedirectEnabled) {
     app.use((req: any, res: any, next: any) => {

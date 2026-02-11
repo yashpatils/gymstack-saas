@@ -37,7 +37,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), "Segoe UI", system-ui, -apple-system, sans-serif;
   background: radial-gradient(circle at top, #1e293b 0%, #070b14 55%, #05070d 100%);
   color: var(--ink-900);
 }
@@ -628,6 +628,113 @@ main {
   margin: 4px 0 0;
   font-size: 14px;
   color: var(--ink-700);
+}
+
+
+.platform-topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.platform-notification-menu {
+  position: relative;
+}
+
+.platform-notification-trigger {
+  list-style: none;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.platform-notification-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.platform-notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  background: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.platform-notification-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(360px, 90vw);
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
+}
+
+.platform-notification-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.platform-notification-empty {
+  margin: 0;
+  color: var(--ink-600);
+}
+
+.platform-notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.platform-notification-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.platform-notification-item-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.platform-notification-item-body {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-600);
+}
+
+.platform-notification-read {
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: #c4b5fd;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
 }
 
 .platform-user-menu {

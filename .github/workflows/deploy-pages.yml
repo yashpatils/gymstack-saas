@@ -38,6 +38,7 @@ jobs:
 
       - name: Build static site
         env:
+          NEXT_DEPLOY_TARGET: github-pages
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: npm run build --prefix frontend
 

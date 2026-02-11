@@ -36,6 +36,7 @@ export class AuthExceptionFilter implements ExceptionFilter {
     response.status(statusCode).json({
       message,
       statusCode,
+      requestId: request.requestId,
     });
   }
 }

@@ -3,13 +3,47 @@ const GET_CACHE_TTL_MS = 10_000;
 type CacheMode = 'default' | 'no-store';
 type ApiFetchOptions = RequestInit & { cache?: CacheMode };
 
+
+const REQUEST_ID_HEADER = 'X-Request-Id';
+
+function generateRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  const random = Math.random().toString(16).slice(2, 10);
+  return `req-${Date.now()}-${random}`;
+}
+
+function extractRequestId(errorBody: unknown, response: Response): string | undefined {
+  const responseRequestId = response.headers.get(REQUEST_ID_HEADER);
+  if (responseRequestId) {
+    return responseRequestId;
+  }
+
+  if (typeof errorBody === 'object' && errorBody !== null && 'requestId' in errorBody) {
+    const bodyRequestId = (errorBody as { requestId?: unknown }).requestId;
+    return typeof bodyRequestId === 'string' ? bodyRequestId : undefined;
+  }
+
+  return undefined;
+}
+
 type CacheEntry = {
   expiresAt: number;
   value: unknown;
 };
 
+export type ApiRateLimitSnapshot = {
+  limit?: number;
+  remaining?: number;
+  retryAfterSeconds?: number;
+  observedAtIso: string;
+};
+
 const getResponseCache = new Map<string, CacheEntry>();
 const inflightGetRequests = new Map<string, Promise<unknown>>();
+let lastApiRateLimitSnapshot: ApiRateLimitSnapshot | null = null;
 
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
@@ -39,7 +73,37 @@ export type ApiError = {
   statusCode?: number;
   error?: string;
   details?: unknown;
+  requestId?: string;
 };
+
+export function getLastApiRateLimitSnapshot(): ApiRateLimitSnapshot | null {
+  return lastApiRateLimitSnapshot;
+}
+
+function toPositiveInt(value: string | null): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function trackRateLimitHeaders(response: Response): ApiRateLimitSnapshot {
+  const snapshot: ApiRateLimitSnapshot = {
+    observedAtIso: new Date().toISOString(),
+    limit: toPositiveInt(response.headers.get('X-RateLimit-Limit')),
+    remaining: toPositiveInt(response.headers.get('X-RateLimit-Remaining')),
+    retryAfterSeconds: toPositiveInt(response.headers.get('Retry-After')),
+  };
+
+  lastApiRateLimitSnapshot = snapshot;
+  return snapshot;
+}
 
 export async function apiFetch<T = unknown>(
   path: string,
@@ -80,6 +144,10 @@ export async function apiFetch<T = unknown>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  if (!headers.has(REQUEST_ID_HEADER)) {
+    headers.set(REQUEST_ID_HEADER, generateRequestId());
+  }
+
   const getCacheKey = (): string => {
     const normalizedHeaders = [...headers.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
@@ -97,6 +165,7 @@ export async function apiFetch<T = unknown>(
       headers,
     });
 
+    const rateLimitSnapshot = trackRateLimitHeaders(response);
     const contentType = response.headers.get('content-type') ?? '';
 
     if (!response.ok) {
@@ -106,6 +175,15 @@ export async function apiFetch<T = unknown>(
         errorBody = await response.json();
       } else {
         errorBody = await response.text();
+      }
+
+      if (response.status === 429) {
+        const retryAfterSeconds = rateLimitSnapshot.retryAfterSeconds;
+        const retryHint =
+          retryAfterSeconds !== undefined
+            ? ` Please retry in ${retryAfterSeconds} second${retryAfterSeconds === 1 ? '' : 's'}.`
+            : ' Please wait a moment and try again.';
+        throw new Error(`You are making requests too quickly.${retryHint}`);
       }
 
       throw new Error(`Request failed (${response.status} ${response.statusText}): ${typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody)}`);

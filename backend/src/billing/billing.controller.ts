@@ -1,9 +1,20 @@
-import { Body, Controller, Get, Headers, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
+import { AuditService } from '../audit/audit.service';
 import { RolesGuard } from '../guards/roles.guard';
-import { UserRole } from '../users/user.model';
+import { User, UserRole } from '../users/user.model';
 import { BillingService } from './billing.service';
 
 type CreateCustomerBody = {
@@ -27,7 +38,10 @@ type CreateCheckoutBody = {
 
 @Controller('billing')
 export class BillingController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Post('create-customer')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -51,7 +65,30 @@ export class BillingController {
   @Post('checkout')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
-  async createCheckoutSession(@Body() body: CreateCheckoutBody) {
+  async createCheckoutSession(
+    @Body() body: CreateCheckoutBody,
+    @Req() req: Request & { user?: User },
+  ) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    const userAgent = req.headers['user-agent'];
+
+    await this.auditService.log({
+      orgId: user.orgId,
+      userId: user.id,
+      action: 'billing.checkout_attempt',
+      entityType: 'billing',
+      entityId: body.userId,
+      metadata: {
+        priceId: body.priceId,
+      },
+      ip: req.ip,
+      userAgent: typeof userAgent === 'string' ? userAgent : undefined,
+    });
+
     const session = await this.billingService.createCheckoutSession(body);
     return {
       checkoutUrl: session.url,

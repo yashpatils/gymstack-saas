@@ -1,11 +1,20 @@
 import "./globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { SessionProvider } from "./components/session-provider";
 import { AuthProvider } from "../src/providers/AuthProvider";
 import { ToastProvider } from "../src/components/toast/ToastProvider";
 
-export const metadata = {
-  title: "GymStack SaaS",
-  description: "Operate multi-location gyms with unified dashboards and billing.",
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+export const metadata: Metadata = {
+  title: "GymStack SaaS | Multi-Location Gym Management Platform",
+  description:
+    "GymStack helps gym operators run billing, members, trainers, and analytics across every location from one dashboard.",
 };
 
 export default function RootLayout({
@@ -15,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.variable}>
         <AuthProvider>
           <ToastProvider>
             <SessionProvider>{children}</SessionProvider>
