@@ -60,7 +60,7 @@ export default function UserDetailPage() {
       return;
     }
     try {
-      await apiFetch(`/users/${userId}`, { method: "DELETE" });
+      await apiFetch<void>(`/users/${userId}`, { method: "DELETE" });
       router.push("/platform/users");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete user.");

@@ -12,6 +12,10 @@ export type GymInput = {
   name: string;
 };
 
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return apiFetch<T>(path, options);
+}
+
 export async function listGyms(): Promise<Gym[]> {
   return apiFetch<Gym[]>('/api/gyms', { method: 'GET' });
 }

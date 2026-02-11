@@ -53,7 +53,7 @@ export default function EditGymClient({ gymId }: EditGymClientProps) {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch(`/gyms/${gymId}`, { method: "PATCH", body: form });
+      await apiFetch<void>(`/gyms/${gymId}`, { method: "PATCH", body: form });
       router.push("/platform/gyms");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save gym.");
