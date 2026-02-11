@@ -1,3 +1,16 @@
+const GET_CACHE_TTL_MS = 10_000;
+
+type CacheMode = 'default' | 'no-store';
+type ApiFetchOptions = RequestInit & { cache?: CacheMode };
+
+type CacheEntry = {
+  expiresAt: number;
+  value: unknown;
+};
+
+const getResponseCache = new Map<string, CacheEntry>();
+const inflightGetRequests = new Map<string, Promise<unknown>>();
+
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
   if (!base) {
@@ -23,9 +36,12 @@ export function buildApiUrl(path: string): string {
 
 export async function apiFetch<T = unknown>(
   path: string,
-  options: RequestInit = {},
+  options: ApiFetchOptions = {},
 ): Promise<T> {
   const url = buildApiUrl(path);
+  const method = (options.method ?? 'GET').toUpperCase();
+  const cacheMode: CacheMode = options.cache ?? 'default';
+  const shouldUseGetCache = method === 'GET' && cacheMode !== 'no-store';
   const token =
     typeof window !== 'undefined'
       ? window.localStorage.getItem('gymstack_token')
@@ -53,30 +69,79 @@ export async function apiFetch<T = unknown>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(url, {
-    ...options,
-    body: requestBody,
-    credentials: 'omit',
-    headers,
-  });
+  const getCacheKey = (): string => {
+    const normalizedHeaders = [...headers.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join('|');
 
-  const contentType = response.headers.get('content-type') ?? '';
+    return `${method}:${url}:${normalizedHeaders}`;
+  };
 
-  if (!response.ok) {
-    let errorBody: unknown;
+  const executeRequest = async (): Promise<T> => {
+    const response = await fetch(url, {
+      ...options,
+      body: requestBody,
+      credentials: 'omit',
+      headers,
+    });
 
-    if (contentType.includes('application/json')) {
-      errorBody = await response.json();
-    } else {
-      errorBody = await response.text();
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (!response.ok) {
+      let errorBody: unknown;
+
+      if (contentType.includes('application/json')) {
+        errorBody = await response.json();
+      } else {
+        errorBody = await response.text();
+      }
+
+      throw new Error(`Request failed (${response.status} ${response.statusText}): ${typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody)}`);
     }
 
-    throw new Error(`Request failed (${response.status} ${response.statusText}): ${typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody)}`);
+    if (contentType.includes('application/json')) {
+      return (await response.json()) as T;
+    }
+
+    return (await response.text()) as T;
+  };
+
+  if (!shouldUseGetCache) {
+    return executeRequest();
   }
 
-  if (contentType.includes('application/json')) {
-    return (await response.json()) as T;
+  const cacheKey = getCacheKey();
+  const now = Date.now();
+  const cachedEntry = getResponseCache.get(cacheKey);
+
+  if (cachedEntry && cachedEntry.expiresAt > now) {
+    return cachedEntry.value as T;
   }
 
-  return (await response.text()) as T;
+  if (cachedEntry) {
+    getResponseCache.delete(cacheKey);
+  }
+
+  const inflightRequest = inflightGetRequests.get(cacheKey);
+  if (inflightRequest) {
+    return inflightRequest as Promise<T>;
+  }
+
+  const requestPromise = executeRequest()
+    .then((result) => {
+      getResponseCache.set(cacheKey, {
+        expiresAt: Date.now() + GET_CACHE_TTL_MS,
+        value: result,
+      });
+
+      return result;
+    })
+    .finally(() => {
+      inflightGetRequests.delete(cacheKey);
+    });
+
+  inflightGetRequests.set(cacheKey, requestPromise as Promise<unknown>);
+
+  return requestPromise;
 }
