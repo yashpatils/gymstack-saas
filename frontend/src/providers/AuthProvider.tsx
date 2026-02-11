@@ -16,9 +16,11 @@ import {
   me,
   signup as signupRequest,
 } from "../lib/auth";
+import { normalizeRole, type AppRole } from "../lib/rbac";
 
 type AuthContextValue = {
   user: AuthUser | null;
+  role: AppRole;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   signup: (email: string, password: string) => Promise<AuthUser>;
@@ -84,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, signup, logout }),
+    () => ({ user, role: normalizeRole(user?.role), loading, login, signup, logout }),
     [user, loading, login, signup, logout],
   );
 

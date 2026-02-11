@@ -8,6 +8,7 @@ import {
   getBillingStatus,
   type BillingStatusResponse,
 } from "../../../src/lib/billing";
+import { canManageBilling } from "../../../src/lib/rbac";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
 
 function toFriendlyError(error: unknown): string {
@@ -26,7 +27,8 @@ function toFriendlyError(error: unknown): string {
 }
 
 export default function PlatformBillingPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const canEditBilling = canManageBilling(role);
   const [status, setStatus] = useState<BillingStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
@@ -73,6 +75,11 @@ export default function PlatformBillingPage() {
   );
 
   const handleUpgrade = async () => {
+    if (!canEditBilling) {
+      setMessage("Insufficient permissions");
+      return;
+    }
+
     setUpgrading(true);
     setMessage(null);
 
@@ -110,7 +117,8 @@ export default function PlatformBillingPage() {
           <button
             type="button"
             onClick={handleUpgrade}
-            disabled={upgrading}
+            disabled={!canEditBilling || upgrading}
+            title={!canEditBilling ? "Insufficient permissions" : undefined}
             className="rounded-md border border-white/20 px-4 py-2 text-sm disabled:opacity-60"
           >
             {upgrading ? "Starting checkout..." : "Upgrade"}

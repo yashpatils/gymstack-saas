@@ -9,7 +9,8 @@ import {
   PageShell,
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
-import { useSession } from "../../components/session-provider";
+import { useAuth } from "../../../src/providers/AuthProvider";
+import { canManageUsers } from "../../../src/lib/rbac";
 import {
   User,
   deleteUser,
@@ -32,8 +33,8 @@ function formatDate(value?: string) {
 
 export default function UsersPage() {
   const router = useRouter();
-  const session = useSession();
-  const canDelete = session.platformRole === "platform_admin";
+  const { role } = useAuth();
+  const canEdit = canManageUsers(role);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +58,8 @@ export default function UsersPage() {
   }, []);
 
   const handleDelete = async (userId: string) => {
-    if (!canDelete) {
-      setError("You must be a platform admin to delete users.");
+    if (!canEdit) {
+      setError("Insufficient permissions");
       return;
     }
 
@@ -79,6 +80,11 @@ export default function UsersPage() {
   };
 
   const handleEditRole = async (user: User) => {
+    if (!canEdit) {
+      setError("Insufficient permissions");
+      return;
+    }
+
     const nextRole = window.prompt("Set role", user.role ?? "");
 
     if (nextRole === null || nextRole === (user.role ?? "")) {
@@ -132,14 +138,16 @@ export default function UsersPage() {
           </Button>
           <Button
             variant="secondary"
-            disabled={savingUserId === user.id}
+            disabled={!canEdit || savingUserId === user.id}
+            title={!canEdit ? "Insufficient permissions" : undefined}
             onClick={() => handleEditRole(user)}
           >
             Edit role
           </Button>
           <Button
             variant="outline"
-            disabled={!canDelete || savingUserId === user.id}
+            disabled={!canEdit || savingUserId === user.id}
+            title={!canEdit ? "Insufficient permissions" : undefined}
             onClick={() => handleDelete(user.id)}
           >
             Delete

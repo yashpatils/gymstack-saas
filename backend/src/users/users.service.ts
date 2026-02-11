@@ -80,11 +80,14 @@ export class UsersService {
     data: Prisma.UserUpdateInput,
     requester: User,
   ) {
-    if (requester.role !== UserRole.Admin && requester.id !== id) {
-      throw new ForbiddenException('Insufficient role');
+    const canManageUsers = [UserRole.Admin, UserRole.Owner].includes(requester.role);
+
+    if (!canManageUsers && requester.id !== id) {
+      throw new ForbiddenException('Insufficient permissions');
     }
-    if (requester.role !== UserRole.Admin && 'role' in data) {
-      throw new ForbiddenException('Insufficient role');
+
+    if (!canManageUsers && 'role' in data) {
+      throw new ForbiddenException('Insufficient permissions');
     }
     return this.updateUser(id, orgId, data);
   }

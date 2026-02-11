@@ -6,13 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "../../src/components/ProtectedRoute";
 import { apiFetch } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { canManageBilling, canManageUsers } from "../../src/lib/rbac";
 
 const navItems = [
   { label: "Status", href: "/platform/status" },
   { label: "Gyms", href: "/platform/gyms" },
-  { label: "Users", href: "/platform/users" },
+  { label: "Users", href: "/platform/users", requires: "users" as const },
   { label: "Team", href: "/platform/team" },
-  { label: "Billing", href: "/platform/billing" },
+  { label: "Billing", href: "/platform/billing", requires: "billing" as const },
   { label: "Settings", href: "/platform/settings" },
 ];
 
@@ -28,7 +29,7 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
 
   const email = user?.email ?? "platform.user@gymstack.app";
@@ -73,19 +74,31 @@ export default function PlatformLayout({
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
               {navItems.map((item) => {
+                const disabled =
+                  (item.requires === "users" && !canManageUsers(role))
+                  || (item.requires === "billing" && !canManageBilling(role));
                 const isActive =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
 
                 return (
                   <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={`platform-nav-link ${
-                        isActive ? "platform-nav-link--active" : ""
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
+                    {disabled ? (
+                      <span
+                        className="platform-nav-link opacity-50"
+                        title="Insufficient permissions"
+                      >
+                        {item.label}
+                      </span>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={`platform-nav-link ${
+                          isActive ? "platform-nav-link--active" : ""
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 );
               })}
