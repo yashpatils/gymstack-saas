@@ -141,12 +141,14 @@ export class BillingService {
   }
 
   async handleWebhook(payload: Buffer, signature?: string | string[]) {
+    this.ensureWebhookConfiguration();
     const stripe = this.ensureStripeConfigured();
+    const normalizedPayload = this.normalizeWebhookPayload(payload);
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
       throw new ServiceUnavailableException(
-        'Missing STRIPE_WEBHOOK_SECRET configuration.',
+        'Stripe webhook is unavailable. Missing STRIPE_WEBHOOK_SECRET.',
       );
     }
     if (!signature) {
@@ -154,7 +156,11 @@ export class BillingService {
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+    const event = stripe.webhooks.constructEvent(
+      normalizedPayload,
+      sig,
+      webhookSecret,
+    );
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -213,6 +219,7 @@ export class BillingService {
     await this.prisma.user.updateMany({
       where: { stripeCustomerId: customerId },
       data: {
+        stripeCustomerId: customerId,
         stripeSubscriptionId: subscriptionId ?? undefined,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
       },
@@ -231,10 +238,39 @@ export class BillingService {
     await this.prisma.user.updateMany({
       where: { stripeCustomerId: customerId },
       data: {
+        stripeCustomerId: customerId,
         stripeSubscriptionId: subscription.id,
         subscriptionStatus: this.mapSubscriptionStatus(subscription.status),
       },
     });
+  }
+
+  private ensureWebhookConfiguration() {
+    const missing: string[] = [];
+
+    if (!this.configService.get<string>('STRIPE_SECRET_KEY')) {
+      missing.push('STRIPE_SECRET_KEY');
+    }
+
+    if (!this.configService.get<string>('STRIPE_WEBHOOK_SECRET')) {
+      missing.push('STRIPE_WEBHOOK_SECRET');
+    }
+
+    if (missing.length) {
+      throw new ServiceUnavailableException(
+        `Stripe webhook is unavailable. Missing configuration: ${missing.join(', ')}.`,
+      );
+    }
+  }
+
+  private normalizeWebhookPayload(payload: Buffer): Buffer {
+    if (Buffer.isBuffer(payload)) {
+      return payload;
+    }
+
+    throw new BadRequestException(
+      'Invalid webhook payload. Configure raw body parsing for /billing/webhook.',
+    );
   }
 
   private mapSubscriptionStatus(
