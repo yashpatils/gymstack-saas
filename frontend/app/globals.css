@@ -522,6 +522,128 @@ main {
   min-height: 100vh;
 }
 
+.platform-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+.platform-sidebar {
+  background: rgba(2, 6, 23, 0.92);
+  border-right: 1px solid var(--border);
+  padding: 28px 18px;
+}
+
+.platform-brand {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 8px 24px;
+}
+
+.platform-nav-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.platform-nav-link {
+  display: block;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--ink-600);
+  font-weight: 500;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.platform-nav-link:hover {
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--ink-900);
+}
+
+.platform-nav-link--active {
+  background: var(--brand-100);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: var(--ink-900);
+}
+
+.platform-main-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.platform-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(5, 10, 20, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.platform-topbar-label {
+  margin: 0;
+  color: var(--ink-500);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.platform-topbar-email {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-700);
+}
+
+.platform-user-menu {
+  position: relative;
+}
+
+.platform-user-trigger {
+  list-style: none;
+  cursor: pointer;
+}
+
+.platform-user-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.platform-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--brand-100);
+  color: #ddd6fe;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+}
+
+.platform-user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 150px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
+}
+
+.platform-main-content {
+  min-width: 0;
+}
+
 .sidebar {
   background: var(--surface-3);
   border-right: 1px solid var(--border);
