@@ -14,7 +14,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signup(input: SignupDto): Promise<{ message: string; user: MeDto }> {
+  async signup(input: SignupDto): Promise<{ accessToken: string; user: MeDto }> {
     const { email, password, role } = input;
 
     if (!email || !password) {
@@ -38,8 +38,15 @@ export class AuthService {
       },
     });
 
+    const payload = {
+      sub: user.id,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
     return {
-      message: 'Signup successful',
+      accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,
