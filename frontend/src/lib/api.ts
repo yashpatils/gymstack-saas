@@ -3,6 +3,32 @@ const GET_CACHE_TTL_MS = 10_000;
 type CacheMode = 'default' | 'no-store';
 type ApiFetchOptions = RequestInit & { cache?: CacheMode };
 
+
+const REQUEST_ID_HEADER = 'X-Request-Id';
+
+function generateRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  const random = Math.random().toString(16).slice(2, 10);
+  return `req-${Date.now()}-${random}`;
+}
+
+function extractRequestId(errorBody: unknown, response: Response): string | undefined {
+  const responseRequestId = response.headers.get(REQUEST_ID_HEADER);
+  if (responseRequestId) {
+    return responseRequestId;
+  }
+
+  if (typeof errorBody === 'object' && errorBody !== null && 'requestId' in errorBody) {
+    const bodyRequestId = (errorBody as { requestId?: unknown }).requestId;
+    return typeof bodyRequestId === 'string' ? bodyRequestId : undefined;
+  }
+
+  return undefined;
+}
+
 type CacheEntry = {
   expiresAt: number;
   value: unknown;
@@ -47,6 +73,7 @@ export type ApiError = {
   statusCode?: number;
   error?: string;
   details?: unknown;
+  requestId?: string;
 };
 
 export function getLastApiRateLimitSnapshot(): ApiRateLimitSnapshot | null {
@@ -115,6 +142,10 @@ export async function apiFetch<T = unknown>(
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  if (!headers.has(REQUEST_ID_HEADER)) {
+    headers.set(REQUEST_ID_HEADER, generateRequestId());
   }
 
   const getCacheKey = (): string => {
