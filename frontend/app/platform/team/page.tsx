@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { listUsers, User } from "../../../src/lib/users";
 import { createInvite } from "../../../src/lib/invites";
+import { defaultFeatureFlags, getFeatureFlags } from "../../../src/lib/settings";
 
 export default function PlatformTeamPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -12,6 +13,7 @@ export default function PlatformTeamPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [enableInvites, setEnableInvites] = useState(defaultFeatureFlags.enableInvites);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -26,11 +28,27 @@ export default function PlatformTeamPage() {
   };
 
   useEffect(() => {
-    void loadUsers();
+    const loadPageData = async () => {
+      try {
+        const flags = await getFeatureFlags();
+        setEnableInvites(flags.enableInvites);
+      } catch {
+        setEnableInvites(defaultFeatureFlags.enableInvites);
+      }
+
+      await loadUsers();
+    };
+
+    void loadPageData();
   }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!enableInvites) {
+      setError("Team invites are disabled.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     setInviteLink(null);
@@ -56,8 +74,14 @@ export default function PlatformTeamPage() {
 
       <form onSubmit={onSubmit} className="space-y-3 rounded-md border border-white/10 p-4">
         <h2 className="text-sm font-semibold text-white">Invite member</h2>
+        {!enableInvites ? (
+          <p className="text-sm text-slate-300">
+            Team invites are currently disabled by an owner in admin settings.
+          </p>
+        ) : null}
         <input
           required
+          disabled={!enableInvites || submitting}
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -65,6 +89,7 @@ export default function PlatformTeamPage() {
           className="w-full rounded-md border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
         />
         <select
+          disabled={!enableInvites || submitting}
           value={role}
           onChange={(event) => setRole(event.target.value as "USER" | "ADMIN" | "OWNER")}
           className="w-full rounded-md border border-white/20 bg-black/20 px-3 py-2 text-sm text-white"
@@ -75,10 +100,10 @@ export default function PlatformTeamPage() {
         </select>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={!enableInvites || submitting}
           className="rounded-md border border-white/20 px-3 py-2 text-sm disabled:opacity-60"
         >
-          {submitting ? "Sending..." : "Create invite"}
+          {!enableInvites ? "Invites disabled" : submitting ? "Sending..." : "Create invite"}
         </button>
       </form>
 

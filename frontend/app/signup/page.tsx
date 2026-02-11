@@ -51,6 +51,7 @@ export default function SignupPage() {
   const toast = useToast();
 
   const isBusy = authLoading || isSubmitting;
+  const formErrorSummary = Object.values(fieldErrors).filter(Boolean).join(" ");
   const passwordHelper = useMemo(
     () =>
       showPassword
@@ -121,7 +122,7 @@ export default function SignupPage() {
                 <p className="mt-1 text-sm text-slate-300">Start with your work email. You can invite your team later.</p>
               </div>
 
-              {error ? <Alert>{error}</Alert> : null}
+              {error ? <Alert role="alert">{error}</Alert> : null}
               {authLoading ? <Alert tone="info">Checking existing session...</Alert> : null}
 
               <Button variant="secondary" disabled className="gap-3">
@@ -132,6 +133,9 @@ export default function SignupPage() {
               <Divider label="or sign up with email" />
 
               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+                <p className="sr-only" aria-live="polite" role="status">
+                  {formErrorSummary}
+                </p>
                 <Input
                   label="Email"
                   name="email"

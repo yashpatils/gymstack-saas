@@ -20,7 +20,7 @@ describe('UsersController', () => {
   it('lists users', async () => {
     usersService.listUsers.mockResolvedValue([{ id: '1' }]);
 
-    await expect(controller.listUsers()).resolves.toEqual([{ id: '1' }]);
+    await expect(controller.listUsers({ user: { id: '1', email: 'admin@example.com', role: UserRole.Admin, orgId: 'org-1' } })).resolves.toEqual([{ id: '1' }]);
     expect(usersService.listUsers).toHaveBeenCalled();
   });
 
@@ -29,7 +29,7 @@ describe('UsersController', () => {
 
     await expect(
       controller.getUser('2', {
-        user: { id: '1', email: 'admin@example.com', role: UserRole.Admin },
+        user: { id: '1', email: 'admin@example.com', role: UserRole.Admin, orgId: 'org-1' },
       }),
     ).resolves.toEqual({ id: '2' });
   });
@@ -39,7 +39,7 @@ describe('UsersController', () => {
 
     await expect(
       controller.getUser('2', {
-        user: { id: '2', email: 'user@example.com', role: UserRole.User },
+        user: { id: '2', email: 'user@example.com', role: UserRole.User, orgId: 'org-1' },
       }),
     ).resolves.toEqual({ id: '2' });
   });
@@ -47,7 +47,7 @@ describe('UsersController', () => {
   it('throws when non-admin requests another user', () => {
     expect(() =>
       controller.getUser('2', {
-        user: { id: '1', email: 'user@example.com', role: UserRole.User },
+        user: { id: '1', email: 'user@example.com', role: UserRole.User, orgId: 'org-1' },
       }),
     ).toThrow(ForbiddenException);
   });
@@ -59,7 +59,7 @@ describe('UsersController', () => {
       controller.updateUser(
         '1',
         { name: 'Updated' },
-        { user: { id: '1', email: 'user@example.com', role: UserRole.User } },
+        { user: { id: '1', email: 'user@example.com', role: UserRole.User, orgId: 'org-1' } },
       ),
     ).resolves.toEqual({ id: '1', name: 'Updated' });
   });
@@ -69,7 +69,7 @@ describe('UsersController', () => {
       controller.updateUser(
         '2',
         { name: 'Updated' },
-        { user: { id: '1', email: 'user@example.com', role: UserRole.User } },
+        { user: { id: '1', email: 'user@example.com', role: UserRole.User, orgId: 'org-1' } },
       ),
     ).toThrow(ForbiddenException);
   });
@@ -77,7 +77,7 @@ describe('UsersController', () => {
   it('deletes a user', async () => {
     usersService.deleteUser.mockResolvedValue({ id: '1' });
 
-    await expect(controller.deleteUser('1')).resolves.toEqual({ id: '1' });
+    await expect(controller.deleteUser('1', { user: { id: '1', email: 'admin@example.com', role: UserRole.Admin, orgId: 'org-1' } })).resolves.toEqual({ id: '1' });
     expect(usersService.deleteUser).toHaveBeenCalledWith('1');
   });
 });
