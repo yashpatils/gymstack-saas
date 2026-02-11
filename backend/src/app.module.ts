@@ -10,6 +10,7 @@ import { InvitesModule } from './invites/invites.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     OrganizationsModule,
     UsersModule,
+    SettingsModule,
   ],
   controllers: [AppController],
 })

@@ -49,6 +49,18 @@ async function main() {
     console.log(`Demo gym created: ${gym.name}`);
   }
 
+
+  await prisma.$executeRaw`
+    INSERT INTO "Setting" ("key", "value", "updatedAt")
+    VALUES
+      ('enableBilling', 'false'::jsonb, CURRENT_TIMESTAMP),
+      ('enableInvites', 'false'::jsonb, CURRENT_TIMESTAMP),
+      ('enableAudit', 'true'::jsonb, CURRENT_TIMESTAMP)
+    ON CONFLICT ("key") DO NOTHING
+  `;
+
+  console.log('Feature-flag defaults ready.');
+
   console.log(`Demo org ready: ${demoOrgName}`);
 }
 
