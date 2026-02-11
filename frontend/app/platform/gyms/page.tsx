@@ -10,6 +10,7 @@ import {
   PageShell,
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
+import { getBillingStatus } from "../../../src/lib/billing";
 import {
   Gym,
   createGym,
@@ -17,9 +18,15 @@ import {
   listGyms,
   updateGym,
 } from "../../../src/lib/gyms";
+import {
+  formatSubscriptionStatus,
+  isActiveSubscription,
+} from "../../../src/lib/subscription";
 import { useToast } from "../../../src/components/toast/ToastProvider";
+import { useAuth } from "../../../src/providers/AuthProvider";
 
 export default function GymsPage() {
+  const { user } = useAuth();
   const toast = useToast();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
