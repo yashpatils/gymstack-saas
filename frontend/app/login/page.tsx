@@ -2,14 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { z } from "zod";
 import { Button } from "../components/ui";
 import { useAuth } from "../../src/providers/AuthProvider";
-
-const authSchema = z.object({
-  email: z.string().email("Enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-});
+import { loginSchema } from "../../src/lib/validators";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +12,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -28,12 +24,15 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setFieldErrors({});
 
-    const validationResult = authSchema.safeParse({ email, password });
+    const validationResult = loginSchema.safeParse({ email, password });
     if (!validationResult.success) {
-      setError(
-        validationResult.error.issues[0]?.message ?? "Please check your input.",
-      );
+      const errors = validationResult.error.flatten().fieldErrors;
+      setFieldErrors({
+        email: errors.email?.[0],
+        password: errors.password?.[0],
+      });
       return;
     }
 
@@ -78,6 +77,9 @@ export default function LoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
             />
+            {fieldErrors.email && (
+              <p className="text-xs text-rose-300">{fieldErrors.email}</p>
+            )}
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Password
@@ -88,6 +90,9 @@ export default function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
             />
+            {fieldErrors.password && (
+              <p className="text-xs text-rose-300">{fieldErrors.password}</p>
+            )}
           </label>
           <Button
             className="w-full"
