@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Button,
   EmptyState,
@@ -168,8 +169,12 @@ export default function UsersPage() {
         emptyState={
           <EmptyState
             title="No users found"
-            description="Users will appear here once accounts are created."
-            actions={<Button onClick={loadUsers}>Reload</Button>}
+            description="Invite teammates to collaborate on your platform."
+            actions={
+              <Link href="/platform/team">
+                <Button>Invite teammates</Button>
+              </Link>
+            }
           />
         }
       />

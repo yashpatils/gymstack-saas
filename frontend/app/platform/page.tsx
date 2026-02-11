@@ -13,6 +13,15 @@ type DashboardData = {
   users: User[];
 };
 
+type ChecklistItem = {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+  cta: string;
+  done: boolean;
+};
+
 const activityItems = [
   "A new location was added to your platform.",
   "User roles were updated for team access.",
@@ -96,6 +105,36 @@ export default function PlatformDashboardPage() {
     [data.gyms.length, data.users.length, planStatus],
   );
 
+  const checklistItems = useMemo<ChecklistItem[]>(
+    () => [
+      {
+        id: "create-gym",
+        label: "Create your first gym",
+        description: "Add your first location so members and staff can be organized.",
+        href: "/platform/gyms",
+        cta: "Go to gyms",
+        done: data.gyms.length > 0,
+      },
+      {
+        id: "invite-team",
+        label: "Invite teammates",
+        description: "Bring admins and coaches in so they can help run operations.",
+        href: "/platform/team",
+        cta: "Open team",
+        done: data.users.length > 0,
+      },
+      {
+        id: "review-billing",
+        label: "Review billing plan",
+        description: "Confirm your plan so your team has the right limits as you grow.",
+        href: "/platform/billing",
+        cta: "Open billing",
+        done: planStatus.toLowerCase() !== "free",
+      },
+    ],
+    [data.gyms.length, data.users.length, planStatus],
+  );
+
   return (
     <ProtectedRoute>
       <section className="space-y-6 text-white">
@@ -125,6 +164,34 @@ export default function PlatformDashboardPage() {
             </article>
           ))}
         </div>
+
+        <section className="rounded-2xl border border-white/10 bg-slate-900/40 p-5">
+          <h2 className="text-lg font-medium">Getting started</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Complete these steps to finish platform setup.
+          </p>
+          <ul className="mt-4 space-y-3">
+            {checklistItems.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {item.done ? "✅" : "⬜"} {item.label}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-300">{item.description}</p>
+                </div>
+                <Link
+                  href={item.href}
+                  className="inline-flex items-center rounded-md border border-cyan-200/40 px-3 py-1.5 text-sm font-medium text-cyan-100"
+                >
+                  {item.cta}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {!loading && data.gyms.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-cyan-400/40 bg-cyan-500/5 p-6">
