@@ -21,6 +21,13 @@ export function buildApiUrl(path: string): string {
   return `${base}${normalizedPath}`.replace(/([^:]\/)(\/+)/g, '$1');
 }
 
+export type ApiError = {
+  message: string;
+  statusCode?: number;
+  error?: string;
+  details?: unknown;
+};
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -32,7 +39,7 @@ export async function apiFetch<T = unknown>(
       : null;
 
   const headers = new Headers(options.headers ?? {});
-  let requestBody: BodyInit | undefined = options.body as any;
+  let requestBody: BodyInit | undefined;
 
   const isPlainObject = (v: unknown): v is Record<string, unknown> =>
     !!v
@@ -42,10 +49,14 @@ export async function apiFetch<T = unknown>(
     && !(v instanceof Blob)
     && !(v instanceof ArrayBuffer);
 
-  if (isPlainObject(options.body)) {
-    requestBody = JSON.stringify(options.body);
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+  if (options.body !== undefined) {
+    if (isPlainObject(options.body)) {
+      requestBody = JSON.stringify(options.body);
+      if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
+    } else {
+      requestBody = options.body as BodyInit;
     }
   }
 
@@ -55,7 +66,7 @@ export async function apiFetch<T = unknown>(
 
   const response = await fetch(url, {
     ...options,
-    body: requestBody,
+    ...(requestBody !== undefined ? { body: requestBody } : {}),
     credentials: 'omit',
     headers,
   });
@@ -63,15 +74,41 @@ export async function apiFetch<T = unknown>(
   const contentType = response.headers.get('content-type') ?? '';
 
   if (!response.ok) {
-    let errorBody: unknown;
+    const rawErrorBody = await response.text();
+    let parsedErrorBody: unknown = rawErrorBody;
 
-    if (contentType.includes('application/json')) {
-      errorBody = await response.json();
-    } else {
-      errorBody = await response.text();
+    if (rawErrorBody) {
+      try {
+        parsedErrorBody = JSON.parse(rawErrorBody) as unknown;
+      } catch {
+        parsedErrorBody = rawErrorBody;
+      }
     }
 
-    throw new Error(`Request failed (${response.status} ${response.statusText}): ${typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody)}`);
+    const apiError: ApiError = {
+      message: `Request failed (${response.status} ${response.statusText})`,
+      statusCode: response.status,
+    };
+
+    if (parsedErrorBody && typeof parsedErrorBody === 'object') {
+      const candidate = parsedErrorBody as Record<string, unknown>;
+      if (typeof candidate.message === 'string') {
+        apiError.message = candidate.message;
+      }
+      if (typeof candidate.error === 'string') {
+        apiError.error = candidate.error;
+      }
+      if ('details' in candidate) {
+        apiError.details = candidate.details;
+      }
+      if (apiError.details === undefined) {
+        apiError.details = parsedErrorBody;
+      }
+    } else if (typeof parsedErrorBody === 'string' && parsedErrorBody) {
+      apiError.message = parsedErrorBody;
+    }
+
+    throw apiError;
   }
 
   if (contentType.includes('application/json')) {
