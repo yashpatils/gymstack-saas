@@ -19,6 +19,7 @@ import {
 
 type AuthContextValue = {
   user: AuthUser | null;
+  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   signup: (email: string, password: string) => Promise<AuthUser>;
@@ -29,13 +30,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadUser = async () => {
-      if (!getToken()) {
+      const existingToken = getToken();
+      setToken(existingToken);
+
+      if (!existingToken) {
         if (isMounted) {
           setUser(null);
           setLoading(false);
@@ -51,7 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         if (isMounted) {
           setUser(null);
+          setToken(null);
         }
+        clearToken();
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -67,25 +74,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { user: loggedInUser } = await loginRequest(email, password);
+    const { token: authToken, user: loggedInUser } = await loginRequest(
+      email,
+      password,
+    );
+    setToken(authToken);
     setUser(loggedInUser);
     return loggedInUser;
   }, []);
 
   const signup = useCallback(async (email: string, password: string) => {
-    const { user: signedUpUser } = await signupRequest(email, password);
+    const { token: authToken, user: signedUpUser } = await signupRequest(
+      email,
+      password,
+    );
+    setToken(authToken);
     setUser(signedUpUser);
     return signedUpUser;
   }, []);
 
   const logout = useCallback(() => {
     clearToken();
+    setToken(null);
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, signup, logout }),
-    [user, loading, login, signup, logout],
+    () => ({ user, token, loading, login, signup, logout }),
+    [user, token, loading, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
