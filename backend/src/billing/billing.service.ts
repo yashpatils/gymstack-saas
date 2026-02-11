@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionStatus } from '@prisma/client';
 import Stripe from 'stripe';
@@ -40,26 +45,23 @@ export class BillingService {
 
   private ensureStripeConfigured(): Stripe {
     if (!this.stripe) {
-      throw new Error('Stripe is not configured');
+      throw new ServiceUnavailableException(
+        'Stripe integration is disabled. Set STRIPE_SECRET_KEY to enable billing routes.',
+      );
     }
+
     return this.stripe;
   }
 
   async createCustomer(email: string, name?: string) {
-    if (!this.stripe) {
-      throw new Error('Stripe is not configured');
-    }
-
-    return this.getStripe().customers.create({
+    return this.ensureStripeConfigured().customers.create({
       email,
       name,
     });
   }
 
   async createCheckoutSession(payload: CheckoutPayload) {
-    if (!this.stripe) {
-      throw new Error('Stripe is not configured');
-    }
+    this.ensureStripeConfigured();
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.userId },
@@ -108,10 +110,6 @@ export class BillingService {
   }
 
   async createSubscription(payload: SubscriptionPayload) {
-    if (!this.stripe) {
-      throw new Error('Stripe is not configured');
-    }
-
     const stripe = this.ensureStripeConfigured();
     const successUrl =
       payload.successUrl ??
@@ -123,7 +121,7 @@ export class BillingService {
       '';
 
     if (!successUrl || !cancelUrl) {
-      throw new Error(
+      throw new BadRequestException(
         'Missing STRIPE_SUCCESS_URL or STRIPE_CANCEL_URL configuration.',
       );
     }
@@ -143,24 +141,20 @@ export class BillingService {
   }
 
   async handleWebhook(payload: Buffer, signature?: string | string[]) {
-    if (!this.stripe) {
-      throw new Error('Stripe is not configured');
-    }
+    const stripe = this.ensureStripeConfigured();
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      throw new Error('Missing STRIPE_WEBHOOK_SECRET configuration.');
+      throw new ServiceUnavailableException(
+        'Missing STRIPE_WEBHOOK_SECRET configuration.',
+      );
     }
     if (!signature) {
-      throw new Error('Missing Stripe signature header.');
+      throw new BadRequestException('Missing Stripe signature header.');
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = this.getStripe().webhooks.constructEvent(
-      payload,
-      sig,
-      webhookSecret,
-    );
+    const event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -261,13 +255,5 @@ export class BillingService {
       default:
         return SubscriptionStatus.INCOMPLETE;
     }
-  }
-
-  private getStripe(): Stripe {
-    if (!this.stripe) {
-      throw new Error('Stripe is not configured');
-    }
-
-    return this.stripe;
   }
 }
