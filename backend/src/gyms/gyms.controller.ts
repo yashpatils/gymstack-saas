@@ -34,7 +34,7 @@ export class GymsController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.gymsService.createGym({
+    return this.gymsService.createGymForUser(user, {
       name: data.name,
       owner: { connect: { id: user.id } },
     });

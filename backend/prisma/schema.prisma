@@ -14,12 +14,11 @@ enum Role {
 }
 
 enum SubscriptionStatus {
-  INACTIVE
+  FREE
+  TRIAL
   ACTIVE
   PAST_DUE
   CANCELED
-  TRIALING
-  INCOMPLETE
 }
 
 model User {
@@ -29,7 +28,7 @@ model User {
   role                 Role                @default(USER)
   stripeCustomerId     String?             @unique
   stripeSubscriptionId String?             @unique
-  subscriptionStatus   SubscriptionStatus?
+  subscriptionStatus   SubscriptionStatus  @default(FREE)
   gyms                 Gym[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt

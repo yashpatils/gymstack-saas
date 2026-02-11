@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -8,6 +9,9 @@ import {
   PageHeader,
   PageShell,
 } from "../../../components/ui";
+import { getBillingStatus } from "../../../../src/lib/billing";
+import { formatSubscriptionStatus, isActiveSubscription } from "../../../../src/lib/subscription";
+import { useAuth } from "../../../../src/providers/AuthProvider";
 import { apiFetch } from "../../../lib/api";
 
 type GymForm = {
@@ -15,12 +19,25 @@ type GymForm = {
 };
 
 export default function NewGymPage() {
+  const { user } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState<GymForm>({
     name: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setSubscriptionStatus(null);
+      return;
+    }
+
+    getBillingStatus(user.id)
+      .then((status) => setSubscriptionStatus(status.subscriptionStatus ?? null))
+      .catch(() => setSubscriptionStatus(null));
+  }, [user?.id]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -49,6 +66,22 @@ export default function NewGymPage() {
       />
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+
+      {!isActiveSubscription(subscriptionStatus) ? (
+        <Card
+          title="Need more gyms? Upgrade your plan"
+          description={`Current plan: ${formatSubscriptionStatus(subscriptionStatus)}`}
+        >
+          <p className="text-sm text-slate-300">
+            You can create your first gym on any plan. Upgrade to active to add more locations.
+          </p>
+          <div className="mt-4">
+            <Link href="/platform/billing">
+              <Button>Upgrade</Button>
+            </Link>
+          </div>
+        </Card>
+      ) : null}
 
       <Card title="Gym details">
         <form className="space-y-4" onSubmit={handleSubmit}>
