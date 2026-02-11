@@ -37,29 +37,22 @@ model User {
   stripeSubscriptionId String?             @unique
   subscriptionStatus   SubscriptionStatus?
   gyms                 Gym[]
-  memberships          Membership[]
+  passwordResetTokens  PasswordResetToken[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 }
 
-model Organization {
-  id          String       @id @default(uuid())
-  name        String
-  createdAt   DateTime     @default(now())
-  memberships Membership[]
-  gyms        Gym[]
-}
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
 
-model Membership {
-  id        String         @id @default(uuid())
-  orgId     String
-  userId    String         @unique
-  role      MembershipRole @default(MEMBER)
-  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime       @default(now())
-
-  @@index([orgId])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Gym {

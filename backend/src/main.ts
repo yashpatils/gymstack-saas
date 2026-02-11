@@ -122,7 +122,7 @@ async function bootstrap() {
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
   app.setGlobalPrefix(apiPrefix, {
-    exclude: ['billing/webhook', 'health', 'debug/routes'],
+    exclude: ['billing/webhook', 'health', 'api/health', 'debug/routes'],
   });
 
   app.useGlobalPipes(

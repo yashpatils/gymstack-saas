@@ -7,7 +7,7 @@ export function useBackendAction() {
   const [backendResponse, setBackendResponse] = useState<string | null>(null);
   const callBackend = useCallback(async (action: string) => {
     try {
-      const data = await apiFetch<Record<string, unknown>>("/health");
+      const data = await apiFetch<Record<string, unknown>>("/api/health");
       setBackendResponse(`${action}: ${JSON.stringify(data)}`);
     } catch (error) {
       setBackendResponse(
