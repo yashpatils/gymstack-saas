@@ -11,6 +11,7 @@ import { canManageBilling, canManageUsers } from "../../src/lib/rbac";
 const navItems = [
   { label: "Status", href: "/platform/status" },
   { label: "Diagnostics", href: "/platform/diagnostics" },
+  { label: "Support", href: "/platform/support" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users", requires: "users" as const },
   { label: "Team", href: "/platform/team" },
@@ -32,6 +33,7 @@ export default function PlatformLayout({
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
+  const role = user?.role;
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
