@@ -37,6 +37,7 @@ model User {
   stripeSubscriptionId String?              @unique
   subscriptionStatus   SubscriptionStatus   @default(FREE)
   organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  memberships          Membership[]
   gyms                 Gym[]
   passwordResetTokens  PasswordResetToken[]
   createdAt            DateTime             @default(now())
@@ -118,12 +119,27 @@ model Gym {
 }
 
 model Organization {
-  id        String     @id @default(cuid())
-  name      String
-  users     User[]
-  auditLogs AuditLog[]
-  invites   Invite[]
-  gyms      Gym[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id          String       @id @default(cuid())
+  name        String
+  users       User[]
+  memberships Membership[]
+  auditLogs   AuditLog[]
+  invites     Invite[]
+  gyms        Gym[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Membership {
+  id        String         @id @default(cuid())
+  orgId     String
+  userId    String
+  role      MembershipRole @default(MEMBER)
+  createdAt DateTime       @default(now())
+  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@index([userId])
 }
