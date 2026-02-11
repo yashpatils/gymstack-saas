@@ -11,8 +11,8 @@ import {
   Divider,
   IconButton,
   Input,
-  Spinner,
 } from "../components/ui/index";
+import { Skeleton } from "../../src/components/ui/Skeleton";
 
 type FieldErrors = {
   email?: string;
@@ -172,10 +172,10 @@ export default function SignupPage() {
 
                 <Button type="submit" disabled={isBusy}>
                   {isBusy ? (
-                    <>
-                      <Spinner />
-                      Creating account...
-                    </>
+                    <span className="flex w-full items-center justify-center gap-2">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <Skeleton className="h-4 w-32" />
+                    </span>
                   ) : (
                     "Create account"
                   )}
