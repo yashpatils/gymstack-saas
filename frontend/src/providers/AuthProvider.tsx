@@ -16,6 +16,7 @@ import {
   me,
   signup as signupRequest,
 } from "../lib/auth";
+import { normalizeRole, type AppRole } from "../lib/rbac";
 
 type AuthContextValue = {
   user: AuthUser | null;

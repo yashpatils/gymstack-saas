@@ -82,6 +82,7 @@ export class GymsController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.Owner, UserRole.Admin)
   deleteGym(@Param('id') id: string, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {

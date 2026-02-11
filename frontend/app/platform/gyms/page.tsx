@@ -67,6 +67,11 @@ export default function GymsPage() {
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canEditGyms) {
+      setError("Insufficient permissions");
+      return;
+    }
+
     if (!newGymName.trim()) {
       return;
     }
@@ -88,6 +93,11 @@ export default function GymsPage() {
   };
 
   const startEdit = (gym: Gym) => {
+    if (!canEditGyms) {
+      setError("Insufficient permissions");
+      return;
+    }
+
     setEditingId(gym.id);
     setEditingName(gym.name);
   };
@@ -119,6 +129,11 @@ export default function GymsPage() {
   };
 
   const handleDelete = async (gymId: string) => {
+    if (!canEditGyms) {
+      setError("Insufficient permissions");
+      return;
+    }
+
     if (!window.confirm("Delete this gym?")) {
       return;
     }
@@ -196,7 +211,11 @@ export default function GymsPage() {
             </Link>
             {isEditing ? (
               <>
-                <Button onClick={() => handleSaveEdit(gym.id)} disabled={savingEdit}>
+                <Button
+                  onClick={() => handleSaveEdit(gym.id)}
+                  disabled={!canEditGyms || savingEdit}
+                  title={!canEditGyms ? "Insufficient permissions" : undefined}
+                >
                   {savingEdit ? "Saving..." : "Save"}
                 </Button>
                 <Button variant="ghost" onClick={cancelEdit}>
@@ -204,14 +223,20 @@ export default function GymsPage() {
                 </Button>
               </>
             ) : (
-              <Button variant="secondary" onClick={() => startEdit(gym)}>
+              <Button
+                variant="secondary"
+                onClick={() => startEdit(gym)}
+                disabled={!canEditGyms}
+                title={!canEditGyms ? "Insufficient permissions" : undefined}
+              >
                 Edit
               </Button>
             )}
             <Button
               variant="secondary"
               onClick={() => handleDelete(gym.id)}
-              disabled={isDeleting}
+              disabled={!canEditGyms || isDeleting}
+              title={!canEditGyms ? "Insufficient permissions" : undefined}
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
@@ -262,7 +287,11 @@ export default function GymsPage() {
               required
             />
           </label>
-          <Button type="submit" disabled={creating}>
+          <Button
+            type="submit"
+            disabled={!canEditGyms || creating}
+            title={!canEditGyms ? "Insufficient permissions" : undefined}
+          >
             {creating ? "Creating..." : "Create"}
           </Button>
         </form>

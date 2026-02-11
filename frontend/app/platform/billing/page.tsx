@@ -9,6 +9,7 @@ import {
   getBillingStatus,
   type BillingStatusResponse,
 } from "../../../src/lib/billing";
+import { canManageBilling } from "../../../src/lib/rbac";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
 import { Button, PageShell } from "../../components/ui";
 
@@ -56,7 +57,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function PlatformBillingPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const canEditBilling = canManageBilling(role);
   const [status, setStatus] = useState<BillingStatusResponse | null>(null);
   const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
   const [checkoutAvailable, setCheckoutAvailable] = useState(true);
