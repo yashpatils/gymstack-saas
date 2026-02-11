@@ -9,6 +9,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 
 const navItems = [
   { label: "Status", href: "/platform/status" },
+  { label: "Diagnostics", href: "/platform/diagnostics" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Users", href: "/platform/users" },
   { label: "Team", href: "/platform/team" },
