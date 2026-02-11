@@ -92,7 +92,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const membership = await this.prisma.membership.findUnique({
+    const membership = await this.prisma.membership.findFirst({
       where: { userId: user.id },
     });
 

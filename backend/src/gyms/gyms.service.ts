@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
+import { UpdateGymDto } from './dto/update-gym.dto';
 
 @Injectable()
 export class GymsService {
@@ -31,7 +31,7 @@ export class GymsService {
     return this.prisma.gym.findFirst({ where: { id, orgId } });
   }
 
-  async updateGym(id: string, orgId: string, data: Prisma.GymUpdateInput) {
+  async updateGym(id: string, orgId: string, data: UpdateGymDto) {
     const gym = await this.prisma.gym.findFirst({ where: { id, orgId } });
     if (!gym) {
       throw new NotFoundException('Gym not found');
@@ -54,7 +54,7 @@ export class GymsService {
 
   async updateGymForUser(
     id: string,
-    data: Prisma.GymUpdateInput,
+    data: UpdateGymDto,
     user: User,
   ) {
     const gym = await this.prisma.gym.findFirst({ where: { id, orgId: user.orgId } });

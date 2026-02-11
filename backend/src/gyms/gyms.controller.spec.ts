@@ -22,7 +22,9 @@ describe('GymsController', () => {
   it('lists gyms', async () => {
     gymsService.listGyms.mockResolvedValue([{ id: 'gym-1' }]);
 
-    await expect(controller.listGyms()).resolves.toEqual([{ id: 'gym-1' }]);
+    await expect(
+      controller.listGyms({ user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' } }),
+    ).resolves.toEqual([{ id: 'gym-1' }]);
     expect(gymsService.listGyms).toHaveBeenCalled();
   });
 
@@ -32,7 +34,7 @@ describe('GymsController', () => {
     await expect(
       controller.createGym(
         { name: 'Pulse Fitness' },
-        { user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner } },
+        { user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' } },
       ),
     ).resolves.toEqual({ id: 'gym-1' });
   });
@@ -46,7 +48,11 @@ describe('GymsController', () => {
   it('gets a gym', async () => {
     gymsService.getGym.mockResolvedValue({ id: 'gym-2' });
 
-    await expect(controller.getGym('gym-2')).resolves.toEqual({ id: 'gym-2' });
+    await expect(
+      controller.getGym('gym-2', {
+        user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' },
+      }),
+    ).resolves.toEqual({ id: 'gym-2' });
   });
 
   it('updates a gym for the current user', async () => {
@@ -56,7 +62,7 @@ describe('GymsController', () => {
       controller.updateGym(
         'gym-3',
         { name: 'Updated' },
-        { user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner } },
+        { user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' } },
       ),
     ).resolves.toEqual({ id: 'gym-3' });
   });
@@ -71,7 +77,9 @@ describe('GymsController', () => {
     gymsService.updateGym.mockResolvedValue({ id: 'gym-4' });
 
     await expect(
-      controller.updateGymOwner('gym-4', { name: 'Admin Updated' }),
+      controller.updateGymOwner('gym-4', { name: 'Admin Updated' }, {
+        user: { id: 'user-1', email: 'admin@example.com', role: UserRole.Admin, orgId: 'org-1' },
+      }),
     ).resolves.toEqual({ id: 'gym-4' });
   });
 
@@ -80,7 +88,7 @@ describe('GymsController', () => {
 
     await expect(
       controller.deleteGym('gym-5', {
-        user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner },
+        user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' },
       }),
     ).resolves.toEqual({ id: 'gym-5' });
   });

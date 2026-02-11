@@ -41,7 +41,32 @@ model User {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   invites              Invite[]            @relation("InviteCreator")
+  memberships          Membership[]
 
+  @@index([orgId])
+}
+
+
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  gyms        Gym[]
+  memberships Membership[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Membership {
+  id        String         @id @default(uuid())
+  userId    String
+  orgId     String
+  role      MembershipRole @default(MEMBER)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([userId, orgId])
   @@index([orgId])
 }
 
