@@ -28,36 +28,38 @@ enum SubscriptionStatus {
 }
 
 model User {
-  id                   String              @id @default(uuid())
-  email                String              @unique
+  id                   String               @id @default(uuid())
+  email                String               @unique
   password             String
-  role                 Role                @default(USER)
+  role                 Role                 @default(USER)
   orgId                String?
-  stripeCustomerId     String?             @unique
-  stripeSubscriptionId String?             @unique
-  subscriptionStatus   SubscriptionStatus  @default(FREE)
+  stripeCustomerId     String?              @unique
+  stripeSubscriptionId String?              @unique
+  subscriptionStatus   SubscriptionStatus   @default(FREE)
+  organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
   gyms                 Gym[]
   passwordResetTokens  PasswordResetToken[]
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  invites              Invite[]            @relation("InviteCreator")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  invites              Invite[]             @relation("InviteCreator")
   auditLogs            AuditLog[]
 
   @@index([orgId])
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
-  orgId      String?
-  userId     String?
-  action     String
-  entityType String
-  entityId   String?
-  metadata   Json?
-  ip         String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id           String        @id @default(uuid())
+  orgId        String?
+  userId       String?
+  action       String
+  entityType   String
+  entityId     String?
+  metadata     Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime      @default(now())
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([orgId])
   @@index([userId])
@@ -66,17 +68,18 @@ model AuditLog {
 }
 
 model Invite {
-  id         String    @id @default(uuid())
-  orgId      String
-  email      String
-  role       Role      @default(USER)
-  tokenHash  String
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  createdBy  String
-  creator    User      @relation("InviteCreator", fields: [createdBy], references: [id])
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id           String       @id @default(uuid())
+  orgId        String
+  email        String
+  role         Role         @default(USER)
+  tokenHash    String
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdBy    String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  creator      User         @relation("InviteCreator", fields: [createdBy], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([orgId])
   @@index([email])
@@ -84,13 +87,13 @@ model Invite {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(uuid())
-  tokenHash String   @unique
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@index([expiresAt])
@@ -112,4 +115,15 @@ model Gym {
   updatedAt    DateTime     @updatedAt
 
   @@index([orgId])
+}
+
+model Organization {
+  id        String     @id @default(cuid())
+  name      String
+  users     User[]
+  auditLogs AuditLog[]
+  invites   Invite[]
+  gyms      Gym[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
