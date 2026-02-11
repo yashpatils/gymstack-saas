@@ -30,6 +30,10 @@ export async function listGyms(): Promise<Gym[]> {
   return apiFetch<Gym[]>('/api/gyms', { method: 'GET' });
 }
 
+export async function getGym(id: string): Promise<Gym> {
+  return apiFetch<Gym>(`/api/gyms/${id}`, { method: 'GET' });
+}
+
 export async function createGym(payload: GymInput): Promise<Gym> {
   return apiFetch<Gym>('/api/gyms', {
     method: 'POST',

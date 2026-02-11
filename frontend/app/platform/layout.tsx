@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ProtectedRoute } from "../../src/components/ProtectedRoute";
+import { RequireAuth } from "../../src/components/RequireAuth";
 import { apiFetch } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { canManageBilling, canManageUsers } from "../../src/lib/rbac";
 
 const navItems = [
   { label: "Status", href: "/platform/status" },
+  { label: "Diagnostics", href: "/platform/diagnostics" },
   { label: "Gyms", href: "/platform/gyms" },
-  { label: "Users", href: "/platform/users" },
+  { label: "Users", href: "/platform/users", requires: "users" as const },
   { label: "Team", href: "/platform/team" },
-  { label: "Billing", href: "/platform/billing" },
+  { label: "Billing", href: "/platform/billing", requires: "billing" as const },
   { label: "Settings", href: "/platform/settings" },
 ];
 
@@ -28,7 +30,7 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
 
   const email = user?.email ?? "platform.user@gymstack.app";
@@ -65,27 +67,75 @@ export default function PlatformLayout({
     };
   }, [user]);
 
+  if (loading) {
+    return (
+      <div className="platform-layout" aria-busy="true" aria-live="polite">
+        <aside className="platform-sidebar">
+          <div className="platform-brand">GymStack Platform</div>
+          <nav aria-label="Platform navigation">
+            <ul className="platform-nav-list">
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <span className="platform-nav-link">{item.label}</span>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+
+        <div className="platform-main-shell">
+          <header className="platform-topbar">
+            <div>
+              <p className="platform-topbar-label">Platform</p>
+              <p className="platform-topbar-email">Loading session...</p>
+              <p className="platform-topbar-label">Organization: Loading...</p>
+            </div>
+            <span className="platform-avatar">...</span>
+          </header>
+
+          <main className="platform-main-content">
+            <div className="card" role="status">
+              Checking authentication...
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <ProtectedRoute>
+    <RequireAuth>
       <div className="platform-layout">
         <aside className="platform-sidebar">
           <div className="platform-brand">GymStack Platform</div>
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
               {navItems.map((item) => {
+                const disabled =
+                  (item.requires === "users" && !canManageUsers(role))
+                  || (item.requires === "billing" && !canManageBilling(role));
                 const isActive =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
 
                 return (
                   <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={`platform-nav-link ${
-                        isActive ? "platform-nav-link--active" : ""
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
+                    {disabled ? (
+                      <span
+                        className="platform-nav-link opacity-50"
+                        title="Insufficient permissions"
+                      >
+                        {item.label}
+                      </span>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={`platform-nav-link ${
+                          isActive ? "platform-nav-link--active" : ""
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 );
               })}
@@ -116,6 +166,6 @@ export default function PlatformLayout({
           <main className="platform-main-content">{children}</main>
         </div>
       </div>
-    </ProtectedRoute>
+    </RequireAuth>
   );
 }

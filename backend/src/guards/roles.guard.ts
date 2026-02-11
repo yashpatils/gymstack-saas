@@ -26,7 +26,7 @@ export class RolesGuard implements CanActivate {
     const user = request.user as { role?: UserRole } | undefined;
 
     if (!user?.role || !requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Insufficient role');
+      throw new ForbiddenException('Insufficient permissions');
     }
 
     return true;

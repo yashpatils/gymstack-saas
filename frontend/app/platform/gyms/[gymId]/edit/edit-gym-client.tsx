@@ -44,7 +44,7 @@ export default function EditGymClient({ gymId }: EditGymClientProps) {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<Partial<GymForm>>(`/gyms/${gymId}`);
+      const data = await apiFetch<GymForm>(`/api/gyms/${gymId}`);
       setForm({
         name: data.name ?? "",
         timezone: data.timezone ?? "UTC",
@@ -71,7 +71,7 @@ export default function EditGymClient({ gymId }: EditGymClientProps) {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch<void>(`/gyms/${gymId}`, { method: "PATCH", body: form });
+      await apiFetch<void>(`/api/gyms/${gymId}`, { method: "PATCH", body: form });
       router.push("/platform/gyms");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save gym.");
