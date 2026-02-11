@@ -30,6 +30,7 @@ export class AuthController {
       id: req.user.id,
       email: req.user.email,
       role: req.user.role,
+      orgId: req.user.orgId,
     };
   }
 

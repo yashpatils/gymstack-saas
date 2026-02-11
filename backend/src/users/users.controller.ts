@@ -22,9 +22,12 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles(UserRole.Admin)
-  listUsers() {
-    return this.usersService.listUsers();
+  listUsers(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+    return this.usersService.listUsersForRequester(user);
   }
 
   @Get(':id')

@@ -43,6 +43,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
+      orgId: user.orgId,
     };
 
     return {
@@ -51,6 +52,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
+        orgId: user.orgId,
       },
     };
   }
@@ -81,6 +83,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
+      orgId: user.orgId,
     };
 
     return {
@@ -89,6 +92,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
+        orgId: user.orgId,
       },
     };
   }
