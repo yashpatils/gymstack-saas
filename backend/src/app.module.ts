@@ -7,6 +7,7 @@ import { BillingModule } from './billing/billing.module';
 import { DebugModule } from './debug/debug.module';
 import { GymsModule } from './gyms/gyms.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { UsersModule } from './users/users.module';
     DebugModule,
     GymsModule,
     PrismaModule,
+    OrganizationsModule,
     UsersModule,
   ],
   controllers: [AppController],
