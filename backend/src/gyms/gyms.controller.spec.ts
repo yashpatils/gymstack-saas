@@ -5,7 +5,7 @@ import { UserRole } from '../users/user.model';
 describe('GymsController', () => {
   const gymsService = {
     listGyms: jest.fn(),
-    createGym: jest.fn(),
+    createGymForUser: jest.fn(),
     getGym: jest.fn(),
     updateGymForUser: jest.fn(),
     updateGym: jest.fn(),
@@ -27,7 +27,7 @@ describe('GymsController', () => {
   });
 
   it('creates a gym for the authenticated user', async () => {
-    gymsService.createGym.mockResolvedValue({ id: 'gym-1' });
+    gymsService.createGymForUser.mockResolvedValue({ id: 'gym-1' });
 
     await expect(
       controller.createGym(

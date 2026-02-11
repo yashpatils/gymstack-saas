@@ -8,14 +8,7 @@ import {
   getBillingStatus,
   type BillingStatusResponse,
 } from "../../../src/lib/billing";
-
-function formatStatus(status?: string) {
-  if (!status) {
-    return "Unknown";
-  }
-
-  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
 
 function toFriendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : "Unknown error";
@@ -75,7 +68,7 @@ export default function PlatformBillingPage() {
   }, [user?.id]);
 
   const currentStatus = useMemo(
-    () => formatStatus(status?.subscriptionStatus),
+    () => formatSubscriptionStatus(status?.subscriptionStatus),
     [status?.subscriptionStatus],
   );
 
@@ -107,17 +100,22 @@ export default function PlatformBillingPage() {
         {loading ? (
           <p className="text-sm text-slate-300">Loading billing status...</p>
         ) : (
-          <p className="text-sm text-slate-300">Current status: {currentStatus}</p>
+          <div className="rounded-lg border border-white/10 bg-slate-900/40 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Subscription status</p>
+            <p className="mt-2 text-lg font-semibold text-white">{currentStatus}</p>
+          </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleUpgrade}
-          disabled={upgrading}
-          className="rounded-md border border-white/20 px-4 py-2 text-sm disabled:opacity-60"
-        >
-          {upgrading ? "Starting checkout..." : "Upgrade"}
-        </button>
+        {!isActiveSubscription(status?.subscriptionStatus) ? (
+          <button
+            type="button"
+            onClick={handleUpgrade}
+            disabled={upgrading}
+            className="rounded-md border border-white/20 px-4 py-2 text-sm disabled:opacity-60"
+          >
+            {upgrading ? "Starting checkout..." : "Upgrade"}
+          </button>
+        ) : null}
 
         {message ? <p className="text-sm text-amber-300">{message}</p> : null}
       </main>

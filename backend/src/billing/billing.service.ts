@@ -102,7 +102,7 @@ export class BillingService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        subscriptionStatus: SubscriptionStatus.INCOMPLETE,
+        subscriptionStatus: SubscriptionStatus.FREE,
       },
     });
 
@@ -249,11 +249,11 @@ export class BillingService {
       case 'unpaid':
         return SubscriptionStatus.CANCELED;
       case 'trialing':
-        return SubscriptionStatus.TRIALING;
+        return SubscriptionStatus.TRIAL;
       case 'incomplete':
       case 'incomplete_expired':
       default:
-        return SubscriptionStatus.INCOMPLETE;
+        return SubscriptionStatus.FREE;
     }
   }
 }

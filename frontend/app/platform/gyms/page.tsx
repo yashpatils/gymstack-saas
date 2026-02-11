@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import {
   Button,
@@ -32,6 +33,22 @@ export default function GymsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+
+
+  const loadSubscriptionStatus = async () => {
+    if (!user?.id) {
+      setSubscriptionStatus(null);
+      return;
+    }
+
+    try {
+      const status = await getBillingStatus(user.id);
+      setSubscriptionStatus(status.subscriptionStatus ?? null);
+    } catch {
+      setSubscriptionStatus(null);
+    }
+  };
 
   const loadGyms = async () => {
     setLoading(true);
@@ -47,8 +64,9 @@ export default function GymsPage() {
   };
 
   useEffect(() => {
-    loadGyms();
-  }, []);
+    void loadGyms();
+    void loadSubscriptionStatus();
+  }, [user?.id]);
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -210,6 +228,22 @@ export default function GymsPage() {
       />
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+
+      {!isActiveSubscription(subscriptionStatus) ? (
+        <Card
+          title="Upgrade to unlock additional gyms"
+          description={`Current plan: ${formatSubscriptionStatus(subscriptionStatus)}`}
+        >
+          <p className="text-sm text-slate-300">
+            Free and trial plans can create one gym. Upgrade to create multiple gyms.
+          </p>
+          <div className="mt-4">
+            <Link href="/platform/billing">
+              <Button>Upgrade</Button>
+            </Link>
+          </div>
+        </Card>
+      ) : null}
 
       <Card title="Create gym" description="Add a new gym by name.">
         <form className="flex flex-wrap items-end gap-3" onSubmit={handleCreate}>
