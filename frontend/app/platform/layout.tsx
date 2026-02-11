@@ -17,6 +17,7 @@ const navItems = [
   { label: "Team", href: "/platform/team" },
   { label: "Billing", href: "/platform/billing", requires: "billing" as const },
   { label: "Settings", href: "/platform/settings" },
+  { label: "Admin Settings", href: "/platform/admin/settings", requires: "owner" as const },
 ];
 
 type OrganizationResponse = {
@@ -48,6 +49,7 @@ export default function PlatformLayout({
 
   const role = user?.role ?? "MEMBER";
   const email = user?.email ?? "platform.user@gymstack.app";
+  const role = normalizeRole(user?.role);
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
@@ -111,6 +113,19 @@ export default function PlatformLayout({
       }
     };
 
+    const loadFeatureFlags = async () => {
+      try {
+        const flags = await getFeatureFlags();
+        if (isMounted) {
+          setFeatureFlags(flags);
+        }
+      } catch {
+        if (isMounted) {
+          setFeatureFlags(defaultFeatureFlags);
+        }
+      }
+    };
+
     if (user) {
       void loadOrg();
       void loadNotifications();
@@ -165,9 +180,14 @@ export default function PlatformLayout({
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
               {navItems.map((item) => {
+                if (item.href === "/platform/billing" && !featureFlags.enableBilling) {
+                  return null;
+                }
+
                 const disabled =
                   (item.requires === "users" && !canManageUsers(role))
-                  || (item.requires === "billing" && !canManageBilling(role));
+                  || (item.requires === "billing" && !canManageBilling(role))
+                  || (item.requires === "owner" && role !== "OWNER");
                 const isActive =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
 
