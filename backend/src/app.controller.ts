@@ -10,6 +10,11 @@ export class AppController {
     return { status: 'ok' };
   }
 
+  @Get('api/health')
+  getApiHealth(): { status: string } {
+    return this.getHealth();
+  }
+
   @Get('db/ping')
   async getDatabasePing(): Promise<{ status: string }> {
     await this.prisma.$queryRaw`SELECT 1`;

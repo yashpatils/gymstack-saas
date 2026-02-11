@@ -5,6 +5,8 @@ import { LoginDto } from './dto/login.dto';
 import { MeDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthExceptionFilter } from './auth-exception.filter';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @UseFilters(AuthExceptionFilter)
 @Controller('auth')
@@ -30,11 +32,22 @@ export class AuthController {
       id: req.user.id,
       email: req.user.email,
       role: req.user.role,
+      orgId: req.user.orgId,
     };
   }
 
   @Post('logout')
   logout(): { ok: true } {
     return { ok: true };
+  }
+
+  @Post('forgot-password')
+  forgotPassword(@Body() body: ForgotPasswordDto): Promise<{ ok: true }> {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() body: ResetPasswordDto): Promise<{ ok: true }> {
+    return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

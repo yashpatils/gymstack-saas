@@ -84,7 +84,7 @@ export default function PlatformStatusPage() {
     setTokenPresent(hasToken);
 
     const [healthResult, dbResult] = await Promise.all([
-      runCheck("/health"),
+      runCheck("/api/health"),
       runCheck("/api/db/ping"),
     ]);
 
@@ -147,7 +147,7 @@ export default function PlatformStatusPage() {
       {copyMessage ? <p className="text-sm text-slate-300">{copyMessage}</p> : null}
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
-        <h2 className="font-medium">Backend health (GET /health)</h2>
+        <h2 className="font-medium">Backend health (GET /api/health)</h2>
         <ResultBlock result={health} />
       </section>
 

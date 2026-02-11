@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { useToast } from "../../src/components/toast/ToastProvider";
 import {
   Alert,
   Button,
@@ -41,6 +42,7 @@ function validateCredentials(email: string, password: string): FieldErrors {
 export default function LoginPage() {
   const router = useRouter();
   const { login, loading: authLoading, user } = useAuth();
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -75,6 +77,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+      toast.success("Logged in", "Welcome back to GymStack.");
       router.push("/platform");
     } catch (submitError) {
       const errorMessage =
@@ -82,6 +85,7 @@ export default function LoginPage() {
           ? submitError.message
           : "Unable to complete login.";
       setError(errorMessage);
+      toast.error("Login failed", errorMessage);
     } finally {
       setIsSubmitting(false);
     }

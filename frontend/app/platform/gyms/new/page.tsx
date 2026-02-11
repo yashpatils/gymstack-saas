@@ -13,6 +13,7 @@ import { getBillingStatus } from "../../../../src/lib/billing";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../../src/lib/subscription";
 import { useAuth } from "../../../../src/providers/AuthProvider";
 import { apiFetch } from "../../../lib/api";
+import { useToast } from "../../../../src/components/toast/ToastProvider";
 
 type GymForm = {
   name: string;
@@ -21,6 +22,7 @@ type GymForm = {
 export default function NewGymPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const toast = useToast();
   const [form, setForm] = useState<GymForm>({
     name: "",
   });
@@ -45,9 +47,12 @@ export default function NewGymPage() {
     setError(null);
     try {
       await apiFetch<void>("/gyms", { method: "POST", body: form });
+      toast.success("Gym created", "The gym was added successfully.");
       router.push("/platform/gyms");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create gym.");
+      const errorMessage = err instanceof Error ? err.message : "Unable to create gym.";
+      setError(errorMessage);
+      toast.error("Create gym failed", errorMessage);
     } finally {
       setSaving(false);
     }
