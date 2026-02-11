@@ -43,11 +43,11 @@ export default function DebugPage() {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => runTest('health', '/health')}
+          onClick={() => runTest('health', '/api/health')}
           disabled={loading}
           className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
         >
-          Test /health
+          Test /api/health
         </button>
         <button
           type="button"
