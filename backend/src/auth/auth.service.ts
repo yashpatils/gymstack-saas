@@ -63,6 +63,22 @@ export class AuthService {
       return { user, membership };
     });
 
+    await this.notificationsService.createForUser({
+      userId: created.user.id,
+      type: 'signup.success',
+      title: 'Welcome to GymStack',
+      body: 'Your account was created successfully.',
+    });
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      await this.notificationsService.createForUser({
+        userId: created.user.id,
+        type: 'billing.warning',
+        title: 'Billing is not configured',
+        body: 'Stripe is not configured yet. Billing flows will remain unavailable until setup is complete.',
+      });
+    }
+
     const payload = {
       sub: created.user.id,
       id: created.user.id,

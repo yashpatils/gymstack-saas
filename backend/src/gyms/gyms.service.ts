@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { User, UserRole } from '../users/user.model';
 
 @Injectable()
