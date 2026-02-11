@@ -7,26 +7,44 @@ import { User, UserRole } from '../users/user.model';
 export class GymsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listGyms() {
-    return this.prisma.gym.findMany();
+  listGyms(orgId: string) {
+    return this.prisma.gym.findMany({
+      where: { orgId },
+    });
   }
 
-  createGym(data: Prisma.GymCreateInput) {
-    return this.prisma.gym.create({ data });
+  createGym(orgId: string, ownerId: string, name: string) {
+    return this.prisma.gym.create({
+      data: {
+        name,
+        owner: { connect: { id: ownerId } },
+        org: { connect: { id: orgId } },
+      },
+    });
   }
 
-  getGym(id: string) {
-    return this.prisma.gym.findUnique({ where: { id } });
+  getGym(id: string, orgId: string) {
+    return this.prisma.gym.findFirst({ where: { id, orgId } });
   }
 
-  updateGym(id: string, data: Prisma.GymUpdateInput) {
+  async updateGym(id: string, orgId: string, data: Prisma.GymUpdateInput) {
+    const gym = await this.prisma.gym.findFirst({ where: { id, orgId } });
+    if (!gym) {
+      throw new NotFoundException('Gym not found');
+    }
+
     return this.prisma.gym.update({
       where: { id },
       data,
     });
   }
 
-  deleteGym(id: string) {
+  async deleteGym(id: string, orgId: string) {
+    const gym = await this.prisma.gym.findFirst({ where: { id, orgId } });
+    if (!gym) {
+      throw new NotFoundException('Gym not found');
+    }
+
     return this.prisma.gym.delete({ where: { id } });
   }
 
@@ -35,7 +53,7 @@ export class GymsService {
     data: Prisma.GymUpdateInput,
     user: User,
   ) {
-    const gym = await this.prisma.gym.findUnique({ where: { id } });
+    const gym = await this.prisma.gym.findFirst({ where: { id, orgId: user.orgId } });
     if (!gym) {
       throw new NotFoundException('Gym not found');
     }
@@ -49,7 +67,7 @@ export class GymsService {
   }
 
   async deleteGymForUser(id: string, user: User) {
-    const gym = await this.prisma.gym.findUnique({ where: { id } });
+    const gym = await this.prisma.gym.findFirst({ where: { id, orgId: user.orgId } });
     if (!gym) {
       throw new NotFoundException('Gym not found');
     }

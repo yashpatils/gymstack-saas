@@ -23,8 +23,12 @@ export class GymsController {
   constructor(private readonly gymsService: GymsService) {}
 
   @Get()
-  listGyms() {
-    return this.gymsService.listGyms();
+  listGyms(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+    return this.gymsService.listGyms(user.orgId);
   }
 
   @Post()
@@ -34,15 +38,18 @@ export class GymsController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.gymsService.createGym({
-      name: data.name,
-      owner: { connect: { id: user.id } },
-    });
+
+    return this.gymsService.createGym(user.orgId, user.id, data.name);
   }
 
   @Get(':id')
-  getGym(@Param('id') id: string) {
-    return this.gymsService.getGym(id);
+  getGym(@Param('id') id: string, @Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.gymsService.getGym(id, user.orgId);
   }
 
   @Patch(':id')
@@ -64,8 +71,14 @@ export class GymsController {
   updateGymOwner(
     @Param('id') id: string,
     @Body() data: Prisma.GymUpdateInput,
+    @Req() req: { user?: User },
   ) {
-    return this.gymsService.updateGym(id, data);
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.gymsService.updateGym(id, user.orgId, data);
   }
 
   @Delete(':id')

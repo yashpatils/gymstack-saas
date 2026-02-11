@@ -8,5 +8,5 @@ export interface User {
   id: string;
   email: string;
   role: UserRole;
-  orgId?: string | null;
+  orgId: string;
 }

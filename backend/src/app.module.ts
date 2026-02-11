@@ -8,6 +8,7 @@ import { DebugModule } from './debug/debug.module';
 import { GymsModule } from './gyms/gyms.module';
 import { InvitesModule } from './invites/invites.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -29,6 +30,7 @@ import { UsersModule } from './users/users.module';
     GymsModule,
     InvitesModule,
     PrismaModule,
+    OrganizationsModule,
     UsersModule,
   ],
   controllers: [AppController],

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from './user.model';
@@ -19,42 +19,54 @@ const userSelect = {
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listUsers() {
-    return this.prisma.user.findMany({
-      select: userSelect,
-    });
-  }
-
-  listUsersForRequester(requester: User) {
-    if (requester.role === UserRole.Admin && !requester.orgId) {
-      return this.listUsers();
-    }
-
-    if (requester.orgId) {
-      return this.prisma.user.findMany({
-        where: {
-          orgId: requester.orgId,
-        },
-        select: userSelect,
-      });
-    }
-
+  listUsers(orgId: string) {
     return this.prisma.user.findMany({
       where: {
-        id: requester.id,
+        memberships: {
+          some: { orgId },
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        subscriptionStatus: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        createdAt: true,
+        updatedAt: true,
       },
       select: userSelect,
     });
   }
 
-  getUser(id: string) {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: userSelect,
+  getUser(id: string, orgId: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        id,
+        memberships: {
+          some: { orgId },
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        subscriptionStatus: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
-  updateUser(id: string, data: Prisma.UserUpdateInput) {
+  async updateUser(id: string, orgId: string, data: Prisma.UserUpdateInput) {
+    const existing = await this.getUser(id, orgId);
+    if (!existing) {
+      throw new NotFoundException('User not found');
+    }
+
     return this.prisma.user.update({
       where: { id },
       data,
@@ -64,6 +76,7 @@ export class UsersService {
 
   updateUserForRequester(
     id: string,
+    orgId: string,
     data: Prisma.UserUpdateInput,
     requester: User,
   ) {
@@ -73,10 +86,15 @@ export class UsersService {
     if (requester.role !== UserRole.Admin && 'role' in data) {
       throw new ForbiddenException('Insufficient role');
     }
-    return this.updateUser(id, data);
+    return this.updateUser(id, orgId, data);
   }
 
-  deleteUser(id: string) {
+  async deleteUser(id: string, orgId: string) {
+    const existing = await this.getUser(id, orgId);
+    if (!existing) {
+      throw new NotFoundException('User not found');
+    }
+
     return this.prisma.user.delete({ where: { id } });
   }
 }
