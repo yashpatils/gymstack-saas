@@ -3,6 +3,11 @@ import { apiFetch } from './api';
 export type Gym = {
   id: string;
   name: string;
+  timezone: string;
+  contactEmail?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
   ownerId: string;
   createdAt?: string;
   updatedAt?: string;
@@ -10,6 +15,11 @@ export type Gym = {
 
 export type GymInput = {
   name: string;
+  timezone?: string;
+  contactEmail?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
 };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

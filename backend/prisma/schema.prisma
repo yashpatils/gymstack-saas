@@ -77,14 +77,19 @@ model PasswordResetToken {
 }
 
 model Gym {
-  id        String   @id @default(uuid())
-  name      String
-  ownerId   String
-  orgId     String
-  owner     User     @relation(fields: [ownerId], references: [id])
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String       @id @default(uuid())
+  name         String
+  timezone     String       @default("UTC")
+  contactEmail String?
+  phone        String?
+  address      String?
+  logoUrl      String?
+  ownerId      String
+  orgId        String
+  owner        User         @relation(fields: [ownerId], references: [id])
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([orgId])
 }
