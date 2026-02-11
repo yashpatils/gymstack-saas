@@ -32,37 +32,27 @@ function setToken(token: string): void {
 export async function login(
   email: string,
   password: string,
-): Promise<{ token: string; user: AuthUser }> {
-  const response = await apiFetch('/api/auth/login', {
+): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   });
 
-  const data = (await response.json()) as AuthResponse;
   setToken(data.accessToken);
-
-  return {
-    token: data.accessToken,
-    user: data.user,
-  };
+  return data;
 }
 
 export async function signup(
   email: string,
   password: string,
-): Promise<{ token: string; user: AuthUser }> {
-  const response = await apiFetch('/api/auth/signup', {
+): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>('/api/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   });
 
-  const data = (await response.json()) as AuthResponse;
   setToken(data.accessToken);
-
-  return {
-    token: data.accessToken,
-    user: data.user,
-  };
+  return data;
 }
 
 export async function me(): Promise<AuthUser> {
@@ -71,11 +61,9 @@ export async function me(): Promise<AuthUser> {
     throw new Error('Not authenticated.');
   }
 
-  const response = await apiFetch('/api/auth/me', {
+  return apiFetch<AuthUser>('/api/auth/me', {
     method: 'GET',
   });
-
-  return (await response.json()) as AuthUser;
 }
 
 export function logout(): void {

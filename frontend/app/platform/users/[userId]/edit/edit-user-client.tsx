@@ -56,7 +56,7 @@ export default function EditUserClient({ userId }: EditUserClientProps) {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch(`/users/${userId}`, {
+      await apiFetch<void>(`/users/${userId}`, {
         method: "PATCH",
         body: form,
       });

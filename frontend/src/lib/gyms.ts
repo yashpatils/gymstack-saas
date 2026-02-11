@@ -12,14 +12,12 @@ type GymPayload = {
   name: string;
 };
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await apiFetch(path, options);
+type GymRequestOptions = Omit<RequestInit, 'body'> & {
+  body?: Record<string, unknown> | FormData | BodyInit | null;
+};
 
-  if (response.status === 204) {
-    return null as T;
-  }
-
-  return (await response.json()) as T;
+async function request<T>(path: string, options: GymRequestOptions = {}): Promise<T> {
+  return apiFetch<T>(path, options);
 }
 
 export async function listGyms(): Promise<Gym[]> {
@@ -29,7 +27,7 @@ export async function listGyms(): Promise<Gym[]> {
 export async function createGym(payload: GymPayload): Promise<Gym> {
   return request<Gym>('/gyms', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: payload,
   });
 }
 
@@ -39,7 +37,7 @@ export async function updateGym(
 ): Promise<Gym> {
   return request<Gym>(`/gyms/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(payload),
+    body: payload,
   });
 }
 

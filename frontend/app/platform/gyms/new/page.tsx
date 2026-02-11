@@ -27,7 +27,7 @@ export default function NewGymPage() {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch("/gyms", { method: "POST", body: form });
+      await apiFetch<void>("/gyms", { method: "POST", body: form });
       router.push("/platform/gyms");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create gym.");

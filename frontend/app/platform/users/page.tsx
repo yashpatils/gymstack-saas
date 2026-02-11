@@ -53,7 +53,7 @@ export default function UsersPage() {
       return;
     }
     try {
-      await apiFetch(`/users/${userId}`, { method: "DELETE" });
+      await apiFetch<void>(`/users/${userId}`, { method: "DELETE" });
       await loadUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete user.");
