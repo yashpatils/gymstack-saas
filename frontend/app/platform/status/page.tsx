@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton } from "../../../src/components/ui/Skeleton";
 import { apiFetch } from "../../lib/api";
 import { Button, PageShell } from "../../components/ui";
 import PageHeader from "../../../src/components/PageHeader";
+import { getLastApiRateLimitSnapshot, type ApiRateLimitSnapshot } from "../../../src/lib/api";
 
 type StatusPayload = {
   status: string;
@@ -25,7 +26,7 @@ async function runTimedCheck(path: string): Promise<EndpointCheck> {
   const startedAt = performance.now();
 
   try {
-    const payload = await apiFetch<StatusPayload>(path, { method: "GET" });
+    const payload = await apiFetch<StatusPayload>(path, { method: "GET", cache: "no-store" });
     const responseTimeMs = Math.round(performance.now() - startedAt);
     const statusText = payload.status?.toLowerCase() === "ok" ? "healthy" : "unhealthy";
 
@@ -48,11 +49,23 @@ async function runTimedCheck(path: string): Promise<EndpointCheck> {
   }
 }
 
+function StatusPill({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+        ok ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"
+      }`}
+    >
+      {text}
+    </span>
+  );
+}
+
 function ResultBlock({
   result,
   loading,
 }: {
-  result: CheckResult | null;
+  result: EndpointCheck | null;
   loading: boolean;
 }) {
   if (loading) {
@@ -64,6 +77,7 @@ function ResultBlock({
       </div>
     );
   }
+
   if (!result) {
     return <p className="text-sm text-slate-400">Not checked yet.</p>;
   }
@@ -98,26 +112,68 @@ function ResultBlock({
   );
 }
 
+function ApiUsageCard({ snapshot }: { snapshot: ApiRateLimitSnapshot | null }) {
+  return (
+    <section className="space-y-2 rounded-md border border-white/10 p-4">
+      <h2 className="font-medium">API usage</h2>
+      {!snapshot || snapshot.limit === undefined || snapshot.remaining === undefined ? (
+        <p className="text-sm text-slate-300">
+          Rate limit headers have not been observed yet. Run a check to fetch fresh API usage data.
+        </p>
+      ) : (
+        <dl className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
+          <div>
+            <dt className="text-slate-400">Limit</dt>
+            <dd>{snapshot.limit}</dd>
+          </div>
+          <div>
+            <dt className="text-slate-400">Remaining</dt>
+            <dd>{snapshot.remaining}</dd>
+          </div>
+          {snapshot.retryAfterSeconds !== undefined ? (
+            <div className="sm:col-span-2">
+              <dt className="text-slate-400">Retry after</dt>
+              <dd>{snapshot.retryAfterSeconds}s</dd>
+            </div>
+          ) : null}
+          <div className="sm:col-span-2">
+            <dt className="text-slate-400">Observed at</dt>
+            <dd>{new Date(snapshot.observedAtIso).toLocaleString()}</dd>
+          </div>
+        </dl>
+      )}
+    </section>
+  );
+}
+
 export default function PlatformStatusPage() {
-  const [backendStatus, setBackendStatus] = useState<EndpointCheck | null>(null);
-  const [dbStatus, setDbStatus] = useState<EndpointCheck | null>(null);
-  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
+  const [health, setHealth] = useState<EndpointCheck | null>(null);
+  const [dbPing, setDbPing] = useState<EndpointCheck | null>(null);
+  const [currentUser, setCurrentUser] = useState<EndpointCheck | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [rateLimitSnapshot, setRateLimitSnapshot] = useState<ApiRateLimitSnapshot | null>(null);
 
   const runChecks = useCallback(async () => {
     setLoading(true);
 
-    const [backendResult, dbResult] = await Promise.all([
+    const [healthResult, dbResult, meResult] = await Promise.all([
       runTimedCheck("/api/health"),
       runTimedCheck("/api/db/ping"),
+      runTimedCheck("/api/auth/me"),
     ]);
 
-    setBackendStatus(backendResult);
-    setDbStatus(dbResult);
-    setLastCheckedAt(new Date().toISOString());
+    setHealth(healthResult);
+    setDbPing(dbResult);
+    setCurrentUser(meResult);
+    setRateLimitSnapshot(getLastApiRateLimitSnapshot());
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    void runChecks();
+  }, [runChecks]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -132,18 +188,41 @@ export default function PlatformStatusPage() {
   }, [autoRefresh, runChecks]);
 
   const overallHealthy = useMemo(() => {
-    if (!backendStatus || !dbStatus) {
+    if (!health || !dbPing) {
       return null;
     }
 
-    return backendStatus.ok && dbStatus.ok;
-  }, [backendStatus, dbStatus]);
+    return health.ok && dbPing.ok;
+  }, [health, dbPing]);
+
+  const debugInfo = useMemo(
+    () => ({
+      overallHealthy,
+      checkedAtIso: new Date().toISOString(),
+      checks: {
+        health,
+        dbPing,
+        currentUser,
+      },
+      rateLimitSnapshot,
+    }),
+    [overallHealthy, health, dbPing, currentUser, rateLimitSnapshot],
+  );
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
+      setCopyMessage("Debug info copied.");
+    } catch {
+      setCopyMessage("Unable to copy debug info.");
+    }
+  }, [debugInfo]);
 
   return (
     <PageShell className="max-w-4xl space-y-4 text-white">
       <PageHeader
         title="Platform Status"
-        subtitle="Quick checks for backend health, DB connectivity, and auth state."
+        subtitle="Quick checks for backend health, DB connectivity, auth, and API usage."
         breadcrumbs={[
           { label: "Platform", href: "/platform" },
           { label: "Status" },
@@ -154,12 +233,21 @@ export default function PlatformStatusPage() {
         <Button type="button" onClick={runChecks} disabled={loading} variant="secondary">
           {loading ? "Running..." : "Run Checks"}
         </Button>
+        <Button
+          type="button"
+          onClick={() => setAutoRefresh((value) => !value)}
+          variant={autoRefresh ? "secondary" : "ghost"}
+        >
+          {autoRefresh ? "Auto Refresh: On" : "Auto Refresh: Off"}
+        </Button>
         <Button type="button" onClick={handleCopy} variant="ghost">
           Copy Debug Info
         </Button>
       </div>
 
       {copyMessage ? <p className="text-sm text-slate-300">{copyMessage}</p> : null}
+
+      <ApiUsageCard snapshot={rateLimitSnapshot} />
 
       <section className="space-y-2 rounded-md border border-white/10 p-4">
         <h2 className="font-medium">Backend health (GET /api/health)</h2>

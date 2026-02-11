@@ -7,10 +7,12 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
     PrismaModule,
+    AuditModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
