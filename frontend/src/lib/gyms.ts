@@ -12,11 +12,7 @@ type GymPayload = {
   name: string;
 };
 
-type GymRequestOptions = Omit<RequestInit, 'body'> & {
-  body?: Record<string, unknown> | FormData | BodyInit | null;
-};
-
-async function request<T>(path: string, options: GymRequestOptions = {}): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return apiFetch<T>(path, options);
 }
 

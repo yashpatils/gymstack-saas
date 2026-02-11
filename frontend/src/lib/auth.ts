@@ -32,7 +32,7 @@ function setToken(token: string): void {
 export async function login(
   email: string,
   password: string,
-): Promise<AuthResponse> {
+): Promise<{ token: string; user: AuthUser }> {
   const data = await apiFetch<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: { email, password },
@@ -45,7 +45,7 @@ export async function login(
 export async function signup(
   email: string,
   password: string,
-): Promise<AuthResponse> {
+): Promise<{ token: string; user: AuthUser }> {
   const data = await apiFetch<AuthResponse>('/api/auth/signup', {
     method: 'POST',
     body: { email, password },
@@ -61,9 +61,11 @@ export async function me(): Promise<AuthUser> {
     throw new Error('Not authenticated.');
   }
 
-  return apiFetch<AuthUser>('/api/auth/me', {
+  const user = await apiFetch<AuthUser>('/api/auth/me', {
     method: 'GET',
   });
+
+  return user;
 }
 
 export function logout(): void {
