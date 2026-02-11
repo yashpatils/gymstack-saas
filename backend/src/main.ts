@@ -88,8 +88,10 @@ async function logIntegrationStatus(
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use('/billing/webhook', express.raw({ type: 'application/json' }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
   const configService = app.get(ConfigService);
   const prismaService = app.get(PrismaService);

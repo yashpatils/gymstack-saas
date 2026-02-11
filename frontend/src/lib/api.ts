@@ -34,8 +34,16 @@ type CacheEntry = {
   value: unknown;
 };
 
+export type ApiRateLimitSnapshot = {
+  limit?: number;
+  remaining?: number;
+  retryAfterSeconds?: number;
+  observedAtIso: string;
+};
+
 const getResponseCache = new Map<string, CacheEntry>();
 const inflightGetRequests = new Map<string, Promise<unknown>>();
+let lastApiRateLimitSnapshot: ApiRateLimitSnapshot | null = null;
 
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
@@ -67,6 +75,35 @@ export type ApiError = {
   details?: unknown;
   requestId?: string;
 };
+
+export function getLastApiRateLimitSnapshot(): ApiRateLimitSnapshot | null {
+  return lastApiRateLimitSnapshot;
+}
+
+function toPositiveInt(value: string | null): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function trackRateLimitHeaders(response: Response): ApiRateLimitSnapshot {
+  const snapshot: ApiRateLimitSnapshot = {
+    observedAtIso: new Date().toISOString(),
+    limit: toPositiveInt(response.headers.get('X-RateLimit-Limit')),
+    remaining: toPositiveInt(response.headers.get('X-RateLimit-Remaining')),
+    retryAfterSeconds: toPositiveInt(response.headers.get('Retry-After')),
+  };
+
+  lastApiRateLimitSnapshot = snapshot;
+  return snapshot;
+}
 
 export async function apiFetch<T = unknown>(
   path: string,
@@ -128,6 +165,7 @@ export async function apiFetch<T = unknown>(
       headers,
     });
 
+    const rateLimitSnapshot = trackRateLimitHeaders(response);
     const contentType = response.headers.get('content-type') ?? '';
 
     if (!response.ok) {
@@ -139,14 +177,16 @@ export async function apiFetch<T = unknown>(
         errorBody = await response.text();
       }
 
-      const requestId = extractRequestId(errorBody, response);
-      const errorDetails =
-        typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody);
-      const supportSuffix = requestId ? ` [requestId: ${requestId}]` : '';
+      if (response.status === 429) {
+        const retryAfterSeconds = rateLimitSnapshot.retryAfterSeconds;
+        const retryHint =
+          retryAfterSeconds !== undefined
+            ? ` Please retry in ${retryAfterSeconds} second${retryAfterSeconds === 1 ? '' : 's'}.`
+            : ' Please wait a moment and try again.';
+        throw new Error(`You are making requests too quickly.${retryHint}`);
+      }
 
-      throw new Error(
-        `Request failed (${response.status} ${response.statusText}): ${errorDetails}${supportSuffix}`,
-      );
+      throw new Error(`Request failed (${response.status} ${response.statusText}): ${typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody)}`);
     }
 
     if (contentType.includes('application/json')) {
