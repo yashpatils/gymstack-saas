@@ -7,21 +7,24 @@ import {
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
 import {
   type AuthUser,
   getToken,
   login as loginRequest,
   logout as clearToken,
-  me,
+  me as getMe,
   signup as signupRequest,
 } from "../lib/auth";
-import { normalizeRole, type AppRole } from "../lib/rbac";
+import { normalizeRole, type Role } from "../lib/rbac";
 
 type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
+  isLoading: boolean;
+  role: Role;
   login: (email: string, password: string) => Promise<AuthUser>;
   signup: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
@@ -29,28 +32,31 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadUser = async () => {
       const existingToken = getToken();
+
+      if (!isMounted) {
+        return;
+      }
+
       setToken(existingToken);
 
       if (!existingToken) {
-        if (isMounted) {
-          setUser(null);
-          setLoading(false);
-        }
+        setUser(null);
+        setIsLoading(false);
         return;
       }
 
       try {
-        const currentUser = await me();
+        const currentUser = await getMe();
         if (isMounted) {
           setUser(currentUser);
         }
@@ -62,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearToken();
       } finally {
         if (isMounted) {
-          setLoading(false);
+          setIsLoading(false);
         }
       }
     };
@@ -75,20 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { token: authToken, user: loggedInUser } = await loginRequest(
-      email,
-      password,
-    );
+    const { token: authToken, user: loggedInUser } = await loginRequest(email, password);
     setToken(authToken);
     setUser(loggedInUser);
     return loggedInUser;
   }, []);
 
   const signup = useCallback(async (email: string, password: string) => {
-    const { token: authToken, user: signedUpUser } = await signupRequest(
-      email,
-      password,
-    );
+    const { token: authToken, user: signedUpUser } = await signupRequest(email, password);
     setToken(authToken);
     setUser(signedUpUser);
     return signedUpUser;
@@ -100,15 +100,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const role = normalizeRole(user?.role);
+
   const value = useMemo(
-    () => ({ user, token, loading, login, signup, logout }),
-    [user, token, loading, login, signup, logout],
+    () => ({ user, token, loading: isLoading, isLoading, role, login, signup, logout }),
+    [user, token, isLoading, role, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider.");
