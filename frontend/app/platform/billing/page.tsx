@@ -12,6 +12,7 @@ import {
 } from "../../../src/lib/billing";
 import { canManageBilling } from "../../../src/lib/rbac";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
+import { apiFetch } from "../../lib/api";
 import { Button, PageShell } from "../../components/ui";
 
 function toFriendlyError(error: unknown): string {
