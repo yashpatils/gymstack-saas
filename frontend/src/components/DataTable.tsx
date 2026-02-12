@@ -84,7 +84,7 @@ export default function DataTable<T>({
         return (leftValue - rightValue) * direction;
       }
 
-      return leftValue.localeCompare(rightValue) * direction;
+      return String(leftValue).localeCompare(String(rightValue)) * direction;
     });
   }, [columns, query, rows, sort]);
 
