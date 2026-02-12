@@ -1,5 +1,9 @@
 import React from "react";
 
+export { Alert } from "./ui/alert";
+export { Input } from "./ui/input";
+export { Spinner } from "./ui/spinner";
+
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "default" | "secondary" | "outline" | "ghost";
   size?: "md" | "lg";
