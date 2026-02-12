@@ -131,7 +131,7 @@ export default function PlatformBillingPage() {
   }, [user?.id]);
 
   const currentStatus = useMemo(
-    () => formatStatus(status?.subscriptionStatus),
+    () => formatSubscriptionStatus(status?.subscriptionStatus),
     [status?.subscriptionStatus],
   );
 
