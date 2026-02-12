@@ -101,14 +101,14 @@ export default function EditGymClient({ gymId }: EditGymClientProps) {
           <div className="mb-6 flex flex-wrap gap-2">
             <Button
               type="button"
-              variant={activeTab === "details" ? "primary" : "secondary"}
+              variant={activeTab === "details" ? "default" : "secondary"}
               onClick={() => setActiveTab("details")}
             >
               Details
             </Button>
             <Button
               type="button"
-              variant={activeTab === "settings" ? "primary" : "secondary"}
+              variant={activeTab === "settings" ? "default" : "secondary"}
               onClick={() => setActiveTab("settings")}
             >
               Settings
