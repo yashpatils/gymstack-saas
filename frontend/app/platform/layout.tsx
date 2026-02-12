@@ -9,17 +9,24 @@ import { canManageBilling, canManageUsers, normalizeRole } from "../../src/lib/r
 import { defaultFeatureFlags, getFeatureFlags } from "../../src/lib/settings";
 import { useAuth } from "../../src/providers/AuthProvider";
 
-const navItems = [
+type NavItem = {
+  label: string;
+  href: string;
+  requires?: "users" | "billing" | "owner";
+  debugOnly?: boolean;
+};
+
+const navItems: NavItem[] = [
   { label: "Status", href: "/platform/status" },
   { label: "Diagnostics", href: "/platform/diagnostics" },
   { label: "Support", href: "/platform/support" },
   { label: "Gyms", href: "/platform/gyms" },
-  { label: "Users", href: "/platform/users", requires: "users" as const },
-  { label: "Audit", href: "/platform/audit", requires: "users" as const },
+  { label: "Users", href: "/platform/users", requires: "users" },
+  { label: "Audit", href: "/platform/audit", requires: "users" },
   { label: "Team", href: "/platform/team" },
-  { label: "Billing", href: "/platform/billing", requires: "billing" as const },
+  { label: "Billing", href: "/platform/billing", requires: "billing" },
   { label: "Settings", href: "/platform/settings" },
-  { label: "Admin Settings", href: "/platform/admin/settings", requires: "owner" as const },
+  { label: "Admin Settings", href: "/platform/admin/settings", requires: "owner" },
 ];
 
 type OrganizationResponse = {
