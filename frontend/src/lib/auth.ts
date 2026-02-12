@@ -9,6 +9,11 @@ export type AuthUser = {
   orgId: string;
 };
 
+export type AuthMeResponse = AuthUser & {
+  subscriptionStatus?: string;
+  stripeConfigured?: boolean;
+};
+
 type AuthResponse = {
   accessToken: string;
   user: AuthUser;

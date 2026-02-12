@@ -10,6 +10,7 @@ import {
   getBillingStatus,
   type BillingStatusResponse,
 } from "../../../src/lib/billing";
+import { type AuthMeResponse } from "../../../src/lib/auth";
 import { canManageBilling } from "../../../src/lib/rbac";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
 import { apiFetch } from "../../lib/api";
