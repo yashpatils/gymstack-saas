@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RequireAuth } from "../../src/components/RequireAuth";
 import { apiFetch } from "../../src/lib/api";
 import { canManageBilling, canManageUsers, normalizeRole } from "../../src/lib/rbac";
+import { defaultFeatureFlags, getFeatureFlags } from "../../src/lib/settings";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 const navItems = [
@@ -44,11 +45,14 @@ export default function PlatformLayout({
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
+  const [featureFlags, setFeatureFlags] = useState(defaultFeatureFlags);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const rawRole = user?.role ?? "MEMBER";
   const email = user?.email ?? "platform.user@gymstack.app";
   const role = normalizeRole(rawRole);
+  const isAdmin = rawRole === "ADMIN" || role === "OWNER";
+  const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
@@ -127,6 +131,7 @@ export default function PlatformLayout({
 
     if (user) {
       void loadOrg();
+      void loadFeatureFlags();
       void loadNotifications();
     }
 

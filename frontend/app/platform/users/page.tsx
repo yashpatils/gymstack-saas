@@ -10,13 +10,15 @@ import {
 } from "../../components/ui";
 import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
 import PageHeader from "../../../src/components/PageHeader";
-import { useSession } from "../../components/session-provider";
+import { Skeleton } from "../../../src/components/ui/Skeleton";
+import { canManageUsers } from "../../../src/lib/rbac";
 import {
   User,
   deleteUser,
   listUsers,
   updateUser,
 } from "../../../src/lib/users";
+import { useAuth } from "../../../src/providers/AuthProvider";
 
 function formatDate(value?: string) {
   if (!value) {
@@ -145,7 +147,7 @@ export default function UsersPage() {
             Edit role
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             disabled={!canEdit || savingUserId === user.id}
             title={!canEdit ? "Insufficient permissions" : undefined}
             onClick={() => handleDelete(user.id)}
