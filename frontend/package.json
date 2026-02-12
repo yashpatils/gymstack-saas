@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "preflight": "npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
     "@stripe/stripe-js": "^4.5.0",
