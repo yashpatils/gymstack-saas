@@ -7,6 +7,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "build": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "predeploy": "npm --prefix frontend run lint && npm run typecheck && npm run build:frontend",
     "start:frontend": "npm --prefix frontend run start",
     "db:seed": "npm --prefix backend run db:seed",
     "preflight": "npm run preflight:frontend && npm run preflight:backend",
