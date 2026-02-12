@@ -46,7 +46,10 @@ export async function login(
   });
 
   setToken(data.accessToken);
-  return data;
+  return {
+    token: data.accessToken,
+    user: data.user,
+  };
 }
 
 export async function signup(
@@ -59,7 +62,10 @@ export async function signup(
   });
 
   setToken(data.accessToken);
-  return data;
+  return {
+    token: data.accessToken,
+    user: data.user,
+  };
 }
 
 export async function me(): Promise<AuthUser> {
