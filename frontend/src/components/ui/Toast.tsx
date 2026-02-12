@@ -12,7 +12,7 @@ const variantClasses: Record<ToastVariant, string> = {
 
 export interface ToastProps extends HTMLAttributes<HTMLDivElement> {
   variant?: ToastVariant;
-  title?: ReactNode;
+  heading?: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
   onClose?: () => void;
@@ -21,7 +21,7 @@ export interface ToastProps extends HTMLAttributes<HTMLDivElement> {
 export function Toast({
   className,
   variant = "default",
-  title,
+  heading,
   description,
   action,
   onClose,
@@ -40,7 +40,7 @@ export function Toast({
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          {title ? <p className="text-sm font-semibold">{title}</p> : null}
+          {heading ? <p className="text-sm font-semibold">{heading}</p> : null}
           {description ? <p className="mt-1 text-sm opacity-90">{description}</p> : null}
           {children}
         </div>

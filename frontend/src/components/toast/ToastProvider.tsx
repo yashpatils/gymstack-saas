@@ -76,7 +76,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <Toast
             key={toast.id}
             variant={toast.variant}
-            title={toast.title}
+            heading={toast.title}
             description={toast.description}
             onClose={() => dismissToast(toast.id)}
           />
@@ -95,4 +95,3 @@ export function useToast() {
 
   return context;
 }
-
