@@ -83,7 +83,7 @@ export default function UserDetailClient({ userId }: { userId: string }) {
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => router.push("/platform/users")}>Back</Button>
             <Button
-              variant="outline"
+              variant="secondary"
               disabled={!canDelete || deleting}
               onClick={handleDelete}
             >
