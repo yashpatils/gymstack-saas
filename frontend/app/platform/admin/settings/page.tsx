@@ -1,25 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import PageHeader from "../../../../../src/components/PageHeader";
+import { PageHeader } from "../../../../src/components/PageHeader";
 import {
   type AppSettings,
   defaultAppSettings,
   getSettings,
   saveSettings,
-} from "../../../../../src/lib/settings";
-import { useAuth } from "../../../../../src/providers/AuthProvider";
-import { requireRole } from "../../../../../src/lib/rbac";
+} from "../../../../src/lib/settings";
+import { useAuth } from "../../../../src/providers/AuthProvider";
+import { normalizeRole, requireRole, type Role } from "../../../../src/lib/rbac";
 
 export default function PlatformAdminSettingsPage() {
-  const { user, role, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
+  const role: Role = normalizeRole(user?.role);
   const [settings, setSettings] = useState<AppSettings>(defaultAppSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const isAllowed = requireRole(role, ["OWNER", "ADMIN"]);
+  const isAllowed = user ? requireRole(role, ["OWNER", "ADMIN"]) : false;
 
   useEffect(() => {
     let mounted = true;
