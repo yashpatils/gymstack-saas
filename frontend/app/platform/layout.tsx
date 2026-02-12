@@ -46,11 +46,9 @@ export default function PlatformLayout({
   const [orgName, setOrgName] = useState<string>("-");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const role = normalizeRole(user?.role);
-
-  const role = user?.role ?? "MEMBER";
+  const rawRole = user?.role ?? "MEMBER";
   const email = user?.email ?? "platform.user@gymstack.app";
-  const role = normalizeRole(user?.role);
+  const role = normalizeRole(rawRole);
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
