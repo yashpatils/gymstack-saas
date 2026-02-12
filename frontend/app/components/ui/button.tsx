@@ -2,6 +2,7 @@ import React from "react";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost";
+  size?: "sm" | "md" | "lg";
 };
 
 const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
@@ -12,15 +13,22 @@ const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
   ghost: "bg-transparent text-slate-300 hover:text-white hover:bg-white/10",
 };
 
+const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
+  sm: "h-9 px-3 text-xs",
+  md: "h-11 px-4 text-sm",
+  lg: "h-12 px-5 text-base",
+};
+
 export function Button({
   variant = "primary",
+  size = "md",
   className,
   children,
   ...props
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 disabled:cursor-not-allowed ${variantStyles[variant]} ${className ?? ""}`}
+      className={`inline-flex w-full items-center justify-center gap-2 rounded-xl font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 disabled:cursor-not-allowed ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
       {...props}
     >
       {children}
