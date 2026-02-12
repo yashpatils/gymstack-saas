@@ -1,6 +1,8 @@
 const GET_CACHE_TTL_MS = 10_000;
 
-type ApiFetchOptions = RequestInit;
+type ApiFetchOptions = Omit<RequestInit, 'body'> & {
+  body?: Record<string, unknown> | FormData | BodyInit | null;
+};
 
 
 const REQUEST_ID_HEADER = 'X-Request-Id';
