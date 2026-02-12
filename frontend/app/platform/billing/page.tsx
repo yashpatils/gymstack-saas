@@ -6,15 +6,14 @@ import { ProtectedRoute } from "../../../src/components/ProtectedRoute";
 import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import {
-  createCheckout,
-  getBillingStatus,
+  type CreateCheckoutResponse,
   type BillingStatusResponse,
 } from "../../../src/lib/billing";
 import { type AuthMeResponse } from "../../../src/lib/auth";
 import { canManageBilling } from "../../../src/lib/rbac";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
 import { apiFetch } from "../../lib/api";
-import { Button, PageShell } from "../../components/ui";
+import { Button, PageShell, Skeleton } from "../../components/ui";
 
 function toFriendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : "Unknown error";
@@ -66,7 +65,7 @@ export default function PlatformBillingPage() {
   const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
   const [checkoutAvailable, setCheckoutAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -135,20 +134,26 @@ export default function PlatformBillingPage() {
     [status?.subscriptionStatus],
   );
 
-  const handleCheckout = async (plan: Plan) => {
-    if (!user?.id || !plan.priceId) {
+  const handleUpgrade = async () => {
+    if (!user?.id) {
       return;
     }
 
-    setUpgradingPlan(plan.name);
+    const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
+    if (!priceId) {
+      setMessage("Missing NEXT_PUBLIC_STRIPE_PRICE_ID configuration.");
+      return;
+    }
+
+    setUpgrading(true);
     setMessage(null);
 
     try {
-      const result = await apiFetch<CheckoutResponse>("/api/billing/checkout", {
+      const result = await apiFetch<CreateCheckoutResponse>("/api/billing/checkout", {
         method: "POST",
         body: JSON.stringify({
           userId: user.id,
-          priceId: plan.priceId,
+          priceId,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +178,7 @@ export default function PlatformBillingPage() {
         setStripeConfigured(false);
       }
     } finally {
-      setUpgradingPlan(null);
+      setUpgrading(false);
     }
   };
 
@@ -210,7 +215,12 @@ export default function PlatformBillingPage() {
         )}
 
         {!isActiveSubscription(status?.subscriptionStatus) ? (
-          <Button type="button" onClick={handleUpgrade} disabled={upgrading} variant="secondary">
+          <Button
+            type="button"
+            onClick={handleUpgrade}
+            disabled={upgrading || !checkoutAvailable || !canEditBilling}
+            variant="secondary"
+          >
             {upgrading ? "Starting checkout..." : "Upgrade"}
           </Button>
         ) : null}
