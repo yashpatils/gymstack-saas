@@ -3,42 +3,41 @@
 import { useEffect, useState } from "react";
 import PageHeader from "../../../../../src/components/PageHeader";
 import {
-  defaultFeatureFlags,
-  FeatureFlags,
-  getFeatureFlags,
-  updateFeatureFlags,
+  type AppSettings,
+  defaultAppSettings,
+  getSettings,
+  saveSettings,
 } from "../../../../../src/lib/settings";
 import { useAuth } from "../../../../../src/providers/AuthProvider";
-import { normalizeRole } from "../../../../../src/lib/rbac";
+import { requireRole } from "../../../../../src/lib/rbac";
 
 export default function PlatformAdminSettingsPage() {
-  const { user } = useAuth();
-  const [flags, setFlags] = useState<FeatureFlags>(defaultFeatureFlags);
+  const { user, role, isLoading } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(defaultAppSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const role = normalizeRole(user?.role);
-  const isOwner = role === "OWNER";
+  const isAllowed = requireRole(role, ["OWNER", "ADMIN"]);
 
   useEffect(() => {
     let mounted = true;
 
-    const loadFlags = async () => {
+    const loadSettings = async () => {
       setLoading(true);
       setSaved(false);
       setError(null);
 
       try {
-        const response = await getFeatureFlags();
+        const response = await getSettings();
         if (mounted) {
-          setFlags(response);
+          setSettings(response);
         }
       } catch (loadError) {
         if (mounted) {
           setError(loadError instanceof Error ? loadError.message : "Failed to load settings.");
-          setFlags(defaultFeatureFlags);
+          setSettings(defaultAppSettings);
         }
       } finally {
         if (mounted) {
@@ -47,24 +46,21 @@ export default function PlatformAdminSettingsPage() {
       }
     };
 
-    void loadFlags();
+    void loadSettings();
 
     return () => {
       mounted = false;
     };
   }, []);
 
-  const onToggle = (key: keyof FeatureFlags) => {
+  const updateField = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSaved(false);
-    setFlags((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
+    setSettings((current) => ({ ...current, [key]: value }));
   };
 
   const onSave = async () => {
-    if (!isOwner) {
-      setError("Only owners can update admin settings.");
+    if (!isAllowed) {
+      setError("Not authorized.");
       return;
     }
 
@@ -73,21 +69,43 @@ export default function PlatformAdminSettingsPage() {
     setError(null);
 
     try {
-      const response = await updateFeatureFlags(flags);
-      setFlags(response);
+      const response = await saveSettings(settings);
+      setSettings(response);
       setSaved(true);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to update settings.");
+      setError(saveError instanceof Error ? saveError.message : "Failed to save settings.");
     } finally {
       setSaving(false);
     }
   };
 
+  if (isLoading || loading) {
+    return (
+      <section className="page space-y-6">
+        <PageHeader title="Admin settings" subtitle="Manage platform settings." />
+        <div className="card">
+          <p className="text-sm text-slate-300">Loading settings...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!user || !isAllowed) {
+    return (
+      <section className="page space-y-6">
+        <PageHeader title="Admin settings" subtitle="Manage platform settings." />
+        <div className="card">
+          <p className="text-sm text-amber-300">Not authorized.</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="page space-y-6">
       <PageHeader
         title="Admin settings"
-        subtitle="Manage server-controlled platform feature flags."
+        subtitle="Manage platform app configuration."
         breadcrumbs={[
           { label: "Platform", href: "/platform" },
           { label: "Admin settings" },
@@ -95,57 +113,44 @@ export default function PlatformAdminSettingsPage() {
       />
 
       <div className="card space-y-4">
-        <h2 className="section-title">Feature flags</h2>
+        <h2 className="section-title">Application settings</h2>
 
-        {loading ? (
-          <p className="text-sm text-slate-300">Loading settings...</p>
-        ) : (
-          <div className="space-y-3">
-            <label className="flex items-center justify-between rounded border border-white/10 p-3">
-              <span className="text-sm text-slate-200">Enable billing</span>
-              <input
-                type="checkbox"
-                checked={flags.enableBilling}
-                onChange={() => onToggle("enableBilling")}
-                disabled={!isOwner || saving}
-              />
-            </label>
+        <label className="block space-y-1">
+          <span className="text-sm text-slate-200">App name</span>
+          <input
+            type="text"
+            className="w-full rounded border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            value={settings.appName}
+            onChange={(event) => updateField("appName", event.target.value)}
+            disabled={saving}
+          />
+        </label>
 
-            <label className="flex items-center justify-between rounded border border-white/10 p-3">
-              <span className="text-sm text-slate-200">Enable team invites</span>
-              <input
-                type="checkbox"
-                checked={flags.enableInvites}
-                onChange={() => onToggle("enableInvites")}
-                disabled={!isOwner || saving}
-              />
-            </label>
+        <label className="block space-y-1">
+          <span className="text-sm text-slate-200">Support email</span>
+          <input
+            type="email"
+            className="w-full rounded border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            value={settings.supportEmail}
+            onChange={(event) => updateField("supportEmail", event.target.value)}
+            disabled={saving}
+          />
+        </label>
 
-            <label className="flex items-center justify-between rounded border border-white/10 p-3">
-              <span className="text-sm text-slate-200">Enable audit</span>
-              <input
-                type="checkbox"
-                checked={flags.enableAudit}
-                onChange={() => onToggle("enableAudit")}
-                disabled={!isOwner || saving}
-              />
-            </label>
-          </div>
-        )}
-
-        {!isOwner ? (
-          <p className="text-sm text-amber-300">Only owners can modify these settings.</p>
-        ) : null}
+        <label className="flex items-center justify-between rounded border border-white/10 p-3">
+          <span className="text-sm text-slate-200">Billing enabled</span>
+          <input
+            type="checkbox"
+            checked={settings.billingEnabled}
+            onChange={() => updateField("billingEnabled", !settings.billingEnabled)}
+            disabled={saving}
+          />
+        </label>
 
         {error ? <p className="text-sm text-rose-300">{error}</p> : null}
         {saved ? <p className="text-sm text-emerald-300">Settings saved.</p> : null}
 
-        <button
-          type="button"
-          onClick={onSave}
-          className="button"
-          disabled={loading || saving || !isOwner}
-        >
+        <button type="button" onClick={onSave} className="button" disabled={saving}>
           {saving ? "Saving..." : "Save settings"}
         </button>
       </div>

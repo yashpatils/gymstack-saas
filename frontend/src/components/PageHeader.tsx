@@ -1,24 +1,19 @@
 import Link from "next/link";
-import { Fragment, ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 export type BreadcrumbItem = {
   label: string;
   href?: string;
 };
 
-type PageHeaderProps = {
+export type PageHeaderProps = {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
 };
 
-export default function PageHeader({
-  title,
-  subtitle,
-  actions,
-  breadcrumbs,
-}: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, breadcrumbs }: PageHeaderProps) {
   return (
     <header className="space-y-4">
       {breadcrumbs?.length ? (
@@ -56,3 +51,5 @@ export default function PageHeader({
     </header>
   );
 }
+
+export default PageHeader;
