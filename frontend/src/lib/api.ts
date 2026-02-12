@@ -1,7 +1,6 @@
 const GET_CACHE_TTL_MS = 10_000;
 
-type CacheMode = 'default' | 'no-store';
-type ApiFetchOptions = RequestInit & { cache?: CacheMode };
+type ApiFetchOptions = RequestInit;
 
 
 const REQUEST_ID_HEADER = 'X-Request-Id';
@@ -111,7 +110,7 @@ export async function apiFetch<T = unknown>(
 ): Promise<T> {
   const url = buildApiUrl(path);
   const method = (options.method ?? 'GET').toUpperCase();
-  const cacheMode: CacheMode = options.cache ?? 'default';
+  const cacheMode: RequestInit['cache'] = options.cache ?? 'default';
   const shouldUseGetCache = method === 'GET' && cacheMode !== 'no-store';
   const token =
     typeof window !== 'undefined'
