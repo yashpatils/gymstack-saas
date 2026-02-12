@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "../../../src/components/ProtectedRoute";
 import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
