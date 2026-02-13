@@ -7,6 +7,10 @@ import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { canManageLocation } from '../auth/authorization';
 
+function toGymSlug(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
+}
+
 @Injectable()
 export class GymsService {
   constructor(
@@ -25,6 +29,7 @@ export class GymsService {
     const gym = await this.prisma.gym.create({
       data: {
         name,
+        slug: `${toGymSlug(name)}-${Date.now().toString().slice(-6)}`,
         owner: { connect: { id: ownerId } },
         org: { connect: { id: orgId } },
       },
@@ -73,6 +78,7 @@ export class GymsService {
         return tx.gym.create({
           data: {
             name,
+            slug: `${toGymSlug(name)}-${Date.now().toString().slice(-6)}`,
             owner: { connect: { id: user.id } },
             org: { connect: { id: organization.id } },
           },

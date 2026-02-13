@@ -13,6 +13,19 @@ type AccountInfo = {
   role?: string;
 };
 
+type DomainRecord = {
+  id: string;
+  hostname: string;
+  status: string;
+  locationId?: string | null;
+  createdAt: string;
+};
+
+type GymLocation = {
+  id: string;
+  name: string;
+};
+
 function maskApiBaseUrl(url: string): string {
   try {
     const parsed = new URL(url);
@@ -33,6 +46,10 @@ export default function PlatformSettingsPage() {
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [domains, setDomains] = useState<DomainRecord[]>([]);
+  const [locations, setLocations] = useState<GymLocation[]>([]);
+  const [hostname, setHostname] = useState('');
+  const [selectedLocationId, setSelectedLocationId] = useState('');
 
   const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
   const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
@@ -74,7 +91,20 @@ export default function PlatformSettingsPage() {
       }
     }
 
+
+    async function loadDomains() {
+      const data = await apiFetch<DomainRecord[]>('/api/domains', { method: 'GET' });
+      if (isMounted) setDomains(data);
+    }
+
+    async function loadLocations() {
+      const gyms = await apiFetch<GymLocation[]>('/api/gyms', { method: 'GET' });
+      if (isMounted) setLocations(gyms);
+    }
+
     void loadAccountInfo();
+    void loadDomains();
+    void loadLocations();
 
     return () => {
       isMounted = false;
@@ -148,6 +178,51 @@ export default function PlatformSettingsPage() {
             </>
           ) : null}
         </dl>
+      </div>
+
+
+      <div className="card space-y-4">
+        <h2 className="section-title">Domains</h2>
+        <form className="grid gap-3 md:grid-cols-3" onSubmit={async (event) => {
+          event.preventDefault();
+          await apiFetch('/api/domains', {
+            method: 'POST',
+            body: { hostname, locationId: selectedLocationId || null },
+          });
+          setHostname('');
+          setSelectedLocationId('');
+          const data = await apiFetch<DomainRecord[]>('/api/domains', { method: 'GET' });
+          setDomains(data);
+        }}>
+          <input className="input" value={hostname} onChange={(event) => setHostname(event.target.value)} placeholder="yourdomain.com" required />
+          <select className="input" value={selectedLocationId} onChange={(event) => setSelectedLocationId(event.target.value)}>
+            <option value="">Tenant-wide</option>
+            {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+          </select>
+          <button className="button" type="submit">Add domain</button>
+        </form>
+        <ul className="space-y-2 text-sm">
+          {domains.map((domain) => (
+            <li key={domain.id} className="rounded border border-white/10 p-3">
+              <div className="flex items-center justify-between">
+                <span>{domain.hostname}</span>
+                <span className="text-slate-300">{domain.status}</span>
+              </div>
+              <p className="text-xs text-slate-400">TXT: _gymstack-verification</p>
+              <div className="mt-2 flex gap-2">
+                <button className="button secondary" type="button" onClick={async () => {
+                  await apiFetch(`/api/domains/${domain.id}/verify`, { method: 'POST' });
+                  const data = await apiFetch<DomainRecord[]>('/api/domains', { method: 'GET' });
+                  setDomains(data);
+                }}>Verify</button>
+                <button className="button secondary" type="button" onClick={async () => {
+                  await apiFetch(`/api/domains/${domain.id}`, { method: 'DELETE' });
+                  setDomains((existing) => existing.filter((item) => item.id !== domain.id));
+                }}>Remove</button>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="card space-y-4 border border-rose-500/30">
