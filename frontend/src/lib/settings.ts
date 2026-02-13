@@ -1,4 +1,9 @@
 import { apiFetch } from "./api";
+import {
+  defaultFeatureFlags,
+  getFeatureFlags,
+  type FeatureFlags,
+} from "./featureFlags";
 
 const SETTINGS_STORAGE_KEY = "gymstack_app_settings";
 
@@ -14,24 +19,13 @@ export const defaultAppSettings: AppSettings = {
   billingEnabled: false,
 };
 
-export type FeatureFlags = {
-  enableBilling: boolean;
-  enableInvites: boolean;
-  enableAudit: boolean;
-};
-
-export const defaultFeatureFlags: FeatureFlags = {
-  enableBilling: false,
-  enableInvites: false,
-  enableAudit: true,
-};
-
 function toBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
 }
 
 function normalizeAppSettings(value: unknown): AppSettings {
-  const maybe = typeof value === "object" && value !== null ? (value as Partial<AppSettings>) : {};
+  const record = typeof value === "object" && value !== null ? value : {};
+  const maybe = record as Partial<AppSettings>;
 
   return {
     appName: typeof maybe.appName === "string" && maybe.appName.trim() ? maybe.appName : defaultAppSettings.appName,
@@ -40,16 +34,6 @@ function normalizeAppSettings(value: unknown): AppSettings {
         ? maybe.supportEmail
         : defaultAppSettings.supportEmail,
     billingEnabled: toBoolean(maybe.billingEnabled, defaultAppSettings.billingEnabled),
-  };
-}
-
-function normalizeFlags(value: unknown): FeatureFlags {
-  const maybe = typeof value === "object" && value !== null ? (value as Partial<FeatureFlags>) : {};
-
-  return {
-    enableBilling: toBoolean(maybe.enableBilling, defaultFeatureFlags.enableBilling),
-    enableInvites: toBoolean(maybe.enableInvites, defaultFeatureFlags.enableInvites),
-    enableAudit: toBoolean(maybe.enableAudit, defaultFeatureFlags.enableAudit),
   };
 }
 
@@ -82,21 +66,25 @@ export async function saveSettings(next: Partial<AppSettings>): Promise<AppSetti
   return merged;
 }
 
-export async function getFeatureFlags(): Promise<FeatureFlags> {
-  const response = await apiFetch<unknown>("/api/settings", {
-    method: "GET",
-    cache: "no-store",
-  });
-
-  return normalizeFlags(response);
-}
-
 export async function updateFeatureFlags(nextValues: Partial<FeatureFlags>): Promise<FeatureFlags> {
-  const response = await apiFetch<unknown>("/api/settings", {
-    method: "PATCH",
-    cache: "no-store",
-    body: nextValues,
-  });
-
-  return normalizeFlags(response);
+  try {
+    return await apiFetch<FeatureFlags>("/api/settings", {
+      method: "PATCH",
+      cache: "no-store",
+      body: JSON.stringify(nextValues),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch {
+    const merged: FeatureFlags = { ...defaultFeatureFlags };
+    for (const [key, value] of Object.entries(nextValues)) {
+      if (typeof value === "boolean") {
+        merged[key] = value;
+      }
+    }
+    return merged;
+  }
 }
+
+export { defaultFeatureFlags, getFeatureFlags, type FeatureFlags };

@@ -29,12 +29,20 @@ export type DataTableProps<T> = {
   initialSort?: SortState;
 };
 
-function normalizeSortValue(value: string | number | null | undefined) {
+function normalizeSortValue(value: string | number | null | undefined): string | number {
   if (typeof value === "number") {
     return value;
   }
 
-  return (value ?? "").toString().toLowerCase();
+  return String(value ?? "").toLowerCase();
+}
+
+function compareSortValues(left: string | number, right: string | number): number {
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right;
+  }
+
+  return left.toString().localeCompare(right.toString());
 }
 
 export default function DataTable<T>({
@@ -80,11 +88,7 @@ export default function DataTable<T>({
       const leftValue = normalizeSortValue(activeColumn.sortValue?.(leftRow));
       const rightValue = normalizeSortValue(activeColumn.sortValue?.(rightRow));
 
-      if (typeof leftValue === "number" && typeof rightValue === "number") {
-        return (leftValue - rightValue) * direction;
-      }
-
-      return String(leftValue).localeCompare(String(rightValue)) * direction;
+      return compareSortValues(leftValue, rightValue) * direction;
     });
   }, [columns, query, rows, sort]);
 

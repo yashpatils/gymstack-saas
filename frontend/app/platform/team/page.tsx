@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { listUsers, User } from "../../../src/lib/users";
 import { createInvite } from "../../../src/lib/invites";
-import { defaultFeatureFlags, getFeatureFlags } from "../../../src/lib/settings";
+import { defaultFeatureFlags, getFeatureFlags } from "../../../src/lib/featureFlags";
 
 export default function PlatformTeamPage() {
   const [users, setUsers] = useState<User[]>([]);

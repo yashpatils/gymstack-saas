@@ -1,19 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "../../../src/components/ProtectedRoute";
 import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import {
-  type CreateCheckoutResponse,
   type BillingStatusResponse,
+  type CreateCheckoutResponse,
+  type Plan,
 } from "../../../src/lib/billing";
-import { type AuthMeResponse } from "../../../src/lib/auth";
+import type { AuthMeResponse } from "../../../src/types/auth";
 import { canManageBilling } from "../../../src/lib/rbac";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
 import { apiFetch } from "../../lib/api";
 import { Button, PageShell, Skeleton } from "../../components/ui";
+
+function normalizeSubscriptionStatus(value: string): BillingStatusResponse["subscriptionStatus"] {
+  const normalized = value.toLowerCase();
+
+  switch (normalized) {
+    case "active":
+    case "trialing":
+    case "past_due":
+    case "canceled":
+    case "incomplete":
+    case "incomplete_expired":
+    case "unpaid":
+    case "paused":
+      return normalized;
+    default:
+      return "unknown";
+  }
+}
 
 function toFriendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : "Unknown error";
@@ -33,7 +52,7 @@ function toFriendlyError(error: unknown): string {
   return message;
 }
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function RequireAuth({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
 
@@ -87,7 +106,7 @@ export default function PlatformBillingPage() {
         }
 
         if (typeof me.subscriptionStatus === "string") {
-          setStatus((prev) => ({ ...prev, subscriptionStatus: me.subscriptionStatus }));
+          setStatus((prev) => ({ ...prev, subscriptionStatus: normalizeSubscriptionStatus(me.subscriptionStatus) }));
         }
 
         if (typeof me.stripeConfigured === "boolean") {
@@ -139,21 +158,16 @@ export default function PlatformBillingPage() {
       return;
     }
 
-    const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
-    if (!priceId) {
-      setMessage("Missing NEXT_PUBLIC_STRIPE_PRICE_ID configuration.");
-      return;
-    }
-
     setUpgrading(true);
     setMessage(null);
 
     try {
+      const selectedPlan: Plan = { id: "starter", name: "Starter" };
       const result = await apiFetch<CreateCheckoutResponse>("/api/billing/checkout", {
         method: "POST",
         body: JSON.stringify({
           userId: user.id,
-          priceId,
+          priceId: selectedPlan.priceId,
         }),
         headers: {
           "Content-Type": "application/json",

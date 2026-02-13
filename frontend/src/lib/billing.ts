@@ -1,27 +1,28 @@
-import { apiFetch } from './api';
+import { apiFetch } from "./api";
+import type { BillingStatusResponse, Plan } from "../types/billing";
 
-export type BillingStatusResponse = {
-  subscriptionStatus?: string;
-  stripeCustomerId?: string | null;
-  stripeSubscriptionId?: string | null;
-  [key: string]: unknown;
-};
+export type { BillingStatusResponse, Plan };
 
 export type CreateCheckoutResponse = {
   checkoutUrl?: string | null;
-  [key: string]: unknown;
+  sessionId?: string | null;
 };
 
-export async function createCheckout(): Promise<CreateCheckoutResponse> {
-  return apiFetch<CreateCheckoutResponse>('/api/billing/checkout', {
-    method: 'POST',
+export async function createCheckout(plan: Plan, userId: string): Promise<CreateCheckoutResponse> {
+  return apiFetch<CreateCheckoutResponse>("/api/billing/checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      priceId: plan.priceId,
+    }),
   });
 }
 
-export async function getBillingStatus(
-  userId: string,
-): Promise<BillingStatusResponse> {
+export async function getBillingStatus(userId: string): Promise<BillingStatusResponse> {
   return apiFetch<BillingStatusResponse>(`/api/billing/status/${userId}`, {
-    method: 'GET',
+    method: "GET",
   });
 }
