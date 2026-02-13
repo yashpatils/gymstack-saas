@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { SignupRole } from "../../src/lib/auth";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useToast } from "../../src/components/toast/ToastProvider";
@@ -20,6 +21,36 @@ type FieldErrors = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const ROLE_OPTIONS: {
+  id: SignupRole;
+  label: string;
+  description: string;
+  helper: string;
+}[] = [
+  {
+    id: "OWNER",
+    label: "Gym Owner",
+    description: "Create a workspace, invite your team, and configure locations.",
+    helper: "Best for founders and directors who need full tenant control.",
+  },
+  {
+    id: "ADMIN",
+    label: "Operations Admin",
+    description: "Manage daily operations, classes, and staff workflows.",
+    helper: "Great for general managers and front-desk leaders.",
+  },
+  {
+    id: "USER",
+    label: "Coach / Staff",
+    description: "Access assigned workflows and member-facing tools.",
+    helper: "Typically invited by an owner after workspace setup.",
+  },
+];
+
+function isSignupRole(value: string | null): value is SignupRole {
+  return value === "OWNER" || value === "ADMIN" || value === "USER";
+}
 
 function validateCredentials(email: string, password: string): FieldErrors {
   const errors: FieldErrors = {};
@@ -46,7 +77,9 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<SignupRole>("OWNER");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signup, loading: authLoading, user } = useAuth();
   const toast = useToast();
 
@@ -66,6 +99,13 @@ export default function SignupPage() {
     }
   }, [authLoading, user, router]);
 
+  useEffect(() => {
+    const roleFromQuery = searchParams.get("role");
+    if (isSignupRole(roleFromQuery)) {
+      setSelectedRole(roleFromQuery);
+    }
+  }, [searchParams]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -80,7 +120,7 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      await signup(email, password);
+      await signup(email, password, selectedRole);
       router.push("/onboarding");
     } catch (submitError) {
       const errorMessage =
@@ -133,6 +173,34 @@ export default function SignupPage() {
               <Divider label="or sign up with email" />
 
               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium text-slate-100">Choose your role</legend>
+                  <div className="space-y-2">
+                    {ROLE_OPTIONS.map((roleOption) => {
+                      const isSelected = selectedRole === roleOption.id;
+
+                      return (
+                        <button
+                          key={roleOption.id}
+                          type="button"
+                          onClick={() => setSelectedRole(roleOption.id)}
+                          className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+                            isSelected
+                              ? "border-sky-300 bg-sky-500/20 text-sky-100"
+                              : "border-white/15 bg-slate-900/60 text-slate-300 hover:border-sky-300/70 hover:text-slate-100"
+                          }`}
+                          aria-pressed={isSelected}
+                        >
+                          <p className="text-sm font-medium">{roleOption.label}</p>
+                          <p className="mt-1 text-xs text-slate-300">{roleOption.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {ROLE_OPTIONS.find((roleOption) => roleOption.id === selectedRole)?.helper}
+                  </p>
+                </fieldset>
                 <p className="sr-only" aria-live="polite" role="status">
                   {formErrorSummary}
                 </p>

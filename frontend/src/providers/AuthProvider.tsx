@@ -16,6 +16,7 @@ import {
   login as loginRequest,
   logout as clearToken,
   me as getMe,
+  type SignupRole,
   setContext as setContextRequest,
   signup as signupRequest,
 } from '../lib/auth';
@@ -31,7 +32,7 @@ type AuthContextValue = {
   permissions: string[];
   activeContext?: ActiveContext;
   login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[] }>;
-  signup: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[] }>;
+  signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[] }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
@@ -110,8 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { user: loggedInUser, memberships: nextMemberships };
   }, [hydrateFromMe]);
 
-  const signup = useCallback(async (email: string, password: string) => {
-    const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext } = await signupRequest(email, password);
+  const signup = useCallback(async (email: string, password: string, role?: SignupRole) => {
+    const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext } = await signupRequest(email, password, role);
     setToken(authToken);
     setUser(signedUpUser);
     setMemberships(nextMemberships);
