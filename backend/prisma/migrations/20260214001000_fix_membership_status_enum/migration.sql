@@ -39,6 +39,9 @@ BEGIN
       AND udt_name <> 'MembershipStatus'
   ) THEN
     ALTER TABLE "Membership"
+      ALTER COLUMN "status" DROP DEFAULT;
+
+    ALTER TABLE "Membership"
       ALTER COLUMN "status" TYPE "MembershipStatus"
       USING ("status"::"MembershipStatus");
   END IF;
