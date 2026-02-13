@@ -40,18 +40,15 @@ function isRecordBody(value: unknown): value is Record<string, unknown> {
 
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const headers = new Headers(init.headers ?? {});
-  let body: BodyInit | null | undefined = init.body;
+  const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;
 
-  if (isRecordBody(init.body)) {
-    body = JSON.stringify(init.body);
-    if (!headers.has("Content-Type")) {
-      headers.set("Content-Type", "application/json");
-    }
+  if (isRecordBody(init.body) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   const response = await fetch(buildApiUrl(path), {
     ...init,
-    body,
+    body: requestBody,
     headers,
     credentials: init.credentials ?? "include",
   });

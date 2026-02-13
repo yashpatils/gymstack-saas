@@ -70,3 +70,10 @@ Required environment variables:
   - `/platform/team`
   - `/platform/settings`
   - `/reset-password`
+
+
+## Vercel project settings
+
+- **Root Directory:** `frontend`
+- **Build Command:** `npm run predeploy`
+- **Install Command:** `npm install`
