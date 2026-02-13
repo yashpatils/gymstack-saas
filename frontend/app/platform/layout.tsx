@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RequireAuth } from "../../src/components/RequireAuth";
 import { apiFetch } from "../../src/lib/api";
-import { canManageBilling, canManageUsers, normalizeRole } from "../../src/lib/rbac";
+
 import { defaultFeatureFlags, getFeatureFlags } from "../../src/lib/featureFlags";
 import { useAuth } from "../../src/providers/AuthProvider";
 
@@ -51,15 +51,13 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, permissions, memberships } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
   const [featureFlags, setFeatureFlags] = useState(defaultFeatureFlags);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const rawRole = user?.role ?? "MEMBER";
   const email = user?.email ?? "platform.user@gymstack.app";
-  const role = normalizeRole(rawRole);
-  const isAdmin = rawRole === "ADMIN" || role === "OWNER";
+  const isAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
   const showDebugLinks = featureFlags.enableDebugLinks || process.env.NODE_ENV !== "production" || isAdmin;
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
@@ -197,9 +195,9 @@ export default function PlatformLayout({
                 }
 
                 const disabled =
-                  (item.requires === "users" && !canManageUsers(role))
-                  || (item.requires === "billing" && !canManageBilling(role))
-                  || (item.requires === "owner" && role !== "OWNER");
+                  (item.requires === "users" && !permissions.some((permission) => permission.startsWith("tenant:") || permission.startsWith("members:")))
+                  || (item.requires === "billing" && !permissions.includes("billing:*"))
+                  || (item.requires === "owner" && !permissions.includes("tenant:*"));
                 const isActive =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -237,6 +235,7 @@ export default function PlatformLayout({
               <p className="platform-topbar-label">Platform</p>
               <p className="platform-topbar-email">{email}</p>
               <p className="platform-topbar-label">Organization: {orgName}</p>
+              {memberships.length > 1 ? <Link href="/platform/context" className="platform-topbar-label">Switch workspace</Link> : null}
             </div>
 
             <div className="platform-topbar-actions">

@@ -1,66 +1,38 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PrismaService } from '../prisma/prisma.service';
-import { normalizeRole } from './role.util';
+import { ConfigService } from '@nestjs/config';
+import { MembershipRole } from '@prisma/client';
+import { resolvePermissions } from './permissions';
 
-type JwtPayload = {
+interface JwtPayload {
   sub: string;
-  id?: string;
+  id: string;
   email: string;
-  role: string;
+  role?: string;
   orgId?: string;
-};
+  activeTenantId?: string;
+  activeGymId?: string;
+  activeRole?: MembershipRole;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    configService: ConfigService,
-    private readonly prisma: PrismaService,
-  ) {
-    // JWT_SECRET must be supplied via environment variables (e.g. Railway service variables).
-    const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
+  constructor(private readonly configService: ConfigService) {
+    const secret = configService.get<string>('JWT_SECRET');
+
     if (!secret) {
-      throw new Error(
-        'JWT_SECRET is required and must be provided via environment variables before starting the backend.',
-      );
+      const logger = new Logger(JwtStrategy.name);
+      logger.warn('JWT_SECRET is not defined. Falling back to dev secret for local startup.');
     }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: secret,
+      secretOrKey: secret ?? 'dev-secret',
     });
   }
 
-  async validate(payload: JwtPayload): Promise<{
-    id: string;
-    email: string;
-    role: string;
-    orgId: string;
-  }> {
-    const userId = payload.id ?? payload.sub;
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, role: true },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const membership = await this.prisma.membership.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
-      select: { orgId: true },
-    });
-
-    return {
-      id: user.id,
-      email: user.email,
-      role: normalizeRole(user.role),
-      orgId: membership?.orgId ?? payload.orgId ?? '',
-    };
+  validate(payload: JwtPayload): JwtPayload & { permissions: string[] } {
+    return { ...payload, permissions: payload.activeRole ? resolvePermissions(payload.activeRole) : [] };
   }
 }

@@ -8,15 +8,25 @@ generator client {
 }
 
 enum Role {
+  PLATFORM_ADMIN
   ADMIN
   OWNER
   USER
 }
 
 enum MembershipRole {
-  OWNER
-  ADMIN
-  MEMBER
+  tenant_owner
+  tenant_admin
+  gym_owner
+  branch_manager
+  personal_trainer
+  client
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
 }
 
 enum SubscriptionStatus {
@@ -88,7 +98,6 @@ model Invite {
   @@index([tokenHash])
 }
 
-
 model Notification {
   id        String   @id @default(uuid())
   userId    String
@@ -128,6 +137,7 @@ model Gym {
   orgId        String
   owner        User         @relation(fields: [ownerId], references: [id])
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  memberships  Membership[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -147,15 +157,18 @@ model Organization {
 }
 
 model Membership {
-  id        String         @id @default(cuid())
+  id        String           @id @default(cuid())
   orgId     String
   userId    String
-  role      MembershipRole @default(MEMBER)
-  createdAt DateTime       @default(now())
-  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymId     String?
+  role      MembershipRole
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+  org       Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gym       Gym?             @relation(fields: [gymId], references: [id], onDelete: SetNull)
 
-  @@unique([orgId, userId])
+  @@unique([userId, orgId, gymId, role])
   @@index([orgId])
   @@index([userId])
 }
