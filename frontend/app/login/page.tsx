@@ -2,276 +2,55 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { SignupRole } from "../../src/lib/auth";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
-import { useToast } from "../../src/components/toast/ToastProvider";
-import {
-  Alert,
-  Button,
-  Divider,
-  IconButton,
-  Input,
-} from "../components/ui/index";
-import { Skeleton } from "../../src/components/ui/Skeleton";
-
-type FieldErrors = {
-  email?: string;
-  password?: string;
-};
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const DEMO_EMAIL = "demo@gymstack.dev";
-const DEMO_PASSWORD = "demo12345";
-
-const LOGIN_PERSONAS: {
-  id: SignupRole;
-  label: string;
-  description: string;
-  signupHint: string;
-}[] = [
-  {
-    id: "OWNER",
-    label: "Owner",
-    description: "I run the gym and need full operational visibility.",
-    signupHint: "Create an owner workspace",
-  },
-  {
-    id: "ADMIN",
-    label: "Manager / Admin",
-    description: "I manage schedules, team workflows, and front-desk operations.",
-    signupHint: "Create an admin account",
-  },
-  {
-    id: "USER",
-    label: "Coach / Staff",
-    description: "I need access to my assigned tasks and member workflows.",
-    signupHint: "Ask your owner for an invite",
-  },
-];
-
-function validateCredentials(email: string, password: string): FieldErrors {
-  const errors: FieldErrors = {};
-
-  if (!email.trim()) {
-    errors.email = "Email is required.";
-  } else if (!emailPattern.test(email)) {
-    errors.email = "Enter a valid email address.";
-  }
-
-  if (!password) {
-    errors.password = "Password is required.";
-  } else if (password.length < 8) {
-    errors.password = "Password must be at least 8 characters.";
-  }
-
-  return errors;
-}
+import { Alert, Button, Input } from "../components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading: authLoading, user } = useAuth();
-  const toast = useToast();
+  const { login, loading, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPersona, setSelectedPersona] = useState<SignupRole>("OWNER");
-
-  const isBusy = authLoading || isSubmitting;
-  const formErrorSummary = Object.values(fieldErrors).filter(Boolean).join(" ");
-  const passwordHelper = useMemo(
-    () => (showPassword ? "Make sure no one is looking at your screen." : "Use your GymStack account password."),
-    [showPassword],
-  );
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!loading && user) {
       router.replace("/platform");
     }
-  }, [authLoading, user, router]);
+  }, [loading, user, router]);
 
-  const handleDemoAccount = () => {
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    setFieldErrors({});
-    setError(null);
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-
-    const errors = validateCredentials(email, password);
-    setFieldErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-
-    setIsSubmitting(true);
+    setSubmitting(true);
 
     try {
-      const authResult = await login(email, password);
-      toast.success("Logged in", "Welcome back to GymStack.");
-      const needsLocationSelection = !authResult.activeContext?.gymId
-        && authResult.memberships.some((membership) => membership.gymId == null && ["TENANT_OWNER", "TENANT_LOCATION_ADMIN"].includes(membership.role));
-
-      if (needsLocationSelection) {
-        router.push("/platform/context");
-      } else {
+      const result = await login(email, password);
+      if (result.memberships.length === 0) {
+        router.push("/onboarding");
+      } else if (result.memberships.length === 1) {
         router.push("/platform");
+      } else {
+        router.push("/select-workspace");
       }
     } catch (submitError) {
-      const errorMessage =
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to complete login.";
-      setError(errorMessage);
-      toast.error("Login failed", errorMessage);
+      setError(submitError instanceof Error ? submitError.message : "Unable to login.");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.35),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.2),transparent_40%)]" />
-
-      <section className="relative mx-auto w-full max-w-5xl rounded-3xl border border-white/20 bg-slate-900/80 p-1 shadow-2xl shadow-indigo-900/30">
-        <div className="grid overflow-hidden rounded-[22px] bg-slate-900/70 lg:grid-cols-[1.08fr_1fr]">
-          <div className="flex flex-col justify-between gap-8 border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
-            <div className="space-y-4">
-              <p className="text-xs uppercase tracking-[0.35em] text-indigo-200/90">GymStack</p>
-              <h1 className="text-3xl font-semibold leading-tight">Welcome back to your operations hub.</h1>
-              <p className="max-w-md text-sm text-slate-300">
-                Keep your members, teams, and locations synced in one place. Log in to continue managing your gyms.
-              </p>
-            </div>
-            <ul className="space-y-3 text-sm text-slate-200">
-              <li>• Unified dashboards for memberships and performance.</li>
-              <li>• Role-aware tools built for owners and front desk teams.</li>
-              <li>• Secure sign-in and session controls across tenants.</li>
-            </ul>
-          </div>
-
-          <div className="p-6 sm:p-8">
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-2xl font-semibold">Log in</h2>
-                <p className="mt-1 text-sm text-slate-300">Use your work email and password to access GymStack.</p>
-              </div>
-
-              {error ? <Alert role="alert">{error}</Alert> : null}
-              {authLoading ? <Alert tone="info">Checking existing session...</Alert> : null}
-
-              <Button variant="secondary" disabled className="gap-3">
-                <span className="text-base">G</span>
-                Continue with Google
-              </Button>
-
-              <Divider label="or continue with email" />
-
-              <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium text-slate-100">I'm logging in as</legend>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {LOGIN_PERSONAS.map((persona) => {
-                      const isSelected = selectedPersona === persona.id;
-
-                      return (
-                        <button
-                          key={persona.id}
-                          type="button"
-                          onClick={() => setSelectedPersona(persona.id)}
-                          className={`rounded-xl border px-3 py-2 text-left transition ${
-                            isSelected
-                              ? "border-indigo-300 bg-indigo-500/20 text-indigo-100"
-                              : "border-white/15 bg-slate-900/60 text-slate-300 hover:border-indigo-300/70 hover:text-slate-100"
-                          }`}
-                          aria-pressed={isSelected}
-                        >
-                          <p className="text-sm font-medium">{persona.label}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    {LOGIN_PERSONAS.find((persona) => persona.id === selectedPersona)?.description}
-                  </p>
-                </fieldset>
-                <p className="sr-only" aria-live="polite" role="status">
-                  {formErrorSummary}
-                </p>
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  helperText="Use the same email you use for your organization."
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  error={fieldErrors.email}
-                />
-
-                <Input
-                  label="Password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Enter at least 8 characters"
-                  helperText={passwordHelper}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  error={fieldErrors.password}
-                  rightElement={
-                    <IconButton
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      onClick={() => setShowPassword((current) => !current)}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </IconButton>
-                  }
-                />
-
-                <div className="flex items-center justify-between gap-3">
-                  <Button type="button" variant="ghost" size="sm" onClick={handleDemoAccount} disabled={isBusy}>
-                    Try demo account
-                  </Button>
-                  <Link href="/forgot-password" className="text-sm text-indigo-200 hover:text-indigo-100">
-                    Forgot password?
-                  </Link>
-                </div>
-
-                <Button type="submit" disabled={isBusy}>
-                  {isBusy ? (
-                    <span className="flex w-full items-center justify-center gap-2">
-                      <Skeleton className="h-4 w-4 rounded-full" />
-                      <Skeleton className="h-4 w-24" />
-                    </span>
-                  ) : (
-                    "Log in"
-                  )}
-                </Button>
-              </form>
-
-              <p className="text-sm text-slate-300">
-                New to GymStack?{" "}
-                <Link className="font-medium text-indigo-200 hover:text-indigo-100" href={`/signup?role=${selectedPersona}`}>
-                  {LOGIN_PERSONAS.find((persona) => persona.id === selectedPersona)?.signupHint}
-                </Link>
-                .
-              </p>
-
-              <p className="pt-1 text-xs text-slate-400">By continuing, you agree to GymStack terms and privacy policy.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+      <form className="w-full space-y-4" onSubmit={onSubmit}>
+        <h1 className="text-2xl font-semibold text-white">Login</h1>
+        {error ? <Alert>{error}</Alert> : null}
+        <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <Button type="submit" disabled={submitting || loading}>{submitting ? "Signing in..." : "Sign in"}</Button>
+        <p className="text-sm text-slate-300">No account? <Link href="/signup" className="text-sky-300">Create one</Link></p>
+      </form>
     </main>
   );
 }

@@ -14,6 +14,7 @@ import {
   type AuthUser,
   getToken,
   login as loginRequest,
+  acceptInvite as acceptInviteRequest,
   logout as clearToken,
   me as getMe,
   type SignupRole,
@@ -34,6 +35,7 @@ type AuthContextValue = {
   effectiveRole?: MembershipRole;
   login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
@@ -127,6 +129,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext };
   }, [hydrateFromMe]);
 
+  const acceptInvite = useCallback(async (input: { token: string; password?: string; email?: string; name?: string }) => {
+    const { token: authToken, user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext } = await acceptInviteRequest(input);
+    setToken(authToken);
+    setUser(invitedUser);
+    setMemberships(nextMemberships);
+    setActiveContext(nextActiveContext);
+    await hydrateFromMe();
+    return { user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext };
+  }, [hydrateFromMe]);
+
   const chooseContext = useCallback(async (tenantId: string, gymId?: string) => {
     const { token: nextToken } = await setContextRequest(tenantId, gymId);
     setToken(nextToken);
@@ -190,11 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       effectiveRole,
       login,
       signup,
+      acceptInvite,
       chooseContext,
       logout,
       refreshUser,
     }),
-    [user, token, isLoading, memberships, permissions, activeContext, effectiveRole, login, signup, chooseContext, logout, refreshUser],
+    [user, token, isLoading, memberships, permissions, activeContext, effectiveRole, login, signup, acceptInvite, chooseContext, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

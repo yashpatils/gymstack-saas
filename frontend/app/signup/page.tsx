@@ -1,276 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { SignupRole } from "../../src/lib/auth";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
-import { useToast } from "../../src/components/toast/ToastProvider";
-import {
-  Alert,
-  Button,
-  Divider,
-  IconButton,
-  Input,
-} from "../components/ui/index";
-import { Skeleton } from "../../src/components/ui/Skeleton";
+import { Alert, Button, Input } from "../components/ui";
 
-type FieldErrors = {
-  email?: string;
-  password?: string;
-};
+type Intent = "owner" | "staff" | "client";
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const ROLE_OPTIONS: {
-  id: SignupRole;
-  label: string;
-  description: string;
-  helper: string;
-}[] = [
-  {
-    id: "OWNER",
-    label: "Gym Owner",
-    description: "Create a workspace, invite your team, and configure locations.",
-    helper: "Best for founders and directors who need full tenant control.",
-  },
-  {
-    id: "ADMIN",
-    label: "Operations Admin",
-    description: "Manage daily operations, classes, and staff workflows.",
-    helper: "Great for general managers and front-desk leaders.",
-  },
-  {
-    id: "USER",
-    label: "Coach / Staff",
-    description: "Access assigned workflows and member-facing tools.",
-    helper: "Typically invited by an owner after workspace setup.",
-  },
-];
-
-function isSignupRole(value: string | null): value is SignupRole {
-  return value === "OWNER" || value === "ADMIN" || value === "USER";
-}
-
-function validateCredentials(email: string, password: string): FieldErrors {
-  const errors: FieldErrors = {};
-
-  if (!email.trim()) {
-    errors.email = "Email is required.";
-  } else if (!emailPattern.test(email)) {
-    errors.email = "Enter a valid email address.";
-  }
-
-  if (!password) {
-    errors.password = "Password is required.";
-  } else if (password.length < 8) {
-    errors.password = "Password must be at least 8 characters.";
-  }
-
-  return errors;
-}
-
-function SignupPageContent() {
+export default function SignupPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { signup, acceptInvite } = useAuth();
+  const [intent, setIntent] = useState<Intent>((searchParams.get("intent") as Intent) || "owner");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [token, setToken] = useState(searchParams.get("token") ?? "");
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<SignupRole>("OWNER");
-  const router = useRouter();
-  const { signup, loading: authLoading, user } = useAuth();
-  const toast = useToast();
+  const [submitting, setSubmitting] = useState(false);
 
-  const isBusy = authLoading || isSubmitting;
-  const formErrorSummary = Object.values(fieldErrors).filter(Boolean).join(" ");
-  const passwordHelper = useMemo(
-    () =>
-      showPassword
-        ? "Use a strong password before sharing your screen."
-        : "Use at least 8 characters with a mix of letters and numbers.",
-    [showPassword],
-  );
+  const inviteRequired = intent !== "owner";
+  const title = useMemo(() => {
+    if (intent === "owner") return "Create my gym";
+    if (intent === "staff") return "Join as staff/coach";
+    return "Join as client";
+  }, [intent]);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      router.replace("/onboarding");
-    }
-  }, [authLoading, user, router]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roleFromQuery = params.get("role");
-    if (isSignupRole(roleFromQuery)) {
-      setSelectedRole(roleFromQuery);
-    }
-  }, []);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-
-    const errors = validateCredentials(email, password);
-    setFieldErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-
-    setIsSubmitting(true);
+    setSubmitting(true);
 
     try {
-      await signup(email, password, selectedRole);
-      router.push("/onboarding");
+      if (inviteRequired) {
+        const result = await acceptInvite({ token, email: email || undefined, password: password || undefined });
+        router.push(result.memberships.length > 1 ? "/select-workspace" : "/platform");
+      } else {
+        const result = await signup(email, password);
+        router.push(result.memberships.length === 0 ? "/onboarding" : "/platform");
+      }
     } catch (submitError) {
-      const errorMessage =
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to complete signup.";
-      setError(errorMessage);
-      toast.error("Signup failed", errorMessage);
+      setError(submitError instanceof Error ? submitError.message : "Unable to sign up.");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.3),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(129,140,248,0.26),transparent_43%)]" />
-
-      <section className="relative mx-auto w-full max-w-5xl rounded-3xl border border-white/20 bg-slate-900/80 p-1 shadow-2xl shadow-sky-900/30">
-        <div className="grid overflow-hidden rounded-[22px] bg-slate-900/70 lg:grid-cols-[1.08fr_1fr]">
-          <div className="flex flex-col justify-between gap-8 border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
-            <div className="space-y-4">
-              <p className="text-xs uppercase tracking-[0.35em] text-sky-200/90">GymStack</p>
-              <h1 className="text-3xl font-semibold leading-tight">Build your gym operation command center.</h1>
-              <p className="max-w-md text-sm text-slate-300">
-                Create your account and get immediate access to scheduling, memberships, and growth analytics.
-              </p>
-            </div>
-            <ul className="space-y-3 text-sm text-slate-200">
-              <li>• Launch tenant-ready workflows for every location.</li>
-              <li>• Keep teams aligned with role-based permissions.</li>
-              <li>• Scale confidently with secure centralized access.</li>
-            </ul>
-          </div>
-
-          <div className="p-6 sm:p-8">
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-2xl font-semibold">Create account</h2>
-                <p className="mt-1 text-sm text-slate-300">Start with your work email. You can invite your team later.</p>
-              </div>
-
-              {error ? <Alert role="alert">{error}</Alert> : null}
-              {authLoading ? <Alert tone="info">Checking existing session...</Alert> : null}
-
-              <Button variant="secondary" disabled className="gap-3">
-                <span className="text-base">G</span>
-                Continue with Google
-              </Button>
-
-              <Divider label="or sign up with email" />
-
-              <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium text-slate-100">Choose your role</legend>
-                  <div className="space-y-2">
-                    {ROLE_OPTIONS.map((roleOption) => {
-                      const isSelected = selectedRole === roleOption.id;
-
-                      return (
-                        <button
-                          key={roleOption.id}
-                          type="button"
-                          onClick={() => setSelectedRole(roleOption.id)}
-                          className={`w-full rounded-xl border px-3 py-3 text-left transition ${
-                            isSelected
-                              ? "border-sky-300 bg-sky-500/20 text-sky-100"
-                              : "border-white/15 bg-slate-900/60 text-slate-300 hover:border-sky-300/70 hover:text-slate-100"
-                          }`}
-                          aria-pressed={isSelected}
-                        >
-                          <p className="text-sm font-medium">{roleOption.label}</p>
-                          <p className="mt-1 text-xs text-slate-300">{roleOption.description}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    {ROLE_OPTIONS.find((roleOption) => roleOption.id === selectedRole)?.helper}
-                  </p>
-                </fieldset>
-                <p className="sr-only" aria-live="polite" role="status">
-                  {formErrorSummary}
-                </p>
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="name@company.com"
-                  helperText="We'll use this to create your GymStack workspace login."
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  error={fieldErrors.email}
-                />
-
-                <Input
-                  label="Password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  placeholder="Create a secure password"
-                  helperText={passwordHelper}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  error={fieldErrors.password}
-                  rightElement={
-                    <IconButton
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      onClick={() => setShowPassword((current) => !current)}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </IconButton>
-                  }
-                />
-
-                <div className="flex items-center justify-between">
-                  <Link href="/forgot-password" className="text-sm text-sky-200 hover:text-sky-100">
-                    Forgot password?
-                  </Link>
-                </div>
-
-                <Button type="submit" disabled={isBusy}>
-                  {isBusy ? (
-                    <span className="flex w-full items-center justify-center gap-2">
-                      <Skeleton className="h-4 w-4 rounded-full" />
-                      <Skeleton className="h-4 w-32" />
-                    </span>
-                  ) : (
-                    "Create account"
-                  )}
-                </Button>
-              </form>
-
-              <p className="text-sm text-slate-300">
-                Already have an account?{" "}
-                <Link className="font-medium text-sky-200 hover:text-sky-100" href="/login">
-                  Log in
-                </Link>
-                .
-              </p>
-
-              <p className="pt-1 text-xs text-slate-400">By creating an account, you agree to GymStack terms and privacy policy.</p>
-            </div>
-          </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-lg items-center px-6">
+      <form className="w-full space-y-4" onSubmit={onSubmit}>
+        <h1 className="text-2xl font-semibold text-white">{title}</h1>
+        <div className="flex gap-2 text-sm">
+          <button type="button" className="button secondary" onClick={() => setIntent("owner")}>Owner</button>
+          <button type="button" className="button secondary" onClick={() => setIntent("staff")}>Staff/Coach</button>
+          <button type="button" className="button secondary" onClick={() => setIntent("client")}>Client</button>
         </div>
-      </section>
+        {error ? <Alert>{error}</Alert> : null}
+        {inviteRequired ? (
+          <Input label="Invite token" value={token} onChange={(event) => setToken(event.target.value)} required />
+        ) : null}
+        <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required={!inviteRequired} />
+        <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required={!inviteRequired} />
+        <Button type="submit" disabled={submitting}>{submitting ? "Submitting..." : title}</Button>
+        <p className="text-sm text-slate-300">Already registered? <Link href="/login" className="text-sky-300">Login</Link></p>
+      </form>
     </main>
   );
-}
-
-export default function SignupPage() {
-  return <SignupPageContent />;
 }
