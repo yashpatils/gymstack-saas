@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { Alert, Button, Input } from "../components/ui";
 
 type Intent = "owner" | "staff" | "client";
 
-export default function SignupPage() {
+function SignupPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signup, acceptInvite } = useAuth();
@@ -65,5 +65,13 @@ export default function SignupPage() {
         <p className="text-sm text-slate-300">Already registered? <Link href="/login" className="text-sky-300">Login</Link></p>
       </form>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto flex min-h-screen w-full max-w-lg items-center px-6" />}>
+      <SignupPageContent />
+    </Suspense>
   );
 }
