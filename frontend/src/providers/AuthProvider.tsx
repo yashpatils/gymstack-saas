@@ -23,6 +23,7 @@ import type { Membership } from '../types/auth';
 
 type AuthContextValue = {
   user: AuthUser | null;
+  role: string | null;
   token: string | null;
   loading: boolean;
   isLoading: boolean;
@@ -166,7 +167,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, loading: isLoading, isLoading, memberships, permissions, activeContext, login, signup, chooseContext, logout, refreshUser }),
+    () => ({
+      user,
+      role: user?.role ?? null,
+      token,
+      loading: isLoading,
+      isLoading,
+      memberships,
+      permissions,
+      activeContext,
+      login,
+      signup,
+      chooseContext,
+      logout,
+      refreshUser,
+    }),
     [user, token, isLoading, memberships, permissions, activeContext, login, signup, chooseContext, logout, refreshUser],
   );
 
