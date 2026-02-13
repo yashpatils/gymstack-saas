@@ -85,7 +85,7 @@ export default function ResetPasswordClient() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-white">
-      <section className="w-full max-w-md rounded-2xl border border-white/15 bg-slate-900/70 p-6 shadow-xl backdrop-blur">
+      <section className="w-full max-w-md rounded-2xl border border-white/15 bg-slate-900/80 p-6 shadow-xl">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Reset your password</h1>
           <p className="text-sm text-slate-300">

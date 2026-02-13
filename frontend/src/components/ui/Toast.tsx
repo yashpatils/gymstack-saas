@@ -32,7 +32,7 @@ export function Toast({
     <div
       role="status"
       className={cn(
-        "w-full max-w-sm rounded-lg border p-4 shadow-lg backdrop-blur-sm",
+        "w-full max-w-sm rounded-lg border p-4 shadow-lg",
         variantClasses[variant],
         className,
       )}

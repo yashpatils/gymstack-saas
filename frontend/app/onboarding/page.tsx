@@ -82,7 +82,7 @@ export default function OnboardingPage() {
   return (
     <ProtectedRoute>
       <main className="min-h-screen bg-slate-950 px-4 py-12 text-white sm:px-6 lg:px-8">
-        <section className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl shadow-slate-950/30 backdrop-blur">
+        <section className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/30">
           <div className="space-y-6">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-sky-200/90">GymStack onboarding</p>
