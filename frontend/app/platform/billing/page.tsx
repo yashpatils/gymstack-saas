@@ -105,8 +105,9 @@ export default function PlatformBillingPage() {
           return;
         }
 
-        if (typeof me.subscriptionStatus === "string") {
-          setStatus((prev) => ({ ...prev, subscriptionStatus: normalizeSubscriptionStatus(me.subscriptionStatus) }));
+        const subStatus = me.subscriptionStatus;
+        if (typeof subStatus === "string") {
+          setStatus((prev) => ({ ...prev, subscriptionStatus: normalizeSubscriptionStatus(subStatus) }));
         }
 
         if (typeof me.stripeConfigured === "boolean") {
