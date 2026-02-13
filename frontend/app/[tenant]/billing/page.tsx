@@ -2,7 +2,6 @@
 
 export const dynamic = "force-dynamic";
 
-import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useState } from "react";
 import {
   Badge,
@@ -21,9 +20,6 @@ import {
 } from "../../lib/billing";
 import { defaultSession } from "../../lib/auth";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
-);
 
 export default function TenantBillingPage() {
   const { backendResponse, callBackend } = useBackendAction();
@@ -88,20 +84,6 @@ export default function TenantBillingPage() {
         userId: defaultSession.userId,
         priceId,
       });
-
-      const stripe = await stripePromise;
-      if (stripe && subscriptionResponse.sessionId) {
-        const result = await stripe.redirectToCheckout({
-          sessionId: subscriptionResponse.sessionId,
-        });
-        if (result.error) {
-          setCheckoutState({
-            status: "error",
-            message: result.error.message ?? "Stripe redirect failed.",
-          });
-        }
-        return;
-      }
 
       if (subscriptionResponse.checkoutUrl) {
         window.location.href = subscriptionResponse.checkoutUrl;
