@@ -87,9 +87,13 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
+      const authResult = await login(email, password);
       toast.success("Logged in", "Welcome back to GymStack.");
-      router.push("/platform");
+      if (authResult.memberships.length > 1) {
+        router.push("/platform/context");
+      } else {
+        router.push("/platform");
+      }
     } catch (submitError) {
       const errorMessage =
         submitError instanceof Error

@@ -57,7 +57,7 @@ export class GymsService {
           data: {
             orgId: organization.id,
             userId: user.id,
-            role: MembershipRole.OWNER,
+            role: MembershipRole.tenant_owner,
           },
         });
 

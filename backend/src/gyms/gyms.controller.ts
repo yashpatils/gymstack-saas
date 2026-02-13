@@ -17,9 +17,11 @@ import { User, UserRole } from '../users/user.model';
 import { GymsService } from './gyms.service';
 import { CreateGymDto } from './dto/create-gym.dto';
 import { UpdateGymDto } from './dto/update-gym.dto';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('gyms')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class GymsController {
   constructor(private readonly gymsService: GymsService) {}
 
@@ -29,17 +31,18 @@ export class GymsController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.gymsService.listGyms(user.orgId);
+    return this.gymsService.listGyms(user.activeTenantId ?? user.orgId);
   }
 
   @Post()
+  @RequirePermission('gym:create')
   createGym(@Body() data: CreateGymDto, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.gymsService.createGymForUser(user, data.name);
+    return this.gymsService.createGymForUser({ ...user, orgId: user.activeTenantId ?? user.orgId }, data.name);
   }
 
   @Get(':id')
@@ -49,7 +52,7 @@ export class GymsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.gymsService.getGym(id, user.orgId);
+    return this.gymsService.getGym(id, user.activeTenantId ?? user.orgId);
   }
 
   @Patch(':id')
@@ -63,7 +66,7 @@ export class GymsController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.gymsService.updateGymForUser(id, data, user);
+    return this.gymsService.updateGymForUser(id, data, { ...user, orgId: user.activeTenantId ?? user.orgId });
   }
 
   @Patch(':id/owner')
@@ -78,7 +81,7 @@ export class GymsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.gymsService.updateGym(id, user.orgId, data);
+    return this.gymsService.updateGym(id, user.activeTenantId ?? user.orgId, data);
   }
 
   @Delete(':id')
@@ -88,6 +91,6 @@ export class GymsController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.gymsService.deleteGymForUser(id, user);
+    return this.gymsService.deleteGymForUser(id, { ...user, orgId: user.activeTenantId ?? user.orgId });
   }
 }
