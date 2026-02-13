@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { Membership, MembershipRole, MembershipStatus, Role } from '@prisma/client';
+import { MembershipRole, MembershipStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -13,6 +13,8 @@ import { resolvePermissions } from './permissions';
 
 @Injectable()
 export class AuthService {
+  private membershipSchemaSupport?: { hasGymId: boolean; hasStatus: boolean };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -76,8 +78,14 @@ export class AuthService {
       userAgent: context?.userAgent,
     });
 
-    const memberships = [this.toMembershipDto(created.membership)];
-    const activeContext = this.getDefaultContext([created.membership]);
+    const memberships = [this.toMembershipDto({
+      id: created.membership.id,
+      tenantId: created.membership.orgId,
+      gymId: created.membership.gymId,
+      role: created.membership.role,
+      status: created.membership.status,
+    })];
+    const activeContext = this.getDefaultContext(memberships);
 
     return {
       accessToken: this.signToken(created.user.id, created.user.email, created.user.role, activeContext),
@@ -103,10 +111,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId: user.id, status: MembershipStatus.ACTIVE },
-      orderBy: { createdAt: 'asc' },
-    });
+    const memberships = await this.listMemberships(user.id);
 
     const activeContext = this.getDefaultContext(memberships);
 
@@ -124,21 +129,16 @@ export class AuthService {
     return {
       accessToken: this.signToken(user.id, user.email, user.role, activeContext),
       user: { id: user.id, email: user.email, role: user.role, orgId: activeContext?.tenantId ?? '' },
-      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
+      memberships,
       activeContext,
     };
   }
 
   async setContext(userId: string, tenantId: string, gymId?: string): Promise<{ accessToken: string }> {
-    const membership = await this.prisma.membership.findFirst({
-      where: {
-        userId,
-        orgId: tenantId,
-        status: MembershipStatus.ACTIVE,
-        ...(gymId ? { gymId } : {}),
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    const memberships = await this.listMemberships(userId);
+    const membership = memberships.find(
+      (item) => item.tenantId === tenantId && (!gymId || item.gymId === gymId),
+    );
 
     if (!membership) {
       throw new UnauthorizedException('Invalid context for user');
@@ -150,7 +150,7 @@ export class AuthService {
     }
 
     const activeContext = {
-      tenantId: membership.orgId,
+      tenantId: membership.tenantId,
       gymId: membership.gymId,
       role: membership.role,
     };
@@ -164,10 +164,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId, status: MembershipStatus.ACTIVE },
-      orderBy: { createdAt: 'asc' },
-    });
+    const memberships = await this.listMemberships(userId);
 
     const fallbackContext = this.getDefaultContext(memberships);
     const activeContext = active?.tenantId && active.role
@@ -178,7 +175,7 @@ export class AuthService {
 
     return {
       user: { id: user.id, email: user.email, role: user.role, orgId: activeContext?.tenantId ?? '' },
-      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
+      memberships,
       activeContext: activeContext ?? undefined,
       permissions,
     };
@@ -216,17 +213,17 @@ export class AuthService {
     return { ok: true };
   }
 
-  private toMembershipDto(membership: Membership): MembershipDto {
+  private toMembershipDto(membership: { id: string; tenantId: string; gymId?: string | null; role: MembershipRole; status: MembershipStatus }): MembershipDto {
     return {
       id: membership.id,
-      tenantId: membership.orgId,
+      tenantId: membership.tenantId,
       gymId: membership.gymId,
       role: membership.role,
       status: membership.status,
     };
   }
 
-  private getDefaultContext(memberships: Membership[]): { tenantId: string; gymId?: string | null; role: MembershipRole } | undefined {
+  private getDefaultContext(memberships: MembershipDto[]): { tenantId: string; gymId?: string | null; role: MembershipRole } | undefined {
     if (memberships.length === 0) {
       return undefined;
     }
@@ -234,10 +231,115 @@ export class AuthService {
     const preferred = memberships.find((membership) => membership.role === MembershipRole.tenant_owner) ?? memberships[0];
 
     return {
-      tenantId: preferred.orgId,
+      tenantId: preferred.tenantId,
       gymId: preferred.gymId,
       role: preferred.role,
     };
+  }
+
+  private async getMembershipSchemaSupport(): Promise<{ hasGymId: boolean; hasStatus: boolean }> {
+    if (this.membershipSchemaSupport) {
+      return this.membershipSchemaSupport;
+    }
+
+    const [gymColumn, statusColumn] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ exists: boolean }>>`
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'Membership' AND column_name = 'gymId'
+        )
+      `,
+      this.prisma.$queryRaw<Array<{ exists: boolean }>>`
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'Membership' AND column_name = 'status'
+        )
+      `,
+    ]);
+
+    this.membershipSchemaSupport = {
+      hasGymId: Boolean(gymColumn[0]?.exists),
+      hasStatus: Boolean(statusColumn[0]?.exists),
+    };
+
+    return this.membershipSchemaSupport;
+  }
+
+  private normalizeMembershipRole(role: string): MembershipRole {
+    if (role === MembershipRole.tenant_owner || role === 'OWNER') {
+      return MembershipRole.tenant_owner;
+    }
+    if (role === MembershipRole.tenant_admin || role === 'ADMIN') {
+      return MembershipRole.tenant_admin;
+    }
+    if (role === MembershipRole.gym_owner || role === 'gym_owner') {
+      return MembershipRole.gym_owner;
+    }
+    if (role === MembershipRole.branch_manager || role === 'branch_manager') {
+      return MembershipRole.branch_manager;
+    }
+    if (role === MembershipRole.personal_trainer || role === 'personal_trainer') {
+      return MembershipRole.personal_trainer;
+    }
+    if (role === MembershipRole.client || role === 'MEMBER' || role === 'client') {
+      return MembershipRole.client;
+    }
+    return MembershipRole.client;
+  }
+
+  private normalizeMembershipStatus(status?: string | null): MembershipStatus {
+    if (status === MembershipStatus.ACTIVE || status === 'ACTIVE') {
+      return MembershipStatus.ACTIVE;
+    }
+    if (status === MembershipStatus.INVITED || status === 'INVITED') {
+      return MembershipStatus.INVITED;
+    }
+    if (status === MembershipStatus.SUSPENDED || status === 'SUSPENDED') {
+      return MembershipStatus.SUSPENDED;
+    }
+    return MembershipStatus.ACTIVE;
+  }
+
+  private async listMemberships(userId: string): Promise<MembershipDto[]> {
+    const support = await this.getMembershipSchemaSupport();
+
+    const gymColumn = support.hasGymId
+      ? Prisma.sql`"gymId"::text AS "gymId",`
+      : Prisma.sql`NULL::text AS "gymId",`;
+
+    const statusColumn = support.hasStatus
+      ? Prisma.sql`"status"::text AS "status"`
+      : Prisma.sql`'ACTIVE'::text AS "status"`;
+
+    const rows = await this.prisma.$queryRaw<Array<{
+      id: string;
+      orgId: string;
+      gymId: string | null;
+      role: string;
+      status: string | null;
+    }>>(Prisma.sql`
+      SELECT
+        "id",
+        "orgId"::text AS "orgId",
+        ${gymColumn}
+        "role"::text AS "role",
+        ${statusColumn}
+      FROM "Membership"
+      WHERE "userId" = ${userId}
+      ORDER BY "createdAt" ASC
+    `);
+
+    return rows
+      .map((row) => this.toMembershipDto({
+        id: row.id,
+        tenantId: row.orgId,
+        gymId: row.gymId,
+        role: this.normalizeMembershipRole(row.role),
+        status: this.normalizeMembershipStatus(row.status),
+      }))
+      .filter((row) => row.status === MembershipStatus.ACTIVE);
   }
 
   private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; role: MembershipRole }): string {
