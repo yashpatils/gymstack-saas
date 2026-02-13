@@ -159,7 +159,8 @@ async function bootstrap() {
     },
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
-    credentials: false,
+    credentials: true,
+    optionsSuccessStatus: 204,
   });
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
