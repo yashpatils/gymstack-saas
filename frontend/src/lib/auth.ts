@@ -4,6 +4,7 @@ import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from 
 const TOKEN_STORAGE_KEY = 'gymstack_token';
 
 export type { AuthUser, AuthMeResponse, ActiveContext };
+export type SignupRole = 'OWNER' | 'ADMIN' | 'USER';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') {
@@ -42,10 +43,10 @@ export async function login(email: string, password: string): Promise<{ token: s
   };
 }
 
-export async function signup(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
+export async function signup(email: string, password: string, role?: SignupRole): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, role }),
     headers: {
       'Content-Type': 'application/json',
     },

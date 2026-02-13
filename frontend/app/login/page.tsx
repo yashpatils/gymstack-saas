@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { SignupRole } from "../../src/lib/auth";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useToast } from "../../src/components/toast/ToastProvider";
@@ -23,6 +24,32 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const DEMO_EMAIL = "demo@gymstack.dev";
 const DEMO_PASSWORD = "demo12345";
+
+const LOGIN_PERSONAS: {
+  id: SignupRole;
+  label: string;
+  description: string;
+  signupHint: string;
+}[] = [
+  {
+    id: "OWNER",
+    label: "Owner",
+    description: "I run the gym and need full operational visibility.",
+    signupHint: "Create an owner workspace",
+  },
+  {
+    id: "ADMIN",
+    label: "Manager / Admin",
+    description: "I manage schedules, team workflows, and front-desk operations.",
+    signupHint: "Create an admin account",
+  },
+  {
+    id: "USER",
+    label: "Coach / Staff",
+    description: "I need access to my assigned tasks and member workflows.",
+    signupHint: "Ask your owner for an invite",
+  },
+];
 
 function validateCredentials(email: string, password: string): FieldErrors {
   const errors: FieldErrors = {};
@@ -52,6 +79,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState<SignupRole>("OWNER");
 
   const isBusy = authLoading || isSubmitting;
   const formErrorSummary = Object.values(fieldErrors).filter(Boolean).join(" ");
@@ -145,6 +173,33 @@ export default function LoginPage() {
               <Divider label="or continue with email" />
 
               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium text-slate-100">I'm logging in as</legend>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {LOGIN_PERSONAS.map((persona) => {
+                      const isSelected = selectedPersona === persona.id;
+
+                      return (
+                        <button
+                          key={persona.id}
+                          type="button"
+                          onClick={() => setSelectedPersona(persona.id)}
+                          className={`rounded-xl border px-3 py-2 text-left transition ${
+                            isSelected
+                              ? "border-indigo-300 bg-indigo-500/20 text-indigo-100"
+                              : "border-white/15 bg-slate-900/60 text-slate-300 hover:border-indigo-300/70 hover:text-slate-100"
+                          }`}
+                          aria-pressed={isSelected}
+                        >
+                          <p className="text-sm font-medium">{persona.label}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {LOGIN_PERSONAS.find((persona) => persona.id === selectedPersona)?.description}
+                  </p>
+                </fieldset>
                 <p className="sr-only" aria-live="polite" role="status">
                   {formErrorSummary}
                 </p>
@@ -203,8 +258,8 @@ export default function LoginPage() {
 
               <p className="text-sm text-slate-300">
                 New to GymStack?{" "}
-                <Link className="font-medium text-indigo-200 hover:text-indigo-100" href="/signup">
-                  Create an account
+                <Link className="font-medium text-indigo-200 hover:text-indigo-100" href={`/signup?role=${selectedPersona}`}>
+                  {LOGIN_PERSONAS.find((persona) => persona.id === selectedPersona)?.signupHint}
                 </Link>
                 .
               </p>
