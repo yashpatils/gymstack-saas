@@ -12,11 +12,16 @@ import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 
-const DEFAULT_FRONTEND_ALLOWLIST = [
-  'http://localhost:3000',
-  'https://gymstack-saas.vercel.app',
-  'https://gymstack-saas-jw4voz3tb-yashs-projects-81128ebe.vercel.app',
-];
+const DEFAULT_FRONTEND_ALLOWLIST = ['http://localhost:3000'];
+
+function normalizeBaseDomain(value: string | undefined): string | null {
+  const normalized = (value ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return normalized || null;
+}
+
+function getBaseDomain(configService: ConfigService): string | null {
+  return normalizeBaseDomain(configService.get<string>('BASE_DOMAIN') ?? configService.get<string>('NEXT_PUBLIC_BASE_DOMAIN'));
+}
 
 function isProductionEnvironment(configService: ConfigService): boolean {
   return (configService.get<string>('NODE_ENV') ?? '').toLowerCase() === 'production';
@@ -147,11 +152,21 @@ async function bootstrap() {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
 
-      const isAllowed =
-        corsAllowlist.includes(origin) ||
-        /^https:\/\/gymstack-saas-.*-yashs-projects-81128ebe\.vercel\.app$/.test(
-          origin,
-        );
+      const originHost = (() => {
+        try {
+          return new URL(origin).host.toLowerCase();
+        } catch {
+          return '';
+        }
+      })();
+      const baseDomain = getBaseDomain(configService);
+
+      const isBaseDomainOrigin = Boolean(baseDomain) &&
+        (originHost === baseDomain || originHost.endsWith(`.${baseDomain}`));
+      const isVercelPreview = /\.vercel\.app$/i.test(originHost) &&
+        !Boolean(baseDomain && (originHost === baseDomain || originHost.endsWith(`.${baseDomain}`)));
+
+      const isAllowed = corsAllowlist.includes(origin) || isBaseDomainOrigin || isVercelPreview;
 
       if (isAllowed) return callback(null, true);
 
