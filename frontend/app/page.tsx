@@ -37,18 +37,21 @@ const featureList = [
 
 const testimonials = [
   {
+    id: "apex-athletics-avery-chen",
     quote:
       "GymStack helped us standardize operations across 14 locations in less than 8 weeks.",
     name: "Avery Chen",
     role: "Head of Operations, Apex Athletics",
   },
   {
+    id: "peak-motion-maya-robinson",
     quote:
       "Our payment recovery improved immediately and our front desk team finally has breathing room.",
     name: "Maya Robinson",
     role: "COO, Peak Motion Studios",
   },
   {
+    id: "core-society-luis-ortega",
     quote:
       "The product feels modern and the workflow tools made every location manager more consistent.",
     name: "Luis Ortega",
@@ -136,11 +139,11 @@ export default function LandingPage() {
         <section className="space-y-8">
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Testimonials</p>
-            <h2 className="text-3xl font-semibold text-white">Teams love the GymStack experience.</h2>
+            <h2 className="text-3xl font-semibold text-white">Teams Love the gymstack experience</h2>
           </div>
           <div className="grid gap-5 lg:grid-cols-3">
             {testimonials.map((item) => (
-              <Card key={item.name} className="space-y-5">
+              <Card key={item.id} className="space-y-5">
                 <p className="text-base text-slate-200">“{item.quote}”</p>
                 <div>
                   <p className="text-sm font-semibold text-white">{item.name}</p>
