@@ -10,4 +10,8 @@ export interface User {
   email: string;
   role: UserRole;
   orgId: string;
+  activeTenantId?: string;
+  activeGymId?: string;
+  activeRole?: string;
+  permissions?: string[];
 }

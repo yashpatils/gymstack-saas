@@ -1,67 +1,83 @@
 const bcrypt = require('bcrypt');
-const { PrismaClient, Role } = require('@prisma/client');
+const { PrismaClient, Role, MembershipRole, MembershipStatus } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const demoOrgName = 'GymStack Demo Org';
-  const demoEmail = process.env.DEMO_EMAIL ?? 'demo@gymstack.dev';
-  const demoPassword = process.env.DEMO_PASSWORD ?? 'demo12345';
-  const demoGyms = ['Downtown Demo Gym', 'Riverside Demo Gym', 'Northside Demo Gym'];
+  const ownerEmail = process.env.DEMO_EMAIL ?? 'owner@gymstack.dev';
+  const ownerPassword = process.env.DEMO_PASSWORD ?? 'demo12345';
+  const tenantName = process.env.DEMO_TENANT_NAME ?? 'GymStack Demo Tenant';
+  const gymName = process.env.DEMO_GYM_NAME ?? 'Downtown Demo Gym';
 
-  const passwordHash = await bcrypt.hash(demoPassword, 10);
+  const passwordHash = await bcrypt.hash(ownerPassword, 10);
 
-  const demoUser = await prisma.user.upsert({
-    where: { email: demoEmail },
+  const owner = await prisma.user.upsert({
+    where: { email: ownerEmail },
     update: {
       password: passwordHash,
       role: Role.OWNER,
     },
     create: {
-      email: demoEmail,
+      email: ownerEmail,
       password: passwordHash,
       role: Role.OWNER,
     },
   });
 
-  console.log(`Demo user ready: ${demoUser.email}`);
+  const tenant = await prisma.organization.upsert({
+    where: { id: `seed-${owner.id}` },
+    update: { name: tenantName },
+    create: { id: `seed-${owner.id}`, name: tenantName },
+  });
 
-  for (const gymName of demoGyms) {
-    const existingGym = await prisma.gym.findFirst({
-      where: {
-        ownerId: demoUser.id,
-        name: gymName,
+  await prisma.membership.upsert({
+    where: {
+      userId_orgId_gymId_role: {
+        userId: owner.id,
+        orgId: tenant.id,
+        gymId: null,
+        role: MembershipRole.tenant_owner,
       },
-    });
+    },
+    update: { status: MembershipStatus.ACTIVE },
+    create: {
+      userId: owner.id,
+      orgId: tenant.id,
+      role: MembershipRole.tenant_owner,
+      status: MembershipStatus.ACTIVE,
+    },
+  });
 
-    if (existingGym) {
-      console.log(`Demo gym already exists: ${existingGym.name}`);
-      continue;
-    }
+  await prisma.user.update({ where: { id: owner.id }, data: { orgId: tenant.id } });
 
-    const gym = await prisma.gym.create({
-      data: {
-        name: gymName,
-        ownerId: demoUser.id,
+  const gym = await prisma.gym.upsert({
+    where: { id: `seed-gym-${owner.id}` },
+    update: { name: gymName, orgId: tenant.id, ownerId: owner.id },
+    create: { id: `seed-gym-${owner.id}`, name: gymName, orgId: tenant.id, ownerId: owner.id },
+  });
+
+  await prisma.membership.upsert({
+    where: {
+      userId_orgId_gymId_role: {
+        userId: owner.id,
+        orgId: tenant.id,
+        gymId: gym.id,
+        role: MembershipRole.gym_owner,
       },
-    });
+    },
+    update: { status: MembershipStatus.ACTIVE },
+    create: {
+      userId: owner.id,
+      orgId: tenant.id,
+      gymId: gym.id,
+      role: MembershipRole.gym_owner,
+      status: MembershipStatus.ACTIVE,
+    },
+  });
 
-    console.log(`Demo gym created: ${gym.name}`);
-  }
-
-
-  await prisma.$executeRaw`
-    INSERT INTO "Setting" ("key", "value", "updatedAt")
-    VALUES
-      ('enableBilling', 'false'::jsonb, CURRENT_TIMESTAMP),
-      ('enableInvites', 'false'::jsonb, CURRENT_TIMESTAMP),
-      ('enableAudit', 'true'::jsonb, CURRENT_TIMESTAMP)
-    ON CONFLICT ("key") DO NOTHING
-  `;
-
-  console.log('Feature-flag defaults ready.');
-
-  console.log(`Demo org ready: ${demoOrgName}`);
+  console.log(`Seed complete. Owner: ${ownerEmail} / ${ownerPassword}`);
+  console.log(`Tenant: ${tenant.name} (${tenant.id})`);
+  console.log(`Gym: ${gym.name} (${gym.id})`);
 }
 
 main()

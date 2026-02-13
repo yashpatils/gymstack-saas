@@ -1,17 +1,12 @@
-import { ApiFetchError, apiFetch } from "./apiFetch";
-import type { AuthMeResponse, AuthUser } from "../types/auth";
+import { ApiFetchError, apiFetch } from './apiFetch';
+import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from '../types/auth';
 
-const TOKEN_STORAGE_KEY = "gymstack_token";
+const TOKEN_STORAGE_KEY = 'gymstack_token';
 
-type AuthResponse = {
-  accessToken: string;
-  user: AuthUser;
-};
-
-export type { AuthUser, AuthMeResponse };
+export type { AuthUser, AuthMeResponse, ActiveContext };
 
 export function getToken(): string | null {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return null;
   }
 
@@ -19,22 +14,22 @@ export function getToken(): string | null {
 }
 
 function setToken(token: string): void {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return;
   }
 
-  const secureAttribute = window.location.protocol === "https:" ? "; Secure" : "";
+  const secureAttribute = window.location.protocol === 'https:' ? '; Secure' : '';
 
   window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
   document.cookie = `gymstack_token=${token}; Path=/; SameSite=Lax${secureAttribute}`;
 }
 
-export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
-  const data = await apiFetch<AuthResponse>("/api/auth/login", {
-    method: "POST",
+export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
+  const data = await apiFetch<AuthLoginResponse>('/api/auth/login', {
+    method: 'POST',
     body: JSON.stringify({ email, password }),
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
@@ -42,15 +37,17 @@ export async function login(email: string, password: string): Promise<{ token: s
   return {
     token: data.accessToken,
     user: data.user,
+    activeContext: data.activeContext,
+    memberships: data.memberships,
   };
 }
 
-export async function signup(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
-  const data = await apiFetch<AuthResponse>("/api/auth/signup", {
-    method: "POST",
+export async function signup(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
+  const data = await apiFetch<AuthLoginResponse>('/api/auth/signup', {
+    method: 'POST',
     body: JSON.stringify({ email, password }),
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
@@ -58,12 +55,27 @@ export async function signup(email: string, password: string): Promise<{ token: 
   return {
     token: data.accessToken,
     user: data.user,
+    activeContext: data.activeContext,
+    memberships: data.memberships,
   };
+}
+
+export async function setContext(tenantId: string, gymId?: string): Promise<{ token: string }> {
+  const data = await apiFetch<{ accessToken: string }>('/api/auth/set-context', {
+    method: 'POST',
+    body: JSON.stringify({ tenantId, gymId }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  setToken(data.accessToken);
+  return { token: data.accessToken };
 }
 
 export async function me(): Promise<AuthMeResponse> {
   try {
-    return await apiFetch<AuthMeResponse>("/api/auth/me", { method: "GET" });
+    return await apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET' });
   } catch (error) {
     if (error instanceof ApiFetchError && error.statusCode === 401) {
       logout();
@@ -73,13 +85,12 @@ export async function me(): Promise<AuthMeResponse> {
 }
 
 export function logout(): void {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return;
   }
 
-  const secureAttribute = window.location.protocol === "https:" ? "; Secure" : "";
+  const secureAttribute = window.location.protocol === 'https:' ? '; Secure' : '';
 
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-  document.cookie =
-    `gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secureAttribute}`;
+  document.cookie = `gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secureAttribute}`;
 }

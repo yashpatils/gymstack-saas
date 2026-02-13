@@ -78,3 +78,36 @@ Required environment variables:
 - **Root Directory:** `frontend`
 - **Build Command:** `npm run predeploy`
 - **Install Command:** `npm install`
+
+## RBAC and tenant context
+
+GymStack uses membership-driven RBAC for multi-tenant access:
+
+- `tenant_owner`
+- `tenant_admin`
+- `gym_owner`
+- `branch_manager`
+- `personal_trainer`
+- `client`
+
+Auth flow:
+
+1. User logs in with email/password.
+2. Backend returns user + memberships + suggested `activeContext`.
+3. Frontend calls `POST /api/auth/set-context` when the user switches workspace.
+4. `/api/auth/me` returns user, memberships, active context, and resolved permissions.
+
+### Seed data
+
+Use the backend seed to create a tenant owner and tenant/gym context:
+
+```bash
+npm --prefix backend run db:seed
+```
+
+Environment overrides:
+
+- `DEMO_EMAIL`
+- `DEMO_PASSWORD`
+- `DEMO_TENANT_NAME`
+- `DEMO_GYM_NAME`
