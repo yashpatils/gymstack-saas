@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { ApiFetchError, apiFetch } from "./apiFetch";
 import type { AuthMeResponse, AuthUser } from "../types/auth";
 
 const TOKEN_STORAGE_KEY = "gymstack_token";
@@ -62,7 +62,14 @@ export async function signup(email: string, password: string): Promise<{ token: 
 }
 
 export async function me(): Promise<AuthMeResponse> {
-  return apiFetch<AuthMeResponse>("/api/auth/me", { method: "GET" });
+  try {
+    return await apiFetch<AuthMeResponse>("/api/auth/me", { method: "GET" });
+  } catch (error) {
+    if (error instanceof ApiFetchError && error.statusCode === 401) {
+      logout();
+    }
+    throw error;
+  }
 }
 
 export function logout(): void {

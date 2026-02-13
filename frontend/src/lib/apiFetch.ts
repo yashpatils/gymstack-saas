@@ -2,6 +2,8 @@ type ApiFetchInit = Omit<RequestInit, "body"> & {
   body?: BodyInit | Record<string, unknown> | null;
 };
 
+const AUTH_TOKEN_STORAGE_KEY = "gymstack_token";
+
 const DEV_LOCALHOST_API_URL = "http://localhost:3000";
 
 let hasLoggedMissingProdApiUrl = false;
@@ -78,12 +80,35 @@ function isRecordBody(value: unknown): value is Record<string, unknown> {
     && !(value instanceof ArrayBuffer);
 }
 
+function getStoredAuthToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+export class ApiFetchError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = "ApiFetchError";
+    this.statusCode = statusCode;
+  }
+}
+
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const headers = new Headers(init.headers ?? {});
   const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;
+  const token = getStoredAuthToken();
 
   if (isRecordBody(init.body) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
+  }
+
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(buildApiUrl(path), {
@@ -98,7 +123,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     const errorText = contentType.includes("application/json")
       ? JSON.stringify(await response.json())
       : await response.text();
-    throw new Error(`Request failed (${response.status} ${response.statusText}): ${errorText}`);
+    throw new ApiFetchError(
+      `Request failed (${response.status} ${response.statusText}): ${errorText}`,
+      response.status,
+    );
   }
 
   if (!contentType.includes("application/json")) {
