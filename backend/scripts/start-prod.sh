@@ -8,7 +8,11 @@ resolve_failed_migrations() {
   status_output="$(npx prisma migrate status 2>&1 || true)"
   echo "$status_output"
 
-  failed_migrations="$(echo "$status_output" | sed -n '/Following migration have failed:/,/Read more/{/Following migration have failed:/d;/Read more/d;/^$/d;p}' | tr -d '\r')"
+  failed_migrations="$(
+    echo "$status_output" \
+      | tr -d '\r' \
+      | awk '/Following migration have failed:/{capture=1; next} /Read more/{capture=0} capture && /^[0-9]{14}_[a-zA-Z0-9_]+$/'
+  )"
 
   if [[ -z "$failed_migrations" ]]; then
     return 0
