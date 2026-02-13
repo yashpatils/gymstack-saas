@@ -5,19 +5,24 @@ import { PrismaService } from './prisma/prisma.service';
 export class AppController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Get()
+  getRoot(): { ok: true } {
+    return { ok: true };
+  }
+
   @Get('health')
-  getHealth(): { status: string } {
-    return { status: 'ok' };
+  getHealth(): { ok: true } {
+    return { ok: true };
   }
 
   @Get('api/health')
-  getApiHealth(): { status: string } {
+  getApiHealth(): { ok: true } {
     return this.getHealth();
   }
 
   @Get('db/ping')
-  async getDatabasePing(): Promise<{ status: string }> {
+  async getDatabasePing(): Promise<{ ok: true }> {
     await this.prisma.$queryRaw`SELECT 1`;
-    return { status: 'ok' };
+    return { ok: true };
   }
 }

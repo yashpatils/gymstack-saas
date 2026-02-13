@@ -61,6 +61,25 @@ export async function signup(email: string, password: string, role?: SignupRole)
   };
 }
 
+
+export async function acceptInvite(params: { token: string; password?: string; email?: string; name?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
+  const data = await apiFetch<AuthLoginResponse>('/api/invites/accept', {
+    method: 'POST',
+    body: JSON.stringify(params),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  setToken(data.accessToken);
+  return {
+    token: data.accessToken,
+    user: data.user,
+    activeContext: data.activeContext,
+    memberships: data.memberships,
+  };
+}
+
 export async function setContext(tenantId: string, gymId?: string): Promise<{ token: string }> {
   const data = await apiFetch<{ accessToken: string }>('/api/auth/set-context', {
     method: 'POST',

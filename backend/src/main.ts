@@ -165,7 +165,7 @@ async function bootstrap() {
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
   app.setGlobalPrefix(apiPrefix, {
-    exclude: ['billing/webhook', 'health', 'api/health', 'debug/routes'],
+    exclude: ['', '/', 'billing/webhook', 'health', 'api/health', 'debug/routes'],
   });
 
   app.use(requestIdMiddleware);
@@ -205,7 +205,7 @@ async function bootstrap() {
   }
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   const server = app.getHttpServer();
   const routes = getRegisteredRoutes(server);
