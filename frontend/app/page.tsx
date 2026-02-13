@@ -59,6 +59,28 @@ const testimonials = [
   },
 ];
 
+function TestimonialsSection() {
+  return (
+    <section className="space-y-8" id="testimonials" aria-label="Testimonials">
+      <div className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Testimonials</p>
+        <h2 className="text-3xl font-semibold text-white">Teams Love the gymstack experience</h2>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {testimonials.map((item) => (
+          <Card key={item.id} className="space-y-5">
+            <p className="text-base text-slate-200">“{item.quote}”</p>
+            <div>
+              <p className="text-sm font-semibold text-white">{item.name}</p>
+              <p className="text-xs text-slate-400">{item.role}</p>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
@@ -136,23 +158,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="space-y-8">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Testimonials</p>
-            <h2 className="text-3xl font-semibold text-white">Teams Love the gymstack experience</h2>
-          </div>
-          <div className="grid gap-5 lg:grid-cols-3">
-            {testimonials.map((item) => (
-              <Card key={item.id} className="space-y-5">
-                <p className="text-base text-slate-200">“{item.quote}”</p>
-                <div>
-                  <p className="text-sm font-semibold text-white">{item.name}</p>
-                  <p className="text-xs text-slate-400">{item.role}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
+        <TestimonialsSection />
 
         <section className="rounded-3xl border border-white/10 bg-slate-900/70 p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
