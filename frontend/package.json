@@ -8,7 +8,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "preflight": "npm run lint && npm run typecheck && npm run build",
     "predeploy": "npm run lint && npm run typecheck && npm run build"

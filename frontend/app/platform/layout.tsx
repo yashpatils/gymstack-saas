@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RequireAuth } from "../../src/components/RequireAuth";
 import { apiFetch } from "../../src/lib/api";
 import { canManageBilling, canManageUsers, normalizeRole } from "../../src/lib/rbac";
-import { defaultFeatureFlags, getFeatureFlags } from "../../src/lib/settings";
+import { defaultFeatureFlags, getFeatureFlags } from "../../src/lib/featureFlags";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 type NavItem = {
@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { label: "Billing", href: "/platform/billing", requires: "billing" },
   { label: "Settings", href: "/platform/settings" },
   { label: "Admin Settings", href: "/platform/admin/settings", requires: "owner" },
+  { label: "Debug", href: "/debug", debugOnly: true },
 ];
 
 type OrganizationResponse = {
@@ -59,7 +60,7 @@ export default function PlatformLayout({
   const email = user?.email ?? "platform.user@gymstack.app";
   const role = normalizeRole(rawRole);
   const isAdmin = rawRole === "ADMIN" || role === "OWNER";
-  const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
+  const showDebugLinks = featureFlags.enableDebugLinks || process.env.NODE_ENV !== "production" || isAdmin;
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
@@ -190,7 +191,7 @@ export default function PlatformLayout({
           <div className="platform-brand">GymStack Platform</div>
           <nav aria-label="Platform navigation">
             <ul className="platform-nav-list">
-              {navItems.map((item) => {
+              {navItems.filter((item) => !item.debugOnly || showDebugLinks).map((item) => {
                 if (item.href === "/platform/billing" && !featureFlags.enableBilling) {
                   return null;
                 }

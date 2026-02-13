@@ -1,13 +1,11 @@
-export const ACTIVE_SUBSCRIPTION_STATUS = 'ACTIVE';
+import { formatStatus } from "./formatters/billing";
+
+export const ACTIVE_SUBSCRIPTION_STATUS = "active";
 
 export function isActiveSubscription(status?: string | null): boolean {
-  return status === ACTIVE_SUBSCRIPTION_STATUS;
+  return (status ?? "").toLowerCase() === ACTIVE_SUBSCRIPTION_STATUS;
 }
 
 export function formatSubscriptionStatus(status?: string | null): string {
-  if (!status) {
-    return 'Unknown';
-  }
-
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return formatStatus(status);
 }
