@@ -106,7 +106,7 @@ export default function LoginPage() {
     <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.35),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.2),transparent_40%)]" />
 
-      <section className="relative mx-auto w-full max-w-5xl rounded-3xl border border-white/20 bg-white/10 p-1 shadow-2xl shadow-indigo-900/30 backdrop-blur-xl">
+      <section className="relative mx-auto w-full max-w-5xl rounded-3xl border border-white/20 bg-slate-900/80 p-1 shadow-2xl shadow-indigo-900/30">
         <div className="grid overflow-hidden rounded-[22px] bg-slate-900/70 lg:grid-cols-[1.08fr_1fr]">
           <div className="flex flex-col justify-between gap-8 border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
             <div className="space-y-4">

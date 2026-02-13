@@ -8,7 +8,7 @@ const navLinks = [
 
 export function MarketingNavbar() {
   return (
-    <header className="border-b border-white/10 bg-slate-950/70 backdrop-blur">
+    <header className="border-b border-white/10 bg-slate-950/95">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 text-sm font-semibold text-indigo-200">
