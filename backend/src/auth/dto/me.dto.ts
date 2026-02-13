@@ -4,6 +4,7 @@ export class MembershipDto {
   id!: string;
   tenantId!: string;
   gymId?: string | null;
+  branchId?: string | null;
   role!: MembershipRole;
   status!: string;
 }
@@ -11,6 +12,7 @@ export class MembershipDto {
 export class ActiveContextDto {
   tenantId!: string;
   gymId?: string | null;
+  branchId?: string | null;
   role!: MembershipRole;
 }
 
@@ -25,5 +27,6 @@ export class AuthMeResponseDto {
   user!: MeDto;
   memberships!: MembershipDto[];
   activeContext?: ActiveContextDto;
+  effectiveRole?: MembershipRole;
   permissions!: string[];
 }

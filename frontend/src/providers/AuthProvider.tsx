@@ -20,7 +20,7 @@ import {
   setContext as setContextRequest,
   signup as signupRequest,
 } from '../lib/auth';
-import type { Membership } from '../types/auth';
+import type { Membership, MembershipRole } from '../types/auth';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -31,8 +31,9 @@ type AuthContextValue = {
   memberships: Membership[];
   permissions: string[];
   activeContext?: ActiveContext;
-  login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[] }>;
-  signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[] }>;
+  effectiveRole?: MembershipRole;
+  login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [activeContext, setActiveContext] = useState<ActiveContext | undefined>(undefined);
+  const [effectiveRole, setEffectiveRole] = useState<MembershipRole | undefined>(undefined);
 
   const hydrateFromMe = useCallback(async () => {
     const meResponse = await getMe();
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMemberships(meResponse.memberships ?? []);
     setPermissions(meResponse.permissions ?? []);
     setActiveContext(meResponse.activeContext);
+    setEffectiveRole(meResponse.effectiveRole);
   }, []);
 
   useEffect(() => {
@@ -72,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setMemberships([]);
         setPermissions([]);
+        setActiveContext(undefined);
+        setEffectiveRole(undefined);
         setIsLoading(false);
         return;
       }
@@ -85,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setMemberships([]);
           setPermissions([]);
           setActiveContext(undefined);
+          setEffectiveRole(undefined);
         }
         clearToken();
       } finally {
@@ -108,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMemberships(nextMemberships);
     setActiveContext(nextActiveContext);
     await hydrateFromMe();
-    return { user: loggedInUser, memberships: nextMemberships };
+    return { user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext };
   }, [hydrateFromMe]);
 
   const signup = useCallback(async (email: string, password: string, role?: SignupRole) => {
@@ -118,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMemberships(nextMemberships);
     setActiveContext(nextActiveContext);
     await hydrateFromMe();
-    return { user: signedUpUser, memberships: nextMemberships };
+    return { user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext };
   }, [hydrateFromMe]);
 
   const chooseContext = useCallback(async (tenantId: string, gymId?: string) => {
@@ -134,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMemberships([]);
     setPermissions([]);
     setActiveContext(undefined);
+    setEffectiveRole(undefined);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -145,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMemberships([]);
       setPermissions([]);
       setActiveContext(undefined);
+      setEffectiveRole(undefined);
       return null;
     }
 
@@ -154,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMemberships(meResponse.memberships ?? []);
       setPermissions(meResponse.permissions ?? []);
       setActiveContext(meResponse.activeContext);
+      setEffectiveRole(meResponse.effectiveRole);
       setToken(existingToken);
       return meResponse.user;
     } catch {
@@ -163,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMemberships([]);
       setPermissions([]);
       setActiveContext(undefined);
+      setEffectiveRole(undefined);
       return null;
     }
   }, []);
@@ -177,13 +187,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       memberships,
       permissions,
       activeContext,
+      effectiveRole,
       login,
       signup,
       chooseContext,
       logout,
       refreshUser,
     }),
-    [user, token, isLoading, memberships, permissions, activeContext, login, signup, chooseContext, logout, refreshUser],
+    [user, token, isLoading, memberships, permissions, activeContext, effectiveRole, login, signup, chooseContext, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
