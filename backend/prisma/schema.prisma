@@ -44,6 +44,7 @@ model User {
   updatedAt            DateTime             @updatedAt
   invites              Invite[]             @relation("InviteCreator")
   auditLogs            AuditLog[]
+  notifications        Notification[]
 
   @@index([orgId])
 }
@@ -85,6 +86,21 @@ model Invite {
   @@index([orgId])
   @@index([email])
   @@index([tokenHash])
+}
+
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model PasswordResetToken {
