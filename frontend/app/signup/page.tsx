@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { SignupRole } from "../../src/lib/auth";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useToast } from "../../src/components/toast/ToastProvider";
 import {
@@ -79,7 +79,6 @@ function SignupPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRole, setSelectedRole] = useState<SignupRole>("OWNER");
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { signup, loading: authLoading, user } = useAuth();
   const toast = useToast();
 
@@ -100,11 +99,12 @@ function SignupPageContent() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    const roleFromQuery = searchParams.get("role");
+    const params = new URLSearchParams(window.location.search);
+    const roleFromQuery = params.get("role");
     if (isSignupRole(roleFromQuery)) {
       setSelectedRole(roleFromQuery);
     }
-  }, [searchParams]);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -272,25 +272,5 @@ function SignupPageContent() {
 }
 
 export default function SignupPage() {
-  return (
-    <Suspense fallback={<SignupPageFallback />}>
-      <SignupPageContent />
-    </Suspense>
-  );
-}
-
-function SignupPageFallback() {
-  return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-5xl rounded-3xl border border-white/20 bg-slate-900/80 p-6 sm:p-8">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full" />
-        </div>
-      </div>
-    </main>
-  );
+  return <SignupPageContent />;
 }
