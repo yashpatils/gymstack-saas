@@ -11,7 +11,17 @@ resolve_failed_migrations() {
   failed_migrations="$(
     echo "$status_output" \
       | tr -d '\r' \
-      | awk '/Following migration have failed:/{capture=1; next} /Read more/{capture=0} capture && /^[0-9]{14}_[a-zA-Z0-9_]+$/'
+      | awk '
+          /Following migration have failed:/ { capture=1; next }
+          /Read more/ { capture=0 }
+          capture {
+            line=$0
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+            if (line ~ /^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[A-Za-z0-9_]+$/) {
+              print line
+            }
+          }
+        '
   )"
 
   if [[ -z "$failed_migrations" ]]; then
