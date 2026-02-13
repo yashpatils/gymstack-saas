@@ -9,7 +9,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
-import { resolveEffectivePermissions, resolveEffectiveRole } from './authorization';
+import { resolveEffectivePermissions } from './authorization';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +22,7 @@ export class AuthService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; role: MembershipRole } }> {
+  async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     const { email, password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -38,7 +38,7 @@ export class AuthService {
       const user = await tx.user.create({
         data: {
           email,
-          role: input.role ?? Role.USER,
+          role: Role.USER,
           password: passwordHash,
         },
       });
@@ -47,17 +47,25 @@ export class AuthService {
         data: { name: `${email.split('@')[0]}'s Tenant` },
       });
 
+      const location = await tx.gym.create({
+        data: {
+          name: `${email.split('@')[0]}'s Main Location`,
+          ownerId: user.id,
+          orgId: organization.id,
+        },
+      });
+
       const membership = await tx.membership.create({
         data: {
           orgId: organization.id,
           userId: user.id,
-          role: MembershipRole.tenant_owner,
+          role: MembershipRole.TENANT_OWNER,
           status: MembershipStatus.ACTIVE,
         },
       });
 
       await tx.user.update({ where: { id: user.id }, data: { orgId: organization.id } });
-      return { user, membership };
+      return { user, membership, location };
     });
 
     await this.notificationsService.createForUser({
@@ -89,7 +97,7 @@ export class AuthService {
     };
   }
 
-  async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; role: MembershipRole } }> {
+  async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     const { email, password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -163,8 +171,8 @@ export class AuthService {
         orgId: tenantId,
         status: MembershipStatus.ACTIVE,
         OR: [
-          { gymId, role: { in: [MembershipRole.gym_owner, MembershipRole.branch_manager] } },
-          { gymId: null, role: { in: [MembershipRole.tenant_owner, MembershipRole.tenant_admin] } },
+          { gymId, role: { in: [MembershipRole.TENANT_LOCATION_ADMIN, MembershipRole.GYM_STAFF_COACH, MembershipRole.CLIENT] } },
+          { gymId: null, role: { in: [MembershipRole.TENANT_OWNER] } },
         ],
       },
       select: { id: true },
@@ -174,11 +182,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid context for user');
     }
 
-    const roleScope = gymId ? 'branch' : 'tenant';
     const activeContext = {
       tenantId: membership.orgId,
       gymId: gymId ?? null,
-      role: resolveEffectiveRole(membership.role, roleScope),
+      locationId: gymId ?? null,
+      role: membership.role,
     };
 
     return { accessToken: this.signToken(user.id, user.email, user.role, activeContext) };
@@ -197,7 +205,7 @@ export class AuthService {
 
     const fallbackContext = await this.getDefaultContext(memberships);
     const activeContext = active?.tenantId && active.role
-      ? { tenantId: active.tenantId, gymId: active.gymId ?? null, role: active.role }
+      ? { tenantId: active.tenantId, gymId: active.gymId ?? null, locationId: active.gymId ?? null, role: active.role }
       : fallbackContext;
 
     const permissions = activeContext
@@ -251,17 +259,18 @@ export class AuthService {
       tenantId: membership.orgId,
       gymId: membership.gymId,
       branchId: membership.gymId,
+      locationId: membership.gymId,
       role: membership.role,
       status: membership.status,
     };
   }
 
-  private async getDefaultContext(memberships: Membership[]): Promise<{ tenantId: string; gymId?: string | null; role: MembershipRole } | undefined> {
+  private async getDefaultContext(memberships: Membership[]): Promise<{ tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } | undefined> {
     if (memberships.length === 0) {
       return undefined;
     }
 
-    const preferred = memberships.find((membership) => membership.role === MembershipRole.tenant_owner) ?? memberships[0];
+    const preferred = memberships.find((membership) => membership.role === MembershipRole.TENANT_OWNER) ?? memberships[0];
 
     const tenantGyms = await this.prisma.gym.findMany({
       where: { orgId: preferred.orgId },
@@ -269,17 +278,17 @@ export class AuthService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const shouldAutoSelectGym = preferred.role === MembershipRole.tenant_owner && tenantGyms.length === 1;
-    const roleScope = shouldAutoSelectGym || Boolean(preferred.gymId) ? 'branch' : 'tenant';
+    const shouldAutoSelectGym = tenantGyms.length === 1;
 
     return {
       tenantId: preferred.orgId,
       gymId: shouldAutoSelectGym ? tenantGyms[0].id : (preferred.gymId ?? null),
-      role: resolveEffectiveRole(preferred.role, roleScope),
+      locationId: shouldAutoSelectGym ? tenantGyms[0].id : (preferred.gymId ?? null),
+      role: preferred.role,
     };
   }
 
-  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; role: MembershipRole }): string {
+  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }): string {
     return this.jwtService.sign({
       sub: userId,
       id: userId,

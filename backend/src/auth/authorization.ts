@@ -3,70 +3,44 @@ import { PrismaService } from '../prisma/prisma.service';
 import { resolvePermissions } from './permissions';
 
 const ROLE_INHERITANCE: Record<MembershipRole, MembershipRole[]> = {
-  tenant_owner: ['tenant_owner', 'tenant_admin', 'gym_owner', 'branch_manager'],
-  tenant_admin: ['tenant_admin', 'gym_owner', 'branch_manager'],
-  gym_owner: ['gym_owner', 'branch_manager'],
-  branch_manager: ['branch_manager'],
-  personal_trainer: ['personal_trainer'],
-  client: ['client'],
+  TENANT_OWNER: ['TENANT_OWNER', 'TENANT_LOCATION_ADMIN', 'GYM_STAFF_COACH', 'CLIENT'],
+  TENANT_LOCATION_ADMIN: ['TENANT_LOCATION_ADMIN', 'GYM_STAFF_COACH', 'CLIENT'],
+  GYM_STAFF_COACH: ['GYM_STAFF_COACH', 'CLIENT'],
+  CLIENT: ['CLIENT'],
 };
-
-export type RoleScope = 'tenant' | 'branch';
-
-export function resolveEffectiveRole(baseRole: MembershipRole, scope: RoleScope): MembershipRole {
-  if (scope === 'branch' && (baseRole === MembershipRole.tenant_owner || baseRole === MembershipRole.tenant_admin)) {
-    return MembershipRole.gym_owner;
-  }
-
-  return baseRole;
-}
 
 export async function resolveEffectivePermissions(
   prisma: PrismaService,
   userId: string,
   tenantId: string,
-  branchId?: string,
+  locationId?: string,
 ): Promise<string[]> {
   const memberships = await prisma.membership.findMany({
     where: {
       userId,
       orgId: tenantId,
       status: MembershipStatus.ACTIVE,
-      ...(branchId ? { OR: [{ gymId: null }, { gymId: branchId }] } : {}),
+      ...(locationId ? { OR: [{ gymId: null }, { gymId: locationId }] } : {}),
     },
     orderBy: { createdAt: 'asc' },
   });
 
-  const branchScopedMemberships = memberships.filter((membership) => {
-    if (!branchId) {
-      return true;
-    }
-
-    return membership.gymId === null || membership.gymId === branchId;
+  const roles = new Set<MembershipRole>();
+  memberships.forEach((membership) => {
+    (ROLE_INHERITANCE[membership.role] ?? [membership.role]).forEach((role) => roles.add(role));
   });
 
-  const inheritedRoles = new Set<MembershipRole>();
-  for (const membership of branchScopedMemberships) {
-    for (const role of ROLE_INHERITANCE[membership.role] ?? [membership.role]) {
-      inheritedRoles.add(role);
-    }
-  }
-
   const permissions = new Set<string>();
-  for (const role of inheritedRoles) {
-    for (const permission of resolvePermissions(role)) {
-      permissions.add(permission);
-    }
-  }
+  roles.forEach((role) => resolvePermissions(role).forEach((permission) => permissions.add(permission)));
 
   return [...permissions];
 }
 
-export async function canManageBranch(
+export async function canManageLocation(
   prisma: PrismaService,
   userId: string,
   tenantId: string,
-  branchId: string,
+  locationId: string,
 ): Promise<boolean> {
   const membership = await prisma.membership.findFirst({
     where: {
@@ -74,16 +48,11 @@ export async function canManageBranch(
       orgId: tenantId,
       status: MembershipStatus.ACTIVE,
       OR: [
-        {
-          gymId: branchId,
-          role: { in: [MembershipRole.gym_owner, MembershipRole.branch_manager] },
-        },
-        {
-          gymId: null,
-          role: { in: [MembershipRole.tenant_owner, MembershipRole.tenant_admin] },
-        },
+        { gymId: null, role: MembershipRole.TENANT_OWNER },
+        { gymId: locationId, role: MembershipRole.TENANT_LOCATION_ADMIN },
       ],
     },
+    select: { id: true },
   });
 
   return Boolean(membership);

@@ -33,8 +33,8 @@ export class OrganizationsService {
     }
 
     if (
-      membership.role !== MembershipRole.tenant_owner
-      && membership.role !== MembershipRole.tenant_admin
+      membership.role !== MembershipRole.TENANT_OWNER
+      && membership.role !== MembershipRole.TENANT_LOCATION_ADMIN
     ) {
       throw new ForbiddenException('Insufficient role');
     }

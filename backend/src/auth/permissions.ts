@@ -1,12 +1,10 @@
 import { MembershipRole } from '@prisma/client';
 
 export const PERMISSION_MAP: Record<MembershipRole, string[]> = {
-  tenant_owner: ['tenant:*', 'tenant:read', 'gym:*', 'branch:*', 'billing:*', 'trainer:*', 'members:*', 'client:*'],
-  tenant_admin: ['tenant:read', 'gym:*', 'branch:*', 'trainer:*', 'members:*'],
-  gym_owner: ['gym:*', 'branch:*', 'trainer:*', 'members:*'],
-  branch_manager: ['branch:*', 'members:*', 'members:read'],
-  personal_trainer: ['trainer:*', 'members:read'],
-  client: ['client:*'],
+  TENANT_OWNER: ['tenant:manage', 'billing:manage', 'locations:crud', 'users:crud', 'staff:crud', 'clients:crud', 'reports:view_all'],
+  TENANT_LOCATION_ADMIN: ['location:manage', 'staff:crud', 'clients:crud', 'programs:crud', 'reports:view_location'],
+  GYM_STAFF_COACH: ['clients:read', 'plans:crud', 'attendance:crud', 'schedule:read/write_limited'],
+  CLIENT: ['self:read/write', 'plans:read', 'attendance:read'],
 };
 
 export function resolvePermissions(role: MembershipRole): string[] {
@@ -14,10 +12,5 @@ export function resolvePermissions(role: MembershipRole): string[] {
 }
 
 export function hasPermission(permissions: string[], required: string): boolean {
-  if (permissions.includes(required)) {
-    return true;
-  }
-
-  const [resource] = required.split(':');
-  return permissions.includes(`${resource}:*`);
+  return permissions.includes(required);
 }
