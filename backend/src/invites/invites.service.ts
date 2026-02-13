@@ -40,7 +40,13 @@ export class InvitesService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    if (![MembershipRole.TENANT_LOCATION_ADMIN, MembershipRole.GYM_STAFF_COACH, MembershipRole.CLIENT].includes(input.role)) {
+    const allowedInviteRoles: MembershipRole[] = [
+      MembershipRole.TENANT_LOCATION_ADMIN,
+      MembershipRole.GYM_STAFF_COACH,
+      MembershipRole.CLIENT,
+    ];
+
+    if (!allowedInviteRoles.includes(input.role)) {
       throw new BadRequestException('Invalid invite role');
     }
 
