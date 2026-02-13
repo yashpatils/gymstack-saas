@@ -13,6 +13,8 @@ import { resolvePermissions } from './permissions';
 
 @Injectable()
 export class AuthService {
+  private membershipSchemaSupport?: { hasGymId: boolean; hasStatus: boolean };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
