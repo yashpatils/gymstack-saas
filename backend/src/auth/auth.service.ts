@@ -173,6 +173,31 @@ export class AuthService {
     };
   }
 
+
+  async me(userId: string): Promise<MeDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+      select: { orgId: true },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: normalizeRole(user.role),
+      orgId: membership?.orgId ?? '',
+    };
+  }
+
   async forgotPassword(email: string): Promise<{ ok: true }> {
     const user = await this.prisma.user.findUnique({ where: { email } });
 

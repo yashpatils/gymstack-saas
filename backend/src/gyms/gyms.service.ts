@@ -1,9 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MembershipRole, Prisma, Role } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { User, UserRole } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 
@@ -40,6 +39,67 @@ export class GymsService {
     });
 
     return gym;
+  }
+
+  async createGymForUser(user: User, name: string) {
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (memberships.length === 0) {
+      const createdGym = await this.prisma.$transaction(async (tx) => {
+        const organization = await tx.organization.create({
+          data: { name: `${name} Organization` },
+        });
+
+        await tx.membership.create({
+          data: {
+            orgId: organization.id,
+            userId: user.id,
+            role: MembershipRole.OWNER,
+          },
+        });
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            orgId: organization.id,
+            role: Role.OWNER,
+          },
+        });
+
+        return tx.gym.create({
+          data: {
+            name,
+            owner: { connect: { id: user.id } },
+            org: { connect: { id: organization.id } },
+          },
+        });
+      });
+
+      await this.auditService.log({
+        orgId: createdGym.orgId,
+        userId: user.id,
+        action: 'gym.create',
+        entityType: 'gym',
+        entityId: createdGym.id,
+        metadata: { name: createdGym.name, onboarding: true },
+      });
+
+      return createdGym;
+    }
+
+    if (![UserRole.Owner, UserRole.Admin].includes(user.role)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const orgId = user.orgId || memberships[0]?.orgId;
+    if (!orgId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    return this.createGym(orgId, user.id, name);
   }
 
   getGym(id: string, orgId: string) {

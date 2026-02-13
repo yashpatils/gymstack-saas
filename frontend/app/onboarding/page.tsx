@@ -4,19 +4,18 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "../../src/components/ProtectedRoute";
 import { apiFetch } from "../lib/api";
+import { ApiFetchError } from "../../src/lib/apiFetch";
 import { Alert, Button, Input, Spinner } from "../components/ui";
-
-type Gym = {
-  id: string;
-  name: string;
-};
+import { createGym } from "../../src/lib/gyms";
+import type { Gym } from "../../src/types/gym";
+import { useAuth } from "../../src/providers/AuthProvider";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [gymName, setGymName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [createdGym, setCreatedGym] = useState<Gym | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,13 +66,15 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      const gym = await apiFetch<Gym>("/api/gyms", {
-        method: "POST",
-        body: { name },
-      });
-      setCreatedGym(gym);
+      await createGym({ name });
+      await refreshUser();
+      router.replace("/platform");
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Unable to create gym.");
+      if (createError instanceof ApiFetchError && createError.statusCode === 403) {
+        setError("You already belong to a tenant and do not have permission to create another gym.");
+      } else {
+        setError(createError instanceof Error ? createError.message : "Unable to create gym.");
+      }
     } finally {
       setCreating(false);
     }
@@ -95,13 +96,6 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-2 text-sm text-slate-300">
                 <Spinner />
                 Checking your workspace...
-              </div>
-            ) : createdGym ? (
-              <div className="space-y-4">
-                <p className="text-sm text-slate-200">
-                  Success! <span className="font-medium text-white">{createdGym.name}</span> is ready.
-                </p>
-                <Button onClick={() => router.push("/platform")}>Go to dashboard</Button>
               </div>
             ) : (
               <form className="space-y-4" onSubmit={handleCreateGym}>
