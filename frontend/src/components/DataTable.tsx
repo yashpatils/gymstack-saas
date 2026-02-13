@@ -27,6 +27,7 @@ export type DataTableProps<T> = {
   emptyState?: ReactNode;
   searchPlaceholder?: string;
   initialSort?: SortState;
+  pageSize?: number;
 };
 
 function normalizeSortValue(value: string | number | null | undefined): string | number {
@@ -54,9 +55,11 @@ export default function DataTable<T>({
   emptyState,
   searchPlaceholder = "Search...",
   initialSort,
+  pageSize = 100,
 }: DataTableProps<T>) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortState | null>(initialSort ?? null);
+  const [page, setPage] = useState(1);
 
   const sortedAndFilteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -92,6 +95,18 @@ export default function DataTable<T>({
     });
   }, [columns, query, rows, sort]);
 
+  const totalPages = Math.max(1, Math.ceil(sortedAndFilteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedAndFilteredRows.slice(start, start + pageSize);
+  }, [currentPage, pageSize, sortedAndFilteredRows]);
+
+  const onQueryChange = (value: string) => {
+    setQuery(value);
+    setPage(1);
+  };
+
   const onSortClick = (column: DataTableColumn<T>) => {
     if (!column.sortable || !column.sortValue) {
       return;
@@ -115,7 +130,7 @@ export default function DataTable<T>({
         className="input"
         placeholder={searchPlaceholder}
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => onQueryChange(event.target.value)}
       />
 
       <table className="table">
@@ -166,7 +181,7 @@ export default function DataTable<T>({
                   ))}
                 </tr>
               ))
-            : sortedAndFilteredRows.map((row, rowIndex) => (
+            : paginatedRows.map((row, rowIndex) => (
                 <tr key={getRowKey?.(row, rowIndex) ?? `row-${rowIndex}`}>
                   {columns.map((column) => (
                     <td key={`${column.id}-${rowIndex}`} className={column.className}>
@@ -177,6 +192,36 @@ export default function DataTable<T>({
               ))}
         </tbody>
       </table>
+
+      {!loading && totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-3 text-sm text-slate-300">
+          <span>
+            Showing {(currentPage - 1) * pageSize + 1}
+            -{Math.min(currentPage * pageSize, sortedAndFilteredRows.length)} of {sortedAndFilteredRows.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={currentPage <= 1}
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {!loading && !sortedAndFilteredRows.length ? emptyState ?? null : null}
     </div>
