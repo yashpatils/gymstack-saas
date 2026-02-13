@@ -46,13 +46,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: { user: MeDto }): MeDto {
-    return {
-      id: req.user.id,
-      email: req.user.email,
-      role: req.user.role,
-      orgId: req.user.orgId,
-    };
+  me(@Req() req: { user: MeDto }): Promise<MeDto> {
+    return this.authService.me(req.user.id);
   }
 
   @Throttle({ default: { limit: 30, ttl: 60_000 } })

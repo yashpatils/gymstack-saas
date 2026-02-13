@@ -33,14 +33,13 @@ export class GymsController {
   }
 
   @Post()
-  @Roles(UserRole.Owner, UserRole.Admin)
   createGym(@Body() data: CreateGymDto, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.gymsService.createGym(user.orgId, user.id, data.name);
+    return this.gymsService.createGymForUser(user, data.name);
   }
 
   @Get(':id')
