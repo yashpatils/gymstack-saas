@@ -50,6 +50,8 @@ Required environment variables:
 
 - `NEXT_PUBLIC_API_URL` — **Required in Vercel production/preview**. Use the full Railway backend origin (example: `https://your-api.up.railway.app`).
   - In local development only, frontend falls back to `http://localhost:3000` when this variable is missing.
+- `NEXT_PUBLIC_BASE_DOMAIN` — platform root domain used for tenant subdomains (example: `gymstack-saas.vercel.app`).
+- `NEXT_PUBLIC_APP_URL` — canonical app URL for root-domain links (example: `https://gymstack-saas.vercel.app`).
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` — Stripe price for upgrades (optional if billing checkout is disabled).
 
 ## Railway configuration (backend)
@@ -59,6 +61,7 @@ Required environment variables:
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `FRONTEND_URL`
+- `BASE_DOMAIN` — platform root domain used for invite/subdomain fallback URLs (example: `gymstack-saas.vercel.app`).
 - `CORS_ORIGIN` (optional override)
 - `API_PREFIX` (optional, defaults to `api`)
 
@@ -114,3 +117,15 @@ Environment overrides:
 - `DEMO_PASSWORD`
 - `DEMO_TENANT_NAME`
 - `DEMO_GYM_NAME`
+
+
+## Domain routing configuration
+
+All domain and subdomain routing is environment-driven (no code changes required when you move to a new domain):
+
+- Frontend uses `NEXT_PUBLIC_BASE_DOMAIN` and `NEXT_PUBLIC_APP_URL`.
+- Backend uses `BASE_DOMAIN`.
+- Tenant fallback URL format is `https://<locationSlug>.<BASE_DOMAIN>` when there is no active custom domain.
+- Invite links prefer an active custom domain per location (when configured) and otherwise fall back to the subdomain pattern above.
+
+When you purchase a new production domain later, update only these environment variables in Vercel/Railway and redeploy.

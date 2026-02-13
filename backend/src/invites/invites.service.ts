@@ -50,7 +50,10 @@ export class InvitesService {
       throw new BadRequestException('Invalid invite role');
     }
 
-    const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId }, select: { id: true } });
+    const location = await this.prisma.gym.findFirst({
+      where: { id: input.locationId, orgId },
+      select: { id: true, name: true },
+    });
     if (!location) {
       throw new BadRequestException('Invalid locationId');
     }
@@ -70,7 +73,7 @@ export class InvitesService {
       },
     });
 
-    const inviteUrl = this.buildInviteLink(token);
+    const inviteUrl = this.buildInviteLink(token, location);
 
     return { inviteUrl, token, expiresAt: expiresAt.toISOString(), locationId: input.locationId, role: input.role };
   }
@@ -198,8 +201,54 @@ export class InvitesService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private buildInviteLink(token: string): string {
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    return `${frontendUrl.replace(/\/+$/, '')}/signup?intent=staff&token=${token}`;
+  private buildInviteLink(token: string, location: { id: string; name: string }): string {
+    const host = this.resolveLocationHost(location);
+    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+    return `${protocol}://${host}/signup?intent=staff&token=${token}`;
+  }
+
+  private resolveLocationHost(location: { id: string; name: string }): string {
+    const configuredCustomDomains = this.getCustomDomainMap();
+    const activeCustomDomain = configuredCustomDomains.get(location.id);
+    if (activeCustomDomain) {
+      return activeCustomDomain;
+    }
+
+    const baseDomain = this.normalizeDomain(process.env.BASE_DOMAIN) ?? 'localhost:3000';
+    const locationSlug = this.slugifyLocation(location.name);
+    return `${locationSlug}.${baseDomain}`;
+  }
+
+  private getCustomDomainMap(): Map<string, string> {
+    const raw = process.env.LOCATION_CUSTOM_DOMAINS;
+    if (!raw) {
+      return new Map();
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return new Map(
+        Object.entries(parsed)
+          .map(([locationId, domain]) => [locationId, this.normalizeDomain(typeof domain === 'string' ? domain : '')] as const)
+          .filter((entry): entry is [string, string] => Boolean(entry[1])),
+      );
+    } catch {
+      return new Map();
+    }
+  }
+
+  private normalizeDomain(value: string | undefined): string | null {
+    const normalized = (value ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    return normalized || null;
+  }
+
+  private slugifyLocation(name: string): string {
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return slug || 'location';
   }
 }
