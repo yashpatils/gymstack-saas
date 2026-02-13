@@ -19,7 +19,6 @@ import {
   setContext as setContextRequest,
   signup as signupRequest,
 } from '../lib/auth';
-import { normalizeRole, type Role } from '../lib/rbac';
 import type { Membership } from '../types/auth';
 
 type AuthContextValue = {
@@ -30,7 +29,6 @@ type AuthContextValue = {
   memberships: Membership[];
   permissions: string[];
   activeContext?: ActiveContext;
-  role: Role;
   login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[] }>;
   signup: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[] }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
@@ -168,21 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({
-      user,
-      token,
-      loading: isLoading,
-      isLoading,
-      memberships,
-      permissions,
-      activeContext,
-      role: normalizeRole(user?.role),
-      login,
-      signup,
-      chooseContext,
-      logout,
-      refreshUser,
-    }),
+    () => ({ user, token, loading: isLoading, isLoading, memberships, permissions, activeContext, login, signup, chooseContext, logout, refreshUser }),
     [user, token, isLoading, memberships, permissions, activeContext, login, signup, chooseContext, logout, refreshUser],
   );
 
