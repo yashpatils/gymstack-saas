@@ -66,6 +66,8 @@ export default function PlatformLayout({
     return source.slice(0, 2).toUpperCase();
   }, [email]);
 
+  const selectedTenantId = activeContext?.tenantId ?? memberships[0]?.tenantId ?? "";
+
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.readAt).length,
     [notifications],
@@ -198,9 +200,9 @@ export default function PlatformLayout({
                 }
 
                 const disabled =
-                  (item.requires === "users" && !permissions.some((permission) => permission.startsWith("tenant:") || permission.startsWith("members:")))
-                  || (item.requires === "billing" && !permissions.includes("billing:*"))
-                  || (item.requires === "owner" && !permissions.includes("tenant:*"));
+                  (item.requires === "users" && !permissions.some((permission) => permission === "users:crud" || permission === "staff:crud" || permission === "clients:crud" || permission === "location:manage" || permission === "tenant:manage"))
+                  || (item.requires === "billing" && !permissions.includes("billing:manage"))
+                  || (item.requires === "owner" && !permissions.includes("tenant:manage"));
                 const isActive =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -246,7 +248,9 @@ export default function PlatformLayout({
                     value={activeContext?.gymId ?? ""}
                     onChange={(event) => {
                       const gymId = event.target.value || undefined;
-                      void chooseContext(activeContext?.tenantId ?? "", gymId);
+                      if (selectedTenantId) {
+                        void chooseContext(selectedTenantId, gymId);
+                      }
                     }}
                   >
                     <option value="">Select location</option>

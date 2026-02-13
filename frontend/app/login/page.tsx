@@ -118,7 +118,7 @@ export default function LoginPage() {
       const authResult = await login(email, password);
       toast.success("Logged in", "Welcome back to GymStack.");
       const needsLocationSelection = !authResult.activeContext?.gymId
-        && authResult.memberships.some((membership) => membership.gymId == null && ["tenant_owner", "tenant_admin"].includes(membership.role));
+        && authResult.memberships.some((membership) => membership.gymId == null && ["TENANT_OWNER", "TENANT_LOCATION_ADMIN"].includes(membership.role));
 
       if (needsLocationSelection) {
         router.push("/platform/context");

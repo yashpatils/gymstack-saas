@@ -5,7 +5,7 @@ import { SubscriptionGatingService } from '../billing/subscription-gating.servic
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
-import { canManageBranch } from '../auth/authorization';
+import { canManageLocation } from '../auth/authorization';
 
 @Injectable()
 export class GymsService {
@@ -58,7 +58,7 @@ export class GymsService {
           data: {
             orgId: organization.id,
             userId: user.id,
-            role: MembershipRole.tenant_owner,
+            role: MembershipRole.TENANT_OWNER,
           },
         });
 
@@ -110,7 +110,7 @@ export class GymsService {
       throw new NotFoundException('Gym not found');
     }
 
-    const allowed = await canManageBranch(this.prisma, user.id, user.orgId, gym.id);
+    const allowed = await canManageLocation(this.prisma, user.id, user.orgId, gym.id);
     if (!allowed) {
       throw new ForbiddenException('Insufficient permissions');
     }
@@ -168,7 +168,7 @@ export class GymsService {
     if (!gym) {
       throw new NotFoundException('Gym not found');
     }
-    const allowed = await canManageBranch(this.prisma, user.id, user.orgId, gym.id);
+    const allowed = await canManageLocation(this.prisma, user.id, user.orgId, gym.id);
     if (!allowed) {
       throw new ForbiddenException('Insufficient permissions');
     }
@@ -194,7 +194,7 @@ export class GymsService {
     if (!gym) {
       throw new NotFoundException('Gym not found');
     }
-    const allowed = await canManageBranch(this.prisma, user.id, user.orgId, gym.id);
+    const allowed = await canManageLocation(this.prisma, user.id, user.orgId, gym.id);
     if (!allowed) {
       throw new ForbiddenException('Insufficient permissions');
     }

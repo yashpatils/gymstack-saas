@@ -7,4 +7,8 @@ export class SetContextDto {
   @IsOptional()
   @IsString()
   gymId?: string;
+
+  @IsOptional()
+  @IsString()
+  locationId?: string;
 }

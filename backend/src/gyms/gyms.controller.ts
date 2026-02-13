@@ -35,7 +35,7 @@ export class GymsController {
   }
 
   @Post()
-  @RequirePermission('gym:create')
+  @RequirePermission('locations:crud')
   createGym(@Body() data: CreateGymDto, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {

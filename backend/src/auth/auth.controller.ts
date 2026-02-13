@@ -39,7 +39,7 @@ export class AuthController {
   signup(
     @Body() body: SignupDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     return this.authService.signup(body, getRequestContext(req));
   }
 
@@ -48,14 +48,14 @@ export class AuthController {
   login(
     @Body() body: LoginDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     return this.authService.login(body, getRequestContext(req));
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('set-context')
   setContext(@Req() req: { user: RequestUser }, @Body() body: SetContextDto): Promise<{ accessToken: string }> {
-    return this.authService.setContext(req.user.id, body.tenantId, body.gymId);
+    return this.authService.setContext(req.user.id, body.tenantId, body.gymId ?? body.locationId);
   }
 
   @UseGuards(JwtAuthGuard)

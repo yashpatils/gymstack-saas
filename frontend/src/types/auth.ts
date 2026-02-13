@@ -1,10 +1,8 @@
 export type MembershipRole =
-  | 'tenant_owner'
-  | 'tenant_admin'
-  | 'gym_owner'
-  | 'branch_manager'
-  | 'personal_trainer'
-  | 'client';
+  | 'TENANT_OWNER'
+  | 'TENANT_LOCATION_ADMIN'
+  | 'GYM_STAFF_COACH'
+  | 'CLIENT';
 
 export type AuthUser = {
   id: string;
@@ -19,6 +17,7 @@ export type Membership = {
   id: string;
   tenantId: string;
   gymId?: string | null;
+  locationId?: string | null;
   branchId?: string | null;
   role: MembershipRole;
   status: string;
@@ -27,6 +26,7 @@ export type Membership = {
 export type ActiveContext = {
   tenantId: string;
   gymId?: string | null;
+  locationId?: string | null;
   branchId?: string | null;
   role: MembershipRole;
 };
