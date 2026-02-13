@@ -48,7 +48,8 @@ npm run predeploy
 
 Required environment variables:
 
-- `NEXT_PUBLIC_API_URL` — Railway backend URL (example: `https://your-api.up.railway.app`).
+- `NEXT_PUBLIC_API_URL` — **Required in Vercel production/preview**. Use the full Railway backend origin (example: `https://your-api.up.railway.app`).
+  - In local development only, frontend falls back to `http://localhost:3000` when this variable is missing.
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` — Stripe price for upgrades (optional if billing checkout is disabled).
 
 ## Railway configuration (backend)
