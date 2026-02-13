@@ -29,8 +29,10 @@ export class HttpExceptionWithRequestIdFilter implements ExceptionFilter {
 
     if (status >= 500) {
       const message = exception instanceof Error ? exception.message : String(exception);
+      const stack = exception instanceof Error ? exception.stack : undefined;
       this.logger.error(
         `Request failed with status ${status} [requestId=${requestId ?? 'unknown'}]: ${message}`,
+        stack,
       );
     }
 
@@ -50,9 +52,11 @@ export class HttpExceptionWithRequestIdFilter implements ExceptionFilter {
     const fallbackMessage =
       typeof exceptionResponse === 'string'
         ? exceptionResponse
-        : exception instanceof Error
-          ? exception.message
-          : 'Internal server error';
+        : status >= HttpStatus.INTERNAL_SERVER_ERROR
+          ? 'Internal server error'
+          : exception instanceof Error
+            ? exception.message
+            : 'Request failed';
 
     response.status(status).json({
       message: fallbackMessage,
