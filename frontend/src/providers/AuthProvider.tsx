@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const currentUser = await getMe();
         if (isMounted) {
-          setUser(currentUser);
+          setUser(currentUser.user);
         }
       } catch {
         if (isMounted) {
