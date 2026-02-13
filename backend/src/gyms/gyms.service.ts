@@ -1,9 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole, Prisma, Role } from '@prisma/client';
+import { MembershipRole, MembershipStatus, Prisma, Role } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, UserRole } from '../users/user.model';
+import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { canManageLocation } from '../auth/authorization';
 
@@ -66,7 +66,7 @@ export class GymsService {
           where: { id: user.id },
           data: {
             orgId: organization.id,
-            role: Role.OWNER,
+            role: Role.USER,
           },
         });
 
@@ -91,13 +91,23 @@ export class GymsService {
       return createdGym;
     }
 
-    if (![UserRole.Owner, UserRole.Admin].includes(user.role)) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
-
-    const orgId = user.orgId || memberships[0]?.orgId;
+    const orgId = user.activeTenantId ?? user.orgId ?? memberships[0]?.orgId;
     if (!orgId) {
       throw new ForbiddenException('Missing tenant context');
+    }
+
+    const hasOwnerMembership = await this.prisma.membership.findFirst({
+      where: {
+        userId: user.id,
+        orgId,
+        role: MembershipRole.TENANT_OWNER,
+        status: MembershipStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+
+    if (!hasOwnerMembership) {
+      throw new ForbiddenException('Only tenant owners can create additional locations');
     }
 
     return this.createGym(orgId, user.id, name);

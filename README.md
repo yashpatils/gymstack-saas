@@ -79,23 +79,26 @@ Required environment variables:
 - **Build Command:** `npm run predeploy`
 - **Install Command:** `npm install`
 
-## RBAC and tenant context
+## RBAC and tenant/location context
 
 GymStack uses membership-driven RBAC for multi-tenant access:
 
-- `tenant_owner`
-- `tenant_admin`
-- `gym_owner`
-- `branch_manager`
-- `personal_trainer`
-- `client`
+- `TENANT_OWNER` (tenant-wide, `gymId/locationId = NULL`): full control across billing, settings, and all locations.
+- `TENANT_LOCATION_ADMIN` (location-scoped): branch manager/admin permissions for a specific location.
+- `GYM_STAFF_COACH` (location-scoped): coach/staff permissions for assigned workflows.
+- `CLIENT` (location-scoped): self-service only.
 
 Auth flow:
 
 1. User logs in with email/password.
-2. Backend returns user + memberships + suggested `activeContext`.
-3. Frontend calls `POST /api/auth/set-context` when the user switches workspace.
-4. `/api/auth/me` returns user, memberships, active context, and resolved permissions.
+2. Backend returns user + memberships + suggested `activeContext` from `/api/auth/me`.
+3. Frontend calls `POST /api/auth/set-context` when the user switches tenant/location context.
+4. Permissions are resolved from active context and enforced via backend guards.
+
+Onboarding flow:
+
+- New users without memberships can create their first tenant + first location.
+- The backend creates `organization (tenant)`, `gym (location)`, and `TENANT_OWNER` membership, then the app auto-uses that context.
 
 ### Seed data
 
