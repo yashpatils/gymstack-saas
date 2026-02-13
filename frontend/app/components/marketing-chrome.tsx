@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNav } from "./auth-nav";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
@@ -30,14 +31,7 @@ export function MarketingNavbar() {
           ))}
         </nav>
 
-        <div className="order-2 flex items-center gap-3 sm:order-3">
-          <Link href="/login" className="button ghost">
-            Login
-          </Link>
-          <Link href="/signup" className="button">
-            Sign up
-          </Link>
-        </div>
+        <AuthNav />
       </div>
     </header>
   );

@@ -18,7 +18,6 @@ import { GymsService } from './gyms.service';
 import { CreateGymDto } from './dto/create-gym.dto';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { PermissionsGuard } from '../guards/permissions.guard';
-import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('gyms')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
@@ -35,7 +34,6 @@ export class GymsController {
   }
 
   @Post()
-  @RequirePermission('locations:crud')
   createGym(@Body() data: CreateGymDto, @Req() req: { user?: User }) {
     const user = req.user;
     if (!user) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { listGyms, type Gym } from '../../../src/lib/gyms';
@@ -29,7 +29,7 @@ export default function ContextSelectionPage(): JSX.Element {
     void load();
   }, []);
 
-  const onChoose = async (tenantId: string, gymId?: string | null) => {
+  const onChoose = useCallback(async (tenantId: string, gymId?: string | null) => {
     setIsSubmitting(true);
     try {
       await chooseContext(tenantId, gymId ?? undefined);
@@ -37,7 +37,17 @@ export default function ContextSelectionPage(): JSX.Element {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [chooseContext, router]);
+
+  useEffect(() => {
+    if (isSubmitting || !activeContext?.tenantId) {
+      return;
+    }
+
+    if (gyms.length === 1) {
+      void onChoose(activeContext.tenantId, gyms[0].id);
+    }
+  }, [activeContext?.tenantId, gyms, isSubmitting, onChoose]);
 
   if (!activeContext?.tenantId) {
     return <p className="text-sm text-slate-300">No tenant context found.</p>;
@@ -54,7 +64,7 @@ export default function ContextSelectionPage(): JSX.Element {
             type="button"
             className="w-full rounded-xl border border-white/20 bg-slate-900/60 p-4 text-left"
             disabled={isSubmitting}
-            onClick={() => onChoose(activeContext.tenantId, gym.id)}
+            onClick={() => void onChoose(activeContext.tenantId, gym.id)}
           >
             <p className="font-medium">{gym.name}</p>
             <p className="text-sm text-slate-400">Location ID: {gym.id}</p>

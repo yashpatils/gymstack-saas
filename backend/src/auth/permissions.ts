@@ -1,9 +1,27 @@
 import { MembershipRole } from '@prisma/client';
 
 export const PERMISSION_MAP: Record<MembershipRole, string[]> = {
-  TENANT_OWNER: ['tenant:manage', 'billing:manage', 'locations:crud', 'users:crud', 'staff:crud', 'clients:crud', 'reports:view_all'],
-  TENANT_LOCATION_ADMIN: ['location:manage', 'staff:crud', 'clients:crud', 'programs:crud', 'reports:view_location'],
-  GYM_STAFF_COACH: ['clients:read', 'plans:crud', 'attendance:crud', 'schedule:read/write_limited'],
+  TENANT_OWNER: [
+    'tenant:manage',
+    'billing:manage',
+    'locations:create',
+    'locations:update',
+    'locations:delete',
+    'locations:read',
+    'users:crud',
+    'staff:crud',
+    'clients:crud',
+    'reports:view_all',
+  ],
+  TENANT_LOCATION_ADMIN: [
+    'location:manage',
+    'locations:read',
+    'staff:crud',
+    'clients:crud',
+    'programs:crud',
+    'reports:view_location',
+  ],
+  GYM_STAFF_COACH: ['locations:read', 'clients:read', 'plans:crud', 'attendance:crud', 'schedule:read/write_limited'],
   CLIENT: ['self:read/write', 'plans:read', 'attendance:read'],
 };
 
