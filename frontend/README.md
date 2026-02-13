@@ -18,7 +18,7 @@ npm run predeploy
 
 Required env vars:
 
-- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_API_URL` (required in Vercel production/preview; local development can fallback to `http://localhost:3000`)
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` (optional if billing checkout flow disabled)
 
 

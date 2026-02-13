@@ -2,6 +2,11 @@ type ApiFetchInit = Omit<RequestInit, "body"> & {
   body?: BodyInit | Record<string, unknown> | null;
 };
 
+const DEV_LOCALHOST_API_URL = "http://localhost:3000";
+
+let hasLoggedMissingProdApiUrl = false;
+let hasLoggedDevFallback = false;
+
 function normalizePath(path: string): string {
   if (!path) {
     return "";
@@ -14,8 +19,43 @@ function normalizePath(path: string): string {
   return `/${path}`.replace(/\/+/g, "/");
 }
 
+function getNodeEnv(): string {
+  return process.env.NODE_ENV ?? "";
+}
+
+function getMissingApiUrlMessage(): string {
+  return "NEXT_PUBLIC_API_URL is not set. Configure NEXT_PUBLIC_API_URL for deployed environments (for example on Vercel).";
+}
+
 export function getApiBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+  const configuredUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "");
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  const nodeEnv = getNodeEnv();
+
+  if (nodeEnv === "development") {
+    if (!hasLoggedDevFallback) {
+      hasLoggedDevFallback = true;
+      console.warn(
+        `${getMissingApiUrlMessage()} Falling back to ${DEV_LOCALHOST_API_URL} in development only.`,
+      );
+    }
+    return DEV_LOCALHOST_API_URL;
+  }
+
+  if (nodeEnv === "production") {
+    const message = getMissingApiUrlMessage();
+    if (!hasLoggedMissingProdApiUrl) {
+      hasLoggedMissingProdApiUrl = true;
+      console.error(`❌ ${message}`);
+    }
+    throw new Error(message);
+  }
+
+  return "";
 }
 
 export function buildApiUrl(path: string): string {
