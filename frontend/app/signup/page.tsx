@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { SignupRole } from "../../src/lib/auth";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { useToast } from "../../src/components/toast/ToastProvider";
 import {
@@ -70,7 +70,7 @@ function validateCredentials(email: string, password: string): FieldErrors {
   return errors;
 }
 
-export default function SignupPage() {
+function SignupPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -267,6 +267,30 @@ export default function SignupPage() {
           </div>
         </div>
       </section>
+    </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupPageFallback />}>
+      <SignupPageContent />
+    </Suspense>
+  );
+}
+
+function SignupPageFallback() {
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-5xl rounded-3xl border border-white/20 bg-slate-900/80 p-6 sm:p-8">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+      </div>
     </main>
   );
 }
