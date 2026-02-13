@@ -43,7 +43,15 @@ function compareSortValues(left: string | number, right: string | number): numbe
     return left - right;
   }
 
-  return left.toString().localeCompare(right.toString());
+  if (typeof left === "number") {
+    return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+  }
+
+  if (typeof right === "number") {
+    return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+  }
+
+  return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
 }
 
 export default function DataTable<T>({

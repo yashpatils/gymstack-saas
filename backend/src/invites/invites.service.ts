@@ -1,13 +1,8 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { MembershipRole, MembershipStatus, Role } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { DomainStatus, InviteStatus, MembershipRole, MembershipStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
@@ -18,15 +13,13 @@ export class InvitesService {
   constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
-    const orgId = requester.activeTenantId ?? requester.orgId;
-    if (!orgId) {
-      throw new ForbiddenException('Missing tenant context');
-    }
+    const tenantId = requester.activeTenantId ?? requester.orgId;
+    if (!tenantId) throw new ForbiddenException('Missing tenant context');
 
     const canInvite = await this.prisma.membership.findFirst({
       where: {
         userId: requester.id,
-        orgId,
+        orgId: tenantId,
         status: MembershipStatus.ACTIVE,
         OR: [
           { role: MembershipRole.TENANT_OWNER },
@@ -40,126 +33,74 @@ export class InvitesService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const allowedInviteRoles: MembershipRole[] = [
-      MembershipRole.TENANT_LOCATION_ADMIN,
-      MembershipRole.GYM_STAFF_COACH,
-      MembershipRole.CLIENT,
-    ];
-
-    if (!allowedInviteRoles.includes(input.role)) {
-      throw new BadRequestException('Invalid invite role');
-    }
-
-    const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId }, select: { id: true } });
-    if (!location) {
-      throw new BadRequestException('Invalid locationId');
-    }
+    const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId: tenantId } });
+    if (!location) throw new BadRequestException('Invalid locationId');
 
     const token = randomBytes(32).toString('hex');
-    const tokenHash = this.hashToken(token);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await this.prisma.invite.create({
+    await this.prisma.locationInvite.create({
       data: {
-        orgId,
-        email: input.email?.toLowerCase() ?? '',
-        role: Role.USER,
-        tokenHash,
+        tenantId,
+        locationId: location.id,
+        role: input.role,
+        email: input.email?.toLowerCase() ?? null,
+        token,
         expiresAt,
-        createdBy: requester.id,
+        createdByUserId: requester.id,
+        status: InviteStatus.PENDING,
       },
     });
 
-    const inviteUrl = this.buildInviteLink(token);
-
-    return { inviteUrl, token, expiresAt: expiresAt.toISOString(), locationId: input.locationId, role: input.role };
+    return {
+      inviteUrl: await this.buildInviteLink(token, location.id, location.slug),
+      token,
+      expiresAt: expiresAt.toISOString(),
+      locationId: location.id,
+      role: input.role,
+    };
   }
 
   async acceptInvite(input: AcceptInviteDto) {
-    const tokenHash = this.hashToken(input.token);
-    const invite = await this.prisma.invite.findFirst({
-      where: {
-        tokenHash,
-        acceptedAt: null,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const invite = await this.prisma.locationInvite.findUnique({ where: { token: input.token } });
+    if (!invite) throw new NotFoundException('Invite not found');
+    if (invite.status !== InviteStatus.PENDING) throw new BadRequestException('Invite is no longer valid');
+    if (invite.expiresAt.getTime() < Date.now()) throw new BadRequestException('Invite has expired');
 
-    if (!invite) {
-      throw new NotFoundException('Invite not found');
-    }
-
-    if (invite.expiresAt.getTime() < Date.now()) {
-      throw new BadRequestException('Invite has expired');
-    }
-
-    const candidateEmail = (invite.email || input.email || '').toLowerCase().trim();
-    if (!candidateEmail) {
-      throw new BadRequestException('Invite email is missing');
-    }
+    const candidateEmail = (invite.email ?? input.email ?? '').toLowerCase().trim();
+    if (!candidateEmail) throw new BadRequestException('Invite email is missing');
 
     let user = await this.prisma.user.findUnique({ where: { email: candidateEmail } });
-
     if (!user) {
-      if (!input.password) {
-        throw new BadRequestException('Password is required to accept this invite');
-      }
-      const passwordHash = await bcrypt.hash(input.password, 10);
+      if (!input.password) throw new BadRequestException('Password is required to accept this invite');
       user = await this.prisma.user.create({
-        data: {
-          email: candidateEmail,
-          password: passwordHash,
-          role: Role.USER,
-          orgId: invite.orgId,
-        },
+        data: { email: candidateEmail, password: await bcrypt.hash(input.password, 10), role: Role.USER, orgId: invite.tenantId },
       });
     }
-
-    const gyms = await this.prisma.gym.findMany({
-      where: { orgId: invite.orgId },
-      select: { id: true },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    const locationId = gyms[0]?.id;
-    if (!locationId) {
-      throw new BadRequestException('Invite tenant has no locations');
-    }
-
-    const role = MembershipRole.GYM_STAFF_COACH;
 
     await this.prisma.membership.upsert({
       where: {
         userId_orgId_gymId_role: {
           userId: user.id,
-          orgId: invite.orgId,
-          gymId: locationId,
-          role,
+          orgId: invite.tenantId,
+          gymId: invite.locationId,
+          role: invite.role,
         },
       },
       update: { status: MembershipStatus.ACTIVE },
       create: {
         userId: user.id,
-        orgId: invite.orgId,
-        gymId: locationId,
-        role,
+        orgId: invite.tenantId,
+        gymId: invite.locationId,
+        role: invite.role,
         status: MembershipStatus.ACTIVE,
       },
     });
 
-    await this.prisma.invite.update({
-      where: { id: invite.id },
-      data: { acceptedAt: new Date() },
-    });
+    await this.prisma.locationInvite.update({ where: { id: invite.id }, data: { status: InviteStatus.ACCEPTED } });
 
-    const memberships = await this.prisma.membership.findMany({
-      where: { userId: user.id, status: MembershipStatus.ACTIVE },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    const active = memberships[0];
+    const memberships = await this.prisma.membership.findMany({ where: { userId: user.id, status: MembershipStatus.ACTIVE } });
+    const active = memberships.find((membership) => membership.orgId === invite.tenantId && membership.gymId === invite.locationId) ?? memberships[0];
 
     const accessToken = this.jwtService.sign({
       sub: user.id,
@@ -184,22 +125,28 @@ export class InvitesService {
         status: membership.status,
       })),
       activeContext: active
-        ? {
-            tenantId: active.orgId,
-            gymId: active.gymId,
-            locationId: active.gymId,
-            role: active.role,
-          }
+        ? { tenantId: active.orgId, gymId: active.gymId, locationId: active.gymId, role: active.role }
         : undefined,
     };
   }
 
-  private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
-  }
+  private async buildInviteLink(token: string, locationId: string, locationSlug: string): Promise<string> {
+    const fallbackBase = process.env.BASE_DOMAIN ?? process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${fallbackBase}`;
 
-  private buildInviteLink(token: string): string {
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    return `${frontendUrl.replace(/\/+$/, '')}/signup?intent=staff&token=${token}`;
+    const domain = await this.prisma.customDomain.findFirst({
+      where: { locationId, status: DomainStatus.ACTIVE },
+      orderBy: { createdAt: 'asc' },
+      select: { hostname: true },
+    });
+
+    const host = domain?.hostname ?? `${locationSlug}.${fallbackBase}`;
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+
+    if (!host) {
+      return `${appUrl.replace(/\/$/, '')}/join?token=${token}`;
+    }
+
+    return `${protocol}://${host}/join?token=${token}`;
   }
 }

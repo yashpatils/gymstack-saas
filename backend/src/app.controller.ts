@@ -6,8 +6,8 @@ export class AppController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  getRoot(): { ok: true } {
-    return { ok: true };
+  getRoot(): { ok: true; service: string } {
+    return { ok: true, service: 'gymstack-backend' };
   }
 
   @Get('health')

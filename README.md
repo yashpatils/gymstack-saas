@@ -52,6 +52,9 @@ Required environment variables:
   - In local development only, frontend falls back to `http://localhost:3000` when this variable is missing.
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` — Stripe price for upgrades (optional if billing checkout is disabled).
 
+- `NEXT_PUBLIC_BASE_DOMAIN` — Platform base domain used for subdomain routing (example: `gymstack-saas.vercel.app`).
+- `NEXT_PUBLIC_APP_URL` — Canonical root app URL used as fallback for invite links (example: `https://gymstack-saas.vercel.app`).
+
 ## Railway configuration (backend)
 
 Required environment variables:
@@ -61,6 +64,8 @@ Required environment variables:
 - `FRONTEND_URL`
 - `CORS_ORIGIN` (optional override)
 - `API_PREFIX` (optional, defaults to `api`)
+- `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
+- `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 
 ## Notes
 
@@ -114,3 +119,23 @@ Environment overrides:
 - `DEMO_PASSWORD`
 - `DEMO_TENANT_NAME`
 - `DEMO_GYM_NAME`
+
+
+## Multi-domain routing
+
+Routing is fully environment-driven (no code edits required when changing domains):
+
+- Root marketing/owner login domain: `https://<NEXT_PUBLIC_BASE_DOMAIN>`
+- Location fallback domain (no custom domain): `https://<locationSlug>.<NEXT_PUBLIC_BASE_DOMAIN>`
+- Active custom domains override fallback domains for landing/login/join links.
+
+For local development without wildcard DNS:
+
+- `http://localhost:3000/_sites/<locationSlug>`
+
+When you purchase a real domain later, update only:
+
+- Frontend: `NEXT_PUBLIC_BASE_DOMAIN`, `NEXT_PUBLIC_APP_URL`
+- Backend: `BASE_DOMAIN`
+
+Also ensure Vercel has wildcard domain support configured for `*.your-domain.com` and the apex/root domain attached.

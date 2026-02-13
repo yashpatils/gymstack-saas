@@ -27,6 +27,21 @@ enum MembershipStatus {
   DISABLED
 }
 
+enum DomainStatus {
+  PENDING
+  VERIFYING
+  ACTIVE
+  ERROR
+  DELETING
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 enum SubscriptionStatus {
   FREE
   TRIAL
@@ -51,6 +66,8 @@ model User {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   invites              Invite[]             @relation("InviteCreator")
+  customDomains        CustomDomain[]
+  locationInvites      LocationInvite[]
   auditLogs            AuditLog[]
   notifications        Notification[]
 
@@ -126,16 +143,22 @@ model PasswordResetToken {
 model Gym {
   id           String       @id @default(uuid())
   name         String
+  slug         String       @unique
   timezone     String       @default("UTC")
   contactEmail String?
   phone        String?
   address      String?
   logoUrl      String?
+  displayName  String?
+  accentColor  String?
+  heroImageUrl String?
   ownerId      String
   orgId        String
   owner        User         @relation(fields: [ownerId], references: [id])
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   memberships  Membership[]
+  customDomains CustomDomain[]
+  locationInvites LocationInvite[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -150,6 +173,8 @@ model Organization {
   auditLogs   AuditLog[]
   invites     Invite[]
   gyms        Gym[]
+  customDomains CustomDomain[]
+  locationInvites LocationInvite[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -169,4 +194,42 @@ model Membership {
   @@unique([userId, orgId, gymId, role])
   @@index([orgId])
   @@index([userId])
+}
+
+model CustomDomain {
+  id                String       @id @default(cuid())
+  tenantId          String
+  locationId        String?
+  hostname          String       @unique
+  status            DomainStatus @default(PENDING)
+  verificationToken String
+  createdByUserId   String
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  tenant            Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location          Gym?         @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  creator           User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([locationId])
+}
+
+model LocationInvite {
+  id              String           @id @default(cuid())
+  tenantId        String
+  locationId      String
+  role            MembershipRole
+  email           String?
+  token           String           @unique
+  expiresAt       DateTime
+  status          InviteStatus     @default(PENDING)
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location        Gym              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  creator         User             @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([locationId])
 }

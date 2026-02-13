@@ -11,6 +11,10 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { resolveEffectivePermissions } from './authorization';
 
+function toGymSlug(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
+}
+
 @Injectable()
 export class AuthService {
   private membershipSchemaSupport?: { hasGymId: boolean; hasStatus: boolean };
@@ -50,6 +54,7 @@ export class AuthService {
       const location = await tx.gym.create({
         data: {
           name: `${email.split('@')[0]}'s Main Location`,
+          slug: `${toGymSlug(email.split('@')[0])}-main`,
           ownerId: user.id,
           orgId: organization.id,
         },
