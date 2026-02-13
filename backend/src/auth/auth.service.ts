@@ -9,7 +9,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
-import { resolvePermissions } from './permissions';
+import { resolveEffectivePermissions, resolveEffectiveRole } from './authorization';
 
 @Injectable()
 export class AuthService {
@@ -79,7 +79,7 @@ export class AuthService {
     });
 
     const memberships = [this.toMembershipDto(created.membership)];
-    const activeContext = this.getDefaultContext([created.membership]);
+    const activeContext = await this.getDefaultContext([created.membership]);
 
     return {
       accessToken: this.signToken(created.user.id, created.user.email, created.user.role, activeContext),
@@ -110,7 +110,7 @@ export class AuthService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const activeContext = this.getDefaultContext(memberships);
+    const activeContext = await this.getDefaultContext(memberships);
 
     await this.auditService.log({
       orgId: activeContext?.tenantId,
@@ -137,7 +137,6 @@ export class AuthService {
         userId,
         orgId: tenantId,
         status: MembershipStatus.ACTIVE,
-        ...(gymId ? { gymId } : {}),
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -151,10 +150,35 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (gymId) {
+      const gym = await this.prisma.gym.findFirst({ where: { id: gymId, orgId: tenantId }, select: { id: true } });
+      if (!gym) {
+        throw new UnauthorizedException('Invalid context for user');
+      }
+    }
+
+    const canUseGym = !gymId || await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        orgId: tenantId,
+        status: MembershipStatus.ACTIVE,
+        OR: [
+          { gymId, role: { in: [MembershipRole.gym_owner, MembershipRole.branch_manager] } },
+          { gymId: null, role: { in: [MembershipRole.tenant_owner, MembershipRole.tenant_admin] } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!canUseGym) {
+      throw new UnauthorizedException('Invalid context for user');
+    }
+
+    const roleScope = gymId ? 'branch' : 'tenant';
     const activeContext = {
       tenantId: membership.orgId,
-      gymId: membership.gymId,
-      role: membership.role,
+      gymId: gymId ?? null,
+      role: resolveEffectiveRole(membership.role, roleScope),
     };
 
     return { accessToken: this.signToken(user.id, user.email, user.role, activeContext) };
@@ -171,17 +195,20 @@ export class AuthService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const fallbackContext = this.getDefaultContext(memberships);
+    const fallbackContext = await this.getDefaultContext(memberships);
     const activeContext = active?.tenantId && active.role
       ? { tenantId: active.tenantId, gymId: active.gymId ?? null, role: active.role }
       : fallbackContext;
 
-    const permissions = activeContext ? resolvePermissions(activeContext.role) : [];
+    const permissions = activeContext
+      ? await resolveEffectivePermissions(this.prisma, userId, activeContext.tenantId, activeContext.gymId ?? undefined)
+      : [];
 
     return {
       user: { id: user.id, email: user.email, role: user.role, orgId: activeContext?.tenantId ?? '' },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
+      effectiveRole: activeContext?.role,
       permissions,
     };
   }
@@ -223,22 +250,32 @@ export class AuthService {
       id: membership.id,
       tenantId: membership.orgId,
       gymId: membership.gymId,
+      branchId: membership.gymId,
       role: membership.role,
       status: membership.status,
     };
   }
 
-  private getDefaultContext(memberships: Membership[]): { tenantId: string; gymId?: string | null; role: MembershipRole } | undefined {
+  private async getDefaultContext(memberships: Membership[]): Promise<{ tenantId: string; gymId?: string | null; role: MembershipRole } | undefined> {
     if (memberships.length === 0) {
       return undefined;
     }
 
     const preferred = memberships.find((membership) => membership.role === MembershipRole.tenant_owner) ?? memberships[0];
 
+    const tenantGyms = await this.prisma.gym.findMany({
+      where: { orgId: preferred.orgId },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const shouldAutoSelectGym = preferred.role === MembershipRole.tenant_owner && tenantGyms.length === 1;
+    const roleScope = shouldAutoSelectGym || Boolean(preferred.gymId) ? 'branch' : 'tenant';
+
     return {
       tenantId: preferred.orgId,
-      gymId: preferred.gymId,
-      role: preferred.role,
+      gymId: shouldAutoSelectGym ? tenantGyms[0].id : (preferred.gymId ?? null),
+      role: resolveEffectiveRole(preferred.role, roleScope),
     };
   }
 

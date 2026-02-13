@@ -8,6 +8,7 @@ import { apiFetch } from "../../src/lib/api";
 
 import { defaultFeatureFlags, getFeatureFlags } from "../../src/lib/featureFlags";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { listGyms, type Gym } from "../../src/lib/gyms";
 
 type NavItem = {
   label: string;
@@ -51,11 +52,12 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, loading, logout, permissions, memberships } = useAuth();
+  const { user, loading, logout, permissions, memberships, activeContext, chooseContext } = useAuth();
   const [orgName, setOrgName] = useState<string>("-");
   const [featureFlags, setFeatureFlags] = useState(defaultFeatureFlags);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [gyms, setGyms] = useState<Gym[]>([]);
   const email = user?.email ?? "platform.user@gymstack.app";
   const isAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
   const showDebugLinks = featureFlags.enableDebugLinks || process.env.NODE_ENV !== "production" || isAdmin;
@@ -139,6 +141,7 @@ export default function PlatformLayout({
       void loadOrg();
       void loadFeatureFlags();
       void loadNotifications();
+      void listGyms().then((items) => setGyms(items ?? [])).catch(() => setGyms([]));
     }
 
     return () => {
@@ -235,7 +238,26 @@ export default function PlatformLayout({
               <p className="platform-topbar-label">Platform</p>
               <p className="platform-topbar-email">{email}</p>
               <p className="platform-topbar-label">Organization: {orgName}</p>
-              {memberships.length > 1 ? <Link href="/platform/context" className="platform-topbar-label">Switch workspace</Link> : null}
+              {gyms.length > 1 ? (
+                <label className="platform-topbar-label">
+                  Location:
+                  <select
+                    className="ml-2 rounded border border-white/20 bg-slate-900 px-2 py-1"
+                    value={activeContext?.gymId ?? ""}
+                    onChange={(event) => {
+                      const gymId = event.target.value || undefined;
+                      void chooseContext(activeContext?.tenantId ?? "", gymId);
+                    }}
+                  >
+                    <option value="">Select location</option>
+                    {gyms.map((gym) => (
+                      <option key={gym.id} value={gym.id}>
+                        {gym.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : memberships.length > 1 ? <Link href="/platform/context" className="platform-topbar-label">Switch workspace</Link> : null}
             </div>
 
             <div className="platform-topbar-actions">

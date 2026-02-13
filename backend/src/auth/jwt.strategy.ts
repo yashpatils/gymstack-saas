@@ -3,7 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { MembershipRole } from '@prisma/client';
-import { resolvePermissions } from './permissions';
+import { PrismaService } from '../prisma/prisma.service';
+import { resolveEffectivePermissions } from './authorization';
 
 interface JwtPayload {
   sub: string;
@@ -18,7 +19,10 @@ interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     const secret = configService.get<string>('JWT_SECRET');
 
     if (!secret) {
@@ -32,7 +36,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload): JwtPayload & { permissions: string[] } {
-    return { ...payload, permissions: payload.activeRole ? resolvePermissions(payload.activeRole) : [] };
+  async validate(payload: JwtPayload): Promise<JwtPayload & { permissions: string[] }> {
+    const permissions = payload.activeTenantId
+      ? await resolveEffectivePermissions(this.prisma, payload.sub, payload.activeTenantId, payload.activeGymId)
+      : [];
+
+    return { ...payload, permissions };
   }
 }

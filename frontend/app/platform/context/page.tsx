@@ -1,14 +1,33 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../src/providers/AuthProvider';
+import { listGyms, type Gym } from '../../../src/lib/gyms';
 
 export default function ContextSelectionPage(): JSX.Element {
   const router = useRouter();
-  const { memberships, chooseContext } = useAuth();
+  const { memberships, chooseContext, activeContext } = useAuth();
+  const [gyms, setGyms] = useState<Gym[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const grouped = useMemo(() => memberships, [memberships]);
+
+  const tenantMemberships = useMemo(
+    () => memberships.filter((membership) => membership.tenantId === activeContext?.tenantId),
+    [memberships, activeContext?.tenantId],
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const nextGyms = await listGyms();
+        setGyms(Array.isArray(nextGyms) ? nextGyms : []);
+      } catch {
+        setGyms([]);
+      }
+    };
+
+    void load();
+  }, []);
 
   const onChoose = async (tenantId: string, gymId?: string | null) => {
     setIsSubmitting(true);
@@ -20,22 +39,26 @@ export default function ContextSelectionPage(): JSX.Element {
     }
   };
 
+  if (!activeContext?.tenantId) {
+    return <p className="text-sm text-slate-300">No tenant context found.</p>;
+  }
+
   return (
     <section className="space-y-4 text-white">
-      <h1 className="text-2xl font-semibold">Choose workspace</h1>
-      <p className="text-sm text-slate-300">Select your active tenant and role context.</p>
+      <h1 className="text-2xl font-semibold">Choose location</h1>
+      <p className="text-sm text-slate-300">Select your active branch context.</p>
       <div className="space-y-3">
-        {grouped.map((membership) => (
+        {gyms.map((gym) => (
           <button
-            key={membership.id}
+            key={gym.id}
             type="button"
             className="w-full rounded-xl border border-white/20 bg-slate-900/60 p-4 text-left"
             disabled={isSubmitting}
-            onClick={() => onChoose(membership.tenantId, membership.gymId)}
+            onClick={() => onChoose(activeContext.tenantId, gym.id)}
           >
-            <p className="font-medium">Tenant: {membership.tenantId}</p>
-            <p className="text-sm text-slate-300">Role: {membership.role}</p>
-            {membership.gymId ? <p className="text-sm text-slate-400">Gym: {membership.gymId}</p> : null}
+            <p className="font-medium">{gym.name}</p>
+            <p className="text-sm text-slate-400">Location ID: {gym.id}</p>
+            {tenantMemberships.length > 0 ? <p className="text-sm text-slate-300">Role: {tenantMemberships[0].role}</p> : null}
           </button>
         ))}
       </div>

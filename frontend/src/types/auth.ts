@@ -19,6 +19,7 @@ export type Membership = {
   id: string;
   tenantId: string;
   gymId?: string | null;
+  branchId?: string | null;
   role: MembershipRole;
   status: string;
 };
@@ -26,6 +27,7 @@ export type Membership = {
 export type ActiveContext = {
   tenantId: string;
   gymId?: string | null;
+  branchId?: string | null;
   role: MembershipRole;
 };
 
@@ -33,6 +35,7 @@ export type AuthMeResponse = {
   user: AuthUser;
   memberships: Membership[];
   activeContext?: ActiveContext;
+  effectiveRole?: MembershipRole;
   permissions: string[];
   subscriptionStatus?: string | null;
   stripeConfigured?: boolean;
