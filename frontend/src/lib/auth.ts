@@ -23,8 +23,10 @@ function setToken(token: string): void {
     return;
   }
 
+  const secureAttribute = window.location.protocol === "https:" ? "; Secure" : "";
+
   window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-  document.cookie = `gymstack_token=${token}; Path=/; SameSite=Lax; Secure`;
+  document.cookie = `gymstack_token=${token}; Path=/; SameSite=Lax${secureAttribute}`;
 }
 
 export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
@@ -68,7 +70,9 @@ export function logout(): void {
     return;
   }
 
+  const secureAttribute = window.location.protocol === "https:" ? "; Secure" : "";
+
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
   document.cookie =
-    "gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure";
+    `gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secureAttribute}`;
 }
