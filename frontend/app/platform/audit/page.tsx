@@ -47,7 +47,7 @@ export default function AuditPage() {
     return logs.filter((entry) => entry.action === actionFilter);
   }, [actionFilter, logs]);
 
-  const columns: DataTableColumn<AuditLog>[] = [
+  const columns = useMemo<DataTableColumn<AuditLog>[]>(() => [
     {
       id: "time",
       header: "Time",
@@ -80,7 +80,7 @@ export default function AuditPage() {
       sortValue: (entry) => `${entry.entityType}:${entry.entityId ?? ""}`,
       searchValue: (entry) => `${entry.entityType} ${entry.entityId ?? ""}`,
     },
-  ];
+  ], []);
 
   return (
     <PageShell>
