@@ -99,7 +99,7 @@ export function GymJoinForm() {
       {error ? <Alert>{error}</Alert> : null}
       <Input label="Invite token" value={token} onChange={(event) => setToken(event.target.value)} required />
       {validating ? <p className="text-xs text-slate-300">Validating invite…</p> : null}
-      {inviteValidation?.ok ? <p className="text-xs text-emerald-300">Invite valid for role {inviteValidation.role.replaceAll('_', ' ')}.</p> : null}
+      {inviteValidation?.ok ? <p className="text-xs text-emerald-300">Invite valid for role {inviteValidation.role.replace(/_/g, ' ')}.</p> : null}
       <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       <Button type="submit">Accept invite</Button>
