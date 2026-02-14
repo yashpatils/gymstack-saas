@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import { Check } from "lucide-react";
 import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
 import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -36,6 +35,14 @@ const getIntentFromQuery = (value: string | null): Intent => {
 const getPersonaForIntent = (intent: Intent): OAuthPersona => {
   return roleOptions.find((option) => option.value === intent)?.persona ?? 'OWNER';
 };
+
+function CheckIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
 
 function SignupPageContent() {
   const router = useRouter();
@@ -121,7 +128,7 @@ function SignupPageContent() {
               >
                 <span className="mb-1 flex items-center justify-between text-sm font-semibold">
                   {role.label}
-                  {isActive ? <Check className="h-4 w-4" aria-hidden="true" /> : null}
+                  {isActive ? <CheckIcon /> : null}
                 </span>
                 <span className="text-xs text-slate-300">{role.description}</span>
               </button>
