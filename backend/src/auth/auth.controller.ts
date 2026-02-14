@@ -48,7 +48,7 @@ export class AuthController {
   signup(
     @Body() body: SignupDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     return this.authService.signup(body, getRequestContext(req));
   }
 
@@ -57,7 +57,7 @@ export class AuthController {
   login(
     @Body() body: LoginDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     return this.authService.login(body, getRequestContext(req));
   }
 

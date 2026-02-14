@@ -5,7 +5,7 @@ import { Skeleton } from "../../../src/components/ui/Skeleton";
 import { apiFetch } from "../../lib/api";
 import { Button, PageShell } from "../../components/ui";
 import PageHeader from "../../../src/components/PageHeader";
-import { getLastApiRateLimitSnapshot, type ApiRateLimitSnapshot } from "../../../src/lib/api";
+import { getLastApiRateLimitSnapshot, type ApiRateLimitSnapshot } from "../../../src/lib/apiFetch";
 
 type StatusPayload = {
   status: string;

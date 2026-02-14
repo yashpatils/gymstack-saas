@@ -6,10 +6,33 @@ type ApiFetchInit = Omit<RequestInit, 'body'> & {
 const AUTH_TOKEN_STORAGE_KEY = 'gymstack_token';
 const DEV_LOCALHOST_API_URL = 'http://localhost:3000';
 
-let hasLoggedMissingProdApiUrl = false;
-let hasLoggedDevFallback = false;
 let getAccessToken: (() => string | null) | null = null;
 let refreshAccessToken: (() => Promise<string | null>) | null = null;
+
+export type ApiRateLimitSnapshot = {
+  limit?: number;
+  remaining?: number;
+  retryAfterSeconds?: number;
+  observedAtIso: string;
+};
+
+export function getLastApiRateLimitSnapshot(): ApiRateLimitSnapshot | null {
+  return null;
+}
+
+export class ApiFetchError extends Error {
+  statusCode: number;
+  details?: unknown;
+  requestId?: string;
+
+  constructor(message: string, statusCode: number, details?: unknown, requestId?: string) {
+    super(message);
+    this.name = 'ApiFetchError';
+    this.statusCode = statusCode;
+    this.details = details;
+    this.requestId = requestId;
+  }
+}
 
 export function configureApiAuth(getTokenFn: () => string | null, refreshFn: () => Promise<string | null>): void {
   getAccessToken = getTokenFn;
@@ -17,80 +40,122 @@ export function configureApiAuth(getTokenFn: () => string | null, refreshFn: () 
 }
 
 function normalizePath(path: string): string {
-  if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
   return `/${path}`.replace(/\/+/g, '/');
 }
 
-function getNodeEnv(): string { return process.env.NODE_ENV ?? ''; }
-function getMissingApiUrlMessage(): string { return 'NEXT_PUBLIC_API_URL is not set. Configure NEXT_PUBLIC_API_URL for deployed environments (for example on Vercel).'; }
+function isServer(): boolean {
+  return typeof window === 'undefined';
+}
+
+function isRecordBody(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof FormData) &&
+    !(value instanceof URLSearchParams) &&
+    !(value instanceof Blob) &&
+    !(value instanceof ArrayBuffer)
+  );
+}
+
+function getStoredAuthToken(): string | null {
+  if (getAccessToken) {
+    return getAccessToken();
+  }
+
+  if (isServer()) {
+    return null;
+  }
+
+  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
 
 export function getApiBaseUrl(): string {
-  const configuredUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '');
-  if (configuredUrl) return configuredUrl;
-  const nodeEnv = getNodeEnv();
-  if (nodeEnv === 'development') {
-    if (!hasLoggedDevFallback) {
-      hasLoggedDevFallback = true;
-      console.warn(`${getMissingApiUrlMessage()} Falling back to ${DEV_LOCALHOST_API_URL} in development only.`);
+  const publicUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '');
+  const serverUrl = (process.env.API_URL ?? '').trim().replace(/\/+$/, '');
+
+  if (isServer()) {
+    if (serverUrl) {
+      return serverUrl;
+    }
+    if (publicUrl) {
+      return publicUrl;
     }
     return DEV_LOCALHOST_API_URL;
   }
-  if (nodeEnv === 'production') {
-    const message = getMissingApiUrlMessage();
-    if (!hasLoggedMissingProdApiUrl) {
-      hasLoggedMissingProdApiUrl = true;
-      console.error(`❌ ${message}`);
-    }
-    throw new Error(message);
+
+  if (publicUrl) {
+    return publicUrl;
   }
+
   return '';
 }
 
 export function buildApiUrl(path: string): string {
   const normalized = normalizePath(path);
-  if (normalized.startsWith('http://') || normalized.startsWith('https://')) return normalized;
-  const base = getApiBaseUrl();
-  return base ? `${base}${normalized}` : normalized;
-}
+  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    return normalized;
+  }
 
-function isRecordBody(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !(value instanceof FormData) && !(value instanceof URLSearchParams) && !(value instanceof Blob) && !(value instanceof ArrayBuffer);
-}
+  if (!isServer()) {
+    return `/api/proxy${normalized}`;
+  }
 
-function getStoredAuthToken(): string | null {
-  if (getAccessToken) return getAccessToken();
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-}
-
-export class ApiFetchError extends Error {
-  statusCode: number;
-  constructor(message: string, statusCode: number) { super(message); this.name = 'ApiFetchError'; this.statusCode = statusCode; }
+  const baseUrl = getApiBaseUrl();
+  return `${baseUrl}${normalized}`;
 }
 
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const headers = new Headers(init.headers ?? {});
-  const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;
   const token = getStoredAuthToken();
-  if (isRecordBody(init.body) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;
+  if (isRecordBody(init.body) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   const { skipAuthRetry, ...requestInit } = init;
-  const response = await fetch(buildApiUrl(path), { ...requestInit, body: requestBody, headers, credentials: init.credentials ?? 'include' });
-  const contentType = response.headers.get('content-type') ?? '';
+  const response = await fetch(buildApiUrl(path), {
+    ...requestInit,
+    headers,
+    body: requestBody,
+    credentials: init.credentials ?? 'same-origin',
+  });
 
   if (response.status === 401 && !skipAuthRetry && refreshAccessToken) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
       return apiFetch<T>(path, { ...init, skipAuthRetry: true });
     }
   }
 
+  const contentType = response.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json');
+  const requestId = response.headers.get('x-request-id') ?? undefined;
+
   if (!response.ok) {
-    const errorText = contentType.includes('application/json') ? JSON.stringify(await response.json()) : await response.text();
-    throw new ApiFetchError(`Request failed (${response.status} ${response.statusText}): ${errorText}`, response.status);
+    const details = isJson ? ((await response.json()) as unknown) : await response.text();
+    const message =
+      typeof details === 'string'
+        ? details
+        : details && typeof details === 'object' && 'message' in details
+          ? String((details as { message: unknown }).message)
+          : `Request failed with status ${response.status}`;
+
+    throw new ApiFetchError(message, response.status, details, requestId);
   }
-  if (!contentType.includes('application/json')) throw new Error(`Expected JSON response for ${path} but received ${contentType || 'unknown content type'}`);
+
+  if (!isJson) {
+    throw new ApiFetchError('Expected JSON response from API', response.status, await response.text(), requestId);
+  }
+
   return (await response.json()) as T;
 }

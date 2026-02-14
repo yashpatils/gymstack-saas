@@ -7,6 +7,8 @@ export type OAuthStatePayload = {
   requestedMode: OAuthRequestedMode;
   timestamp: number;
   nonce: string;
+  inviteToken?: string;
+  siteSlug?: string;
 };
 
 @Injectable()

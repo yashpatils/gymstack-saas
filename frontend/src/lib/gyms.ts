@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch } from './apiFetch';
 import type { CreateGymRequest, CreateGymResponse, Gym } from '../types/gym';
 
 export type { Gym, CreateGymRequest as GymInput };

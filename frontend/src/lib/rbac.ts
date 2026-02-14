@@ -1,28 +1,29 @@
-export type Role = "OWNER" | "ADMIN" | "MEMBER";
+export type AppRole = 'TENANT_OWNER' | 'TENANT_MANAGER' | 'STAFF_COACH' | 'CLIENT';
 
-// Backward-compatible alias used across the app.
-export type AppRole = Role;
+export const ROLE_HIERARCHY: Record<AppRole, number> = {
+  TENANT_OWNER: 4,
+  TENANT_MANAGER: 3,
+  STAFF_COACH: 2,
+  CLIENT: 1,
+};
 
-export function normalizeRole(input?: string | null): Role {
-  if (input === "OWNER" || input === "ADMIN" || input === "MEMBER") {
-    return input;
+export function canAccessRole(userRole: AppRole, requiredRole: AppRole): boolean {
+  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
+}
+
+export function normalizeRole(input?: string | null): AppRole {
+  switch (input) {
+    case 'TENANT_OWNER':
+      return 'TENANT_OWNER';
+    case 'TENANT_LOCATION_ADMIN':
+    case 'TENANT_MANAGER':
+      return 'TENANT_MANAGER';
+    case 'GYM_STAFF_COACH':
+    case 'STAFF_COACH':
+      return 'STAFF_COACH';
+    case 'CLIENT':
+      return 'CLIENT';
+    default:
+      return 'CLIENT';
   }
-
-  return "MEMBER";
-}
-
-export function requireRole(userRole: Role, allowed: Role[]): boolean {
-  return allowed.includes(userRole);
-}
-
-export function canManageUsers(role?: string | null): boolean {
-  return requireRole(normalizeRole(role), ["OWNER", "ADMIN"]);
-}
-
-export function canManageBilling(role?: string | null): boolean {
-  return canManageUsers(role);
-}
-
-export function canManageGyms(role?: string | null): boolean {
-  return canManageUsers(role);
 }

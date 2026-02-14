@@ -6,6 +6,8 @@ import { OAuthStateService } from './oauth-state.service';
 import { OAuthIdentityService } from './oauth-identity.service';
 import { sanitizeReturnTo } from './sanitize-return-to';
 import { PrismaService } from '../prisma/prisma.service';
+import { InvitesService } from '../invites/invites.service';
+import { AuthService } from './auth.service';
 import { OAuthProfile, OAuthRequestedMode } from './oauth.types';
 
 type RequestUser = { id: string };
@@ -17,12 +19,16 @@ export class OauthController {
     private readonly stateService: OAuthStateService,
     private readonly identityService: OAuthIdentityService,
     private readonly prisma: PrismaService,
+    private readonly invitesService: InvitesService,
+    private readonly authService: AuthService,
   ) {}
 
   @Get('google/start')
   async googleStart(
     @Query('returnTo') returnToInput: string | undefined,
     @Query('mode') modeInput: OAuthRequestedMode | undefined,
+    @Query('inviteToken') inviteToken: string | undefined,
+    @Query('siteSlug') siteSlug: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
     const mode: OAuthRequestedMode = modeInput === 'link' ? 'link' : 'login';
@@ -30,7 +36,7 @@ export class OauthController {
     const allowedHosts = this.configService.get<string>('OAUTH_ALLOWED_RETURN_HOSTS') ?? 'gymstack.club,*.gymstack.club';
     const returnTo = await sanitizeReturnTo(returnToInput, appUrl, allowedHosts, this.prisma);
     const stateSecret = this.oauthStateSecret();
-    const state = this.stateService.sign({ returnTo, requestedMode: mode, timestamp: Date.now(), nonce: this.stateService.newNonce() }, stateSecret);
+    const state = this.stateService.sign({ returnTo, requestedMode: mode, timestamp: Date.now(), nonce: this.stateService.newNonce(), inviteToken, siteSlug }, stateSecret);
 
     const params = new URLSearchParams({
       client_id: this.required('GOOGLE_CLIENT_ID'),
@@ -51,9 +57,20 @@ export class OauthController {
     const tokenData = await this.exchangeGoogleCode(code);
     const profile = await this.validateGoogleIdToken(tokenData.id_token);
     const result = await this.identityService.handleOAuthLoginOrLink(OAuthProvider.google, profile, parsedState.requestedMode, req.user?.id ?? null);
+    let accessToken = result.accessToken;
+    if (parsedState.inviteToken) {
+      await this.invitesService.acceptInviteForUser(parsedState.inviteToken, result.userId);
+      accessToken = await this.authService.issueAccessTokenForUser(result.userId);
+    }
     const redirectUrl = new URL(parsedState.returnTo);
     redirectUrl.searchParams.set('oauth', 'success');
-    redirectUrl.searchParams.set('token', result.accessToken);
+    redirectUrl.searchParams.set('token', accessToken);
+    if (parsedState.inviteToken) {
+      redirectUrl.searchParams.set('inviteToken', parsedState.inviteToken);
+    }
+    if (parsedState.siteSlug) {
+      redirectUrl.searchParams.set('siteSlug', parsedState.siteSlug);
+    }
     res.redirect(redirectUrl.toString());
   }
 
@@ -61,12 +78,14 @@ export class OauthController {
   async appleStart(
     @Query('returnTo') returnToInput: string | undefined,
     @Query('mode') modeInput: OAuthRequestedMode | undefined,
+    @Query('inviteToken') inviteToken: string | undefined,
+    @Query('siteSlug') siteSlug: string | undefined,
   ): Promise<{ action: string; form: Record<string, string> }> {
     const mode: OAuthRequestedMode = modeInput === 'link' ? 'link' : 'login';
     const appUrl = this.configService.get<string>('APP_URL') ?? 'https://gymstack.club';
     const allowedHosts = this.configService.get<string>('OAUTH_ALLOWED_RETURN_HOSTS') ?? 'gymstack.club,*.gymstack.club';
     const returnTo = await sanitizeReturnTo(returnToInput, appUrl, allowedHosts, this.prisma);
-    const state = this.stateService.sign({ returnTo, requestedMode: mode, timestamp: Date.now(), nonce: this.stateService.newNonce() }, this.oauthStateSecret());
+    const state = this.stateService.sign({ returnTo, requestedMode: mode, timestamp: Date.now(), nonce: this.stateService.newNonce(), inviteToken, siteSlug }, this.oauthStateSecret());
 
     return {
       action: 'https://appleid.apple.com/auth/authorize',
@@ -90,9 +109,20 @@ export class OauthController {
     }
 
     const result = await this.identityService.handleOAuthLoginOrLink(OAuthProvider.apple, profile, parsedState.requestedMode, req.user?.id ?? null);
+    let accessToken = result.accessToken;
+    if (parsedState.inviteToken) {
+      await this.invitesService.acceptInviteForUser(parsedState.inviteToken, result.userId);
+      accessToken = await this.authService.issueAccessTokenForUser(result.userId);
+    }
     const redirectUrl = new URL(parsedState.returnTo);
     redirectUrl.searchParams.set('oauth', 'success');
-    redirectUrl.searchParams.set('token', result.accessToken);
+    redirectUrl.searchParams.set('token', accessToken);
+    if (parsedState.inviteToken) {
+      redirectUrl.searchParams.set('inviteToken', parsedState.inviteToken);
+    }
+    if (parsedState.siteSlug) {
+      redirectUrl.searchParams.set('siteSlug', parsedState.siteSlug);
+    }
     res.redirect(redirectUrl.toString());
   }
 

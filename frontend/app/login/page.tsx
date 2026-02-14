@@ -39,7 +39,7 @@ export default function LoginPage() {
         }}
       >
         <h1 className="text-2xl font-semibold text-white">Welcome back</h1>
-        <p className="text-sm text-slate-300">Sign in to your gym workspace.</p>
+        <p className="text-sm text-slate-300">Tenant owners/managers sign in here. Staff/coaches/clients should sign in from their gym landing page.</p>
         {error ? <Alert tone="error">{error}</Alert> : null}
         <Input label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         <Input label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />

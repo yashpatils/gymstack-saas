@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { Alert, Button, Input } from './ui';
-import { oauthStartUrl } from '@/src/lib/auth';
+import { applyOAuthToken, oauthStartUrl } from '@/src/lib/auth';
 
 export function GymLoginForm() {
   const router = useRouter();
@@ -12,6 +12,17 @@ export function GymLoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauth = params.get('oauth');
+    const token = params.get('token');
+    if (oauth === 'success' && token) {
+      applyOAuthToken(token);
+      router.replace('/platform');
+    }
+  }, [router]);
+
 
   return (
     <form
@@ -34,10 +45,10 @@ export function GymLoginForm() {
       <Button type="submit">Sign in</Button>
 
       <div className="space-y-2">
-        <Button type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'login'); }}>
+        <Button type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'login', { returnTo: window.location.href }); }}>
           Continue with Google
         </Button>
-        <Button type="button" variant="secondary" onClick={() => { window.location.href = oauthStartUrl('apple', 'login'); }}>
+        <Button type="button" variant="secondary" onClick={() => { window.location.href = oauthStartUrl('apple', 'login', { returnTo: window.location.href }); }}>
           Continue with Apple
         </Button>
       </div>

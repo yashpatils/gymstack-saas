@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../../../src/lib/api";
+import { apiFetch } from "../../../../src/lib/apiFetch";
 import type { AdminTenantDetail } from "../../../../src/types/admin";
 
 export default function AdminTenantDetailPage() {

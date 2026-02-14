@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { buildApiUrl } from "../../src/lib/api";
+import { buildApiUrl } from "../../src/lib/apiFetch";
 import type { AuthMeResponse } from "../../src/types/auth";
 
 const adminNavItems = [

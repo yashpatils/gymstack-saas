@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../../src/lib/api";
+import { apiFetch } from "../../../src/lib/apiFetch";
 import type { AdminTenantListResponse } from "../../../src/types/admin";
 
 const emptyResponse: AdminTenantListResponse = {

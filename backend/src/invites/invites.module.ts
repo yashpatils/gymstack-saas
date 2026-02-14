@@ -20,5 +20,6 @@ import { InvitesService } from './invites.service';
   ],
   controllers: [InvitesController],
   providers: [RequireVerifiedEmailGuard, InvitesService],
+  exports: [InvitesService],
 })
 export class InvitesModule {}
