@@ -16,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { RolesGuard } from '../guards/roles.guard';
 import { User, UserRole } from '../users/user.model';
 import { BillingService } from './billing.service';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 
 type CreateCustomerBody = {
   email: string;
@@ -44,7 +45,7 @@ export class BillingController {
   ) {}
 
   @Post('create-customer')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   async createCustomer(@Body() body: CreateCustomerBody) {
     const customer = await this.billingService.createCustomer(
@@ -55,7 +56,7 @@ export class BillingController {
   }
 
   @Post('create-subscription')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   async createSubscription(@Body() body: CreateSubscriptionBody) {
     const session = await this.billingService.createSubscription(body);
@@ -63,7 +64,7 @@ export class BillingController {
   }
 
   @Post('checkout')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   async createCheckoutSession(
     @Body() body: CreateCheckoutBody,
@@ -98,7 +99,7 @@ export class BillingController {
   }
 
   @Get('status/:userId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   getSubscriptionStatus(@Param('userId') userId: string) {
     return this.billingService.getSubscriptionStatus(userId);

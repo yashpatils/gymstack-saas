@@ -11,6 +11,8 @@ export type AuthUser = {
   role?: string | null;
   tenantId?: string | null;
   orgId?: string | null;
+  emailVerified: boolean;
+  emailVerifiedAt: string | null;
 };
 
 export type Membership = {

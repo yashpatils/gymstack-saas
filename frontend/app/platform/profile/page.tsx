@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { useToast } from "../../../src/components/toast/ToastProvider";
+import { requestDeleteAccount } from "../../../src/lib/auth";
 
 type AccountProfile = {
   email?: string;
@@ -72,6 +73,9 @@ export default function PlatformProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<PasswordErrors>({});
 
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
   const isBusy = loadingProfile || submitting;
 
   const passwordHint = useMemo(() => {
@@ -112,6 +116,28 @@ export default function PlatformProfilePage() {
       isMounted = false;
     };
   }, []);
+
+
+
+  const handleDeleteRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (deletePassword.length < 8) {
+      toast.error("Password required", "Enter your current password to request deletion.");
+      return;
+    }
+
+    setDeleteSubmitting(true);
+    try {
+      await requestDeleteAccount(deletePassword);
+      setDeletePassword("");
+      toast.success("Deletion email sent", "Check your inbox to confirm account deletion.");
+    } catch (error) {
+      toast.error("Delete request failed", error instanceof Error ? error.message : "Unable to request account deletion.");
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -263,6 +289,29 @@ export default function PlatformProfilePage() {
           </button>
         </form>
       </div>
+
+      <div className="card space-y-4 border-rose-500/40">
+        <h2 className="section-title text-rose-200">Delete account</h2>
+        <p className="text-sm text-slate-300">Request account deletion. You will receive an email confirmation link before anything is removed.</p>
+        <form className="space-y-3" onSubmit={handleDeleteRequest}>
+          <div className="space-y-1">
+            <label className="text-sm text-slate-200" htmlFor="deletePassword">Confirm password</label>
+            <input
+              id="deletePassword"
+              name="deletePassword"
+              type="password"
+              className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none ring-indigo-400 transition focus:ring"
+              value={deletePassword}
+              onChange={(event) => setDeletePassword(event.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          <button type="submit" className="button secondary" disabled={deleteSubmitting}>
+            {deleteSubmitting ? "Requesting..." : "Request deletion"}
+          </button>
+        </form>
+      </div>
+
     </section>
   );
 }

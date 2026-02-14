@@ -50,6 +50,16 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum UserStatus {
+  ACTIVE
+  DELETED
+}
+
+enum AuthTokenPurpose {
+  EMAIL_VERIFY
+  ACCOUNT_DELETE
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -59,6 +69,8 @@ model User {
   stripeCustomerId     String?              @unique
   stripeSubscriptionId String?              @unique
   subscriptionStatus   SubscriptionStatus   @default(FREE)
+  emailVerifiedAt      DateTime?
+  status               UserStatus           @default(ACTIVE)
   organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
   memberships          Membership[]
   gyms                 Gym[]
@@ -70,8 +82,23 @@ model User {
   locationInvites      LocationInvite[]
   auditLogs            AuditLog[]
   notifications        Notification[]
+  authTokens           AuthToken[]
 
   @@index([orgId])
+}
+
+model AuthToken {
+  id         String           @id @default(uuid())
+  userId      String
+  purpose     AuthTokenPurpose
+  tokenHash   String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId, purpose, consumedAt, expiresAt])
 }
 
 model AuditLog {

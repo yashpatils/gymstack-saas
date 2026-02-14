@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { resendVerification } from "../../src/lib/auth";
 import { Alert, Button, Input } from "../components/ui";
 
 type Intent = "owner" | "staff" | "client";
@@ -19,9 +20,38 @@ function SignupPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const inviteRequired = intent !== "owner";
   const title = useMemo(() => (intent === "owner" ? "Create owner account" : intent === "staff" ? "Join as staff" : "Join as client"), [intent]);
+
+  if (signupComplete) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-6">
+        <section className="w-full max-w-lg space-y-4 rounded-3xl border border-white/15 bg-slate-900/75 p-6 shadow-2xl">
+          <h1 className="text-2xl font-semibold text-white">Check your inbox</h1>
+          <p className="text-slate-300">We sent a verification link to <span className="font-medium text-white">{email}</span>.</p>
+          {notice ? <Alert tone="success">{notice}</Alert> : null}
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          <div className="flex gap-3">
+            <Button type="button" onClick={async () => {
+              setError(null);
+              try {
+                const result = await resendVerification(email);
+                setNotice(result.message);
+              } catch (resendError) {
+                setError(resendError instanceof Error ? resendError.message : "Unable to resend verification.");
+              }
+            }}>
+              Resend verification
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => router.push('/login')}>Go to login</Button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
@@ -34,8 +64,8 @@ function SignupPageContent() {
             const result = await acceptInvite({ token, email: email || undefined, password: password || undefined });
             router.push(result.memberships.length > 1 ? "/select-workspace" : "/platform");
           } else {
-            const result = await signup(email, password);
-            router.push(result.memberships.length === 0 ? "/onboarding" : "/platform");
+            await signup(email, password);
+            setSignupComplete(true);
           }
         } catch (submitError) {
           setError(submitError instanceof Error ? submitError.message : "Unable to sign up.");

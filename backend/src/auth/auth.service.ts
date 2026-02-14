@@ -2,10 +2,12 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { Membership, MembershipRole, MembershipStatus, Role } from '@prisma/client';
+import { AuthTokenPurpose, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
+import { AuthTokenService } from './auth-token.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -18,13 +20,13 @@ function toGymSlug(name: string): string {
 
 @Injectable()
 export class AuthService {
-  private membershipSchemaSupport?: { hasGymId: boolean; hasStatus: boolean };
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
+    private readonly emailService: EmailService,
+    private readonly authTokenService: AuthTokenService,
   ) {}
 
   async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
@@ -45,6 +47,8 @@ export class AuthService {
           email,
           role: Role.USER,
           password: passwordHash,
+          emailVerifiedAt: null,
+          status: UserStatus.ACTIVE,
         },
       });
 
@@ -74,6 +78,13 @@ export class AuthService {
       return { user, membership, location };
     });
 
+    const verificationToken = await this.authTokenService.issueToken({
+      userId: created.user.id,
+      purpose: AuthTokenPurpose.EMAIL_VERIFY,
+      ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
+    });
+    await this.emailService.sendEmailVerification(created.user.email, verificationToken);
+
     await this.notificationsService.createForUser({
       userId: created.user.id,
       type: 'signup.success',
@@ -97,7 +108,14 @@ export class AuthService {
 
     return {
       accessToken: this.signToken(created.user.id, created.user.email, created.user.role, activeContext),
-      user: { id: created.user.id, email: created.user.email, role: created.user.role, orgId: created.membership.orgId },
+      user: {
+        id: created.user.id,
+        email: created.user.email,
+        role: created.user.role,
+        orgId: created.membership.orgId,
+        emailVerified: false,
+        emailVerifiedAt: null,
+      },
       memberships,
       activeContext,
     };
@@ -110,7 +128,7 @@ export class AuthService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -141,10 +159,52 @@ export class AuthService {
 
     return {
       accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
-      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '' },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: resolvedRole,
+        orgId: activeContext?.tenantId ?? '',
+        emailVerified: Boolean(user.emailVerifiedAt),
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+      },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
     };
+  }
+
+  async resendVerification(email: string): Promise<{ ok: true; message: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user || user.status !== UserStatus.ACTIVE || user.emailVerifiedAt) {
+      return { ok: true, message: 'If your account exists, a verification email has been sent.' };
+    }
+
+    const verificationToken = await this.authTokenService.issueToken({
+      userId: user.id,
+      purpose: AuthTokenPurpose.EMAIL_VERIFY,
+      ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
+    });
+    await this.emailService.sendEmailVerification(user.email, verificationToken);
+
+    return { ok: true, message: 'If your account exists, a verification email has been sent.' };
+  }
+
+  async verifyEmail(token: string): Promise<{ ok: true }> {
+    try {
+      const consumed = await this.authTokenService.consumeToken({
+        token,
+        purpose: AuthTokenPurpose.EMAIL_VERIFY,
+      });
+
+      await this.prisma.user.update({
+        where: { id: consumed.userId },
+        data: { emailVerifiedAt: new Date() },
+      });
+      return { ok: true };
+    } catch {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
   }
 
   async setContext(userId: string, tenantId: string, gymId?: string): Promise<{ accessToken: string }> {
@@ -162,7 +222,7 @@ export class AuthService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
+    if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -203,8 +263,8 @@ export class AuthService {
   }
 
   async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole }): Promise<AuthMeResponseDto> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, role: true } });
-    if (!user) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, role: true, emailVerifiedAt: true, status: true } });
+    if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -225,7 +285,14 @@ export class AuthService {
     const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
 
     return {
-      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '' },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: resolvedRole,
+        orgId: activeContext?.tenantId ?? '',
+        emailVerified: Boolean(user.emailVerifiedAt),
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+      },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
       effectiveRole: activeContext?.role,
@@ -235,10 +302,10 @@ export class AuthService {
 
   async forgotPassword(email: string): Promise<{ ok: true }> {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    if (!user || user.status !== UserStatus.ACTIVE) {
       return { ok: true };
     }
-    const token = randomBytes(32).toString('hex');
+    const token = randomTokenHex();
     const tokenHash = this.hashResetToken(token);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
     await this.prisma.passwordResetToken.create({ data: { tokenHash, userId: user.id, expiresAt } });
@@ -316,4 +383,19 @@ export class AuthService {
   private hashResetToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
+
+  private getTtlMinutes(envName: string, fallback: number): number {
+    const raw = process.env[envName];
+    const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+
+    return fallback;
+  }
+}
+
+function randomTokenHex(): string {
+  return randomBytes(32).toString('hex');
 }

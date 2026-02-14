@@ -9,18 +9,22 @@ import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { EmailModule } from '../email/email.module';
+import { AuthTokenService } from './auth-token.service';
+import { RequireVerifiedEmailGuard } from './require-verified-email.guard';
+import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
 
 @Module({
   imports: [
     PrismaModule,
     AuditModule,
     NotificationsModule,
+    EmailModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        // JWT_SECRET must come from environment variables (for Railway set it in service variables).
         const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
         if (!secret) {
           throw new Error(
@@ -36,6 +40,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, AuthTokenService, RequireVerifiedEmailGuard, SensitiveRateLimitService],
+  exports: [RequireVerifiedEmailGuard],
 })
 export class AuthModule {}

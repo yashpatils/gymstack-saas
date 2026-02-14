@@ -61,6 +61,45 @@ export async function signup(email: string, password: string, role?: SignupRole)
   };
 }
 
+export async function resendVerification(email: string): Promise<{ ok: true; message: string }> {
+  return apiFetch<{ ok: true; message: string }>('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+export async function verifyEmail(token: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>('/api/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+export async function requestDeleteAccount(password: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>('/api/account/request-delete', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+export async function confirmDeleteAccount(token: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>('/api/account/confirm-delete', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
 
 export async function acceptInvite(params: { token: string; password?: string; email?: string; name?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
   const data = await apiFetch<AuthLoginResponse>('/api/invites/accept', {

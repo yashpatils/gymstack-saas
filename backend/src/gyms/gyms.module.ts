@@ -4,6 +4,7 @@ import { BillingModule } from '../billing/billing.module';
 import { RolesGuard } from '../guards/roles.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GymsController } from './gyms.controller';
 import { GymsService } from './gyms.service';
@@ -11,6 +12,6 @@ import { GymsService } from './gyms.service';
 @Module({
   imports: [PrismaModule, BillingModule, AuditModule],
   controllers: [GymsController],
-  providers: [GymsService, RolesGuard, PermissionsGuard],
+  providers: [RequireVerifiedEmailGuard, GymsService, RolesGuard, PermissionsGuard],
 })
 export class GymsModule {}
