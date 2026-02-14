@@ -11,6 +11,7 @@ import { requestIdMiddleware } from './common/request-id.middleware';
 import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
+import { normalizeOrigin } from './common/origin.util';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://gymstack.club',
@@ -43,7 +44,7 @@ function getAllowedOrigins(configService: ConfigService): Set<string> {
   const legacyOrigins = parseEnvList(configService.get<string>('FRONTEND_URL'));
   const allOrigins = [...DEFAULT_ALLOWED_ORIGINS, ...legacyOrigins, ...configuredOrigins];
 
-  return new Set(allOrigins);
+  return new Set(allOrigins.map((origin) => normalizeOrigin(origin)).filter(Boolean));
 }
 
 function getAllowedOriginRegexes(configService: ConfigService): RegExp[] {
@@ -185,17 +186,19 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      if (corsAllowlist.has(origin)) {
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (corsAllowlist.has(normalizedOrigin)) {
         return callback(null, true);
       }
 
-      const regexMatch = allowedOriginRegexes.some((regex) => regex.test(origin));
+      const regexMatch = allowedOriginRegexes.some((regex) => regex.test(normalizedOrigin));
       if (regexMatch) {
         return callback(null, true);
       }
 
       try {
-        const { hostname } = new URL(origin);
+        const { hostname } = new URL(normalizedOrigin);
         if (hasAllowedHostname(hostname)) {
           return callback(null, true);
         }
@@ -204,7 +207,7 @@ async function bootstrap() {
       }
 
       if (!isProduction) {
-        logger.warn(`CORS blocked for origin: ${origin}`);
+        logger.warn(`CORS blocked for origin: ${normalizedOrigin}`);
       }
 
       return callback(null, false);

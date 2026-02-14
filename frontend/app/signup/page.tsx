@@ -104,7 +104,10 @@ function SignupPageContent() {
             const result = await acceptInvite({ token, email: email || undefined, password: password || undefined });
             router.push(result.memberships.length > 1 ? "/select-workspace" : "/platform");
           } else {
-            await signup(email, password);
+            const result = await signup(email, password);
+            if (result.emailDeliveryWarning) {
+              setNotice(result.emailDeliveryWarning);
+            }
             setSignupComplete(true);
           }
         } catch (submitError) {

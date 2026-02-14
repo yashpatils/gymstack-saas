@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiFetch, buildApiUrl } from "../../../src/lib/api";
+import { apiFetch, buildApiUrl } from "../../../src/lib/apiFetch";
 import { useAuth } from "../../../src/providers/AuthProvider";
 
 type CheckResult<T = unknown> = {

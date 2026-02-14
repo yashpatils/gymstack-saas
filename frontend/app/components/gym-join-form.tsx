@@ -19,6 +19,26 @@ export function GymJoinForm() {
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
   const showOAuth = shouldShowOAuth({ pathname });
 
+  useEffect(() => {
+    const oauth = searchParams.get('oauth');
+    const oauthToken = searchParams.get('token');
+    const inviteToken = searchParams.get('inviteToken') ?? token;
+
+    if (oauth === 'success' && oauthToken) {
+      applyOAuthToken(oauthToken);
+      if (inviteToken) {
+        void acceptInvite({ token: inviteToken })
+          .then(() => router.replace('/platform'))
+          .catch((submitError) => {
+            setError(submitError instanceof Error ? submitError.message : 'Unable to join');
+          });
+      } else {
+        router.replace('/platform');
+      }
+    }
+  }, [router, searchParams, token]);
+
+
   return (
     <form
       className="w-full max-w-md space-y-4"

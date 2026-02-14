@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { EmailService } from '../email/email.service';
+import { EmailProviderError, EmailService } from '../email/email.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
@@ -35,7 +35,7 @@ export class AuthService {
     private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
-  async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     const { email, password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -89,7 +89,25 @@ export class AuthService {
       purpose: AuthTokenPurpose.EMAIL_VERIFY,
       ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
     });
-    await this.emailService.sendVerifyEmail({ to: created.user.email, token: verificationToken });
+    let emailDeliveryWarning: string | undefined;
+    try {
+      await this.emailService.sendVerifyEmail({ to: created.user.email, token: verificationToken });
+    } catch (error) {
+      if (error instanceof EmailProviderError && error.statusCode === 403) {
+        this.logger.error(
+          JSON.stringify({
+            event: 'email_delivery_not_configured',
+            provider: 'resend',
+            statusCode: error.statusCode,
+            providerCode: error.providerCode ?? null,
+            message: error.message,
+          }),
+        );
+        emailDeliveryWarning = 'Email delivery not configured yet. Contact support.';
+      } else {
+        throw error;
+      }
+    }
 
     await this.notificationsService.createForUser({
       userId: created.user.id,
@@ -126,6 +144,7 @@ export class AuthService {
       },
       memberships,
       activeContext,
+      emailDeliveryWarning,
     };
   }
 

@@ -39,7 +39,7 @@ type AuthContextValue = {
   onboarding?: OnboardingState;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
   login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
-  signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
   switchMode: (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => Promise<void>;
@@ -135,13 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hydrateFromMe]);
 
   const signup = useCallback(async (email: string, password: string, role?: SignupRole) => {
-    const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext } = await signupRequest(email, password, role);
+    const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role);
     setToken(authToken);
     setUser(signedUpUser);
     setMemberships(nextMemberships);
     setActiveContext(nextActiveContext);
     await hydrateFromMe();
-    return { user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext };
+    return { user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning };
   }, [hydrateFromMe]);
 
   const acceptInvite = useCallback(async (input: { token: string; password?: string; email?: string; name?: string }) => {

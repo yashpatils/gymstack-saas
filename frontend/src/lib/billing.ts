@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { apiFetch } from "./apiFetch";
 import type { BillingStatusResponse, Plan } from "../types/billing";
 
 export type { BillingStatusResponse, Plan };

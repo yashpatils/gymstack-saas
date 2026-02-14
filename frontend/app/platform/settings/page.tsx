@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
-import { getApiBaseUrl } from "../../../src/lib/api";
+import { getApiBaseUrl } from "../../../src/lib/apiFetch";
 import { apiFetch } from "../../lib/api";
 import { oauthStartUrl } from '../../../src/lib/auth';
 
@@ -157,10 +157,10 @@ export default function PlatformSettingsPage() {
         <h2 className="section-title">Linked accounts</h2>
         <p className="text-sm text-slate-300">Link Google or Apple for faster login in manager/staff/client flows.</p>
         <div className="grid gap-3 md:grid-cols-2">
-          <button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', `${window.location.origin}/platform/settings`); }}>
+          <button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>
             Link Google
           </button>
-          <button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', `${window.location.origin}/platform/settings`); }}>
+          <button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>
             Link Apple
           </button>
         </div>

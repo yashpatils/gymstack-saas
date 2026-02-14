@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch } from './apiFetch';
 
 export type CreateInvitePayload = {
   email: string;

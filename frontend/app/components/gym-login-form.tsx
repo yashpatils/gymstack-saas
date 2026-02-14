@@ -17,6 +17,17 @@ export function GymLoginForm() {
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
   const showOAuth = shouldShowOAuth({ pathname });
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauth = params.get('oauth');
+    const token = params.get('token');
+    if (oauth === 'success' && token) {
+      applyOAuthToken(token);
+      router.replace('/platform');
+    }
+  }, [router]);
+
+
   return (
     <form
       className="w-full max-w-md space-y-4"

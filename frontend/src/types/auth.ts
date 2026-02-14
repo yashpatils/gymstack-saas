@@ -67,4 +67,5 @@ export type AuthLoginResponse = {
   user: AuthUser;
   memberships: Membership[];
   activeContext?: ActiveContext;
+  emailDeliveryWarning?: string;
 };

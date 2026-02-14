@@ -26,6 +26,18 @@ type ResendErrorResponse = {
   statusCode?: number;
 };
 
+export class EmailProviderError extends Error {
+  statusCode?: number;
+  providerCode?: string;
+
+  constructor(message: string, statusCode?: number, providerCode?: string) {
+    super(message);
+    this.name = 'EmailProviderError';
+    this.statusCode = statusCode;
+    this.providerCode = providerCode;
+  }
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -156,7 +168,7 @@ export class EmailService {
             message: errorPayload.message ?? 'Unknown Resend API error',
           }),
         );
-        throw new Error(`Email send failed with status ${response.status}`);
+        throw new EmailProviderError(errorPayload.message ?? `Email send failed with status ${response.status}`, response.status, errorPayload.name);
       }
 
       const result = await response.json() as ResendSuccessResponse;
@@ -179,7 +191,10 @@ export class EmailService {
           message,
         }),
       );
-      throw error;
+      if (error instanceof EmailProviderError) {
+        throw error;
+      }
+      throw new EmailProviderError(message);
     }
   }
 

@@ -1,4 +1,4 @@
-import { ApiFetchError, apiFetch, configureApiAuth } from './apiFetch';
+import { ApiFetchError, apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
 import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from '../types/auth';
 
 const ACCESS_TOKEN_STORAGE_KEY = 'gymstack_token';
@@ -107,10 +107,11 @@ export async function login(email: string, password: string): Promise<{ token: s
     user: data.user,
     activeContext: data.activeContext,
     memberships: data.memberships,
+    emailDeliveryWarning: data.emailDeliveryWarning,
   };
 }
 
-export async function signup(email: string, password: string, role?: SignupRole): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
+export async function signup(email: string, password: string, role?: SignupRole): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/signup', {
     method: 'POST',
     body: JSON.stringify({ email, password, role }),
@@ -148,12 +149,26 @@ export async function setContext(tenantId: string, gymId?: string): Promise<{ to
 export async function setMode(tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string): Promise<AuthMeResponse> { return apiFetch<AuthMeResponse>('/api/auth/set-mode', { method: 'POST', body: JSON.stringify({ tenantId, mode, locationId }), headers: { 'Content-Type': 'application/json' } }); }
 export async function setOwnerOpsMode(payload: { tenantId: string; locationId: string; choice: 'OWNER_IS_MANAGER' | 'INVITE_MANAGER'; managerEmail?: string; managerName?: string; }): Promise<{ ok: true; mode?: 'MANAGER'; inviteUrl?: string; role?: 'TENANT_LOCATION_ADMIN'; emailSent?: boolean }> { return apiFetch<{ ok: true; mode?: 'MANAGER'; inviteUrl?: string; role?: 'TENANT_LOCATION_ADMIN'; emailSent?: boolean }>('/api/onboarding/owner-ops-mode', { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } }); }
 
-export function oauthStartUrl(provider: 'google' | 'apple', mode: 'login' | 'link' = 'login', returnTo?: string): string {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? '';
-  const url = new URL(`/api/auth/oauth/${provider}/start`, base || window.location.origin);
+export function oauthStartUrl(
+  provider: 'google' | 'apple',
+  mode: 'login' | 'link' = 'login',
+  options?: { returnTo?: string; inviteToken?: string; siteSlug?: string },
+): string {
+  const url = new URL(buildApiUrl(`/api/auth/oauth/${provider}/start`), window.location.origin);
   url.searchParams.set('mode', mode);
-  url.searchParams.set('returnTo', returnTo ?? window.location.href);
+  url.searchParams.set('returnTo', options?.returnTo ?? window.location.href);
+  if (options?.inviteToken) {
+    url.searchParams.set('inviteToken', options.inviteToken);
+  }
+  if (options?.siteSlug) {
+    url.searchParams.set('siteSlug', options.siteSlug);
+  }
   return url.toString();
+}
+
+
+export function applyOAuthToken(token: string): void {
+  setStoredAccessToken(token);
 }
 
 export async function me(): Promise<AuthMeResponse> {

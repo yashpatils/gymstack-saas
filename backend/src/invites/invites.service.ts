@@ -61,6 +61,44 @@ export class InvitesService {
     };
   }
 
+
+  async acceptInviteForUser(token: string, userId: string): Promise<void> {
+    const invite = await this.prisma.locationInvite.findUnique({ where: { token } });
+    if (!invite || invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Invite is invalid or expired');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (invite.email && invite.email.toLowerCase() !== user.email.toLowerCase()) {
+      throw new ForbiddenException('Invite email does not match authenticated user');
+    }
+
+    await this.prisma.membership.upsert({
+      where: {
+        userId_orgId_gymId_role: {
+          userId: user.id,
+          orgId: invite.tenantId,
+          gymId: invite.locationId,
+          role: invite.role,
+        },
+      },
+      update: { status: MembershipStatus.ACTIVE },
+      create: {
+        userId: user.id,
+        orgId: invite.tenantId,
+        gymId: invite.locationId,
+        role: invite.role,
+        status: MembershipStatus.ACTIVE,
+      },
+    });
+
+    await this.prisma.locationInvite.update({ where: { id: invite.id }, data: { status: InviteStatus.ACCEPTED } });
+  }
+
   async acceptInvite(input: AcceptInviteDto) {
     const invite = await this.prisma.locationInvite.findUnique({ where: { token: input.token } });
     if (!invite) throw new NotFoundException('Invite not found');

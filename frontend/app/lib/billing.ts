@@ -1,6 +1,6 @@
 "use client";
 
-import { apiFetch } from "./api";
+import { apiFetch } from "./apiFetch";
 
 type CreateCustomerPayload = {
   email: string;
