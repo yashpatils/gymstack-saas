@@ -75,7 +75,8 @@ Required environment variables:
 - `APP_URL` — Canonical frontend app URL used in verification/delete links (example: `https://gymstack.club`).
 - `EMAIL_FROM` — Sender identity (example: `Gymstack <no-reply@gymstack.club>`).
 - `EMAIL_PROVIDER` — Email provider selector (`RESEND`).
-- `RESEND_API_KEY` — Resend API key used by backend transactional email sender.
+- `RESEND_API_KEY` — Resend API key used by backend transactional email sender. Required when `NODE_ENV=production`.
+- `EMAIL_DISABLE` — Optional boolean (`true`/`false`) to disable provider delivery while keeping logs (default: `false`).
 - `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` — verification token TTL in minutes (default: `60`).
 - `DELETE_ACCOUNT_TOKEN_TTL_MINUTES` — account delete token TTL in minutes (default: `30`).
 - `ACCESS_TOKEN_TTL_MINUTES` — access token TTL in minutes (default: `15`).
@@ -159,12 +160,32 @@ Also ensure Vercel has wildcard domain support configured for `*.your-domain.com
 
 ## Email verification and account deletion flows
 
-- Signup now sends a verification email (`/verify-email?token=...`) and the UI shows a “check your email” state with resend support.
-- `POST /api/auth/resend-verification` always returns a generic success message to avoid email enumeration.
+- Signup and resend-verification send a verification email (`/verify-email?token=...`).
+- Forgot-password sends reset links (`/reset-password?token=...`).
+- Account deletion requires password confirmation, then email confirmation (`/confirm-delete-account?token=...`).
+- `POST /api/auth/resend-verification` and `POST /api/auth/forgot-password` always return generic success responses to avoid email enumeration.
 - Verified email status is exposed from `GET /api/auth/me` as `emailVerified` and `emailVerifiedAt`.
 - Sensitive write actions (invites, billing mutations, org updates, gym mutations) require verified email.
-- Account deletion requires password confirmation, then email confirmation (`/confirm-delete-account?token=...`).
 - Deletion is blocked when the user is the sole `TENANT_OWNER` in any tenant.
+
+### Resend setup (gymstack.club)
+
+1. In Resend, add and verify the sending domain `gymstack.club`.
+2. Add the required DNS records Resend provides (SPF + DKIM and any verification record).
+3. Wait for verification to turn green in Resend dashboard.
+4. Set backend sender to `EMAIL_FROM="Gymstack <no-reply@gymstack.club>"`.
+
+### Email delivery behavior by environment
+
+- **Production (`NODE_ENV=production`)**
+  - Backend attempts provider delivery for transactional templates.
+  - Startup fails fast if `EMAIL_PROVIDER=RESEND` and `RESEND_API_KEY` is missing.
+  - Provider failures are logged as structured `email_send_failure` events and thrown.
+- **Development / non-production**
+  - Provider calls are skipped intentionally.
+  - Backend logs a DEV email line with template + redacted recipient + subject.
+  - For verify/reset/delete templates, the full action link is logged for local testing.
+  - Missing `RESEND_API_KEY` logs a warning and keeps DEV fallback behavior.
 
 ## OAuth providers (Google + Apple)
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -22,6 +22,8 @@ function toGymSlug(name: string): string {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -87,7 +89,7 @@ export class AuthService {
       purpose: AuthTokenPurpose.EMAIL_VERIFY,
       ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
     });
-    await this.emailService.sendEmailVerification(created.user.email, verificationToken);
+    await this.emailService.sendVerifyEmail({ to: created.user.email, token: verificationToken });
 
     await this.notificationsService.createForUser({
       userId: created.user.id,
@@ -229,7 +231,12 @@ export class AuthService {
       purpose: AuthTokenPurpose.EMAIL_VERIFY,
       ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
     });
-    await this.emailService.sendEmailVerification(user.email, verificationToken);
+    try {
+      await this.emailService.sendVerifyEmail({ to: user.email, token: verificationToken });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown email error';
+      this.logger.error(`resend-verification email failed: ${message}`);
+    }
 
     return { ok: true, message: 'If your account exists, a verification email has been sent.' };
   }
@@ -433,9 +440,13 @@ export class AuthService {
     const tokenHash = this.hashResetToken(token);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
     await this.prisma.passwordResetToken.create({ data: { tokenHash, userId: user.id, expiresAt } });
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[auth] Password reset link for ${email}: http://localhost:3000/reset-password?token=${token}`);
+    try {
+      await this.emailService.sendResetPasswordEmail({ to: user.email, token });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown email error';
+      this.logger.error(`forgot-password email failed: ${message}`);
     }
+
     return { ok: true };
   }
 
