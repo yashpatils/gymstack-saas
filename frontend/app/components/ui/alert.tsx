@@ -1,7 +1,7 @@
 import React from "react";
 
 type AlertProps = React.HTMLAttributes<HTMLDivElement> & {
-  tone?: "error" | "info";
+  tone?: "error" | "info" | "success";
 };
 
 export function Alert({
@@ -12,7 +12,9 @@ export function Alert({
   const styles =
     tone === "error"
       ? "border-rose-400/40 bg-rose-500/10 text-rose-200"
-      : "border-sky-300/30 bg-sky-500/10 text-sky-100";
+      : tone === "success"
+        ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+        : "border-sky-300/30 bg-sky-500/10 text-sky-100";
 
   return (
     <div
