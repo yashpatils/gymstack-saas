@@ -3,10 +3,16 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
-import { applyOAuthToken } from '@/src/lib/auth';
+import { applyOAuthToken, me } from '@/src/lib/auth';
 import { Alert, Button, Input } from './ui';
 import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
 import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
+import { apiFetch } from '@/src/lib/apiFetch';
+import type { MembershipRole } from '@/src/types/auth';
+
+type InviteValidationResponse =
+  | { ok: true; role: MembershipRole; locationId: string; tenantId: string; expiresAt: string }
+  | { ok: false; reason: 'invalid' | 'expired' | 'already_used' | 'revoked' };
 
 export function GymJoinForm() {
   const router = useRouter();
@@ -17,27 +23,62 @@ export function GymJoinForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [inviteValidation, setInviteValidation] = useState<InviteValidationResponse | null>(null);
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
   const showOAuth = shouldShowOAuth({ pathname });
 
   useEffect(() => {
     const oauth = searchParams.get('oauth');
     const oauthToken = searchParams.get('token');
-    const inviteToken = searchParams.get('inviteToken') ?? token;
+    const oauthError = searchParams.get('error');
 
     if (oauth === 'success' && oauthToken) {
       applyOAuthToken(oauthToken);
-      if (inviteToken) {
-        void acceptInvite({ token: inviteToken })
-          .then(() => router.replace('/platform'))
-          .catch((submitError) => {
-            setError(submitError instanceof Error ? submitError.message : 'Unable to join');
-          });
-      } else {
+      void me().then((currentUser) => {
+        if (currentUser.effectiveRole === 'GYM_STAFF_COACH' || currentUser.effectiveRole === 'TENANT_LOCATION_ADMIN') {
+          router.replace('/platform/coach');
+          return;
+        }
+        if (currentUser.effectiveRole === 'CLIENT') {
+          router.replace('/platform/client');
+          return;
+        }
         router.replace('/platform');
-      }
+      });
     }
-  }, [acceptInvite, router, searchParams, token]);
+
+    if (oauthError) {
+      setError(mapOAuthError(oauthError));
+    }
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    const currentToken = searchParams.get('token') ?? token;
+    if (!currentToken) {
+      setInviteValidation(null);
+      return;
+    }
+
+    setValidating(true);
+    setError(null);
+    void apiFetch<InviteValidationResponse>('/api/invites/validate', {
+      method: 'POST',
+      body: JSON.stringify({ token: currentToken }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((response) => {
+        setInviteValidation(response);
+        if (!response.ok) {
+          setError(mapInviteReason(response.reason));
+        }
+      })
+      .catch(() => {
+        setInviteValidation({ ok: false, reason: 'invalid' });
+        setError('Invite token is invalid.');
+      })
+      .finally(() => setValidating(false));
+  }, [searchParams, token]);
 
 
   return (
@@ -57,10 +98,29 @@ export function GymJoinForm() {
       <h1 className="text-2xl font-semibold text-white">Join your gym</h1>
       {error ? <Alert>{error}</Alert> : null}
       <Input label="Invite token" value={token} onChange={(event) => setToken(event.target.value)} required />
+      {validating ? <p className="text-xs text-slate-300">Validating invite…</p> : null}
+      {inviteValidation?.ok ? <p className="text-xs text-emerald-300">Invite valid for role {inviteValidation.role.replaceAll('_', ' ')}.</p> : null}
       <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       <Button type="submit">Accept invite</Button>
-      {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
+      {showOAuth ? <OAuthButtons returnTo={returnTo} inviteToken={token || undefined} /> : null}
     </form>
   );
+}
+
+function mapInviteReason(reason: 'invalid' | 'expired' | 'already_used' | 'revoked'): string {
+  if (reason === 'expired') return 'Invite expired. Please ask for a new invite.';
+  if (reason === 'already_used') return 'Invite already used. Please request another invite.';
+  if (reason === 'revoked') return 'Invite has been revoked.';
+  return 'Invite token is invalid.';
+}
+
+function mapOAuthError(error: string): string {
+  if (error === 'invite_required') return 'Invite required. Start from a valid join invite link.';
+  if (error === 'invite_expired') return 'Invite expired. Please ask for a new invite.';
+  if (error === 'invite_already_used') return 'Invite already used. Please request another invite.';
+  if (error === 'invite_revoked') return 'Invite has been revoked.';
+  if (error === 'invite_invalid') return 'Invite token is invalid.';
+  if (error === 'invite_role_mismatch') return 'Invite does not match this authenticated account.';
+  return 'Unable to continue with OAuth.';
 }
