@@ -18,6 +18,7 @@ import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
 import { AccountModule } from './account/account.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 
 @Module({
@@ -48,6 +49,7 @@ import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service
     SettingsModule,
     AdminModule,
     AccountModule,
+    OnboardingModule,
   ],
   controllers: [AppController],
   providers: [

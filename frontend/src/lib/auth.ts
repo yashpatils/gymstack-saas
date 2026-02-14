@@ -143,6 +143,23 @@ export async function setMode(tenantId: string, mode: 'OWNER' | 'MANAGER', locat
   });
 }
 
+
+export async function setOwnerOpsMode(payload: {
+  tenantId: string;
+  locationId: string;
+  choice: 'OWNER_IS_MANAGER' | 'INVITE_MANAGER';
+  managerEmail?: string;
+  managerName?: string;
+}): Promise<{ ok: true; mode?: 'MANAGER'; inviteUrl?: string; role?: 'TENANT_LOCATION_ADMIN'; emailSent?: boolean }> {
+  return apiFetch<{ ok: true; mode?: 'MANAGER'; inviteUrl?: string; role?: 'TENANT_LOCATION_ADMIN'; emailSent?: boolean }>('/api/onboarding/owner-ops-mode', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
 export function oauthStartUrl(provider: 'google' | 'apple', mode: 'login' | 'link' = 'login', returnTo?: string): string {
   const base = process.env.NEXT_PUBLIC_API_URL ?? '';
   const url = new URL(`/api/auth/oauth/${provider}/start`, base || window.location.origin);

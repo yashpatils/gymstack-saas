@@ -33,6 +33,19 @@ export type ActiveContext = {
   role: MembershipRole;
 };
 
+
+export type OwnerOperatorSettings = {
+  allowOwnerStaffLogin: boolean;
+  defaultMode: 'OWNER' | 'MANAGER';
+  defaultLocationId?: string | null;
+};
+
+export type OnboardingState = {
+  needsOpsChoice: boolean;
+  tenantId?: string;
+  locationId?: string;
+};
+
 export type AuthMeResponse = {
   user: AuthUser;
   platformRole?: 'PLATFORM_ADMIN' | null;
@@ -40,6 +53,8 @@ export type AuthMeResponse = {
   activeContext?: ActiveContext;
   activeMode?: 'OWNER' | 'MANAGER';
   canUseSocialLogin?: boolean;
+  ownerOperatorSettings?: OwnerOperatorSettings | null;
+  onboarding?: OnboardingState;
   effectiveRole?: MembershipRole;
   permissions: string[];
   subscriptionStatus?: string | null;

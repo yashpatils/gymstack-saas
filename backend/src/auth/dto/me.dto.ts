@@ -35,5 +35,15 @@ export class AuthMeResponseDto {
   activeMode?: 'OWNER' | 'MANAGER';
   canUseSocialLogin?: boolean;
   effectiveRole?: MembershipRole;
+  ownerOperatorSettings?: {
+    allowOwnerStaffLogin: boolean;
+    defaultMode: 'OWNER' | 'MANAGER';
+    defaultLocationId?: string | null;
+  } | null;
+  onboarding?: {
+    needsOpsChoice: boolean;
+    tenantId?: string;
+    locationId?: string;
+  };
   permissions!: string[];
 }
