@@ -1,43 +1,57 @@
 export type AdminMetrics = {
-  mrr: number;
-  arr: number;
-  activeTenants: number;
-  activeLocations: number;
-  activeSubscriptions: number;
-  trialingCount: number;
-  pastDueCount: number;
+  tenantsTotal: number;
+  locationsTotal: number;
+  usersTotal: number;
+  signups7d: number;
+  signups30d: number;
+  activeMembershipsTotal: number;
+  mrr?: number;
+  activeSubscriptions?: number;
 };
 
 export type AdminTenant = {
-  id: string;
-  name: string;
+  tenantId: string;
+  tenantName: string;
   createdAt: string;
-  plan: string;
-  subscriptionStatus: string;
-  locationCount: number;
+  locationsCount: number;
+  ownersCount: number;
+  managersCount: number;
+  customDomainsCount: number;
+  subscriptionStatus?: string | null;
 };
 
 export type AdminTenantListResponse = {
   items: AdminTenant[];
-  total: number;
   page: number;
   pageSize: number;
+  total: number;
 };
 
 export type AdminTenantDetail = {
-  id: string;
-  name: string;
-  createdAt: string;
+  tenant: {
+    id: string;
+    name: string;
+    createdAt: string;
+    subscriptionStatus?: string | null;
+  };
   locations: Array<{
     id: string;
     name: string;
     slug: string;
     createdAt: string;
+    membersCount: number;
+    managersCount: number;
+    customDomains: string[];
   }>;
-  membershipCounts: {
-    total: number;
-    active: number;
-    invited: number;
-    disabled: number;
-  };
+  owners: Array<{
+    id: string;
+    email: string;
+    name?: string;
+  }>;
+  recentAudit?: Array<{
+    id: string;
+    action: string;
+    createdAt: string;
+    actorEmail?: string;
+  }>;
 };
