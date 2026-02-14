@@ -74,7 +74,7 @@ export function AuthNav() {
 
   const email = state.session.user.email;
   const initial = email.slice(0, 1).toUpperCase();
-  const isPlatformAdmin = state.session.user.role === "PLATFORM_ADMIN";
+  const isPlatformAdmin = state.session.platformRole === "PLATFORM_ADMIN";
 
   return (
     <div className="order-2 flex items-center gap-3 sm:order-3">
@@ -83,7 +83,7 @@ export function AuthNav() {
       </Link>
       {isPlatformAdmin ? (
         <Link href="/admin" className="button ghost">
-          Admin
+          Platform Admin
         </Link>
       ) : null}
       <Link href="/platform/profile" className="flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-slate-200">

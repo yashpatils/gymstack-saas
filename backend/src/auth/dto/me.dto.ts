@@ -29,6 +29,7 @@ export class MeDto {
 
 export class AuthMeResponseDto {
   user!: MeDto;
+  platformRole?: 'PLATFORM_ADMIN' | null;
   memberships!: MembershipDto[];
   activeContext?: ActiveContextDto;
   effectiveRole?: MembershipRole;

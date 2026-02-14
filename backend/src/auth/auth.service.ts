@@ -2,7 +2,8 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { AuthTokenPurpose, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
+import { Membership, MembershipRole, MembershipStatus, Role } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -12,7 +13,7 @@ import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { resolveEffectivePermissions } from './authorization';
-import { isPlatformAdminUser } from './platform-admin.util';
+import { getPlatformAdminEmails, isPlatformAdminUser } from './platform-admin.util';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -23,6 +24,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
@@ -155,7 +157,7 @@ export class AuthService {
       userAgent: context?.userAgent,
     });
 
-    const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
+    const resolvedRole = isPlatformAdminUser(this.configService, user) ? Role.PLATFORM_ADMIN : user.role;
 
     return {
       accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
@@ -257,7 +259,7 @@ export class AuthService {
       role: membership.role,
     };
 
-    const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
+    const resolvedRole = isPlatformAdminUser(this.configService, user) ? Role.PLATFORM_ADMIN : user.role;
 
     return { accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext) };
   }
@@ -282,17 +284,13 @@ export class AuthService {
       ? await resolveEffectivePermissions(this.prisma, userId, activeContext.tenantId, activeContext.gymId ?? undefined)
       : [];
 
-    const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
+    const admins = getPlatformAdminEmails(this.configService);
+    const isPlatformAdmin = Boolean(user.email) && admins.includes(user.email.toLowerCase());
+    const resolvedRole = isPlatformAdmin ? Role.PLATFORM_ADMIN : user.role;
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        role: resolvedRole,
-        orgId: activeContext?.tenantId ?? '',
-        emailVerified: Boolean(user.emailVerifiedAt),
-        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-      },
+      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '' },
+      platformRole: isPlatformAdmin ? 'PLATFORM_ADMIN' : null,
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
       effectiveRole: activeContext?.role,

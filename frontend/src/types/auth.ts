@@ -35,6 +35,7 @@ export type ActiveContext = {
 
 export type AuthMeResponse = {
   user: AuthUser;
+  platformRole?: 'PLATFORM_ADMIN' | null;
   memberships: Membership[];
   activeContext?: ActiveContext;
   effectiveRole?: MembershipRole;
