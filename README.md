@@ -52,8 +52,8 @@ Required environment variables:
   - In local development only, frontend falls back to `http://localhost:3000` when this variable is missing.
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` — Stripe price for upgrades (optional if billing checkout is disabled).
 
-- `NEXT_PUBLIC_BASE_DOMAIN` — Platform base domain used for subdomain routing (example: `gymstack-saas.vercel.app`).
-- `NEXT_PUBLIC_APP_URL` — Canonical root app URL used as fallback for invite links (example: `https://gymstack-saas.vercel.app`).
+- `NEXT_PUBLIC_BASE_DOMAIN` — Platform base domain used for subdomain routing (example: `gymstack.club`).
+- `NEXT_PUBLIC_APP_URL` — Canonical root app URL used as fallback for invite links (example: `https://gymstack.club`).
 
 ## Railway configuration (backend)
 
@@ -125,7 +125,7 @@ Environment overrides:
 
 Routing is fully environment-driven (no code edits required when changing domains):
 
-- Root marketing/owner login domain: `https://<NEXT_PUBLIC_BASE_DOMAIN>`
+- Root marketing/owner login domain: `https://gymstack.club`
 - Location fallback domain (no custom domain): `https://<locationSlug>.<NEXT_PUBLIC_BASE_DOMAIN>`
 - Active custom domains override fallback domains for landing/login/join links.
 
