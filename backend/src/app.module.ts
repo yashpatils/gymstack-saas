@@ -16,6 +16,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PublicModule } from './public/public.module';
 import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { SettingsModule } from './settings/settings.module';
     PublicModule,
     UsersModule,
     SettingsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

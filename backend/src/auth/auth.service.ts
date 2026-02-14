@@ -10,6 +10,7 @@ import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { resolveEffectivePermissions } from './authorization';
+import { isPlatformAdminUser } from './platform-admin.util';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -136,9 +137,11 @@ export class AuthService {
       userAgent: context?.userAgent,
     });
 
+    const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
+
     return {
-      accessToken: this.signToken(user.id, user.email, user.role, activeContext),
-      user: { id: user.id, email: user.email, role: user.role, orgId: activeContext?.tenantId ?? '' },
+      accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
+      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '' },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
     };
@@ -194,7 +197,9 @@ export class AuthService {
       role: membership.role,
     };
 
-    return { accessToken: this.signToken(user.id, user.email, user.role, activeContext) };
+    const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
+
+    return { accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext) };
   }
 
   async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole }): Promise<AuthMeResponseDto> {
@@ -217,8 +222,10 @@ export class AuthService {
       ? await resolveEffectivePermissions(this.prisma, userId, activeContext.tenantId, activeContext.gymId ?? undefined)
       : [];
 
+    const resolvedRole = isPlatformAdminUser(user) ? Role.PLATFORM_ADMIN : user.role;
+
     return {
-      user: { id: user.id, email: user.email, role: user.role, orgId: activeContext?.tenantId ?? '' },
+      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '' },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
       effectiveRole: activeContext?.role,
