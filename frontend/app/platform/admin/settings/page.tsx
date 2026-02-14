@@ -9,18 +9,17 @@ import {
   saveSettings,
 } from "../../../../src/lib/settings";
 import { useAuth } from "../../../../src/providers/AuthProvider";
-import { normalizeRole, requireRole, type Role } from "../../../../src/lib/rbac";
+import { canManageUsers } from "../../../../src/lib/rbac";
 
 export default function PlatformAdminSettingsPage() {
   const { user, isLoading } = useAuth();
-  const role: Role = normalizeRole(user?.role);
   const [settings, setSettings] = useState<AppSettings>(defaultAppSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const isAllowed = user ? requireRole(role, ["OWNER", "ADMIN"]) : false;
+  const isAllowed = canManageUsers(user?.role);
 
   useEffect(() => {
     let mounted = true;
