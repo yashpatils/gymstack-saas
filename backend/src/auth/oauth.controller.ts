@@ -131,24 +131,24 @@ export class OauthController {
     @Query('mode') modeInput: OAuthRequestedMode | undefined,
     @Query('inviteToken') inviteToken: string | undefined,
     @Query('siteSlug') siteSlug: string | undefined,
-  ): Promise<{ action: string; form: Record<string, string> }> {
+    @Res() res: Response,
+  ): Promise<void> {
     const mode: OAuthRequestedMode = modeInput === 'link' ? 'link' : 'login';
     const appUrl = this.configService.get<string>('APP_URL') ?? 'https://gymstack.club';
     const allowedHosts = this.configService.get<string>('OAUTH_ALLOWED_RETURN_HOSTS') ?? 'gymstack.club,*.gymstack.club';
     const returnTo = await sanitizeReturnTo(returnToInput, appUrl, allowedHosts, this.prisma);
     const state = this.stateService.sign({ returnTo, requestedMode: mode, timestamp: Date.now(), nonce: this.stateService.newNonce(), inviteToken, siteSlug }, this.oauthStateSecret());
 
-    return {
-      action: 'https://appleid.apple.com/auth/authorize',
-      form: {
-        client_id: this.required('APPLE_CLIENT_ID'),
-        redirect_uri: this.required('APPLE_REDIRECT_URI'),
-        response_type: 'code id_token',
-        response_mode: 'form_post',
-        scope: 'name email',
-        state,
-      },
-    };
+    const params = new URLSearchParams({
+      client_id: this.required('APPLE_CLIENT_ID'),
+      redirect_uri: this.required('APPLE_REDIRECT_URI'),
+      response_type: 'code id_token',
+      response_mode: 'form_post',
+      scope: 'name email',
+      state,
+    });
+
+    res.redirect(`https://appleid.apple.com/auth/authorize?${params.toString()}`);
   }
 
   @Post('apple/callback')
