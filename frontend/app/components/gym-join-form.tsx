@@ -11,8 +11,8 @@ import { apiFetch } from '@/src/lib/apiFetch';
 import type { MembershipRole } from '@/src/types/auth';
 
 type InviteValidationResponse =
-  | { ok: true; role: MembershipRole; locationId: string; tenantId: string; expiresAt: string }
-  | { ok: false; reason: 'invalid' | 'expired' | 'already_used' | 'revoked' };
+  | { ok: true; role: MembershipRole; locationId: string; tenantId: string; locationName?: string; expiresAt: string; targeted: boolean }
+  | { ok: false; reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED' };
 
 export function GymJoinForm() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export function GymJoinForm() {
         }
       })
       .catch(() => {
-        setInviteValidation({ ok: false, reason: 'invalid' });
+        setInviteValidation({ ok: false, reason: 'INVALID' });
         setError('Invite token is invalid.');
       })
       .finally(() => setValidating(false));
@@ -99,7 +99,7 @@ export function GymJoinForm() {
       {error ? <Alert>{error}</Alert> : null}
       <Input label="Invite token" value={token} onChange={(event) => setToken(event.target.value)} required />
       {validating ? <p className="text-xs text-slate-300">Validating invite…</p> : null}
-      {inviteValidation?.ok ? <p className="text-xs text-emerald-300">Invite valid for role {inviteValidation.role.replace(/_/g, ' ')}.</p> : null}
+      {inviteValidation?.ok ? <p className="text-xs text-emerald-300">{inviteValidation.role === 'CLIENT' ? 'Join as Member' : 'Join as Staff/Coach'} at {inviteValidation.locationName ?? 'this location'}.</p> : null}
       <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       <Button type="submit">Accept invite</Button>
@@ -108,10 +108,10 @@ export function GymJoinForm() {
   );
 }
 
-function mapInviteReason(reason: 'invalid' | 'expired' | 'already_used' | 'revoked'): string {
-  if (reason === 'expired') return 'Invite expired. Please ask for a new invite.';
-  if (reason === 'already_used') return 'Invite already used. Please request another invite.';
-  if (reason === 'revoked') return 'Invite has been revoked.';
+function mapInviteReason(reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED'): string {
+  if (reason === 'EXPIRED') return 'Invite expired. Please ask your manager for a new invite.';
+  if (reason === 'ALREADY_USED') return 'Invite already used. Please ask your manager for a new invite.';
+  if (reason === 'REVOKED') return 'Invite has been revoked. Ask your manager for a new invite.';
   return 'Invite token is invalid.';
 }
 

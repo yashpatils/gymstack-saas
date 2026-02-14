@@ -1,20 +1,15 @@
 import { apiFetch } from './apiFetch';
 
 export type CreateInvitePayload = {
-  email: string;
-  role: 'ADMIN' | 'OWNER' | 'USER';
+  locationId: string;
+  role: 'GYM_STAFF_COACH' | 'CLIENT';
+  email?: string;
+  expiresInHours?: number;
 };
 
-export async function createInvite(payload: CreateInvitePayload): Promise<{ inviteLink: string }> {
-  return apiFetch<{ inviteLink: string }>('/api/invites', {
+export async function createInvite(payload: CreateInvitePayload): Promise<{ token: string; inviteUrl: string; role: 'GYM_STAFF_COACH' | 'CLIENT'; tenantId: string; locationId: string; expiresAt: string }> {
+  return apiFetch('/api/invites', {
     method: 'POST',
     body: payload,
-  });
-}
-
-export async function acceptInvite(token: string, password: string): Promise<{ user: { id: string; email: string } }> {
-  return apiFetch<{ user: { id: string; email: string } }>('/api/invites/accept', {
-    method: 'POST',
-    body: { token, password },
   });
 }

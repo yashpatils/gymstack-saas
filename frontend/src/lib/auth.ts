@@ -136,7 +136,7 @@ export async function requestDeleteAccount(password: string): Promise<{ ok: true
 export async function confirmDeleteAccount(token: string): Promise<{ ok: true }> { return apiFetch<{ ok: true }>('/api/account/confirm-delete', { method: 'POST', body: JSON.stringify({ token }), headers: { 'Content-Type': 'application/json' } }); }
 
 export async function acceptInvite(params: { token: string; password?: string; email?: string; name?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
-  const data = await apiFetch<AuthLoginResponse>('/api/invites/accept', { method: 'POST', body: JSON.stringify(params), headers: { 'Content-Type': 'application/json' } });
+  const data = await apiFetch<AuthLoginResponse>('/api/auth/register-with-invite', { method: 'POST', body: JSON.stringify({ token: params.token, email: params.email, password: params.password, name: params.name }), headers: { 'Content-Type': 'application/json' } });
   setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
   return { token: data.accessToken, user: data.user, activeContext: data.activeContext, memberships: data.memberships };
 }

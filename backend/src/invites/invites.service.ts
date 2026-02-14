@@ -1,37 +1,31 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { DomainStatus, InviteStatus, MembershipRole, MembershipStatus, Role } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
-import { JwtService } from '@nestjs/jwt';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { DomainStatus, InviteStatus, MembershipRole, MembershipStatus, type LocationInvite } from '@prisma/client';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
-import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
-import { LocationInvite } from '@prisma/client';
+import { assertCanCreateLocationInvite } from './invite-permissions';
 
 @Injectable()
 export class InvitesService {
-  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
     const tenantId = requester.activeTenantId ?? requester.orgId;
     if (!tenantId) throw new ForbiddenException('Missing tenant context');
 
-    const supportedRole =
-      input.role === MembershipRole.TENANT_LOCATION_ADMIN ||
-      input.role === MembershipRole.GYM_STAFF_COACH ||
-      input.role === MembershipRole.CLIENT;
-    if (!supportedRole) {
+    if (input.role !== MembershipRole.GYM_STAFF_COACH && input.role !== MembershipRole.CLIENT) {
       throw new ForbiddenException('Unsupported invite role');
     }
-
-    await this.assertCanCreateInvite(requester, tenantId, input.locationId, input.role);
 
     const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId: tenantId } });
     if (!location) throw new BadRequestException('Invalid locationId');
 
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await this.assertCanCreateInvite(requester, tenantId, input.locationId, input.role);
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + (input.expiresInHours ?? 168) * 60 * 60 * 1000);
 
     await this.prisma.locationInvite.create({
       data: {
@@ -39,7 +33,7 @@ export class InvitesService {
         locationId: location.id,
         role: input.role,
         email: input.email?.toLowerCase() ?? null,
-        token,
+        tokenHash,
         expiresAt,
         createdByUserId: requester.id,
         status: InviteStatus.PENDING,
@@ -47,47 +41,53 @@ export class InvitesService {
     });
 
     return {
-      inviteUrl: await this.buildInviteLink(token, location.id, location.slug),
       token,
-      expiresAt: expiresAt.toISOString(),
-      locationId: location.id,
+      inviteUrl: await this.buildInviteLink(token, location.id, location.slug),
       role: input.role,
+      tenantId,
+      locationId: location.id,
+      expiresAt: expiresAt.toISOString(),
     };
   }
 
   async validateInvite(token: string): Promise<
-    | { ok: true; role: MembershipRole; locationId: string; tenantId: string; expiresAt: string }
-    | { ok: false; reason: 'invalid' | 'expired' | 'already_used' | 'revoked' }
+    | { ok: true; role: MembershipRole; locationId: string; tenantId: string; locationName?: string; locationSlug?: string; expiresAt: string; targeted: boolean }
+    | { ok: false; reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED' }
   > {
-    const invite = await this.prisma.locationInvite.findUnique({ where: { token } });
+    const invite = await this.findByToken(token);
     if (!invite) {
-      return { ok: false, reason: 'invalid' };
+      return { ok: false, reason: 'INVALID' };
     }
 
     if (invite.status === InviteStatus.REVOKED) {
-      return { ok: false, reason: 'revoked' };
+      return { ok: false, reason: 'REVOKED' };
     }
 
-    if (invite.status === InviteStatus.ACCEPTED) {
-      return { ok: false, reason: 'already_used' };
+    if (invite.status === InviteStatus.ACCEPTED || invite.consumedAt) {
+      return { ok: false, reason: 'ALREADY_USED' };
     }
 
     if (invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
-      return { ok: false, reason: 'expired' };
+      return { ok: false, reason: 'EXPIRED' };
     }
+
+    const location = await this.prisma.gym.findUnique({ where: { id: invite.locationId }, select: { name: true, slug: true } });
 
     return {
       ok: true,
       role: invite.role,
       locationId: invite.locationId,
       tenantId: invite.tenantId,
+      locationName: location?.name,
+      locationSlug: location?.slug,
       expiresAt: invite.expiresAt.toISOString(),
+      targeted: Boolean(invite.email),
     };
   }
 
   async getUsableInvite(token: string, expectedEmail?: string): Promise<LocationInvite | null> {
-    const invite = await this.prisma.locationInvite.findUnique({ where: { token } });
-    if (!invite || invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
+    const invite = await this.findByToken(token);
+    if (!invite || invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now() || invite.consumedAt) {
       return null;
     }
 
@@ -98,115 +98,53 @@ export class InvitesService {
     return invite;
   }
 
-
-  async acceptInviteForUser(token: string, userId: string): Promise<void> {
-    const invite = await this.prisma.locationInvite.findUnique({ where: { token } });
-    if (!invite || invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
-      throw new BadRequestException('Invite is invalid or expired');
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (invite.email && invite.email.toLowerCase() !== user.email.toLowerCase()) {
-      throw new ForbiddenException('Invite email does not match authenticated user');
-    }
-
-    await this.prisma.membership.upsert({
-      where: {
-        userId_orgId_gymId_role: {
-          userId: user.id,
-          orgId: invite.tenantId,
-          gymId: invite.locationId,
-          role: invite.role,
-        },
-      },
-      update: { status: MembershipStatus.ACTIVE },
-      create: {
-        userId: user.id,
-        orgId: invite.tenantId,
-        gymId: invite.locationId,
-        role: invite.role,
-        status: MembershipStatus.ACTIVE,
-      },
+  async consumeInvite(inviteId: string): Promise<void> {
+    await this.prisma.locationInvite.update({
+      where: { id: inviteId },
+      data: { status: InviteStatus.ACCEPTED, consumedAt: new Date() },
     });
-
-    await this.prisma.locationInvite.update({ where: { id: invite.id }, data: { status: InviteStatus.ACCEPTED } });
   }
 
-  async acceptInvite(input: AcceptInviteDto) {
-    const invite = await this.prisma.locationInvite.findUnique({ where: { token: input.token } });
-    if (!invite) throw new NotFoundException('Invite not found');
-    if (invite.status !== InviteStatus.PENDING) throw new BadRequestException('Invite is no longer valid');
-    if (invite.expiresAt.getTime() < Date.now()) throw new BadRequestException('Invite has expired');
-
-    const candidateEmail = (invite.email ?? input.email ?? '').toLowerCase().trim();
-    if (!candidateEmail) throw new BadRequestException('Invite email is missing');
-
-    let user = await this.prisma.user.findUnique({ where: { email: candidateEmail } });
-    if (!user) {
-      if (!input.password) throw new BadRequestException('Password is required to accept this invite');
-      user = await this.prisma.user.create({
-        data: { email: candidateEmail, password: await bcrypt.hash(input.password, 10), role: Role.USER, orgId: invite.tenantId },
-      });
+  async revokeInvite(requester: User, inviteId: string): Promise<{ ok: true }> {
+    const invite = await this.prisma.locationInvite.findUnique({ where: { id: inviteId } });
+    if (!invite) {
+      throw new BadRequestException('Invite not found');
     }
 
-    await this.prisma.membership.upsert({
+    const tenantId = requester.activeTenantId ?? requester.orgId;
+    if (!tenantId || tenantId !== invite.tenantId) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const isCreator = invite.createdByUserId === requester.id;
+    const requesterIsOwner = await this.prisma.membership.findFirst({
       where: {
-        userId_orgId_gymId_role: {
-          userId: user.id,
-          orgId: invite.tenantId,
-          gymId: invite.locationId,
-          role: invite.role,
-        },
-      },
-      update: { status: MembershipStatus.ACTIVE },
-      create: {
-        userId: user.id,
-        orgId: invite.tenantId,
-        gymId: invite.locationId,
-        role: invite.role,
+        userId: requester.id,
+        orgId: tenantId,
+        role: { in: [MembershipRole.TENANT_OWNER, MembershipRole.TENANT_LOCATION_ADMIN] },
         status: MembershipStatus.ACTIVE,
       },
+      select: { id: true },
     });
 
-    await this.prisma.locationInvite.update({ where: { id: invite.id }, data: { status: InviteStatus.ACCEPTED } });
+    if (!isCreator && !requesterIsOwner) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
 
-    const memberships = await this.prisma.membership.findMany({ where: { userId: user.id, status: MembershipStatus.ACTIVE } });
-    const active = memberships.find((membership) => membership.orgId === invite.tenantId && membership.gymId === invite.locationId) ?? memberships[0];
+    await this.prisma.locationInvite.update({ where: { id: inviteId }, data: { status: InviteStatus.REVOKED } });
+    return { ok: true };
+  }
 
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      orgId: active?.orgId,
-      activeTenantId: active?.orgId,
-      activeGymId: active?.gymId ?? null,
-      activeRole: active?.role,
-    });
+  async findByToken(token: string): Promise<LocationInvite | null> {
+    return this.prisma.locationInvite.findUnique({ where: { tokenHash: this.hashToken(token) } });
+  }
 
-    return {
-      accessToken,
-      user: { id: user.id, email: user.email, role: user.role, orgId: active?.orgId ?? user.orgId },
-      memberships: memberships.map((membership) => ({
-        id: membership.id,
-        tenantId: membership.orgId,
-        gymId: membership.gymId,
-        locationId: membership.gymId,
-        role: membership.role,
-        status: membership.status,
-      })),
-      activeContext: active
-        ? { tenantId: active.orgId, gymId: active.gymId, locationId: active.gymId, role: active.role }
-        : undefined,
-    };
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private async buildInviteLink(token: string, locationId: string, locationSlug: string): Promise<string> {
-    const fallbackBase = process.env.BASE_DOMAIN ?? process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'localhost:3000';
+    const fallbackBase = process.env.BASE_DOMAIN ?? process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'gymstack.club';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${fallbackBase}`;
 
     const domain = await this.prisma.customDomain.findFirst({
@@ -218,14 +156,10 @@ export class InvitesService {
     const host = domain?.hostname ?? `${locationSlug}.${fallbackBase}`;
     const protocol = host.includes('localhost') ? 'http' : 'https';
 
-    if (!host) {
-      return `${appUrl.replace(/\/$/, '')}/join?token=${token}`;
-    }
-
-    return `${protocol}://${host}/join?token=${token}`;
+    return `${protocol}://${host}/join?token=${token}`.replace('https://undefined', appUrl.replace(/\/$/, ''));
   }
 
-  private async assertCanCreateInvite(requester: User, tenantId: string, locationId: string, role: MembershipRole): Promise<void> {
+  private async assertCanCreateInvite(requester: User, tenantId: string, locationId: string, inviteRole: MembershipRole): Promise<void> {
     const isPlatformOperator = [UserRole.Admin, UserRole.Owner].includes(requester.role);
     if (isPlatformOperator) {
       return;
@@ -236,32 +170,22 @@ export class InvitesService {
         userId: requester.id,
         orgId: tenantId,
         status: MembershipStatus.ACTIVE,
-        OR: [{ gymId: locationId }, { role: MembershipRole.TENANT_OWNER }],
       },
-      select: { role: true, gymId: true },
     });
 
-    const hasOwnerRole = memberships.some((membership) => membership.role === MembershipRole.TENANT_OWNER);
-    const hasLocationAdminRole = memberships.some(
+    const ownerMembership = memberships.find((membership) => membership.role === MembershipRole.TENANT_OWNER) ?? null;
+    const locationAdminMembership = memberships.find(
       (membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN && membership.gymId === locationId,
-    );
-    const hasStaffRole = memberships.some(
+    ) ?? null;
+    const staffMembership = memberships.find(
       (membership) => membership.role === MembershipRole.GYM_STAFF_COACH && membership.gymId === locationId,
-    );
+    ) ?? null;
 
-    const canInviteStaff = hasOwnerRole || hasLocationAdminRole;
-    const canInviteClient = canInviteStaff || hasStaffRole;
-
-    if (role === MembershipRole.GYM_STAFF_COACH && !canInviteStaff) {
+    const requesterRole = ownerMembership?.role ?? locationAdminMembership?.role ?? staffMembership?.role;
+    if (!requesterRole) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    if (role === MembershipRole.CLIENT && !canInviteClient) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
-
-    if (role === MembershipRole.TENANT_LOCATION_ADMIN && !hasOwnerRole) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
+    assertCanCreateLocationInvite(requesterRole, inviteRole, staffMembership);
   }
 }

@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { ActiveMode, DomainStatus, InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
@@ -62,7 +62,7 @@ export class OnboardingService {
       throw new BadRequestException('managerEmail is required when inviting a manager');
     }
 
-    const token = randomBytes(32).toString('hex');
+    const token = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await this.prisma.locationInvite.create({
@@ -71,7 +71,7 @@ export class OnboardingService {
         locationId: input.locationId,
         role: MembershipRole.TENANT_LOCATION_ADMIN,
         email: managerEmail,
-        token,
+        tokenHash: createHash('sha256').update(token).digest('hex'),
         expiresAt,
         createdByUserId: user.id,
         status: InviteStatus.PENDING,
