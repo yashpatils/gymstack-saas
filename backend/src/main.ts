@@ -12,11 +12,7 @@ import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 
-const DEFAULT_FRONTEND_ALLOWLIST = [
-  'http://localhost:3000',
-  'https://gymstack-saas.vercel.app',
-  'https://gymstack-saas-jw4voz3tb-yashs-projects-81128ebe.vercel.app',
-];
+const DEFAULT_FRONTEND_ALLOWLIST = ['http://localhost:3000'];
 
 function isProductionEnvironment(configService: ConfigService): boolean {
   return (configService.get<string>('NODE_ENV') ?? '').toLowerCase() === 'production';
@@ -147,11 +143,7 @@ async function bootstrap() {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
 
-      const isAllowed =
-        corsAllowlist.includes(origin) ||
-        /^https:\/\/gymstack-saas-.*-yashs-projects-81128ebe\.vercel\.app$/.test(
-          origin,
-        );
+      const isAllowed = corsAllowlist.includes(origin);
 
       if (isAllowed) return callback(null, true);
 
