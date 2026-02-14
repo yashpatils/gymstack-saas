@@ -1,18 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { Alert, Button, Input } from './ui';
+import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
+import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
 
 export function GymJoinForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { acceptInvite } = useAuth();
   const [token, setToken] = useState(searchParams.get('token') ?? '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
+  const showOAuth = shouldShowOAuth({ pathname });
 
   return (
     <form
@@ -34,6 +39,7 @@ export function GymJoinForm() {
       <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       <Button type="submit">Accept invite</Button>
+      {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
     </form>
   );
 }
