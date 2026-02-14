@@ -12,25 +12,63 @@ import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 
-const DEFAULT_FRONTEND_ALLOWLIST = ['http://localhost:3000'];
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://gymstack.club',
+  'https://www.gymstack.club',
+  'https://gymstack-saas.vercel.app',
+  'http://localhost:3000',
+];
+
+const DEFAULT_ALLOWED_ORIGIN_REGEXES = [
+  '^https:\\/\\/[a-z0-9-]+\\.gymstack\\.club$',
+  '^https:\\/\\/[a-z0-9-]+\\.vercel\\.app$',
+  '^http:\\/\\/[a-z0-9-]+\\.localhost:3000$',
+];
 
 function isProductionEnvironment(configService: ConfigService): boolean {
   return (configService.get<string>('NODE_ENV') ?? '').toLowerCase() === 'production';
 }
 
-function getCorsAllowlist(configService: ConfigService): string[] {
-  const envValue = configService.get<string>('FRONTEND_URL');
-  const configured =
-    envValue
+function parseEnvList(value?: string): string[] {
+  return (
+    value
       ?.split(',')
       .map((entry) => entry.trim())
-      .filter(Boolean) ?? [];
+      .filter(Boolean) ?? []
+  );
+}
 
-  if (configured.length) {
-    return configured;
-  }
+function getAllowedOrigins(configService: ConfigService): Set<string> {
+  const configuredOrigins = parseEnvList(configService.get<string>('ALLOWED_ORIGINS'));
+  const legacyOrigins = parseEnvList(configService.get<string>('FRONTEND_URL'));
+  const allOrigins = [...DEFAULT_ALLOWED_ORIGINS, ...legacyOrigins, ...configuredOrigins];
 
-  return DEFAULT_FRONTEND_ALLOWLIST;
+  return new Set(allOrigins);
+}
+
+function getAllowedOriginRegexes(configService: ConfigService): RegExp[] {
+  const logger = new Logger('Bootstrap');
+  const configuredRegexes = parseEnvList(configService.get<string>('ALLOWED_ORIGIN_REGEXES'));
+  const regexValues = [...DEFAULT_ALLOWED_ORIGIN_REGEXES, ...configuredRegexes];
+
+  return regexValues
+    .map((expression) => {
+      try {
+        return new RegExp(expression);
+      } catch {
+        logger.warn(`Ignoring invalid ALLOWED_ORIGIN_REGEXES entry: ${expression}`);
+        return null;
+      }
+    })
+    .filter((regex): regex is RegExp => Boolean(regex));
+}
+
+function hasAllowedHostname(hostname: string): boolean {
+  return (
+    hostname.endsWith('.gymstack.club') ||
+    hostname.endsWith('.vercel.app') ||
+    hostname.endsWith('.localhost')
+  );
 }
 
 function sanitizeErrorMessage(error: unknown): string {
@@ -134,23 +172,45 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const prismaService = app.get(PrismaService);
   const isProduction = isProductionEnvironment(configService);
-  const corsAllowlist = getCorsAllowlist(configService);
+  const corsAllowlist = getAllowedOrigins(configService);
+  const allowedOriginRegexes = getAllowedOriginRegexes(configService);
+  const logger = new Logger('Bootstrap');
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
   await logIntegrationStatus(configService, prismaService);
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        return callback(null, true);
+      }
 
-      const isAllowed = corsAllowlist.includes(origin);
+      if (corsAllowlist.has(origin)) {
+        return callback(null, true);
+      }
 
-      if (isAllowed) return callback(null, true);
+      const regexMatch = allowedOriginRegexes.some((regex) => regex.test(origin));
+      if (regexMatch) {
+        return callback(null, true);
+      }
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      try {
+        const { hostname } = new URL(origin);
+        if (hasAllowedHostname(hostname)) {
+          return callback(null, true);
+        }
+      } catch {
+        // Invalid origin value should be treated as disallowed.
+      }
+
+      if (!isProduction) {
+        logger.warn(`CORS blocked for origin: ${origin}`);
+      }
+
+      return callback(null, false);
     },
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With',
     credentials: true,
     optionsSuccessStatus: 204,
   });
