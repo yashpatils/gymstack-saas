@@ -1,19 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
+import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
+import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { resendVerification } from "../../src/lib/auth";
 import { Alert, Button, Input } from "../components/ui";
 
 type Intent = "owner" | "staff" | "client";
 
+type RoleOption = {
+  value: Intent;
+  label: string;
+  description: string;
+  persona: OAuthPersona;
+};
+
+const roleOptions: RoleOption[] = [
+  { value: 'owner', label: 'Owner', description: 'Create and manage a gym workspace.', persona: 'OWNER' },
+  { value: 'staff', label: 'Staff', description: 'Join as manager or coach via invite.', persona: 'STAFF' },
+  { value: 'client', label: 'Client', description: 'Join member experiences with an invite.', persona: 'CLIENT' },
+];
+
+const getIntentFromQuery = (value: string | null): Intent => {
+  if (value === 'staff' || value === 'client') {
+    return value;
+  }
+
+  return 'owner';
+};
+
+const getPersonaForIntent = (intent: Intent): OAuthPersona => {
+  return roleOptions.find((option) => option.value === intent)?.persona ?? 'OWNER';
+};
+
+function CheckIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 function SignupPageContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { signup, acceptInvite } = useAuth();
-  const [intent, setIntent] = useState<Intent>((searchParams.get("intent") as Intent) || "owner");
+  const [selectedRole, setSelectedRole] = useState<Intent | null>(getIntentFromQuery(searchParams.get('intent')));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState(searchParams.get("token") ?? "");
@@ -22,6 +58,10 @@ function SignupPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const intent = selectedRole ?? 'owner';
+  const selectedPersona = selectedRole ? getPersonaForIntent(selectedRole) : null;
+  const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
+  const showOAuth = shouldShowOAuth({ pathname, selectedPersona });
 
   const inviteRequired = intent !== "owner";
   const title = useMemo(() => (intent === "owner" ? "Create owner account" : intent === "staff" ? "Join as staff" : "Join as client"), [intent]);
@@ -77,16 +117,33 @@ function SignupPageContent() {
         }
       }}>
         <h1 className="text-2xl font-semibold text-white">{title}</h1>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="button secondary" onClick={() => setIntent("owner")}>Owner</button>
-          <button type="button" className="button secondary" onClick={() => setIntent("staff")}>Staff</button>
-          <button type="button" className="button secondary" onClick={() => setIntent("client")}>Client</button>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {roleOptions.map((role) => {
+            const isActive = selectedRole === role.value;
+
+            return (
+              <button
+                key={role.value}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => setSelectedRole(role.value)}
+                className={`rounded-2xl border p-4 text-left transition ${isActive ? 'border-sky-300 bg-sky-500/20 text-sky-100 ring-2 ring-sky-300/60 shadow-[0_0_18px_rgba(56,189,248,0.35)]' : 'border-white/20 text-slate-200 hover:border-slate-300 hover:bg-white/5'}`}
+              >
+                <span className="mb-1 flex items-center justify-between text-sm font-semibold">
+                  {role.label}
+                  {isActive ? <CheckIcon /> : null}
+                </span>
+                <span className="text-xs text-slate-300">{role.description}</span>
+              </button>
+            );
+          })}
         </div>
         {error ? <Alert tone="error">{error}</Alert> : null}
         {inviteRequired ? <Input label="Invite token" value={token} onChange={(event) => setToken(event.target.value)} required /> : null}
         <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         <Input label="Password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />
         <Button type="submit" disabled={submitting}>{submitting ? "Submitting..." : title}</Button>
+        {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
         <p className="text-sm text-slate-300">Already have an account? <Link href="/login" className="text-sky-300">Login</Link></p>
       </form>
     </main>

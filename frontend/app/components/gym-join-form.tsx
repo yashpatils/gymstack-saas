@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { Alert, Button, Input } from './ui';
-import { applyOAuthToken, oauthStartUrl } from '@/src/lib/auth';
+import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
+import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
 
 export function GymJoinForm() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export function GymJoinForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
+  const showOAuth = shouldShowOAuth({ pathname });
 
   useEffect(() => {
     const oauth = searchParams.get('oauth');
@@ -56,36 +59,7 @@ export function GymJoinForm() {
       <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       <Button type="submit">Accept invite</Button>
-
-      <div className="space-y-2">
-        <Button
-          type="button"
-          onClick={() => {
-            window.location.href = oauthStartUrl('google', 'login', {
-              returnTo: window.location.href,
-              inviteToken: token,
-              siteSlug: pathname?.split('/')[2] ?? undefined,
-            });
-          }}
-        >
-          Continue with Google
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            window.location.href = oauthStartUrl('apple', 'login', {
-              returnTo: window.location.href,
-              inviteToken: token,
-              siteSlug: pathname?.split('/')[2] ?? undefined,
-            });
-          }}
-        >
-          Continue with Apple
-        </Button>
-      </div>
-
-
+      {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
     </form>
   );
 }

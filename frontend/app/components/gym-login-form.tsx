@@ -1,17 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { Alert, Button, Input } from './ui';
-import { applyOAuthToken, oauthStartUrl } from '@/src/lib/auth';
+import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
+import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
 
 export function GymLoginForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
+  const showOAuth = shouldShowOAuth({ pathname });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -44,14 +48,7 @@ export function GymLoginForm() {
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
       <Button type="submit">Sign in</Button>
 
-      <div className="space-y-2">
-        <Button type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'login', { returnTo: window.location.href }); }}>
-          Continue with Google
-        </Button>
-        <Button type="button" variant="secondary" onClick={() => { window.location.href = oauthStartUrl('apple', 'login', { returnTo: window.location.href }); }}>
-          Continue with Apple
-        </Button>
-      </div>
+      {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
 
     </form>
   );
