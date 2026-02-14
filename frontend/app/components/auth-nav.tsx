@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { me } from "../../src/lib/auth";
 import type { AuthMeResponse } from "../../src/types/auth";
 
@@ -15,6 +16,7 @@ function AuthNavSkeleton() {
 }
 
 export function AuthNav() {
+  const router = useRouter();
   const [state, setState] = useState<AuthNavState>({ status: "loading" });
 
   useEffect(() => {
@@ -42,6 +44,17 @@ export function AuthNav() {
     };
   }, []);
 
+
+  useEffect(() => {
+    if (state.status !== "authenticated") {
+      return;
+    }
+
+    const effectiveRole = state.session.effectiveRole;
+    if (effectiveRole === "GYM_STAFF_COACH" || effectiveRole === "CLIENT") {
+      router.replace("/platform");
+    }
+  }, [router, state]);
   if (state.status === "loading") {
     return <AuthNavSkeleton />;
   }

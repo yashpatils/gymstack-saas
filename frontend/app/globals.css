@@ -1122,3 +1122,64 @@ main {
 :root { --radius-xl: 1rem; }
 body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background-image: radial-gradient(circle at 20% 10%, rgba(56,189,248,0.12), transparent 40%), radial-gradient(circle at 80% 0%, rgba(168,85,247,0.14), transparent 34%); z-index: -1; }
 .glass-card { background: rgba(15,23,42,0.55); border: 1px solid rgba(148,163,184,0.22); backdrop-filter: blur(14px); border-radius: var(--radius-xl); box-shadow: var(--glow); }
+
+:root {
+  color-scheme: dark;
+  --background: #070a14;
+  --foreground: #f8fafc;
+  --card: rgba(15, 23, 42, 0.72);
+  --muted: rgba(30, 41, 59, 0.75);
+  --muted-foreground: #94a3b8;
+  --border: rgba(148, 163, 184, 0.24);
+  --primary: #7c3aed;
+  --primary-foreground: #ede9fe;
+  --shadow-soft: 0 14px 40px rgba(15, 23, 42, 0.35);
+}
+
+body {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.2), transparent 45%),
+    radial-gradient(circle at 100% 20%, rgba(34, 211, 238, 0.15), transparent 35%),
+    var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.text-foreground { color: var(--foreground); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.bg-card { background-color: var(--card); }
+.bg-background { background-color: var(--background); }
+.border-border { border-color: var(--border); }
+.text-primary-foreground { color: var(--primary-foreground); }
+.bg-primary\/20 { background-color: color-mix(in oklab, var(--primary) 20%, transparent); }
+
+.button {
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+}
+.button.secondary {
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+.button.ghost {
+  background: transparent;
+  border-color: var(--border);
+}
+.input {
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 86%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
