@@ -15,15 +15,8 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('me')
-  me(@Req() req: { user: RequestUser }): { user: RequestUser; isPlatformAdmin: true } {
-    return {
-      user: {
-        id: req.user.id,
-        email: req.user.email,
-        role: req.user.role,
-      },
-      isPlatformAdmin: true,
-    };
+  me(@Req() _req: { user: RequestUser }): { ok: true } {
+    return { ok: true };
   }
 
   @Get('metrics')
