@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiFetch, buildApiUrl } from "../../lib/api";
+import { apiFetch, buildApiUrl } from "@/src/lib/apiFetch";
 
 type CheckResult<T = unknown> = {
   ok: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 
 export function useBackendAction() {
   const [backendResponse, setBackendResponse] = useState<string | null>(null);

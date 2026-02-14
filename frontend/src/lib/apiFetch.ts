@@ -8,6 +8,7 @@ const DEV_LOCALHOST_API_URL = 'http://localhost:3000';
 
 let getAccessToken: (() => string | null) | null = null;
 let refreshAccessToken: (() => Promise<string | null>) | null = null;
+let handleUnauthorized: (() => void) | null = null;
 
 export type ApiRateLimitSnapshot = {
   limit?: number;
@@ -34,9 +35,14 @@ export class ApiFetchError extends Error {
   }
 }
 
-export function configureApiAuth(getTokenFn: () => string | null, refreshFn: () => Promise<string | null>): void {
+export function configureApiAuth(
+  getTokenFn: () => string | null,
+  refreshFn: () => Promise<string | null>,
+  onUnauthorized?: () => void,
+): void {
   getAccessToken = getTokenFn;
   refreshAccessToken = refreshFn;
+  handleUnauthorized = onUnauthorized ?? null;
 }
 
 function normalizePath(path: string): string {
@@ -75,21 +81,13 @@ function getStoredAuthToken(): string | null {
 }
 
 export function getApiBaseUrl(): string {
-  const publicUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '');
   const serverUrl = (process.env.API_URL ?? '').trim().replace(/\/+$/, '');
 
   if (isServer()) {
     if (serverUrl) {
       return serverUrl;
     }
-    if (publicUrl) {
-      return publicUrl;
-    }
     return DEV_LOCALHOST_API_URL;
-  }
-
-  if (publicUrl) {
-    return publicUrl;
   }
 
   return '';
@@ -117,6 +115,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json');
+  }
+
   const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;
   if (isRecordBody(init.body) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -135,6 +137,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     if (refreshedToken) {
       return apiFetch<T>(path, { ...init, skipAuthRetry: true });
     }
+  }
+
+  if (response.status === 401 && handleUnauthorized) {
+    handleUnauthorized();
   }
 
   const contentType = response.headers.get('content-type') ?? '';

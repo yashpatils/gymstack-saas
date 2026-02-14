@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "../../src/components/ProtectedRoute";
-import { apiFetch } from "../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 import { ApiFetchError } from "../../src/lib/apiFetch";
 import { Alert, Button, Input, Spinner } from "../components/ui";
 import { createGym } from "../../src/lib/gyms";

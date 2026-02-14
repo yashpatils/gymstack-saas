@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { MembershipRole } from '@prisma/client';
@@ -36,30 +36,72 @@ type RequestUser = MeDto & {
   activeRole?: MembershipRole;
 };
 
+type AuthenticatedRequest = Request & { user: RequestUser };
+
 @UseFilters(AuthExceptionFilter)
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly sensitiveRateLimitService: SensitiveRateLimitService,
   ) {}
 
+  private logAuthFailure(endpoint: string, req: Request, error: unknown): void {
+    const statusCode = error instanceof HttpException ? error.getStatus() : 500;
+    const message = error instanceof Error ? error.message : String(error);
+    this.logger.error(
+      JSON.stringify({
+        event: 'auth_endpoint_failure',
+        endpoint,
+        requestId: req.requestId ?? 'unknown',
+        statusCode,
+        message,
+      }),
+    );
+  }
+
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('signup')
-  signup(
+  async signup(
     @Body() body: SignupDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
-    return this.authService.signup(body, getRequestContext(req));
+    try {
+      return await this.authService.signup(body, getRequestContext(req));
+    } catch (error) {
+      this.logAuthFailure('POST /api/auth/signup', req, error);
+      throw error;
+    }
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('register')
+  async register(
+    @Body() body: SignupDto,
+    @Req() req: Request,
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+    try {
+      return await this.authService.signup(body, getRequestContext(req));
+    } catch (error) {
+      this.logAuthFailure('POST /api/auth/register', req, error);
+      throw error;
+    }
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
-  login(
+  async login(
     @Body() body: LoginDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
-    return this.authService.login(body, getRequestContext(req));
+    try {
+      return await this.authService.login(body, getRequestContext(req));
+    } catch (error) {
+      this.logAuthFailure('POST /api/auth/login', req, error);
+      throw error;
+    }
   }
 
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
@@ -67,7 +109,6 @@ export class AuthController {
   registerWithInvite(@Body() body: RegisterWithInviteDto, @Req() req: Request) {
     return this.authService.registerWithInvite(body, getRequestContext(req));
   }
-
 
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('refresh')
@@ -94,31 +135,35 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('set-context')
-  setContext(@Req() req: { user: RequestUser }, @Body() body: SetContextDto): Promise<{ accessToken: string }> {
+  setContext(@Req() req: AuthenticatedRequest, @Body() body: SetContextDto): Promise<{ accessToken: string }> {
     return this.authService.setContext(req.user.id, body.tenantId, body.gymId ?? body.locationId);
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Post('set-mode')
-  setMode(@Req() req: { user: RequestUser }, @Body() body: SetModeDto): Promise<AuthMeResponseDto> {
+  setMode(@Req() req: AuthenticatedRequest, @Body() body: SetModeDto): Promise<AuthMeResponseDto> {
     return this.authService.setMode(req.user.id, body.tenantId, body.mode, body.locationId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: { user: RequestUser }): Promise<AuthMeResponseDto> {
-    return this.authService.me(req.user.id, {
-      tenantId: req.user.activeTenantId,
-      gymId: req.user.activeGymId,
-      role: req.user.activeRole,
-    });
+  async me(@Req() req: AuthenticatedRequest): Promise<AuthMeResponseDto> {
+    try {
+      return await this.authService.me(req.user.id, {
+        tenantId: req.user.activeTenantId,
+        gymId: req.user.activeGymId,
+        role: req.user.activeRole,
+      });
+    } catch (error) {
+      this.logAuthFailure('GET /api/auth/me', req, error);
+      throw error;
+    }
   }
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('logout')
-  logout(@Req() req: { user: RequestUser }, @Body() body: LogoutDto): Promise<{ ok: true }> {
+  logout(@Req() req: AuthenticatedRequest, @Body() body: LogoutDto): Promise<{ ok: true }> {
     return this.authService.logout(req.user.id, body);
   }
 

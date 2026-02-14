@@ -12,7 +12,7 @@ import {
 import { getBillingStatus } from "../../../../src/lib/billing";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../../src/lib/subscription";
 import { useAuth } from "../../../../src/providers/AuthProvider";
-import { apiFetch } from "../../../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 import { useToast } from "../../../../src/components/toast/ToastProvider";
 import { me } from "../../../../src/lib/auth";
 

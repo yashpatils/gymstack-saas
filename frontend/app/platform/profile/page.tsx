@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 import { useToast } from "../../../src/components/toast/ToastProvider";
 import { requestDeleteAccount } from "../../../src/lib/auth";
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { apiFetch, buildApiUrl } from '../lib/api';
+import { apiFetch, buildApiUrl } from '@/src/lib/apiFetch';
 
 type DebugResult = {
   label: string;
