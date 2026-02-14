@@ -1,406 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
-import {
-  Button,
-  Card,
-  EmptyState,
-  PageShell,
-} from "../../components/ui";
-import PageHeader from "../../../src/components/PageHeader";
-import { Skeleton } from "../../../src/components/ui/Skeleton";
-import DataTable, { DataTableColumn } from "../../../src/components/DataTable";
-import { Gym, createGym, deleteGym, listGyms, updateGym } from "../../../src/lib/gyms";
-import { useToast } from "../../../src/components/toast/ToastProvider";
-import { getBillingStatus } from "../../../src/lib/billing";
-import { formatSubscriptionStatus, isActiveSubscription } from "../../../src/lib/subscription";
-import { useAuth } from "../../../src/providers/AuthProvider";
+import { useEffect, useState } from "react";
+import { PageHeader } from "../../../src/components/common/PageHeader";
+import { EmptyState } from "../../../src/components/common/EmptyState";
+import { listGyms, type Gym } from "../../../src/lib/gyms";
 
 export default function GymsPage() {
-  const { user } = useAuth();
-  const toast = useToast();
-  const canEditGyms = true;
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [newGymName, setNewGymName] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [savingEdit, setSavingEdit] = useState(false);
-
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [pendingDeleteGym, setPendingDeleteGym] = useState<Gym | null>(null);
-  const confirmDialogRef = useRef<HTMLDivElement | null>(null);
-
-  const loadSubscriptionStatus = async () => {
-    if (!user?.id) {
-      setSubscriptionStatus(null);
-      return;
-    }
-
-    try {
-      const status = await getBillingStatus(user.id);
-      setSubscriptionStatus(status.subscriptionStatus ?? null);
-    } catch {
-      setSubscriptionStatus(null);
-    }
-  };
-
-  const loadGyms = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await listGyms();
-      setGyms(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load gyms.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void loadGyms();
-    void loadSubscriptionStatus();
-  }, [user?.id]);
-
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canEditGyms) {
-      setError("Insufficient permissions");
-      return;
-    }
-
-    if (!newGymName.trim()) {
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-    try {
-      await createGym({ name: newGymName.trim() });
-      setNewGymName("");
-      toast.success("Gym created", "New gym added to the platform.");
-      await loadGyms();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unable to create gym.";
-      setError(errorMessage);
-      toast.error("Create gym failed", errorMessage);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const startEdit = (gym: Gym) => {
-    if (!canEditGyms) {
-      setError("Insufficient permissions");
-      return;
-    }
-
-    setEditingId(gym.id);
-    setEditingName(gym.name);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
-  };
-
-  const handleSaveEdit = async (gymId: string) => {
-    if (!editingName.trim()) {
-      return;
-    }
-
-    setSavingEdit(true);
-    setError(null);
-    try {
-      await updateGym(gymId, { name: editingName.trim() });
-      cancelEdit();
-      toast.success("Gym updated", "Gym details were saved.");
-      await loadGyms();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unable to update gym.";
-      setError(errorMessage);
-      toast.error("Update gym failed", errorMessage);
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const requestDelete = (gym: Gym) => {
-    if (!canEditGyms) {
-      setError("Insufficient permissions");
-      return;
-    }
-
-    setPendingDeleteGym(gym);
-  };
-
-  const closeDeleteDialog = () => {
-    setPendingDeleteGym(null);
-  };
-
-  const handleDelete = async () => {
-    if (!pendingDeleteGym) {
-      return;
-    }
-
-    setDeletingId(pendingDeleteGym.id);
-    setError(null);
-    try {
-      await deleteGym(pendingDeleteGym.id);
-      toast.success("Gym deleted", "Gym was removed from the platform.");
-      closeDeleteDialog();
-      await loadGyms();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unable to delete gym.";
-      setError(errorMessage);
-      toast.error("Delete gym failed", errorMessage);
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  useEffect(() => {
-    if (!pendingDeleteGym || !confirmDialogRef.current) {
-      return;
-    }
-
-    const container = confirmDialogRef.current;
-    const focusable = container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    first?.focus();
-
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeDeleteDialog();
-        return;
-      }
-
-      if (event.key !== "Tab" || focusable.length === 0) {
-        return;
-      }
-
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
+    let active = true;
+    const run = async () => {
+      setLoading(true);
+      try {
+        const gymList = await listGyms();
+        if (active) setGyms(gymList);
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : "Unable to load locations.");
+      } finally {
+        if (active) setLoading(false);
       }
     };
-
-    document.addEventListener("keydown", onKeyDown);
+    void run();
     return () => {
-      document.removeEventListener("keydown", onKeyDown);
+      active = false;
     };
-  }, [pendingDeleteGym]);
-
-  const columns: DataTableColumn<Gym>[] = [
-    {
-      id: "gym",
-      header: "Gym",
-      sortable: true,
-      sortValue: (gym) => gym.name,
-      searchValue: (gym) => `${gym.name} ${gym.id}`,
-      cell: (gym) => {
-        const isEditing = editingId === gym.id;
-
-        return (
-          <div>
-            {isEditing ? (
-              <input
-                className="input"
-                value={editingName}
-                onChange={(event) => setEditingName(event.target.value)}
-              />
-            ) : (
-              <Link href={`/platform/gyms/${gym.id}`} className="font-medium text-white hover:text-indigo-300">
-                {gym.name}
-              </Link>
-            )}
-            <div className="text-xs text-slate-400">{gym.id}</div>
-          </div>
-        );
-      },
-    },
-    {
-      id: "ownerId",
-      header: "Owner",
-      sortable: true,
-      sortValue: (gym) => gym.ownerId,
-      searchValue: (gym) => gym.ownerId,
-      cell: (gym) => gym.ownerId,
-    },
-    {
-      id: "updatedAt",
-      header: "Updated",
-      sortable: true,
-      sortValue: (gym) => gym.updatedAt ?? "",
-      searchValue: (gym) => (gym.updatedAt ? new Date(gym.updatedAt).toLocaleString() : ""),
-      cell: (gym) => (gym.updatedAt ? new Date(gym.updatedAt).toLocaleString() : "-"),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: (gym) => {
-        const isEditing = editingId === gym.id;
-        const isDeleting = deletingId === gym.id;
-
-        return (
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/platform/gyms/${gym.id}`}>
-              <Button variant="secondary">View</Button>
-            </Link>
-            {isEditing ? (
-              <>
-                <Button
-                  onClick={() => handleSaveEdit(gym.id)}
-                  disabled={!canEditGyms || savingEdit}
-                  title={!canEditGyms ? "Insufficient permissions" : undefined}
-                >
-                  {savingEdit ? "Saving..." : "Save"}
-                </Button>
-                <Button variant="ghost" onClick={cancelEdit}>
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="secondary"
-                onClick={() => startEdit(gym)}
-                disabled={!canEditGyms}
-                title={!canEditGyms ? "Insufficient permissions" : undefined}
-              >
-                Edit
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              onClick={() => requestDelete(gym)}
-              disabled={!canEditGyms || isDeleting}
-              title={!canEditGyms ? "Insufficient permissions" : undefined}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </div>
-        );
-      },
-    },
-  ];
+  }, []);
 
   return (
-    <PageShell>
-      <PageHeader
-        title="Gyms"
-        subtitle="Manage gym locations from one place."
-        breadcrumbs={[
-          { label: "Platform", href: "/platform" },
-          { label: "Gyms" },
-        ]}
-        actions={<Button onClick={loadGyms}>Refresh</Button>}
-      />
-
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-
-      {!isActiveSubscription(subscriptionStatus) ? (
-        <Card
-          title="Upgrade to unlock additional gyms"
-          description={`Current plan: ${formatSubscriptionStatus(subscriptionStatus)}`}
-        >
-          <p className="text-sm text-slate-300">
-            Free and trial plans can create one gym. Upgrade to create multiple gyms.
-          </p>
-          <div className="mt-4">
-            <Link href="/platform/billing">
-              <Button>Upgrade</Button>
-            </Link>
-          </div>
-        </Card>
+    <section className="space-y-6">
+      <PageHeader title="Locations" subtitle="Manage slugs/domains, staff, and member counts." actions={<Link href="/platform/gyms/new" className="button">Create location</Link>} />
+      {error ? <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
+      {loading ? <div className="rounded-2xl border border-border bg-card/60 p-6 text-sm text-muted-foreground">Loading locations...</div> : null}
+      {!loading && gyms.length === 0 ? <EmptyState title="No locations yet" description="Create your first location and then invite staff and clients." action={<Link href="/platform/gyms/new" className="button">Create location</Link>} /> : null}
+      {!loading && gyms.length > 0 ? (
+        <article className="overflow-hidden rounded-2xl border border-border bg-card/70">
+          <table className="table">
+            <thead><tr><th>Name</th><th>Slug/Domain</th><th>Members</th><th>Staff</th><th /></tr></thead>
+            <tbody>
+              {gyms.map((gym) => (
+                <tr key={gym.id}>
+                  <td>{gym.name}</td>
+                  <td>{gym.id.slice(0, 8)}.gymstack.club</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td><Link className="button secondary" href={`/platform/gyms/${gym.id}`}>Open</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </article>
       ) : null}
-
-      <Card title="Create gym" description="Add a new gym by name.">
-        <form className="flex flex-wrap items-end gap-3" onSubmit={handleCreate}>
-          <label className="grid gap-2 text-sm text-slate-300">
-            Gym name
-            <input
-              className="input"
-              value={newGymName}
-              onChange={(event) => setNewGymName(event.target.value)}
-              required
-            />
-          </label>
-          <Button
-            type="submit"
-            disabled={!canEditGyms || creating}
-            title={!canEditGyms ? "Insufficient permissions" : undefined}
-          >
-            {creating ? "Creating..." : "Create"}
-          </Button>
-        </form>
-      </Card>
-
-      {loading ? (
-        <div className="space-y-3 rounded-md border border-white/10 p-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
-      ) : null}
-
-      <DataTable
-        rows={gyms}
-        columns={columns}
-        getRowKey={(gym) => gym.id}
-        loading={loading}
-        searchPlaceholder="Search gyms..."
-        emptyState={
-          <EmptyState
-            title="No gyms found"
-            description="Create your first gym to get started."
-            actions={
-              <Link href="/onboarding">
-                <Button>Create your first gym</Button>
-              </Link>
-            }
-          />
-        }
-      />
-
-      {pendingDeleteGym ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4" role="presentation">
-          <div
-            ref={confirmDialogRef}
-            className="w-full max-w-md rounded-xl border border-white/15 bg-slate-900 p-5 shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-gym-title"
-            aria-describedby="delete-gym-description"
-          >
-            <h2 id="delete-gym-title" className="text-lg font-semibold text-white">Delete gym</h2>
-            <p id="delete-gym-description" className="mt-2 text-sm text-slate-300">
-              Are you sure you want to delete {pendingDeleteGym.name}? This action cannot be undone.
-            </p>
-            <div className="mt-5 flex justify-end gap-3">
-              <Button variant="ghost" onClick={closeDeleteDialog}>Cancel</Button>
-              <Button onClick={handleDelete} disabled={deletingId === pendingDeleteGym.id}>
-                {deletingId === pendingDeleteGym.id ? "Deleting..." : "Delete gym"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-    </PageShell>
+    </section>
   );
 }

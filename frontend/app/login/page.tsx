@@ -11,44 +11,39 @@ export default function LoginPage() {
   const { login, loading, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/platform");
-    }
-  }, [loading, user, router]);
-
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setSubmitting(true);
-
-    try {
-      const result = await login(email, password);
-      if (result.memberships.length === 0) {
-        router.push("/onboarding");
-      } else if (result.memberships.length === 1) {
-        router.push("/platform");
-      } else {
-        router.push("/select-workspace");
-      }
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to login.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    if (!loading && user) router.replace("/platform");
+  }, [loading, router, user]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-      <form className="w-full space-y-4" onSubmit={onSubmit}>
-        <h1 className="text-2xl font-semibold text-white">Login</h1>
-        {error ? <Alert>{error}</Alert> : null}
-        <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+    <main className="flex min-h-screen items-center justify-center px-6">
+      <form
+        className="w-full max-w-md space-y-4 rounded-3xl border border-white/15 bg-slate-900/75 p-6 shadow-2xl backdrop-blur"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          setError(null);
+          setSubmitting(true);
+          try {
+            const result = await login(email, password);
+            router.push(result.memberships.length > 1 ? "/select-workspace" : "/platform");
+          } catch (submitError) {
+            setError(submitError instanceof Error ? submitError.message : "Unable to login.");
+          } finally {
+            setSubmitting(false);
+          }
+        }}
+      >
+        <h1 className="text-2xl font-semibold text-white">Welcome back</h1>
+        <p className="text-sm text-slate-300">Sign in to your gym workspace.</p>
+        {error ? <Alert tone="error">{error}</Alert> : null}
+        <Input label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <Input label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />
         <Button type="submit" disabled={submitting || loading}>{submitting ? "Signing in..." : "Sign in"}</Button>
+        <p className="text-sm text-slate-300">Forgot password? <Link href="/forgot-password" className="text-sky-300">Reset it</Link></p>
         <p className="text-sm text-slate-300">No account? <Link href="/signup" className="text-sky-300">Create one</Link></p>
       </form>
     </main>
