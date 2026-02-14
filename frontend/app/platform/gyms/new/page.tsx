@@ -14,6 +14,7 @@ import { formatSubscriptionStatus, isActiveSubscription } from "../../../../src/
 import { useAuth } from "../../../../src/providers/AuthProvider";
 import { apiFetch } from "../../../lib/api";
 import { useToast } from "../../../../src/components/toast/ToastProvider";
+import { me } from "../../../../src/lib/auth";
 
 type GymForm = {
   name: string;
@@ -47,7 +48,12 @@ export default function NewGymPage() {
     setError(null);
     try {
       await apiFetch<void>("/api/gyms", { method: "POST", body: form });
+      const profile = await me();
       toast.success("Gym created", "The gym was added successfully.");
+      if (profile.onboarding?.needsOpsChoice) {
+        router.push("/platform/onboarding");
+        return;
+      }
       router.push("/platform/gyms");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unable to create gym.";

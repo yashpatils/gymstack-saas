@@ -28,6 +28,17 @@ export class EmailService {
     });
   }
 
+
+  async sendLocationInvite(to: string, inviteUrl: string, managerName?: string): Promise<void> {
+    const greeting = managerName ? `Hi ${managerName},` : 'Hi there,';
+    await this.sendMail({
+      to,
+      subject: 'You are invited to manage a Gymstack location',
+      html: `<p>${greeting}</p><p>You have been invited to manage day-to-day operations in Gymstack.</p><p><a href="${inviteUrl}">Accept invite</a></p>`,
+      text: `${greeting} You have been invited to manage day-to-day operations in Gymstack. Accept invite: ${inviteUrl}`,
+    });
+  }
+
   async sendDeleteAccountConfirmation(to: string, token: string): Promise<void> {
     const link = `${this.appUrl}/confirm-delete-account?token=${encodeURIComponent(token)}`;
     await this.sendMail({

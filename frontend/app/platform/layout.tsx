@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { RequireAuth } from "../../src/components/RequireAuth";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
@@ -19,13 +19,32 @@ const navItems = [
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading, logout, permissions, memberships, activeContext } = useAuth();
+  const router = useRouter();
+  const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext } = useAuth();
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
     const source = email.split("@")[0] ?? "PU";
     return source.slice(0, 2).toUpperCase();
   }, [email]);
+
+  useEffect(() => {
+    if (!loading && onboarding?.needsOpsChoice && pathname !== "/platform/onboarding") {
+      router.replace("/platform/onboarding");
+    }
+  }, [loading, onboarding?.needsOpsChoice, pathname, router]);
+
+  const handleSwitchMode = useCallback(async (mode: "OWNER" | "MANAGER") => {
+    const tenantId = activeContext?.tenantId;
+    if (!tenantId) {
+      return;
+    }
+
+    const locationId = activeContext?.locationId ?? ownerOperatorSettings?.defaultLocationId ?? undefined;
+    await switchMode(tenantId, mode, mode === "MANAGER" ? locationId ?? undefined : undefined);
+    await chooseContext(tenantId, mode === "MANAGER" ? locationId ?? undefined : undefined);
+    await router.push("/platform");
+  }, [activeContext?.locationId, activeContext?.tenantId, chooseContext, ownerOperatorSettings?.defaultLocationId, router, switchMode]);
 
   if (loading) {
     return <main className="p-8 text-muted-foreground">Loading workspace...</main>;
@@ -43,6 +62,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     return true;
   });
 
+  const canSwitchMode = Boolean(ownerOperatorSettings?.allowOwnerStaffLogin || ownerOperatorSettings?.defaultMode === "MANAGER");
+
   return (
     <RequireAuth>
       <AppShell
@@ -56,6 +77,11 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             memberships={memberships}
             selectedTenantId={activeContext?.tenantId ?? ""}
             onLogout={logout}
+            canSwitchMode={canSwitchMode}
+            activeMode={activeMode}
+            onSwitchMode={(mode) => {
+              void handleSwitchMode(mode);
+            }}
           />
         }
       >

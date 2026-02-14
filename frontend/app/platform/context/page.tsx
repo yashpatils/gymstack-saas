@@ -3,11 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/providers/AuthProvider";
-import { setMode } from "@/src/lib/auth";
 
 export default function PlatformContextPage() {
   const router = useRouter();
-  const { memberships, activeContext } = useAuth();
+  const { memberships, activeContext, switchMode } = useAuth();
   const [loading, setLoading] = useState<"OWNER" | "MANAGER" | null>(null);
 
   const ownerTenantIds = useMemo(() => memberships.filter((m) => m.role === "TENANT_OWNER").map((m) => m.tenantId), [memberships]);
@@ -21,7 +20,7 @@ export default function PlatformContextPage() {
 
     setLoading(mode);
     try {
-      await setMode(tenantId, mode);
+      await switchMode(tenantId, mode);
       router.replace("/platform");
     } finally {
       setLoading(null);

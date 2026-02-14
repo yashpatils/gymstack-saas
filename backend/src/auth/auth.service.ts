@@ -332,6 +332,42 @@ export class AuthService {
     const activeMode = active?.activeMode ?? (activeContext?.role === MembershipRole.TENANT_OWNER ? ActiveMode.OWNER : ActiveMode.MANAGER);
     const canUseSocialLogin = activeMode === ActiveMode.MANAGER || activeContext?.role !== MembershipRole.TENANT_OWNER;
 
+    const ownerOperatorSettings = activeContext?.tenantId
+      ? await this.prisma.ownerOperatorSetting.findUnique({
+        where: { userId_tenantId: { userId, tenantId: activeContext.tenantId } },
+        select: { allowOwnerStaffLogin: true, defaultMode: true, defaultLocationId: true },
+      })
+      : null;
+
+    let onboarding: { needsOpsChoice: boolean; tenantId?: string; locationId?: string } = { needsOpsChoice: false };
+    if (activeContext?.tenantId && activeContext.role === MembershipRole.TENANT_OWNER) {
+      const tenantGyms = await this.prisma.gym.findMany({
+        where: { orgId: activeContext.tenantId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+
+      if (tenantGyms.length === 1) {
+        const firstLocationId = tenantGyms[0].id;
+        const otherManager = await this.prisma.membership.findFirst({
+          where: {
+            orgId: activeContext.tenantId,
+            gymId: firstLocationId,
+            role: MembershipRole.TENANT_LOCATION_ADMIN,
+            status: MembershipStatus.ACTIVE,
+            userId: { not: userId },
+          },
+          select: { id: true },
+        });
+
+        onboarding = {
+          needsOpsChoice: !ownerOperatorSettings && !otherManager,
+          tenantId: activeContext.tenantId,
+          locationId: firstLocationId,
+        };
+      }
+    }
+
     return {
       user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '', emailVerified: Boolean(user.emailVerifiedAt), emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null },
       platformRole: isPlatformAdmin ? 'PLATFORM_ADMIN' : null,
@@ -340,6 +376,8 @@ export class AuthService {
       activeMode,
       canUseSocialLogin,
       effectiveRole: activeContext?.role,
+      ownerOperatorSettings,
+      onboarding,
       permissions,
     };
   }
