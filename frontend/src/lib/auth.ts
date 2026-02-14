@@ -92,7 +92,7 @@ export async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
+export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
@@ -126,6 +126,7 @@ export async function signup(email: string, password: string, role?: SignupRole)
     user: data.user,
     activeContext: data.activeContext,
     memberships: data.memberships,
+    emailDeliveryWarning: data.emailDeliveryWarning,
   };
 }
 
