@@ -11,6 +11,9 @@ import { AuthExceptionFilter } from './auth-exception.filter';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SetContextDto } from './dto/set-context.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
 
 function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
   const forwardedFor = req.headers['x-forwarded-for'];
@@ -32,7 +35,10 @@ type RequestUser = MeDto & {
 @UseFilters(AuthExceptionFilter)
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sensitiveRateLimitService: SensitiveRateLimitService,
+  ) {}
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('signup')
@@ -50,6 +56,23 @@ export class AuthController {
     @Req() req: Request,
   ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     return this.authService.login(body, getRequestContext(req));
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('resend-verification')
+  resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string }> {
+    const context = getRequestContext(req);
+    const emailKey = body.email.trim().toLowerCase();
+    const ipKey = context.ip ?? 'unknown';
+    this.sensitiveRateLimitService.check(`resend:${ipKey}:${emailKey}`, 5, 60_000);
+
+    return this.authService.resendVerification(body.email);
+  }
+
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('verify-email')
+  verifyEmail(@Body() body: VerifyEmailDto): Promise<{ ok: true }> {
+    return this.authService.verifyEmail(body.token);
   }
 
   @UseGuards(JwtAuthGuard)

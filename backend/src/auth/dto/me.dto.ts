@@ -23,6 +23,8 @@ export class MeDto {
   email!: string;
   role!: string;
   orgId!: string;
+  emailVerified!: boolean;
+  emailVerifiedAt!: string | null;
 }
 
 export class AuthMeResponseDto {

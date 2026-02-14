@@ -4,12 +4,13 @@ import { User } from '../users/user.model';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { InvitesService } from './invites.service';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 
 @Controller('invites')
 export class InvitesController {
   constructor(private readonly invitesService: InvitesService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
   @Post()
   createInvite(@Req() req: { user: User }, @Body() body: CreateInviteDto) {
     return this.invitesService.createInvite(req.user, body);

@@ -72,6 +72,12 @@ Required environment variables:
   - `http://*.localhost:3000`
 - `FRONTEND_URL` (legacy optional support, comma-separated exact origins)
 - `API_PREFIX` (optional, defaults to `api`)
+- `APP_URL` — Canonical frontend app URL used in verification/delete links (example: `https://gymstack.club`).
+- `EMAIL_FROM` — Sender identity (example: `Gymstack <no-reply@gymstack.club>`).
+- `EMAIL_PROVIDER` — Email provider selector (`RESEND`).
+- `RESEND_API_KEY` — Resend API key used by backend transactional email sender.
+- `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` — verification token TTL in minutes (default: `60`).
+- `DELETE_ACCOUNT_TOKEN_TTL_MINUTES` — account delete token TTL in minutes (default: `30`).
 - `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 
@@ -147,3 +153,13 @@ When you purchase a real domain later, update only:
 - Backend: `BASE_DOMAIN`
 
 Also ensure Vercel has wildcard domain support configured for `*.your-domain.com` and the apex/root domain attached.
+
+
+## Email verification and account deletion flows
+
+- Signup now sends a verification email (`/verify-email?token=...`) and the UI shows a “check your email” state with resend support.
+- `POST /api/auth/resend-verification` always returns a generic success message to avoid email enumeration.
+- Verified email status is exposed from `GET /api/auth/me` as `emailVerified` and `emailVerifiedAt`.
+- Sensitive write actions (invites, billing mutations, org updates, gym mutations) require verified email.
+- Account deletion requires password confirmation, then email confirmation (`/confirm-delete-account?token=...`).
+- Deletion is blocked when the user is the sole `TENANT_OWNER` in any tenant.

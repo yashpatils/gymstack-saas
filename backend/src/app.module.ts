@@ -17,6 +17,8 @@ import { PublicModule } from './public/public.module';
 import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
+import { AccountModule } from './account/account.module';
+import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 
 @Module({
   imports: [
@@ -45,9 +47,11 @@ import { AdminModule } from './admin/admin.module';
     UsersModule,
     SettingsModule,
     AdminModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [
+    SensitiveRateLimitService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

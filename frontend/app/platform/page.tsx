@@ -8,8 +8,12 @@ import { EmptyState } from "../../src/components/common/EmptyState";
 import { SkeletonBlock } from "../../src/components/common/SkeletonBlock";
 import { listGyms, type Gym } from "../../src/lib/gyms";
 import { listUsers, type User } from "../../src/lib/users";
+import { useAuth } from "../../src/providers/AuthProvider";
+import { resendVerification } from "../../src/lib/auth";
 
 export default function PlatformPage() {
+  const { user } = useAuth();
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +49,27 @@ export default function PlatformPage() {
   return (
     <section className="space-y-6">
       <PageHeader title="Owner Dashboard" subtitle="Track health across locations, people, and operations." actions={<Link href="/platform/gyms" className="button">Create location</Link>} />
+
+
+      {!user?.emailVerified ? (
+        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <p className="font-medium">Verify your email to unlock billing, invites, and location management.</p>
+          <button
+            type="button"
+            className="mt-2 underline"
+            onClick={async () => {
+              if (!user?.email) {
+                return;
+              }
+              const response = await resendVerification(user.email);
+              setVerificationMessage(response.message);
+            }}
+          >
+            Resend verification email
+          </button>
+          {verificationMessage ? <p className="mt-2 text-xs text-amber-200">{verificationMessage}</p> : null}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-sm text-rose-200">
