@@ -7,6 +7,7 @@ import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 import { canManageLocation } from '../auth/authorization';
+import { createHash, randomBytes } from 'crypto';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -274,12 +275,12 @@ export class GymsService {
             locationId,
             role: MembershipRole.TENANT_LOCATION_ADMIN,
             email: payload.email.toLowerCase(),
-            token: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            tokenHash: createHash('sha256').update(randomBytes(32).toString('base64url')).digest('hex'),
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
             createdByUserId: user.id,
           },
         });
-        return { inviteUrl: `/invite/${invite.token}`, managers: await this.listManagers(locationId, user) };
+        return { inviteId: invite.id, managers: await this.listManagers(locationId, user) };
       }
     }
 

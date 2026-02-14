@@ -15,6 +15,8 @@ import { LoginDto } from './dto/login.dto';
 import { resolveEffectivePermissions } from './authorization';
 import { getPlatformAdminEmails, isPlatformAdminUser } from './platform-admin.util';
 import { RefreshTokenService } from './refresh-token.service';
+import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
+import { InviteAdmissionService } from '../invites/invite-admission.service';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -33,6 +35,7 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly authTokenService: AuthTokenService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly inviteAdmissionService: InviteAdmissionService,
   ) {}
 
   async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
@@ -192,6 +195,51 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: resolvedRole,
+        orgId: activeContext?.tenantId ?? '',
+        emailVerified: Boolean(user.emailVerifiedAt),
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+      },
+      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
+      activeContext,
+    };
+  }
+
+  async registerWithInvite(
+    input: RegisterWithInviteDto,
+    context?: { ip?: string; userAgent?: string },
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+    const normalizedEmail = input.email.toLowerCase();
+    const existing = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = existing ?? await this.prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        password: await bcrypt.hash(input.password, 10),
+        role: Role.USER,
+        emailVerifiedAt: null,
+        status: UserStatus.ACTIVE,
+      },
+    });
+
+    await this.inviteAdmissionService.admitWithInvite({
+      token: input.token,
+      userId: user.id,
+      emailFromProviderOrSignup: normalizedEmail,
+    });
+
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: user.id, status: MembershipStatus.ACTIVE },
+      orderBy: { createdAt: 'asc' },
+    });
+    const activeContext = await this.getDefaultContext(memberships);
+    const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
+
+    return {
+      accessToken: this.signToken(user.id, user.email, user.role, activeContext),
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
         orgId: activeContext?.tenantId ?? '',
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,

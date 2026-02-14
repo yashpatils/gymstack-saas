@@ -14,9 +14,19 @@ import {
   Table,
 } from "../../components/ui";
 import { useBackendAction } from "../../components/use-backend-action";
+import { createInvite } from '@/src/lib/invites';
+import { useAuth } from '@/src/providers/AuthProvider';
 
 export default function TenantMembersPage() {
   const { backendResponse, callBackend } = useBackendAction();
+  const { activeContext } = useAuth();
+
+  const inviteClient = async () => {
+    if (!activeContext?.locationId) return;
+    const response = await createInvite({ locationId: activeContext.locationId, role: 'CLIENT' });
+    await navigator.clipboard.writeText(response.inviteUrl);
+    callBackend(`Client invite copied: ${response.inviteUrl}`);
+  };
 
   return (
     <PageShell>
@@ -33,6 +43,9 @@ export default function TenantMembersPage() {
             </Button>
             <Button onClick={() => callBackend("Add member")}>
               Add member
+            </Button>
+            <Button variant="secondary" onClick={() => void inviteClient()}>
+              Invite Client
             </Button>
           </div>
         }

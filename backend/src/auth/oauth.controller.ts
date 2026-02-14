@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InvitesService } from '../invites/invites.service';
 import { AuthService } from './auth.service';
 import { OAuthProfile, OAuthRequestedMode } from './oauth.types';
+import { InviteAdmissionService } from '../invites/invite-admission.service';
 
 type RequestUser = { id: string };
 
@@ -21,6 +22,7 @@ export class OauthController {
     private readonly prisma: PrismaService,
     private readonly invitesService: InvitesService,
     private readonly authService: AuthService,
+    private readonly inviteAdmissionService: InviteAdmissionService,
   ) {}
 
   @Get('google/start')
@@ -98,8 +100,18 @@ export class OauthController {
     }
     let accessToken = result.accessToken;
     if (parsedState.inviteToken) {
-      await this.invitesService.acceptInviteForUser(parsedState.inviteToken, result.userId);
+      await this.inviteAdmissionService.admitWithInvite({
+        token: parsedState.inviteToken,
+        userId: result.userId,
+        emailFromProviderOrSignup: profile.email,
+      });
       accessToken = await this.authService.issueAccessTokenForUser(result.userId);
+    } else {
+      const memberships = await this.prisma.membership.count({ where: { userId: result.userId, status: 'ACTIVE' } });
+      if (memberships === 0) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_required'));
+        return;
+      }
     }
     const redirectUrl = new URL(parsedState.returnTo);
     redirectUrl.searchParams.set('oauth', 'success');
@@ -186,8 +198,18 @@ export class OauthController {
     }
     let accessToken = result.accessToken;
     if (parsedState.inviteToken) {
-      await this.invitesService.acceptInviteForUser(parsedState.inviteToken, result.userId);
+      await this.inviteAdmissionService.admitWithInvite({
+        token: parsedState.inviteToken,
+        userId: result.userId,
+        emailFromProviderOrSignup: profile.email,
+      });
       accessToken = await this.authService.issueAccessTokenForUser(result.userId);
+    } else {
+      const memberships = await this.prisma.membership.count({ where: { userId: result.userId, status: 'ACTIVE' } });
+      if (memberships === 0) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_required'));
+        return;
+      }
     }
     const redirectUrl = new URL(parsedState.returnTo);
     redirectUrl.searchParams.set('oauth', 'success');
@@ -282,16 +304,16 @@ export class OauthController {
     return redirectUrl.toString();
   }
 
-  private inviteReasonToError(reason: 'invalid' | 'expired' | 'already_used' | 'revoked'): string {
-    if (reason === 'already_used') {
+  private inviteReasonToError(reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED'): string {
+    if (reason === 'ALREADY_USED') {
       return 'invite_already_used';
     }
 
-    if (reason === 'revoked') {
+    if (reason === 'REVOKED') {
       return 'invite_revoked';
     }
 
-    if (reason === 'expired') {
+    if (reason === 'EXPIRED') {
       return 'invite_expired';
     }
 

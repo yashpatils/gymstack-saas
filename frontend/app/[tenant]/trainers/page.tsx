@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { createInvite } from '@/src/lib/invites';
+import { useAuth } from '@/src/providers/AuthProvider';
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,14 @@ import { useBackendAction } from "../../components/use-backend-action";
 
 export default function TenantTrainersPage() {
   const { backendResponse, callBackend } = useBackendAction();
+  const { activeContext } = useAuth();
+
+  const inviteStaff = async () => {
+    if (!activeContext?.locationId) return;
+    const response = await createInvite({ locationId: activeContext.locationId, role: 'GYM_STAFF_COACH' });
+    await navigator.clipboard.writeText(response.inviteUrl);
+    callBackend(`Staff invite copied: ${response.inviteUrl}`);
+  };
 
   const days = [
     "Monday",
@@ -107,9 +117,10 @@ export default function TenantTrainersPage() {
         title="Trainers"
         subtitle="Balance coverage, manage availability, and track trainer impact."
         actions={
-          <Button onClick={() => callBackend("Schedule session")}>
-            Schedule session
-          </Button>
+          <div className="pill-row">
+            <Button onClick={() => callBackend("Schedule session")}>Schedule session</Button>
+            <Button variant="secondary" onClick={() => void inviteStaff()}>Invite Staff</Button>
+          </div>
         }
       />
       {backendResponse ? (

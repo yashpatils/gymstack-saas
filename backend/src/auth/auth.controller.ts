@@ -17,6 +17,7 @@ import { SetModeDto } from './dto/set-mode.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
+import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
 
 function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
   const forwardedFor = req.headers['x-forwarded-for'];
@@ -59,6 +60,12 @@ export class AuthController {
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     return this.authService.login(body, getRequestContext(req));
+  }
+
+  @Throttle({ default: { limit: 8, ttl: 60_000 } })
+  @Post('register-with-invite')
+  registerWithInvite(@Body() body: RegisterWithInviteDto, @Req() req: Request) {
+    return this.authService.registerWithInvite(body, getRequestContext(req));
   }
 
 

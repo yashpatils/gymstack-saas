@@ -311,9 +311,10 @@ model LocationInvite {
   locationId      String
   role            MembershipRole
   email           String?
-  token           String           @unique
+  tokenHash       String           @unique
   expiresAt       DateTime
   status          InviteStatus     @default(PENDING)
+  consumedAt      DateTime?
   createdByUserId String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -323,4 +324,5 @@ model LocationInvite {
 
   @@index([tenantId])
   @@index([locationId])
+  @@index([createdByUserId])
 }
