@@ -86,6 +86,7 @@ export class AccountService {
       });
       await tx.authToken.deleteMany({ where: { userId: user.id, consumedAt: null } });
       await tx.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
+      await tx.refreshToken.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
     });
 
     return { ok: true };

@@ -14,6 +14,8 @@ import { SetContextDto } from './dto/set-context.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { SetModeDto } from './dto/set-mode.dto';
+import { RefreshDto } from './dto/refresh.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
 
 function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
@@ -46,7 +48,7 @@ export class AuthController {
   signup(
     @Body() body: SignupDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     return this.authService.signup(body, getRequestContext(req));
   }
 
@@ -55,8 +57,15 @@ export class AuthController {
   login(
     @Body() body: LoginDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     return this.authService.login(body, getRequestContext(req));
+  }
+
+
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('refresh')
+  refresh(@Body() body: RefreshDto, @Req() req: Request): Promise<{ accessToken: string; refreshToken: string; me: AuthMeResponseDto }> {
+    return this.authService.refresh(body.refreshToken, getRequestContext(req));
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -99,10 +108,11 @@ export class AuthController {
     });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('logout')
-  logout(): { ok: true } {
-    return { ok: true };
+  logout(@Req() req: { user: RequestUser }, @Body() body: LogoutDto): Promise<{ ok: true }> {
+    return this.authService.logout(req.user.id, body);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

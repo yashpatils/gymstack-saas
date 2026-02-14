@@ -57,7 +57,9 @@ enum UserStatus {
 
 enum AuthTokenPurpose {
   EMAIL_VERIFY
+  PASSWORD_RESET
   ACCOUNT_DELETE
+  OAUTH_LINK_CONFIRM
 }
 
 enum OAuthProvider {
@@ -95,8 +97,24 @@ model User {
   authTokens           AuthToken[]
   authIdentities       AuthIdentity[]
   ownerOperatorSettings OwnerOperatorSetting[]
+  refreshTokens         RefreshToken[]
 
   @@index([orgId])
+}
+
+model RefreshToken {
+  id                 String   @id @default(cuid())
+  userId             String
+  tokenHash          String   @unique
+  expiresAt          DateTime
+  revokedAt          DateTime?
+  replacedByTokenHash String?
+  userAgent          String?
+  ipAddress          String?
+  createdAt          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model AuthIdentity {
