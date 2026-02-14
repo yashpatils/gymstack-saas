@@ -61,8 +61,16 @@ Required environment variables:
 
 - `DATABASE_URL`
 - `JWT_SECRET`
-- `FRONTEND_URL`
-- `CORS_ORIGIN` (optional override)
+- `ALLOWED_ORIGINS` — comma-separated exact origins for CORS allowlisting. Defaults include:
+  - `https://gymstack.club`
+  - `https://www.gymstack.club`
+  - `https://gymstack-saas.vercel.app`
+  - `http://localhost:3000`
+- `ALLOWED_ORIGIN_REGEXES` — comma-separated regex patterns for dynamic origins/subdomains. Defaults include wildcard-safe patterns for:
+  - `https://*.gymstack.club`
+  - `https://*.vercel.app`
+  - `http://*.localhost:3000`
+- `FRONTEND_URL` (legacy optional support, comma-separated exact origins)
 - `API_PREFIX` (optional, defaults to `api`)
 - `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
