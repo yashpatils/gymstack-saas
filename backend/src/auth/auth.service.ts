@@ -14,6 +14,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { resolveEffectivePermissions } from './authorization';
 import { getPlatformAdminEmails, isPlatformAdminUser } from './platform-admin.util';
+import { RefreshTokenService } from './refresh-token.service';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -29,9 +30,10 @@ export class AuthService {
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
     private readonly authTokenService: AuthTokenService,
+    private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
-  async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     const { email, password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -107,9 +109,11 @@ export class AuthService {
 
     const memberships = [this.toMembershipDto(created.membership)];
     const activeContext = await this.getDefaultContext([created.membership]);
+    const refreshToken = await this.refreshTokenService.issue(created.user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     return {
       accessToken: this.signToken(created.user.id, created.user.email, created.user.role, activeContext),
+      refreshToken,
       user: {
         id: created.user.id,
         email: created.user.email,
@@ -123,7 +127,7 @@ export class AuthService {
     };
   }
 
-  async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
     const { email, password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -145,6 +149,7 @@ export class AuthService {
     });
 
     const activeContext = await this.getDefaultContext(memberships);
+    const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     await this.auditService.log({
       orgId: activeContext?.tenantId,
@@ -161,6 +166,7 @@ export class AuthService {
 
     return {
       accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -172,6 +178,42 @@ export class AuthService {
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
     };
+  }
+
+
+  async refresh(refreshToken: string, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; me: AuthMeResponseDto }> {
+    const rotated = await this.refreshTokenService.rotate(refreshToken, {
+      ipAddress: context?.ip,
+      userAgent: context?.userAgent,
+    });
+    const accessToken = await this.issueAccessTokenForUser(rotated.userId);
+    const me = await this.me(rotated.userId);
+
+    await this.auditService.log({
+      userId: rotated.userId,
+      action: 'auth.refresh',
+      entityType: 'user',
+      entityId: rotated.userId,
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+    });
+
+    return { accessToken, refreshToken: rotated.refreshToken, me };
+  }
+
+  async logout(userId: string, payload?: { refreshToken?: string; all?: boolean }): Promise<{ ok: true }> {
+    if (payload?.all) {
+      await this.refreshTokenService.revokeAllForUser(userId);
+      return { ok: true };
+    }
+
+    if (payload?.refreshToken) {
+      await this.refreshTokenService.revoke(payload.refreshToken);
+      return { ok: true };
+    }
+
+    await this.refreshTokenService.revokeAllForUser(userId);
+    return { ok: true };
   }
 
   async resendVerification(email: string): Promise<{ ok: true; message: string }> {
@@ -465,6 +507,7 @@ export class AuthService {
   private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER): string {
     return this.jwtService.sign({
       sub: userId,
+      jti: randomBytes(16).toString('hex'),
       id: userId,
       email,
       role: userRole,

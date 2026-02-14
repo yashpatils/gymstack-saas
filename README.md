@@ -78,6 +78,8 @@ Required environment variables:
 - `RESEND_API_KEY` — Resend API key used by backend transactional email sender.
 - `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` — verification token TTL in minutes (default: `60`).
 - `DELETE_ACCOUNT_TOKEN_TTL_MINUTES` — account delete token TTL in minutes (default: `30`).
+- `ACCESS_TOKEN_TTL_MINUTES` — access token TTL in minutes (default: `15`).
+- `REFRESH_TOKEN_TTL_DAYS` — rotating refresh token TTL in days (default: `30`).
 - `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 

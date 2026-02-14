@@ -63,6 +63,7 @@ export type AuthMeResponse = {
 
 export type AuthLoginResponse = {
   accessToken: string;
+  refreshToken?: string;
   user: AuthUser;
   memberships: Membership[];
   activeContext?: ActiveContext;

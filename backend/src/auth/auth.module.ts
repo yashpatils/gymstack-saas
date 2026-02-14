@@ -16,6 +16,7 @@ import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.servic
 import { OAuthIdentityService } from './oauth-identity.service';
 import { OAuthStateService } from './oauth-state.service';
 import { OauthController } from './oauth.controller';
+import { RefreshTokenService } from './refresh-token.service';
 
 @Module({
   imports: [
@@ -37,13 +38,13 @@ import { OauthController } from './oauth.controller';
 
         return {
           secret,
-          signOptions: { expiresIn: '7d' },
+          signOptions: { expiresIn: '15m' },
         };
       },
     }),
   ],
   controllers: [AuthController, OauthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, AuthTokenService, RequireVerifiedEmailGuard, SensitiveRateLimitService, OAuthStateService, OAuthIdentityService],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, AuthTokenService, RequireVerifiedEmailGuard, SensitiveRateLimitService, OAuthStateService, OAuthIdentityService, RefreshTokenService],
   exports: [RequireVerifiedEmailGuard],
 })
 export class AuthModule {}
