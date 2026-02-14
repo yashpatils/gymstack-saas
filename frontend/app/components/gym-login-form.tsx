@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
+import { applyOAuthToken } from '@/src/lib/auth';
 import { Alert, Button, Input } from './ui';
 import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
 import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
