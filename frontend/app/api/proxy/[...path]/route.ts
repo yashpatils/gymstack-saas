@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function resolveBackendUrl(pathname: string, search: string): string {
-  const backendUrl = (process.env.API_URL ?? '').trim().replace(/\/+$/, '');
-  if (!backendUrl) {
-    throw new Error('Missing API_URL for proxy route.');
-  }
+  const backendUrl = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000')
+    .trim()
+    .replace(/\/+$/, '');
 
   return `${backendUrl}/${pathname}${search}`;
 }
