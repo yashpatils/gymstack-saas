@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Alert, Button, Input, Spinner } from "../components/ui";
-import { apiFetch } from "../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 
 type FieldErrors = {
   email?: string;

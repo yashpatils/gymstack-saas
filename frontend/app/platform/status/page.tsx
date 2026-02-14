@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton } from "../../../src/components/ui/Skeleton";
-import { apiFetch } from "../../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 import { Button, PageShell } from "../../components/ui";
 import PageHeader from "../../../src/components/PageHeader";
 import { getLastApiRateLimitSnapshot, type ApiRateLimitSnapshot } from "../../../src/lib/apiFetch";

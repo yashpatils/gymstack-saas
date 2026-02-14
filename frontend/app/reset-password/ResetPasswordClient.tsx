@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Alert, Button, Input, Spinner } from "../components/ui";
-import { apiFetch } from "../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 
 type FieldErrors = {
   password?: string;

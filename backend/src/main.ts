@@ -149,19 +149,17 @@ async function logIntegrationStatus(
   const logger = new Logger('Bootstrap');
   const stripeEnabled = Boolean(configService.get<string>('STRIPE_SECRET_KEY'));
 
-  let databaseConnected = false;
   try {
     await prismaService.$queryRawUnsafe('SELECT 1');
-    databaseConnected = true;
   } catch (error) {
     const message = sanitizeErrorMessage(error);
-    logger.warn(`Database ping failed: ${message}`);
+    throw new Error(`Database ping failed during startup: ${message}`);
   }
 
   logger.log(
     `Optional integrations => stripe: ${stripeEnabled ? 'enabled' : 'disabled'}`,
   );
-  logger.log(`Database connected: ${databaseConnected ? 'yes' : 'no'}`);
+  logger.log('Database connected: yes');
 }
 
 async function bootstrap() {

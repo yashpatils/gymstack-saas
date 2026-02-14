@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import { getApiBaseUrl } from "../../../src/lib/apiFetch";
-import { apiFetch } from "../../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 import { oauthStartUrl } from '../../../src/lib/auth';
 
 type AccountInfo = {

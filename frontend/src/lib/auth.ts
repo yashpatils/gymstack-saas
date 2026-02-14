@@ -196,4 +196,13 @@ export function logout(): void {
   document.cookie = `gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secureAttribute}`;
 }
 
-configureApiAuth(() => getToken(), refreshAccessToken);
+configureApiAuth(
+  () => getToken(),
+  refreshAccessToken,
+  () => {
+    logout();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.assign('/login');
+    }
+  },
+);

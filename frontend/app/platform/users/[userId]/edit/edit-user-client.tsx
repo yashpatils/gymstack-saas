@@ -8,7 +8,7 @@ import {
   PageHeader,
   PageShell,
 } from "../../../../components/ui";
-import { apiFetch } from "../../../../lib/api";
+import { apiFetch } from "@/src/lib/apiFetch";
 
 type UserForm = {
   email: string;
