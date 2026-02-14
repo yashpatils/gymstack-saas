@@ -13,6 +13,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SetContextDto } from './dto/set-context.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { SetModeDto } from './dto/set-mode.dto';
 import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
 
 function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
@@ -79,6 +80,13 @@ export class AuthController {
   @Post('set-context')
   setContext(@Req() req: { user: RequestUser }, @Body() body: SetContextDto): Promise<{ accessToken: string }> {
     return this.authService.setContext(req.user.id, body.tenantId, body.gymId ?? body.locationId);
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Post('set-mode')
+  setMode(@Req() req: { user: RequestUser }, @Body() body: SetModeDto): Promise<AuthMeResponseDto> {
+    return this.authService.setMode(req.user.id, body.tenantId, body.mode, body.locationId);
   }
 
   @UseGuards(JwtAuthGuard)

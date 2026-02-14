@@ -15,6 +15,7 @@ interface JwtPayload {
   activeTenantId?: string;
   activeGymId?: string;
   activeRole?: MembershipRole;
+  activeMode?: 'OWNER' | 'MANAGER';
 }
 
 @Injectable()

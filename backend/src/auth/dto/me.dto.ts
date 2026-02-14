@@ -32,6 +32,8 @@ export class AuthMeResponseDto {
   platformRole?: 'PLATFORM_ADMIN' | null;
   memberships!: MembershipDto[];
   activeContext?: ActiveContextDto;
+  activeMode?: 'OWNER' | 'MANAGER';
+  canUseSocialLogin?: boolean;
   effectiveRole?: MembershipRole;
   permissions!: string[];
 }

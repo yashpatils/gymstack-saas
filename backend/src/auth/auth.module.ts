@@ -13,6 +13,9 @@ import { EmailModule } from '../email/email.module';
 import { AuthTokenService } from './auth-token.service';
 import { RequireVerifiedEmailGuard } from './require-verified-email.guard';
 import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
+import { OAuthIdentityService } from './oauth-identity.service';
+import { OAuthStateService } from './oauth-state.service';
+import { OauthController } from './oauth.controller';
 
 @Module({
   imports: [
@@ -39,8 +42,8 @@ import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.servic
       },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, AuthTokenService, RequireVerifiedEmailGuard, SensitiveRateLimitService],
+  controllers: [AuthController, OauthController],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, AuthTokenService, RequireVerifiedEmailGuard, SensitiveRateLimitService, OAuthStateService, OAuthIdentityService],
   exports: [RequireVerifiedEmailGuard],
 })
 export class AuthModule {}

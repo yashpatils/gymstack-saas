@@ -13,5 +13,6 @@ export interface User {
   activeTenantId?: string;
   activeGymId?: string;
   activeRole?: string;
+  activeMode?: 'OWNER' | 'MANAGER';
   permissions?: string[];
 }

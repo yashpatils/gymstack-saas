@@ -6,6 +6,7 @@ import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import { getApiBaseUrl } from "../../../src/lib/api";
 import { apiFetch } from "../../lib/api";
+import { oauthStartUrl } from '../../../src/lib/auth';
 
 type AccountInfo = {
   id?: string;
@@ -148,6 +149,21 @@ export default function PlatformSettingsPage() {
         <button type="button" className="button secondary" onClick={logout}>
           Logout
         </button>
+      </div>
+
+
+
+      <div className="card space-y-4">
+        <h2 className="section-title">Linked accounts</h2>
+        <p className="text-sm text-slate-300">Link Google or Apple for faster login in manager/staff/client flows.</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', `${window.location.origin}/platform/settings`); }}>
+            Link Google
+          </button>
+          <button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', `${window.location.origin}/platform/settings`); }}>
+            Link Apple
+          </button>
+        </div>
       </div>
 
       <div className="card space-y-4">
