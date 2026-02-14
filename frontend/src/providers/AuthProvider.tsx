@@ -32,6 +32,7 @@ type AuthContextValue = {
   loading: boolean;
   isLoading: boolean;
   memberships: Membership[];
+  platformRole?: 'PLATFORM_ADMIN' | null;
   permissions: string[];
   activeContext?: ActiveContext;
   effectiveRole?: MembershipRole;
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [platformRole, setPlatformRole] = useState<'PLATFORM_ADMIN' | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [activeContext, setActiveContext] = useState<ActiveContext | undefined>(undefined);
   const [effectiveRole, setEffectiveRole] = useState<MembershipRole | undefined>(undefined);
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     setMemberships([]);
+    setPlatformRole(null);
     setPermissions([]);
     setActiveContext(undefined);
     setEffectiveRole(undefined);
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyMeResponse = useCallback((meResponse: AuthMeResponse) => {
     setUser(meResponse.user);
     setMemberships(meResponse.memberships ?? []);
+    setPlatformRole(meResponse.platformRole ?? null);
     setPermissions(meResponse.permissions ?? []);
     setActiveContext(meResponse.activeContext);
     setEffectiveRole(meResponse.effectiveRole);
@@ -197,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: isLoading,
       isLoading,
       memberships,
+      platformRole,
       permissions,
       activeContext,
       effectiveRole,
@@ -211,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [user, token, isLoading, memberships, permissions, activeContext, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
+    [user, token, isLoading, memberships, platformRole, permissions, activeContext, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

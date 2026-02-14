@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { ExecutionContext } from '@nestjs/common/interfaces/features/execution-context.interface';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 
 describe('RequirePlatformAdminGuard', () => {
@@ -13,9 +14,15 @@ describe('RequirePlatformAdminGuard', () => {
     }),
   } as unknown as ConfigService;
 
-  const guard = new RequirePlatformAdminGuard(configService);
+  const prismaService = {
+    user: {
+      findUnique: jest.fn(),
+    },
+  } as unknown as PrismaService;
 
-  const buildContext = (user: { role?: string; email?: string }): ExecutionContext => ({
+  const guard = new RequirePlatformAdminGuard(configService, prismaService);
+
+  const buildContext = (user: { userId?: string; id?: string; sub?: string }): ExecutionContext => ({
     switchToHttp: () => ({
       getRequest: () => ({ user }),
       getResponse: () => ({}),
@@ -23,13 +30,21 @@ describe('RequirePlatformAdminGuard', () => {
     }),
   } as unknown as ExecutionContext);
 
-  it('allows allowlisted emails', () => {
-    process.env.PLATFORM_ADMIN_EMAILS = 'admin@gymstack.dev';
-    expect(guard.canActivate(buildContext({ email: 'admin@gymstack.dev' }))).toBe(true);
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('rejects non platform admins', () => {
+  it('allows allowlisted emails', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'admin@gymstack.dev';
+    (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ email: 'admin@gymstack.dev' });
+
+    await expect(guard.canActivate(buildContext({ id: 'user-1' }))).resolves.toBe(true);
+  });
+
+  it('rejects non platform admins', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = '';
-    expect(() => guard.canActivate(buildContext({ email: 'member@gymstack.dev' }))).toThrow(ForbiddenException);
+    (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ email: 'member@gymstack.dev' });
+
+    await expect(guard.canActivate(buildContext({ id: 'user-2' }))).rejects.toThrow(ForbiddenException);
   });
 });

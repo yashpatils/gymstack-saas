@@ -28,8 +28,9 @@ export class AdminController {
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
+    @Query('query') query?: string,
   ) {
-    return this.adminService.listTenants(page ?? 1, pageSize ?? 20);
+    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
   }
 
   @Get('tenants/:tenantId')

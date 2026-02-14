@@ -7,7 +7,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
 
-const navItems = [
+const baseNavItems = [
   { label: "Overview", href: "/platform" },
   { label: "Gyms", href: "/platform/gyms" },
   { label: "Team", href: "/platform/team" },
@@ -20,7 +20,7 @@ const navItems = [
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext } = useAuth();
+  const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -49,6 +49,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   if (loading) {
     return <main className="p-8 text-muted-foreground">Loading workspace...</main>;
   }
+
+  const navItems = platformRole === 'PLATFORM_ADMIN'
+    ? [...baseNavItems, { label: 'Admin', href: '/admin' }]
+    : baseNavItems;
 
   const filteredItems = navItems.filter((item) => {
     if (item.href === "/platform/billing") {
