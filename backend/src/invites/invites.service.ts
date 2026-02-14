@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { LocationInvite } from '@prisma/client';
 
 @Injectable()
 export class InvitesService {
@@ -16,22 +17,15 @@ export class InvitesService {
     const tenantId = requester.activeTenantId ?? requester.orgId;
     if (!tenantId) throw new ForbiddenException('Missing tenant context');
 
-    const canInvite = await this.prisma.membership.findFirst({
-      where: {
-        userId: requester.id,
-        orgId: tenantId,
-        status: MembershipStatus.ACTIVE,
-        OR: [
-          { role: MembershipRole.TENANT_OWNER },
-          { role: MembershipRole.TENANT_LOCATION_ADMIN, gymId: input.locationId },
-        ],
-      },
-      select: { id: true },
-    });
-
-    if (!canInvite && ![UserRole.Admin, UserRole.Owner].includes(requester.role)) {
-      throw new ForbiddenException('Insufficient permissions');
+    const supportedRole =
+      input.role === MembershipRole.TENANT_LOCATION_ADMIN ||
+      input.role === MembershipRole.GYM_STAFF_COACH ||
+      input.role === MembershipRole.CLIENT;
+    if (!supportedRole) {
+      throw new ForbiddenException('Unsupported invite role');
     }
+
+    await this.assertCanCreateInvite(requester, tenantId, input.locationId, input.role);
 
     const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId: tenantId } });
     if (!location) throw new BadRequestException('Invalid locationId');
@@ -59,6 +53,49 @@ export class InvitesService {
       locationId: location.id,
       role: input.role,
     };
+  }
+
+  async validateInvite(token: string): Promise<
+    | { ok: true; role: MembershipRole; locationId: string; tenantId: string; expiresAt: string }
+    | { ok: false; reason: 'invalid' | 'expired' | 'already_used' | 'revoked' }
+  > {
+    const invite = await this.prisma.locationInvite.findUnique({ where: { token } });
+    if (!invite) {
+      return { ok: false, reason: 'invalid' };
+    }
+
+    if (invite.status === InviteStatus.REVOKED) {
+      return { ok: false, reason: 'revoked' };
+    }
+
+    if (invite.status === InviteStatus.ACCEPTED) {
+      return { ok: false, reason: 'already_used' };
+    }
+
+    if (invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
+      return { ok: false, reason: 'expired' };
+    }
+
+    return {
+      ok: true,
+      role: invite.role,
+      locationId: invite.locationId,
+      tenantId: invite.tenantId,
+      expiresAt: invite.expiresAt.toISOString(),
+    };
+  }
+
+  async getUsableInvite(token: string, expectedEmail?: string): Promise<LocationInvite | null> {
+    const invite = await this.prisma.locationInvite.findUnique({ where: { token } });
+    if (!invite || invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
+      return null;
+    }
+
+    if (expectedEmail && invite.email && invite.email.toLowerCase() !== expectedEmail.toLowerCase()) {
+      return null;
+    }
+
+    return invite;
   }
 
 
@@ -186,5 +223,45 @@ export class InvitesService {
     }
 
     return `${protocol}://${host}/join?token=${token}`;
+  }
+
+  private async assertCanCreateInvite(requester: User, tenantId: string, locationId: string, role: MembershipRole): Promise<void> {
+    const isPlatformOperator = [UserRole.Admin, UserRole.Owner].includes(requester.role);
+    if (isPlatformOperator) {
+      return;
+    }
+
+    const memberships = await this.prisma.membership.findMany({
+      where: {
+        userId: requester.id,
+        orgId: tenantId,
+        status: MembershipStatus.ACTIVE,
+        OR: [{ gymId: locationId }, { role: MembershipRole.TENANT_OWNER }],
+      },
+      select: { role: true, gymId: true },
+    });
+
+    const hasOwnerRole = memberships.some((membership) => membership.role === MembershipRole.TENANT_OWNER);
+    const hasLocationAdminRole = memberships.some(
+      (membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN && membership.gymId === locationId,
+    );
+    const hasStaffRole = memberships.some(
+      (membership) => membership.role === MembershipRole.GYM_STAFF_COACH && membership.gymId === locationId,
+    );
+
+    const canInviteStaff = hasOwnerRole || hasLocationAdminRole;
+    const canInviteClient = canInviteStaff || hasStaffRole;
+
+    if (role === MembershipRole.GYM_STAFF_COACH && !canInviteStaff) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    if (role === MembershipRole.CLIENT && !canInviteClient) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    if (role === MembershipRole.TENANT_LOCATION_ADMIN && !hasOwnerRole) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
   }
 }

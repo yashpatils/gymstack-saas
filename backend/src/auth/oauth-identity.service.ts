@@ -16,7 +16,9 @@ export class OAuthIdentityService {
     profile: OAuthProfile,
     requestedMode: OAuthRequestedMode,
     currentUserId: string | null,
+    options?: { allowUserCreation?: boolean },
   ): Promise<{ accessToken: string; linked: boolean; userId: string }> {
+    const allowUserCreation = options?.allowUserCreation ?? true;
     const existingIdentity = await this.prisma.authIdentity.findUnique({
       where: { provider_providerSubject: { provider, providerSubject: profile.subject } },
     });
@@ -60,6 +62,10 @@ export class OAuthIdentityService {
         await this.enforceOwnerSocialPolicy(matchedUser.id);
         const token = await this.issueTokenForUser(matchedUser.id);
         return { accessToken: token, linked: true, userId: matchedUser.id };
+      }
+
+      if (!allowUserCreation) {
+        throw new UnauthorizedException('INVITE_REQUIRED');
       }
 
       const createdUser = await this.prisma.user.create({

@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../users/user.model';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { ValidateInviteDto } from './dto/validate-invite.dto';
 import { InvitesService } from './invites.service';
 import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 
@@ -19,5 +20,10 @@ export class InvitesController {
   @Post('accept')
   acceptInvite(@Body() body: AcceptInviteDto) {
     return this.invitesService.acceptInvite(body);
+  }
+
+  @Post('validate')
+  validateInvite(@Body() body: ValidateInviteDto) {
+    return this.invitesService.validateInvite(body.token);
   }
 }

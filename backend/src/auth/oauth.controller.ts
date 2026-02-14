@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Query, Req, Res, UnauthorizedException, Body } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OAuthProvider } from '@prisma/client';
+import { MembershipRole, OAuthProvider } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { OAuthStateService } from './oauth-state.service';
 import { OAuthIdentityService } from './oauth-identity.service';
@@ -54,9 +54,48 @@ export class OauthController {
   @Get('google/callback')
   async googleCallback(@Query('code') code: string, @Query('state') state: string, @Req() req: Request & { user?: RequestUser }, @Res() res: Response): Promise<void> {
     const parsedState = this.stateService.verify(state, this.oauthStateSecret(), 10 * 60_000);
+    if (parsedState.inviteToken) {
+      const invite = await this.invitesService.validateInvite(parsedState.inviteToken);
+      if (!invite.ok) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, this.inviteReasonToError(invite.reason)));
+        return;
+      }
+      const inviteRoleSupported =
+        invite.role === MembershipRole.GYM_STAFF_COACH ||
+        invite.role === MembershipRole.CLIENT ||
+        invite.role === MembershipRole.TENANT_LOCATION_ADMIN;
+      if (!inviteRoleSupported) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_invalid'));
+        return;
+      }
+    }
+
     const tokenData = await this.exchangeGoogleCode(code);
     const profile = await this.validateGoogleIdToken(tokenData.id_token);
-    const result = await this.identityService.handleOAuthLoginOrLink(OAuthProvider.google, profile, parsedState.requestedMode, req.user?.id ?? null);
+    if (!profile.emailVerified || !profile.email) {
+      res.redirect(this.withOAuthError(parsedState.returnTo, 'email_not_verified'));
+      return;
+    }
+    if (parsedState.inviteToken) {
+      const invite = await this.invitesService.getUsableInvite(parsedState.inviteToken, profile.email);
+      if (!invite) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_role_mismatch'));
+        return;
+      }
+    }
+    let result: { accessToken: string; linked: boolean; userId: string };
+    try {
+      result = await this.identityService.handleOAuthLoginOrLink(
+        OAuthProvider.google,
+        profile,
+        parsedState.requestedMode,
+        req.user?.id ?? null,
+        { allowUserCreation: Boolean(parsedState.inviteToken) },
+      );
+    } catch {
+      res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_required'));
+      return;
+    }
     let accessToken = result.accessToken;
     if (parsedState.inviteToken) {
       await this.invitesService.acceptInviteForUser(parsedState.inviteToken, result.userId);
@@ -103,12 +142,48 @@ export class OauthController {
   @Post('apple/callback')
   async appleCallback(@Body('id_token') idToken: string, @Body('state') state: string, @Req() req: Request & { user?: RequestUser }, @Res() res: Response): Promise<void> {
     const parsedState = this.stateService.verify(state, this.oauthStateSecret(), 10 * 60_000);
-    const profile = this.decodeJwtPayload(idToken);
-    if (!profile.subject) {
-      throw new UnauthorizedException('Invalid Apple token');
+    if (parsedState.inviteToken) {
+      const invite = await this.invitesService.validateInvite(parsedState.inviteToken);
+      if (!invite.ok) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, this.inviteReasonToError(invite.reason)));
+        return;
+      }
+      const inviteRoleSupported =
+        invite.role === MembershipRole.GYM_STAFF_COACH ||
+        invite.role === MembershipRole.CLIENT ||
+        invite.role === MembershipRole.TENANT_LOCATION_ADMIN;
+      if (!inviteRoleSupported) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_invalid'));
+        return;
+      }
     }
 
-    const result = await this.identityService.handleOAuthLoginOrLink(OAuthProvider.apple, profile, parsedState.requestedMode, req.user?.id ?? null);
+    const profile = this.decodeJwtPayload(idToken);
+    if (!profile.subject || !profile.email || !profile.emailVerified) {
+      res.redirect(this.withOAuthError(parsedState.returnTo, 'email_not_verified'));
+      return;
+    }
+    if (parsedState.inviteToken) {
+      const invite = await this.invitesService.getUsableInvite(parsedState.inviteToken, profile.email);
+      if (!invite) {
+        res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_role_mismatch'));
+        return;
+      }
+    }
+
+    let result: { accessToken: string; linked: boolean; userId: string };
+    try {
+      result = await this.identityService.handleOAuthLoginOrLink(
+        OAuthProvider.apple,
+        profile,
+        parsedState.requestedMode,
+        req.user?.id ?? null,
+        { allowUserCreation: Boolean(parsedState.inviteToken) },
+      );
+    } catch {
+      res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_required'));
+      return;
+    }
     let accessToken = result.accessToken;
     if (parsedState.inviteToken) {
       await this.invitesService.acceptInviteForUser(parsedState.inviteToken, result.userId);
@@ -199,5 +274,27 @@ export class OauthController {
       throw new UnauthorizedException(`${key} is not configured`);
     }
     return value;
+  }
+
+  private withOAuthError(returnTo: string, error: string): string {
+    const redirectUrl = new URL(returnTo);
+    redirectUrl.searchParams.set('error', error);
+    return redirectUrl.toString();
+  }
+
+  private inviteReasonToError(reason: 'invalid' | 'expired' | 'already_used' | 'revoked'): string {
+    if (reason === 'already_used') {
+      return 'invite_already_used';
+    }
+
+    if (reason === 'revoked') {
+      return 'invite_revoked';
+    }
+
+    if (reason === 'expired') {
+      return 'invite_expired';
+    }
+
+    return 'invite_invalid';
   }
 }
