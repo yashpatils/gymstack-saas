@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { Membership, MembershipRole, MembershipStatus, Role } from '@prisma/client';
+import { ActiveMode, AuthTokenPurpose, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -264,7 +264,48 @@ export class AuthService {
     return { accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext) };
   }
 
-  async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole }): Promise<AuthMeResponseDto> {
+
+  async setMode(userId: string, tenantId: string, mode: ActiveMode, locationId?: string): Promise<AuthMeResponseDto> {
+    const ownerMembership = await this.prisma.membership.findFirst({
+      where: { userId, orgId: tenantId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (!ownerMembership) {
+      throw new UnauthorizedException('Only tenant owners can switch mode');
+    }
+
+    if (mode === ActiveMode.MANAGER) {
+      const gyms = await this.prisma.gym.findMany({ where: { orgId: tenantId }, select: { id: true } });
+      const settings = await this.prisma.ownerOperatorSetting.upsert({
+        where: { userId_tenantId: { userId, tenantId } },
+        update: {},
+        create: { userId, tenantId },
+      });
+      if (!settings.allowOwnerStaffLogin && gyms.length !== 1) {
+        throw new UnauthorizedException('Manager mode is disabled for this owner');
+      }
+      const targetLocationId = locationId ?? (gyms.length === 1 ? gyms[0].id : undefined);
+      if (!targetLocationId) {
+        throw new BadRequestException('locationId is required for manager mode');
+      }
+      const location = await this.prisma.gym.findFirst({ where: { id: targetLocationId, orgId: tenantId }, select: { id: true } });
+      if (!location) {
+        throw new BadRequestException('Invalid locationId for tenant');
+      }
+
+      const token = this.signToken(userId, (await this.prisma.user.findUniqueOrThrow({ where: { id: userId } })).email, Role.USER, {
+        tenantId,
+        gymId: targetLocationId,
+        locationId: targetLocationId,
+        role: MembershipRole.TENANT_LOCATION_ADMIN,
+      }, ActiveMode.MANAGER);
+      return this.me(userId, { tenantId, gymId: targetLocationId, role: MembershipRole.TENANT_LOCATION_ADMIN, activeMode: ActiveMode.MANAGER, accessToken: token });
+    }
+
+    return this.me(userId, { tenantId, activeMode: ActiveMode.OWNER });
+  }
+
+  async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole; activeMode?: ActiveMode; accessToken?: string }): Promise<AuthMeResponseDto> {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, role: true, emailVerifiedAt: true, status: true } });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
@@ -288,11 +329,16 @@ export class AuthService {
     const isPlatformAdmin = Boolean(user.email) && admins.includes(user.email.toLowerCase());
     const resolvedRole = isPlatformAdmin ? Role.PLATFORM_ADMIN : user.role;
 
+    const activeMode = active?.activeMode ?? (activeContext?.role === MembershipRole.TENANT_OWNER ? ActiveMode.OWNER : ActiveMode.MANAGER);
+    const canUseSocialLogin = activeMode === ActiveMode.MANAGER || activeContext?.role !== MembershipRole.TENANT_OWNER;
+
     return {
-      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '' },
+      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '', emailVerified: Boolean(user.emailVerifiedAt), emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null },
       platformRole: isPlatformAdmin ? 'PLATFORM_ADMIN' : null,
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
+      activeMode,
+      canUseSocialLogin,
       effectiveRole: activeContext?.role,
       permissions,
     };
@@ -330,6 +376,19 @@ export class AuthService {
     return { ok: true };
   }
 
+  async issueAccessTokenForUser(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId, status: MembershipStatus.ACTIVE },
+      orderBy: { createdAt: 'asc' },
+    });
+    const activeContext = await this.getDefaultContext(memberships);
+    return this.signToken(user.id, user.email, user.role, activeContext);
+  }
+
   private toMembershipDto(membership: Membership): MembershipDto {
     return {
       id: membership.id,
@@ -365,7 +424,7 @@ export class AuthService {
     };
   }
 
-  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }): string {
+  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER): string {
     return this.jwtService.sign({
       sub: userId,
       id: userId,
@@ -375,6 +434,7 @@ export class AuthService {
       activeTenantId: activeContext?.tenantId,
       activeGymId: activeContext?.gymId,
       activeRole: activeContext?.role,
+      activeMode,
     });
   }
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { Alert, Button, Input } from './ui';
+import { oauthStartUrl } from '@/src/lib/auth';
 
 export function GymLoginForm() {
   const router = useRouter();
@@ -31,6 +32,16 @@ export function GymLoginForm() {
       <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
       <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
       <Button type="submit">Sign in</Button>
+
+      <div className="space-y-2">
+        <Button type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'login'); }}>
+          Continue with Google
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => { window.location.href = oauthStartUrl('apple', 'login'); }}>
+          Continue with Apple
+        </Button>
+      </div>
+
     </form>
   );
 }

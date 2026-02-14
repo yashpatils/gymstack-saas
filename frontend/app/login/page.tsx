@@ -29,7 +29,8 @@ export default function LoginPage() {
           setSubmitting(true);
           try {
             const result = await login(email, password);
-            router.push(result.memberships.length > 1 ? "/select-workspace" : "/platform");
+            const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');
+            router.push(hasOwnerRole ? '/platform/context' : result.memberships.length > 1 ? '/select-workspace' : '/platform');
           } catch (submitError) {
             setError(submitError instanceof Error ? submitError.message : "Unable to login.");
           } finally {

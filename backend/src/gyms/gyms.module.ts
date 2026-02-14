@@ -7,11 +7,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GymsController } from './gyms.controller';
+import { LocationManagersController } from './location-managers.controller';
 import { GymsService } from './gyms.service';
 
 @Module({
   imports: [PrismaModule, BillingModule, AuditModule],
-  controllers: [GymsController],
+  controllers: [GymsController, LocationManagersController],
   providers: [RequireVerifiedEmailGuard, GymsService, RolesGuard, PermissionsGuard],
 })
 export class GymsModule {}

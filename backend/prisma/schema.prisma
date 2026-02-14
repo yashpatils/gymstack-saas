@@ -60,6 +60,16 @@ enum AuthTokenPurpose {
   ACCOUNT_DELETE
 }
 
+enum OAuthProvider {
+  google
+  apple
+}
+
+enum ActiveMode {
+  OWNER
+  MANAGER
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -83,8 +93,43 @@ model User {
   auditLogs            AuditLog[]
   notifications        Notification[]
   authTokens           AuthToken[]
+  authIdentities       AuthIdentity[]
+  ownerOperatorSettings OwnerOperatorSetting[]
 
   @@index([orgId])
+}
+
+model AuthIdentity {
+  id              String        @id @default(cuid())
+  userId          String
+  provider        OAuthProvider
+  providerSubject String
+  email           String?
+  emailVerified   Boolean       @default(false)
+  displayName     String?
+  avatarUrl       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model OwnerOperatorSetting {
+  id                   String     @id @default(cuid())
+  userId               String
+  tenantId             String
+  allowOwnerStaffLogin Boolean    @default(false)
+  defaultMode          ActiveMode @default(OWNER)
+  defaultLocationId    String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  user                 User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant               Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
 }
 
 model AuthToken {
@@ -202,6 +247,7 @@ model Organization {
   gyms        Gym[]
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
+  ownerOperatorSettings OwnerOperatorSetting[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }

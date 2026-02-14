@@ -38,6 +38,8 @@ export type AuthMeResponse = {
   platformRole?: 'PLATFORM_ADMIN' | null;
   memberships: Membership[];
   activeContext?: ActiveContext;
+  activeMode?: 'OWNER' | 'MANAGER';
+  canUseSocialLogin?: boolean;
   effectiveRole?: MembershipRole;
   permissions: string[];
   subscriptionStatus?: string | null;

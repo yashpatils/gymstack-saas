@@ -163,3 +163,29 @@ Also ensure Vercel has wildcard domain support configured for `*.your-domain.com
 - Sensitive write actions (invites, billing mutations, org updates, gym mutations) require verified email.
 - Account deletion requires password confirmation, then email confirmation (`/confirm-delete-account?token=...`).
 - Deletion is blocked when the user is the sole `TENANT_OWNER` in any tenant.
+
+## OAuth providers (Google + Apple)
+
+Backend OAuth callbacks are intentionally routed to the root domain (`gymstack.club`) to avoid wildcard/custom-domain callback drift.
+
+Required backend env vars:
+
+- `APP_URL=https://gymstack.club`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI=https://gymstack.club/api/auth/oauth/google/callback`
+- `APPLE_CLIENT_ID`
+- `APPLE_TEAM_ID`
+- `APPLE_KEY_ID`
+- `APPLE_PRIVATE_KEY`
+- `APPLE_REDIRECT_URI=https://gymstack.club/api/auth/oauth/apple/callback`
+- `OAUTH_ALLOWED_RETURN_HOSTS=gymstack.club,*.gymstack.club`
+
+### Safe auto-link rule
+
+OAuth email auto-linking is only allowed when the provider email is verified **and** the existing GymStack account is already trusted:
+
+- user has `email_verified_at` set **or**
+- user already has another verified OAuth identity.
+
+If an email/password account is not yet trusted, OAuth login returns `ACCOUNT_LINK_REQUIRES_PASSWORD_LOGIN`. The user must first log in with password and then link from Settings.

@@ -5,6 +5,7 @@ import { SubscriptionGatingService } from '../billing/subscription-gating.servic
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
+import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 import { canManageLocation } from '../auth/authorization';
 
 function toGymSlug(name: string): string {
@@ -226,5 +227,92 @@ export class GymsService {
     });
 
     return deletedGym;
+  }
+
+  async listManagers(locationId: string, user: User) {
+    const location = await this.prisma.gym.findFirst({ where: { id: locationId }, select: { orgId: true } });
+    if (!location) {
+      throw new NotFoundException('Location not found');
+    }
+    const owner = await this.prisma.membership.findFirst({
+      where: { userId: user.id, orgId: location.orgId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (!owner) {
+      throw new ForbiddenException('Only tenant owners can manage managers');
+    }
+
+    return this.prisma.membership.findMany({
+      where: { orgId: location.orgId, gymId: locationId, role: MembershipRole.TENANT_LOCATION_ADMIN, status: MembershipStatus.ACTIVE },
+      include: { user: { select: { id: true, email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async addManager(locationId: string, payload: ManageLocationManagerDto, user: User) {
+    const location = await this.prisma.gym.findFirst({ where: { id: locationId }, select: { orgId: true } });
+    if (!location) {
+      throw new NotFoundException('Location not found');
+    }
+    const owner = await this.prisma.membership.findFirst({
+      where: { userId: user.id, orgId: location.orgId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (!owner) {
+      throw new ForbiddenException('Only tenant owners can add managers');
+    }
+
+    let targetUserId = payload.userId;
+    if (!targetUserId && payload.email) {
+      const existingUser = await this.prisma.user.findUnique({ where: { email: payload.email.toLowerCase() }, select: { id: true } });
+      if (existingUser) {
+        targetUserId = existingUser.id;
+      } else {
+        const invite = await this.prisma.locationInvite.create({
+          data: {
+            tenantId: location.orgId,
+            locationId,
+            role: MembershipRole.TENANT_LOCATION_ADMIN,
+            email: payload.email.toLowerCase(),
+            token: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            createdByUserId: user.id,
+          },
+        });
+        return { inviteUrl: `/invite/${invite.token}`, managers: await this.listManagers(locationId, user) };
+      }
+    }
+
+    if (!targetUserId) {
+      throw new ForbiddenException('userId or email is required');
+    }
+
+    await this.prisma.membership.upsert({
+      where: { userId_orgId_gymId_role: { userId: targetUserId, orgId: location.orgId, gymId: locationId, role: MembershipRole.TENANT_LOCATION_ADMIN } },
+      update: { status: MembershipStatus.ACTIVE },
+      create: { userId: targetUserId, orgId: location.orgId, gymId: locationId, role: MembershipRole.TENANT_LOCATION_ADMIN, status: MembershipStatus.ACTIVE },
+    });
+
+    return { managers: await this.listManagers(locationId, user) };
+  }
+
+  async removeManager(locationId: string, userId: string, actor: User) {
+    const location = await this.prisma.gym.findFirst({ where: { id: locationId }, select: { orgId: true } });
+    if (!location) {
+      throw new NotFoundException('Location not found');
+    }
+    const owner = await this.prisma.membership.findFirst({
+      where: { userId: actor.id, orgId: location.orgId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (!owner) {
+      throw new ForbiddenException('Only tenant owners can remove managers');
+    }
+
+    await this.prisma.membership.deleteMany({
+      where: { userId, orgId: location.orgId, gymId: locationId, role: MembershipRole.TENANT_LOCATION_ADMIN },
+    });
+
+    return { managers: await this.listManagers(locationId, actor) };
   }
 }

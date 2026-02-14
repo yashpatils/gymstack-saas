@@ -132,6 +132,25 @@ export async function setContext(tenantId: string, gymId?: string): Promise<{ to
   return { token: data.accessToken };
 }
 
+
+export async function setMode(tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string): Promise<AuthMeResponse> {
+  return apiFetch<AuthMeResponse>('/api/auth/set-mode', {
+    method: 'POST',
+    body: JSON.stringify({ tenantId, mode, locationId }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+export function oauthStartUrl(provider: 'google' | 'apple', mode: 'login' | 'link' = 'login', returnTo?: string): string {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? '';
+  const url = new URL(`/api/auth/oauth/${provider}/start`, base || window.location.origin);
+  url.searchParams.set('mode', mode);
+  url.searchParams.set('returnTo', returnTo ?? window.location.href);
+  return url.toString();
+}
+
 export async function me(): Promise<AuthMeResponse> {
   try {
     return await apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET' });
