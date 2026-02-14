@@ -27,3 +27,18 @@ export function normalizeRole(input?: string | null): AppRole {
       return 'CLIENT';
   }
 }
+
+export function canManageUsers(role?: string | null): boolean {
+  if (!role) {
+    return false;
+  }
+
+  return [
+    'OWNER',
+    'ADMIN',
+    'PLATFORM_ADMIN',
+    'TENANT_OWNER',
+    'TENANT_MANAGER',
+    'TENANT_LOCATION_ADMIN',
+  ].includes(role);
+}
