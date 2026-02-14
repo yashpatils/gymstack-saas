@@ -37,7 +37,7 @@ export class AccountService {
       ttlMinutes: this.getTtlMinutes('DELETE_ACCOUNT_TOKEN_TTL_MINUTES', 30),
     });
 
-    await this.emailService.sendDeleteAccountConfirmation(user.email, token);
+    await this.emailService.sendDeleteAccountEmail({ to: user.email, token });
 
     return { ok: true };
   }
