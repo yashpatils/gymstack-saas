@@ -14,16 +14,16 @@ type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    "bg-blue-600 text-white shadow-sm hover:bg-blue-500 focus-visible:ring-blue-400",
+    "bg-gradient-to-br from-violet-500 to-indigo-500 text-white shadow-[0_10px_30px_rgba(99,102,241,0.35)] hover:brightness-110 hover:shadow-[0_10px_32px_rgba(99,102,241,0.45)] focus-visible:ring-violet-300",
   secondary:
-    "bg-slate-100 text-slate-900 shadow-sm hover:bg-slate-200 focus-visible:ring-slate-300",
+    "border border-white/15 bg-white/10 text-slate-100 backdrop-blur-sm hover:bg-white/15 hover:ring-1 hover:ring-white/20 focus-visible:ring-slate-300",
   outline:
-    "border border-slate-300 bg-transparent text-slate-900 hover:bg-slate-100 focus-visible:ring-slate-300",
+    "border border-white/20 bg-transparent text-slate-100 hover:bg-white/10 hover:ring-1 hover:ring-violet-300/40 focus-visible:ring-violet-300",
   ghost:
-    "bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-300",
+    "bg-transparent text-slate-200 hover:bg-white/10 hover:text-white focus-visible:ring-slate-300",
   destructive:
-    "bg-red-600 text-white shadow-sm hover:bg-red-500 focus-visible:ring-red-400",
-  link: "bg-transparent text-blue-600 underline-offset-4 hover:underline focus-visible:ring-blue-400",
+    "bg-gradient-to-br from-red-500 to-rose-500 text-white shadow-[0_10px_30px_rgba(239,68,68,0.35)] hover:brightness-110 focus-visible:ring-red-400",
+  link: "bg-transparent text-violet-200 underline-offset-4 hover:underline focus-visible:ring-violet-300",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
           className,

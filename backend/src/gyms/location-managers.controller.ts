@@ -11,6 +11,15 @@ import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 export class LocationManagersController {
   constructor(private readonly gymsService: GymsService) {}
 
+
+  @Get(':locationId/branding')
+  getBranding(@Param('locationId') locationId: string, @Req() req: { user?: User }) {
+    if (!req.user) {
+      throw new ForbiddenException('Missing user');
+    }
+    return this.gymsService.getLocationBranding(locationId, req.user);
+  }
+
   @Get(':locationId/managers')
   getManagers(@Param('locationId') locationId: string, @Req() req: { user?: User }) {
     if (!req.user) {

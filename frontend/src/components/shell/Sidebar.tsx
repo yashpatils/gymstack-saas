@@ -1,10 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export type ShellNavItem = { label: string; href: string; disabled?: boolean };
 
 type SidebarProps = {
   items: ShellNavItem[];
-  pathname: string;
   mobileOpen?: boolean;
   onClose?: () => void;
 };
@@ -24,7 +26,17 @@ const sections = [
   },
 ] as const;
 
-export function Sidebar({ items, pathname, mobileOpen = false, onClose }: SidebarProps) {
+function isNavItemActive(pathname: string, href: string): boolean {
+  if (href === "/platform") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function Sidebar({ items, mobileOpen = false, onClose }: SidebarProps) {
+  const pathname = usePathname();
+
   return (
     <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""}`}>
       <div className="rounded-2xl border border-border/80 bg-black/20 p-4">
@@ -43,7 +55,7 @@ export function Sidebar({ items, pathname, mobileOpen = false, onClose }: Sideba
               <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{section.title}</p>
               <ul className="space-y-1">
                 {sectionItems.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const isActive = isNavItemActive(pathname, item.href);
                   const className = `platform-nav-item ${isActive ? "platform-nav-item-active" : ""} ${item.disabled ? "pointer-events-none opacity-40" : ""}`;
 
                   return (
