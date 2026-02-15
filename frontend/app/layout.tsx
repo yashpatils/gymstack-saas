@@ -1,20 +1,14 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter, Sora } from "next/font/google";
+import { Geist } from "next/font/google";
 import { SessionProvider } from "./components/session-provider";
 import { AuthProvider } from "../src/providers/AuthProvider";
 import { ToastProvider } from "../src/components/toast/ToastProvider";
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
-});
-
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sora",
+  variable: "--font-geist",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${sora.variable}`}>
+      <body className={geist.variable}>
         <AuthProvider>
           <ToastProvider>
             <SessionProvider>{children}</SessionProvider>

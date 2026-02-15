@@ -23,12 +23,12 @@ export function Topbar({
   onSwitchMode: (mode: "OWNER" | "MANAGER") => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-background/70 px-4 py-3 backdrop-blur md:px-8">
+    <header className="platform-topbar-modern">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{orgName}</p>
         <p className="text-sm text-foreground">{email}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary">Workspace</Link> : null}
         {canSwitchMode ? (
           <div className="flex items-center gap-2 rounded-full border border-border/70 px-2 py-1 text-xs">
