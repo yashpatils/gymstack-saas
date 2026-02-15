@@ -2,36 +2,71 @@ import Link from "next/link";
 
 export type ShellNavItem = { label: string; href: string; disabled?: boolean };
 
-export function Sidebar({ items, pathname }: { items: ShellNavItem[]; pathname: string }) {
+type SidebarProps = {
+  items: ShellNavItem[];
+  pathname: string;
+  mobileOpen?: boolean;
+  onClose?: () => void;
+};
+
+const sections = [
+  {
+    title: "Core",
+    routes: ["/platform", "/platform/gyms", "/platform/team"],
+  },
+  {
+    title: "Operations",
+    routes: ["/platform/billing", "/platform/coach", "/platform/client"],
+  },
+  {
+    title: "Settings",
+    routes: ["/platform/settings", "/admin"],
+  },
+] as const;
+
+export function Sidebar({ items, pathname, mobileOpen = false, onClose }: SidebarProps) {
   return (
-    <aside className="hidden w-72 shrink-0 border-r border-border/70 bg-card/40 p-5 backdrop-blur xl:block">
+    <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""}`}>
       <div className="rounded-2xl border border-border/80 bg-black/20 p-4">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">GymStack</p>
         <p className="mt-2 text-lg font-semibold text-foreground">Platform</p>
       </div>
-      <nav className="mt-6" aria-label="Platform navigation">
-        <ul className="space-y-1">
-          {items.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const className = `block rounded-xl px-3 py-2 text-sm transition ${
-              isActive
-                ? "bg-primary/20 text-primary-foreground"
-                : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-            } ${item.disabled ? "pointer-events-none opacity-40" : ""}`;
+      <nav className="platform-sidebar-nav" aria-label="Platform navigation">
+        {sections.map((section) => {
+          const sectionItems = items.filter((item) => section.routes.some((route) => route === item.href));
+          if (!sectionItems.length) {
+            return null;
+          }
 
-            return (
-              <li key={item.href}>
-                {item.disabled ? (
-                  <span className={className}>{item.label}</span>
-                ) : (
-                  <Link href={item.href} className={className} aria-current={isActive ? "page" : undefined}>
-                    {item.label}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+          return (
+            <div key={section.title} className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{section.title}</p>
+              <ul className="space-y-1">
+                {sectionItems.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const className = `platform-nav-item ${isActive ? "platform-nav-item-active" : ""} ${item.disabled ? "pointer-events-none opacity-40" : ""}`;
+
+                  return (
+                    <li key={item.href}>
+                      {item.disabled ? (
+                        <span className={className}>{item.label}</span>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          className={className}
+                          onClick={onClose}
+                          aria-current={isActive ? "page" : undefined}
+                        >
+                          {item.label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
     </aside>
   );

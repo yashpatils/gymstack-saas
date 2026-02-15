@@ -1,13 +1,23 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Sidebar, type ShellNavItem } from "./Sidebar";
 
 export function AppShell({ pathname, items, topbar, children }: { pathname: string; items: ShellNavItem[]; topbar: ReactNode; children: ReactNode }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen bg-transparent text-foreground">
-      <Sidebar items={items} pathname={pathname} />
+    <div className="platform-shell">
+      <Sidebar items={items} pathname={pathname} mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
+        <div className="platform-mobile-nav">
+          <button type="button" className="button secondary" onClick={() => setMobileNavOpen((value) => !value)}>
+            {mobileNavOpen ? "Close menu" : "Menu"}
+          </button>
+        </div>
         {topbar}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="container-app flex-1 py-6">{children}</main>
       </div>
     </div>
   );
