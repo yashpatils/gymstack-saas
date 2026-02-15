@@ -51,9 +51,9 @@ export function Topbar({
   }, [isAccountMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-20 min-h-[64px] border-b border-white/5 bg-[rgba(7,10,20,0.76)] px-3 backdrop-blur-xl sm:px-4 md:min-h-[72px] md:px-6">
-      <div className="grid min-h-[64px] grid-cols-[auto,1fr] items-center gap-2 md:min-h-[72px] md:grid-cols-[minmax(0,1fr),auto,minmax(0,1fr)] md:gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+    <header className="sticky top-0 z-50 flex min-h-[64px] w-full items-center border-b border-white/5 bg-[rgba(7,10,20,0.76)] px-4 backdrop-blur-xl md:min-h-[72px] md:px-6">
+      <div className="grid w-full grid-cols-3 items-center gap-2 md:gap-3">
+        <div className="flex min-w-0 items-center gap-2 justify-self-start">
           <button
             type="button"
             className="button secondary topbar-icon-button lg:hidden"
@@ -62,37 +62,36 @@ export function Topbar({
           >
             ☰
           </button>
-          <Link href="/platform" className="text-sm font-semibold text-slate-200 hover:text-white">Platform</Link>
+          <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
+          <Link href="/platform" className="hidden text-sm font-semibold text-slate-200 hover:text-white md:inline">Platform</Link>
         </div>
 
-        <div className="pointer-events-none hidden min-w-0 items-center justify-center px-2 md:flex">
-          <AppContextTitle />
-        </div>
-
-        <div className="ml-auto flex min-w-0 items-center justify-end gap-1 sm:gap-2">
-          {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm hidden sm:inline-flex">Workspace</Link> : null}
+        <div className="flex min-w-0 items-center justify-center justify-self-center">
           {canSwitchMode ? (
             <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs">
               <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
               <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
             </div>
-          ) : null}
-          <button type="button" className="button ghost topbar-icon-button hidden sm:inline-flex" aria-label="Notifications">🔔</button>
-          <Link href="/platform/account" className="button secondary button-sm inline-flex items-center gap-2" aria-label="Open account page">
-            <span className="user-chip-avatar">{initials}</span>
-            <span className="hidden max-w-32 truncate sm:inline">{displayName}</span>
-          </Link>
+          ) : (
+            <AppContextTitle />
+          )}
+        </div>
+
+        <div className="flex min-w-0 items-center justify-end gap-2 justify-self-end">
+          {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm hidden sm:inline-flex">Workspace</Link> : null}
           <div className="relative">
             <button
               ref={triggerRef}
               type="button"
-              className="button ghost topbar-icon-button"
+              className="button secondary button-sm inline-flex items-center gap-2"
               onClick={() => setIsAccountMenuOpen((current) => !current)}
               aria-expanded={isAccountMenuOpen}
               aria-haspopup="menu"
               aria-label="Open account menu"
             >
-              ⋯
+              <span className="user-chip-avatar">{initials}</span>
+              <span className="hidden max-w-32 truncate sm:inline">{displayName}</span>
+              <span className="text-xs">▾</span>
             </button>
             {isAccountMenuOpen ? (
               <div ref={accountMenuRef} className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
@@ -116,10 +115,6 @@ export function Topbar({
             ) : null}
           </div>
         </div>
-      </div>
-
-      <div className="pb-2 md:hidden">
-        <AppContextTitle />
       </div>
     </header>
   );

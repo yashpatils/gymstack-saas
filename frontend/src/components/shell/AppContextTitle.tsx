@@ -14,7 +14,7 @@ export function AppContextTitle() {
         : "Gym Stack";
 
   return (
-    <p className="max-w-[50vw] truncate text-center text-base font-semibold tracking-wide text-foreground/90 sm:max-w-[40vw] md:max-w-[32rem] md:text-lg">
+    <p className="max-w-[40vw] truncate text-center text-base font-semibold tracking-wide text-foreground/90 md:max-w-[32rem] md:text-lg">
       {title}
     </p>
   );
