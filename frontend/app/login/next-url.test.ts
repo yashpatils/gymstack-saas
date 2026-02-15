@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getValidatedNextUrl } from './page';
+import { getValidatedNextUrl } from './next-url';
 
 describe('getValidatedNextUrl', () => {
   it('accepts relative next paths', () => {
