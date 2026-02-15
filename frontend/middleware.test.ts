@@ -12,6 +12,16 @@ describe('resolveHostRoute', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/tenants', baseDomain)).toEqual({ type: 'rewrite', pathname: '/_admin/tenants' });
   });
 
+
+  it('keeps admin login route untouched', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/login', baseDomain)).toEqual({ type: 'next' });
+  });
+
+  it('keeps admin next and api routes untouched', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/_next/static/chunk.js', baseDomain)).toEqual({ type: 'next' });
+    expect(resolveHostRoute('admin.gymstack.club', '/api/health', baseDomain)).toEqual({ type: 'next' });
+  });
+
   it('rewrites tenant subdomains to /_sites/[slug]', () => {
     expect(resolveHostRoute('acme.gymstack.club', '/', baseDomain)).toEqual({ type: 'rewrite', pathname: '/_sites/acme/' });
   });
