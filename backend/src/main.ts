@@ -226,7 +226,7 @@ async function bootstrap() {
       return callback(null, false);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, X-Support-Tenant-Id, X-Support-Location-Id',
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, X-Support-Tenant-Id, X-Support-Location-Id, X-Active-Tenant-Id, X-Active-Location-Id',
     credentials: true,
     optionsSuccessStatus: 204,
   });
