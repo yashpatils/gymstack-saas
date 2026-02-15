@@ -68,15 +68,19 @@ function isRecordBody(value: unknown): value is Record<string, unknown> {
 
 export function getApiBaseUrl(): string {
   const serverUrl = (process.env.API_URL ?? '').trim().replace(/\/+$/, '');
+  const publicUrl = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '');
 
   if (isServer()) {
     if (serverUrl) {
       return serverUrl;
     }
+    if (publicUrl) {
+      return publicUrl;
+    }
     return DEV_LOCALHOST_API_URL;
   }
 
-  return '';
+  return publicUrl;
 }
 
 export function buildApiUrl(path: string): string {
@@ -86,6 +90,10 @@ export function buildApiUrl(path: string): string {
   }
 
   if (!isServer()) {
+    const baseUrl = getApiBaseUrl();
+    if (baseUrl) {
+      return `${baseUrl}${normalized}`;
+    }
     return `/api/proxy${normalized}`;
   }
 

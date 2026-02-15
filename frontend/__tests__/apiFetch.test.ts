@@ -31,6 +31,12 @@ describe('apiFetch', () => {
     expect(buildApiUrl('/api/auth/me')).toBe('/api/proxy/api/auth/me');
   });
 
+  it('uses NEXT_PUBLIC_API_URL directly in browser context when configured', async () => {
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';
+    const { buildApiUrl } = await import('../src/lib/apiFetch');
+    expect(buildApiUrl('/api/auth/me')).toBe('https://api.example.com/api/auth/me');
+  });
+
   it('throws ApiFetchError with status and payload details', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(JSON.stringify({ message: 'Unauthorized', code: 'AUTH_401' }), {
