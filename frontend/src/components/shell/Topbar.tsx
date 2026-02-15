@@ -120,6 +120,44 @@ export function Topbar({
               ) : null}
             </div>
           </div>
+
+          <div className="flex min-w-0 items-center gap-2 justify-self-end whitespace-nowrap">
+            <div className="relative">
+              <button
+                ref={triggerRef}
+                type="button"
+                className="button secondary inline-flex h-9 items-center gap-2 rounded-xl px-2.5 md:h-10 max-w-full"
+                onClick={() => setIsAccountMenuOpen((current) => !current)}
+                aria-expanded={isAccountMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open account menu"
+              >
+                <span className="user-chip-avatar">{initials}</span>
+                <span className="hidden max-w-32 truncate sm:inline">{displayName}</span>
+                <span className="text-xs">▾</span>
+              </button>
+              {isAccountMenuOpen ? (
+                <div ref={accountMenuRef} className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
+                  <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
+                    Account info
+                  </Link>
+                  <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
+                    Settings
+                  </Link>
+                  <button
+                    type="button"
+                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
+                    onClick={() => {
+                      setIsAccountMenuOpen(false);
+                      onLogout();
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </header>
