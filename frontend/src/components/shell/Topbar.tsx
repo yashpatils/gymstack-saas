@@ -56,7 +56,7 @@ export function Topbar({
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
-            className="button secondary topbar-icon-button"
+            className="button secondary topbar-icon-button lg:hidden"
             onClick={onToggleMenu}
             aria-label="Toggle menu"
           >
