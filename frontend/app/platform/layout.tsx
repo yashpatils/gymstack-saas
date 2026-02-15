@@ -21,7 +21,7 @@ const baseNavItems = [
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
+  const { user, loading, logout, permissions, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -77,7 +77,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           <Topbar
             initials={initials}
             displayName={user?.name?.trim() || email}
-            memberships={memberships}
             onLogout={logout}
             canSwitchMode={canSwitchMode}
             activeMode={activeMode}
