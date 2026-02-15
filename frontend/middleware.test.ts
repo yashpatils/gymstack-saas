@@ -22,7 +22,9 @@ describe('resolveHostRoute', () => {
   });
 
   it('does not treat reserved subdomains as tenants', () => {
-    expect(resolveHostRoute('api.gymstack.club', '/', baseDomain)).toEqual({ type: 'next' });
+    for (const subdomain of ['www', 'api', 'app', 'static']) {
+      expect(resolveHostRoute(`${subdomain}.gymstack.club`, '/', baseDomain)).toEqual({ type: 'next' });
+    }
   });
 
   it('rewrites custom domains to /_custom/[host]', () => {
