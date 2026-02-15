@@ -13,13 +13,15 @@ export function useOnClickOutside(
     }
 
     const handler = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
         return;
       }
 
       const isInside = refs.some((ref) => {
         const element = ref.current;
-        return Boolean(element?.contains(event.target));
+        return Boolean(element?.contains(target));
       });
 
       if (!isInside) {
