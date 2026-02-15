@@ -5,12 +5,15 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: "sm" | "md" | "lg";
 };
 
+const baseStyles =
+  "inline-flex w-full items-center justify-center gap-2 rounded-xl font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 disabled:cursor-not-allowed";
+
 const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 disabled:bg-indigo-500/70",
+    "bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 hover:brightness-105 hover:ring-1 hover:ring-indigo-300/40 disabled:brightness-90",
   secondary:
-    "border border-white/20 bg-white/5 text-slate-100 hover:bg-white/10 disabled:text-slate-400",
-  ghost: "bg-transparent text-slate-300 hover:text-white hover:bg-white/10",
+    "border border-white/20 bg-white/5 text-slate-100 hover:bg-white/10 hover:ring-1 hover:ring-white/25 disabled:text-slate-400",
+  ghost: "bg-transparent text-slate-300 hover:text-white hover:bg-white/10 hover:ring-1 hover:ring-white/20",
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -28,7 +31,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex w-full items-center justify-center gap-2 rounded-xl font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/80 disabled:cursor-not-allowed ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
+      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
       {...props}
     >
       {children}

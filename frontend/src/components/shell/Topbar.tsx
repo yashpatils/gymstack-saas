@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Membership } from "../../types/auth";
+import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { AppContextTitle } from "./AppContextTitle";
 
 export function Topbar({
   initials,
   displayName,
-  tenantName,
-  isTenantOwner,
   memberships,
   onLogout,
   canSwitchMode,
@@ -18,8 +18,6 @@ export function Topbar({
 }: {
   initials: string;
   displayName: string;
-  tenantName?: string;
-  isTenantOwner: boolean;
   memberships: Membership[];
   onLogout: () => void;
   canSwitchMode: boolean;
@@ -30,13 +28,14 @@ export function Topbar({
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const outsideClickRefs = useMemo(() => [accountMenuRef, triggerRef], []);
+
+  useOnClickOutside(outsideClickRefs, () => setIsAccountMenuOpen(false), isAccountMenuOpen);
 
   useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!accountMenuRef.current?.contains(event.target as Node)) {
-        setIsAccountMenuOpen(false);
-      }
-    };
+    if (!isAccountMenuOpen) {
+      return;
+    }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -45,14 +44,11 @@ export function Topbar({
       }
     };
 
-    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleEscape);
-
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
+  }, [isAccountMenuOpen]);
 
   return (
     <header className="platform-topbar-modern">
@@ -64,9 +60,7 @@ export function Topbar({
       </div>
 
       <div className="min-w-0 text-center">
-        {isTenantOwner && tenantName ? (
-          <p className="truncate text-sm font-semibold text-slate-100 md:text-base">{tenantName}</p>
-        ) : null}
+        <AppContextTitle />
       </div>
 
       <div className="flex items-center justify-end gap-2">
@@ -78,20 +72,24 @@ export function Topbar({
           </div>
         ) : null}
         <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
-        <div ref={accountMenuRef} className="relative">
+        <Link href="/platform/account" className="button secondary button-sm inline-flex items-center gap-2" aria-label="Open account page">
+          <span className="user-chip-avatar">{initials}</span>
+          <span className="max-w-32 truncate">{displayName}</span>
+        </Link>
+        <div className="relative">
           <button
             ref={triggerRef}
             type="button"
-            className="button secondary button-sm inline-flex items-center gap-2"
+            className="button ghost topbar-icon-button"
             onClick={() => setIsAccountMenuOpen((current) => !current)}
             aria-expanded={isAccountMenuOpen}
             aria-haspopup="menu"
+            aria-label="Open account menu"
           >
-            <span className="user-chip-avatar">{initials}</span>
-            <span className="max-w-32 truncate">{displayName}</span>
+            ⋯
           </button>
           {isAccountMenuOpen ? (
-            <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
+            <div ref={accountMenuRef} className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
               <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
                 Account info
               </Link>

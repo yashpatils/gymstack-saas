@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
 import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
-import { apiFetch } from "../../src/lib/apiFetch";
+import { AppFooter } from "../../src/components/shell/AppFooter";
 
 const baseNavItems = [
   { label: "Overview", href: "/platform" },
@@ -19,21 +18,14 @@ const baseNavItems = [
   { label: "Settings", href: "/platform/settings" },
 ];
 
-type LocationBranding = {
-  customDomain?: string | null;
-  gymName: string;
-  logoUrl?: string | null;
-};
-
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
-  const [locationBranding, setLocationBranding] = useState<LocationBranding | null>(null);
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
-    const source = (user?.name?.trim() || email.split("@")[0] || "PU");
+    const source = user?.name?.trim() || email.split("@")[0] || "PU";
     return source.slice(0, 2).toUpperCase();
   }, [email, user?.name]);
 
@@ -42,36 +34,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       router.replace("/platform/onboarding");
     }
   }, [loading, onboarding?.needsOpsChoice, pathname, router]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadLocationBranding() {
-      const locationId = activeContext?.locationId;
-      const role = activeContext?.role;
-      if (!locationId || role === "TENANT_OWNER") {
-        setLocationBranding(null);
-        return;
-      }
-
-      try {
-        const branding = await apiFetch<LocationBranding>(`/api/locations/${locationId}/branding`, { method: "GET" });
-        if (mounted) {
-          setLocationBranding(branding);
-        }
-      } catch {
-        if (mounted) {
-          setLocationBranding(null);
-        }
-      }
-    }
-
-    void loadLocationBranding();
-
-    return () => {
-      mounted = false;
-    };
-  }, [activeContext?.locationId, activeContext?.role]);
 
   const handleSwitchMode = useCallback(async (mode: "OWNER" | "MANAGER") => {
     const tenantId = activeContext?.tenantId;
@@ -106,30 +68,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   });
 
   const canSwitchMode = Boolean(ownerOperatorSettings?.allowOwnerStaffLogin || ownerOperatorSettings?.defaultMode === "MANAGER");
-  const isTenantOwner = activeContext?.role === "TENANT_OWNER";
-  const companyName = user?.name ?? "Your Company";
-  const staffOrClient = activeContext?.role === "GYM_STAFF_COACH" || activeContext?.role === "CLIENT";
-
-  const footer = isTenantOwner ? (
-    <footer className="platform-footer">
-      <div>
-        <p className="text-sm font-medium text-slate-100">{companyName}</p>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} GymStack. All rights reserved.</p>
-      </div>
-      <div className="platform-footer-links">
-        <Link href="/terms">Terms</Link>
-        <Link href="/privacy">Privacy</Link>
-        <Link href="/platform/support">Support</Link>
-        <Link href="/contact">Contact</Link>
-      </div>
-    </footer>
-  ) : staffOrClient ? (
-    locationBranding?.customDomain ? null : (
-      <footer className="platform-footer platform-footer-minimal">
-        <p>Powered by GymStack</p>
-      </footer>
-    )
-  ) : null;
 
   return (
     <AuthGate>
@@ -139,8 +77,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           <Topbar
             initials={initials}
             displayName={user?.name?.trim() || email}
-            tenantName={companyName}
-            isTenantOwner={isTenantOwner}
             memberships={memberships}
             onLogout={logout}
             canSwitchMode={canSwitchMode}
@@ -154,7 +90,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       >
         <>
           {children}
-          {footer ? <div className="container-app pb-6">{footer}</div> : null}
+          <div className="container-app pb-6">
+            <AppFooter />
+          </div>
         </>
       </AppShell>
     </AuthGate>

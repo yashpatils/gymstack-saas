@@ -18,6 +18,7 @@ export type AdminTenant = {
   managersCount: number;
   customDomainsCount: number;
   subscriptionStatus?: string | null;
+  whiteLabelBranding: boolean;
 };
 
 export type AdminTenantListResponse = {
@@ -33,6 +34,7 @@ export type AdminTenantDetail = {
     name: string;
     createdAt: string;
     subscriptionStatus?: string | null;
+    whiteLabelBranding: boolean;
   };
   locations: Array<{
     id: string;

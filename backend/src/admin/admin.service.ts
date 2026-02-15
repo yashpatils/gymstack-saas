@@ -22,6 +22,7 @@ export type AdminTenantListItem = {
   managersCount: number;
   customDomainsCount: number;
   subscriptionStatus?: string | null;
+  whiteLabelBranding: boolean;
 };
 
 export type AdminTenantListResponse = {
@@ -32,7 +33,7 @@ export type AdminTenantListResponse = {
 };
 
 export type AdminTenantDetailResponse = {
-  tenant: { id: string; name: string; createdAt: string; subscriptionStatus?: string | null };
+  tenant: { id: string; name: string; createdAt: string; subscriptionStatus?: string | null; whiteLabelBranding: boolean };
   locations: Array<{ id: string; name: string; slug: string; createdAt: string; membersCount: number; managersCount: number; customDomains: string[] }>;
   owners: Array<{ id: string; email: string; name?: string }>;
   recentAudit?: Array<{ id: string; action: string; createdAt: string; actorEmail?: string }>;
@@ -127,6 +128,7 @@ export class AdminService {
           managersCount,
           customDomainsCount: organization._count.customDomains,
           subscriptionStatus: organization.users[0]?.subscriptionStatus ?? null,
+          whiteLabelBranding: organization.whiteLabelBrandingEnabled,
         };
       }),
       page: safePage,
@@ -243,6 +245,7 @@ export class AdminService {
         name: organization.name,
         createdAt: organization.createdAt.toISOString(),
         subscriptionStatus: organization.users[0]?.subscriptionStatus ?? null,
+        whiteLabelBranding: organization.whiteLabelBrandingEnabled,
       },
       locations: organization.gyms.map((gym) => ({
         id: gym.id,
@@ -265,4 +268,29 @@ export class AdminService {
       })),
     };
   }
+
+  async setTenantFeatures(tenantId: string, features: { whiteLabelBranding: boolean }, actorUserId: string): Promise<{ tenantId: string; whiteLabelBranding: boolean }> {
+    const tenant = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: { whiteLabelBrandingEnabled: features.whiteLabelBranding },
+      select: { id: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        orgId: tenant.id,
+        userId: actorUserId,
+        action: 'tenant.features.updated',
+        entityType: 'organization',
+        entityId: tenant.id,
+        metadata: { whiteLabelBranding: tenant.whiteLabelBrandingEnabled },
+      },
+    });
+
+    return {
+      tenantId: tenant.id,
+      whiteLabelBranding: tenant.whiteLabelBrandingEnabled,
+    };
+  }
+
 }

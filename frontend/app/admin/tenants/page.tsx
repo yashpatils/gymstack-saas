@@ -54,6 +54,7 @@ export default async function AdminTenantsPage({
               <th className="px-4 py-3">Managers</th>
               <th className="px-4 py-3">Domains</th>
               <th className="px-4 py-3">Subscription</th>
+              <th className="px-4 py-3">White label</th>
             </tr>
           </thead>
           <tbody>
@@ -67,6 +68,7 @@ export default async function AdminTenantsPage({
                 <td className="px-4 py-3">{tenant.managersCount}</td>
                 <td className="px-4 py-3">{tenant.customDomainsCount}</td>
                 <td className="px-4 py-3">{tenant.subscriptionStatus ?? 'N/A'}</td>
+                <td className="px-4 py-3">{tenant.whiteLabelBranding ? "Enabled" : "Disabled"}</td>
               </tr>
             ))}
           </tbody>

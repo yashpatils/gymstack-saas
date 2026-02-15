@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { getPlatformAdminEmails, isPlatformAdmin } from '../auth/platform-admin.util';
@@ -40,6 +40,17 @@ export class AdminController {
     @Query('query') query?: string,
   ) {
     return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
+  }
+
+
+
+  @Post('tenants/:tenantId/features')
+  async setTenantFeatures(
+    @Param('tenantId') tenantId: string,
+    @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
+    @Req() req: { user: RequestUser },
+  ) {
+    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id);
   }
 
   @Get('tenants/:tenantId')

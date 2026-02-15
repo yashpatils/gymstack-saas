@@ -7,7 +7,7 @@ import { SectionCard } from "@/src/components/common/SectionCard";
 import { useAuth } from "@/src/providers/AuthProvider";
 
 export default function PlatformAccountPage() {
-  const { user, memberships, activeContext, platformRole } = useAuth();
+  const { user, memberships, activeContext, platformRole, tenantFeatures } = useAuth();
 
   const membershipSummary = useMemo(() => {
     const byRole = memberships.reduce<Record<string, number>>((accumulator, membership) => {
@@ -45,6 +45,13 @@ export default function PlatformAccountPage() {
             <dd className="mt-1">{membershipSummary || "No memberships"}</dd>
           </div>
         </dl>
+      </SectionCard>
+
+
+
+      <SectionCard title="Add-ons">
+        <p className="text-sm text-slate-200">White Label Branding: <span className="font-semibold text-white">{tenantFeatures?.whiteLabelBranding ? "Enabled" : "Disabled"}</span></p>
+        <p className="mt-2 text-xs text-slate-400">Upgrade in Billing to remove Gym Stack branding on custom domains for staff/client views.</p>
       </SectionCard>
 
       <SectionCard title="Active workspace context">
