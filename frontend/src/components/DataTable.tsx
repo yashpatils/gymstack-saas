@@ -133,15 +133,18 @@ export default function DataTable<T>({
   };
 
   return (
-    <div className="space-y-3">
-      <input
-        className="input"
-        placeholder={searchPlaceholder}
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-      />
+    <div className="data-table-shell">
+      <div className="data-table-toolbar">
+        <input
+          className="input"
+          placeholder={searchPlaceholder}
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+        />
+      </div>
 
-      <table className="table">
+      <div className="overflow-x-auto">
+      <table className="table data-table">
         <thead>
           <tr>
             {columns.map((column) => {
@@ -200,9 +203,10 @@ export default function DataTable<T>({
               ))}
         </tbody>
       </table>
+      </div>
 
       {!loading && totalPages > 1 ? (
-        <div className="flex items-center justify-between gap-3 text-sm text-slate-300">
+        <div className="data-table-pagination">
           <span>
             Showing {(currentPage - 1) * pageSize + 1}
             -{Math.min(currentPage * pageSize, sortedAndFilteredRows.length)} of {sortedAndFilteredRows.length}

@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, PageHeader, PageShell } from "../../../components/ui";
-import { Gym, deleteGym, getGym, updateGym } from "../../../../src/lib/gyms";
+import { EmptyState } from "../../../../src/components/common/EmptyState";
+import { PageHeader } from "../../../../src/components/common/PageHeader";
+import { SectionCard } from "../../../../src/components/common/SectionCard";
+import { deleteGym, getGym, type Gym, updateGym } from "../../../../src/lib/gyms";
 import { useToast } from "../../../../src/components/toast/ToastProvider";
 
 type GymDetailClientProps = {
@@ -35,25 +38,38 @@ export default function GymDetailClient({ gymId }: GymDetailClientProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadGym = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getGym(gymId);
-      setGym(data);
-      setName(data.name ?? "");
-    } catch (err) {
-      setGym(null);
-      setError(err instanceof Error ? err.message : "Unable to load gym.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let active = true;
+
+    const loadGym = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getGym(gymId);
+        if (!active) {
+          return;
+        }
+        setGym(data);
+        setName(data.name ?? "");
+      } catch (err) {
+        if (active) {
+          setGym(null);
+          setError(err instanceof Error ? err.message : "Unable to load gym.");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
     if (gymId) {
       void loadGym();
     }
+
+    return () => {
+      active = false;
+    };
   }, [gymId]);
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
@@ -98,18 +114,16 @@ export default function GymDetailClient({ gymId }: GymDetailClientProps) {
   };
 
   return (
-    <PageShell>
+    <section className="space-y-6">
       <PageHeader
-        title="Gym details"
-        subtitle={gym?.name ?? "Review and update this gym."}
+        title="Gym detail"
+        subtitle={gym?.name ?? "Review and update this location profile."}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => router.push("/platform/gyms")}>
-              Back
-            </Button>
-            <Button variant="secondary" onClick={() => setShowDeleteConfirm(true)} disabled={!gym || deleting}>
+            <Link href="/platform/gyms" className="button secondary">Back</Link>
+            <button type="button" className="button secondary" onClick={() => setShowDeleteConfirm(true)} disabled={!gym || deleting}>
               {deleting ? "Deleting..." : "Delete"}
-            </Button>
+            </button>
           </div>
         }
       />
@@ -117,51 +131,46 @@ export default function GymDetailClient({ gymId }: GymDetailClientProps) {
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       {loading ? (
-        <p className="text-sm text-slate-400">Loading gym details...</p>
-      ) : !gym ? (
-        <p className="text-sm text-slate-400">Gym not found.</p>
-      ) : (
-        <Card title="Gym profile" description="Update core gym details.">
+        <p className="text-sm text-muted-foreground">Loading gym details...</p>
+      ) : null}
+
+      {!loading && !gym ? (
+        <EmptyState title="Gym not found" description="This location may have been removed or you may no longer have access." action={<Link href="/platform/gyms" className="button secondary">Back to locations</Link>} />
+      ) : null}
+
+      {gym ? (
+        <SectionCard title="Gym profile">
           <form className="space-y-4" onSubmit={handleSave}>
             <label className="grid gap-2 text-sm text-slate-300">
               Gym name
-              <input
-                className="input"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-              />
+              <input className="input" value={name} onChange={(event) => setName(event.target.value)} required />
             </label>
-            <div className="space-y-1 text-xs text-slate-400">
+            <div className="space-y-1 text-xs text-muted-foreground">
               <p>ID: {gym.id}</p>
               <p>Owner ID: {gym.ownerId}</p>
               <p>Created: {formatDate(gym.createdAt)}</p>
               <p>Updated: {formatDate(gym.updatedAt)}</p>
             </div>
-            <Button type="submit" disabled={saving}>
+            <button type="submit" className="button" disabled={saving}>
               {saving ? "Saving..." : "Save"}
-            </Button>
+            </button>
           </form>
-        </Card>
-      )}
+        </SectionCard>
+      ) : null}
 
       {showDeleteConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4">
-          <Card title="Delete gym?" description="This action cannot be undone.">
-            <p className="text-sm text-slate-300">
-              Are you sure you want to permanently delete {gym?.name ?? "this gym"}?
-            </p>
+          <SectionCard title="Delete gym?" className="w-full max-w-md">
+            <p className="text-sm text-slate-300">Are you sure you want to permanently delete {gym?.name ?? "this gym"}?</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
-                Cancel
-              </Button>
-              <Button onClick={handleDelete} disabled={deleting}>
+              <button type="button" className="button ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>Cancel</button>
+              <button type="button" className="button" onClick={handleDelete} disabled={deleting}>
                 {deleting ? "Deleting..." : "Confirm delete"}
-              </Button>
+              </button>
             </div>
-          </Card>
+          </SectionCard>
         </div>
       ) : null}
-    </PageShell>
+    </section>
   );
 }
