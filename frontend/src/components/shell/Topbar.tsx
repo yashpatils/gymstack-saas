@@ -52,26 +52,29 @@ export function Topbar({
 
   return (
     <header className="platform-topbar-modern">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="topbar-zone topbar-zone-left">
         <button type="button" className="button secondary topbar-icon-button" onClick={onToggleMenu} aria-label="Toggle menu">
           ☰
         </button>
         <Link href="/platform" className="text-sm font-semibold text-slate-200 hover:text-white">Platform</Link>
+        <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
       </div>
 
-      <div className="min-w-0 text-center">
-        <AppContextTitle />
-      </div>
-
-      <div className="flex items-center justify-end gap-2">
-        {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm">Workspace</Link> : null}
+      <div className="topbar-zone topbar-zone-center">
         {canSwitchMode ? (
           <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs">
             <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
             <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
           </div>
-        ) : null}
-        <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
+        ) : (
+          <div className="min-w-0 text-center">
+            <AppContextTitle />
+          </div>
+        )}
+      </div>
+
+      <div className="topbar-zone topbar-zone-right">
+        {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm">Workspace</Link> : null}
         <Link href="/platform/account" className="button secondary button-sm inline-flex items-center gap-2" aria-label="Open account page">
           <span className="user-chip-avatar">{initials}</span>
           <span className="max-w-32 truncate">{displayName}</span>
