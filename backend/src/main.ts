@@ -12,6 +12,7 @@ import { securityConfig } from './config/security.config';
 import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 import { normalizeOrigin } from './common/origin.util';
+import { parsePlatformAdminEmails } from './auth/platform-admin.util';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://gymstack.club',
@@ -123,6 +124,19 @@ function logDatabaseIdentity(configService: ConfigService) {
   }
 }
 
+
+function logPlatformAdminConfiguration(configService: ConfigService) {
+  const logger = new Logger('Bootstrap');
+  const allowlistedEmails = parsePlatformAdminEmails(configService.get<string>('PLATFORM_ADMIN_EMAILS'));
+
+  if (allowlistedEmails.length === 0) {
+    logger.warn('PLATFORM_ADMIN_EMAILS is not configured. Platform admin features are disabled.');
+    return;
+  }
+
+  logger.log(`Platform admin allowlist loaded (${allowlistedEmails.length} emails)`);
+}
+
 function ensureRequiredEnv(configService: ConfigService) {
   const logger = new Logger('Bootstrap');
   // Railway (and all deployments) must provide these via environment variables.
@@ -177,6 +191,7 @@ async function bootstrap() {
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
   await logIntegrationStatus(configService, prismaService);
+  logPlatformAdminConfiguration(configService);
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -211,7 +226,7 @@ async function bootstrap() {
       return callback(null, false);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Authorization, X-Requested-With',
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, X-Support-Tenant-Id, X-Support-Location-Id',
     credentials: true,
     optionsSuccessStatus: 204,
   });

@@ -1,22 +1,31 @@
 import { Controller, Get, NotFoundException, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { getPlatformAdminEmails, isPlatformAdmin } from '../auth/platform-admin.util';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
 
 type RequestUser = {
   id: string;
-  email: string;
-  role: string;
 };
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  @Get('me')
-  me(@Req() _req: { user: RequestUser }): { ok: true } {
-    return { ok: true };
+  @Get('whoami')
+  async whoami(@Req() req: { user: RequestUser }): Promise<{ email: string; platformRole: 'PLATFORM_ADMIN' | null; allowlistedEmailsCount: number }> {
+    const user = await this.adminService.getUserById(req.user.id);
+    const allowlistedEmails = getPlatformAdminEmails(this.configService);
+    return {
+      email: user?.email ?? '',
+      platformRole: isPlatformAdmin(user?.email, allowlistedEmails) ? 'PLATFORM_ADMIN' : null,
+      allowlistedEmailsCount: allowlistedEmails.length,
+    };
   }
 
   @Get('metrics')

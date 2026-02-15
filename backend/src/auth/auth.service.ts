@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -13,7 +13,7 @@ import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { resolveEffectivePermissions } from './authorization';
-import { getPlatformAdminEmails, isPlatformAdminUser } from './platform-admin.util';
+import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { RefreshTokenService } from './refresh-token.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
 import { InviteAdmissionService } from '../invites/invite-admission.service';
@@ -23,7 +23,7 @@ function toGymSlug(name: string): string {
 }
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -37,6 +37,16 @@ export class AuthService {
     private readonly refreshTokenService: RefreshTokenService,
     private readonly inviteAdmissionService: InviteAdmissionService,
   ) {}
+
+  onModuleInit(): void {
+    const allowlistedEmails = getPlatformAdminEmails(this.configService);
+    if (allowlistedEmails.length === 0) {
+      this.logger.warn('PLATFORM_ADMIN_EMAILS is not configured. platformRole will always be null.');
+      return;
+    }
+
+    this.logger.log(`PLATFORM_ADMIN_EMAILS loaded (${allowlistedEmails.length} emails)`);
+  }
 
   async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     const { email, password } = input;
@@ -186,7 +196,7 @@ export class AuthService {
       userAgent: context?.userAgent,
     });
 
-    const resolvedRole = isPlatformAdminUser(this.configService, user) ? Role.PLATFORM_ADMIN : user.role;
+    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
 
     return {
       accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
@@ -375,7 +385,7 @@ export class AuthService {
       role: membership.role,
     };
 
-    const resolvedRole = isPlatformAdminUser(this.configService, user) ? Role.PLATFORM_ADMIN : user.role;
+    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
 
     return { accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext) };
   }
@@ -441,9 +451,9 @@ export class AuthService {
       ? await resolveEffectivePermissions(this.prisma, userId, activeContext.tenantId, activeContext.gymId ?? undefined)
       : [];
 
-    const admins = getPlatformAdminEmails(this.configService);
-    const isPlatformAdmin = Boolean(user.email) && admins.includes(user.email.toLowerCase());
-    const resolvedRole = isPlatformAdmin ? Role.PLATFORM_ADMIN : user.role;
+    const allowlistedEmails = getPlatformAdminEmails(this.configService);
+    const userIsPlatformAdmin = isPlatformAdmin(user.email, allowlistedEmails);
+    const resolvedRole = userIsPlatformAdmin ? Role.PLATFORM_ADMIN : user.role;
 
     const activeMode = active?.activeMode ?? (activeContext?.role === MembershipRole.TENANT_OWNER ? ActiveMode.OWNER : ActiveMode.MANAGER);
     const canUseSocialLogin = activeMode === ActiveMode.MANAGER || activeContext?.role !== MembershipRole.TENANT_OWNER;
@@ -486,7 +496,7 @@ export class AuthService {
 
     return {
       user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '', emailVerified: Boolean(user.emailVerifiedAt), emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null },
-      platformRole: isPlatformAdmin ? 'PLATFORM_ADMIN' : null,
+      platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
       activeMode,

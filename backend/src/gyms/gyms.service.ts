@@ -7,6 +7,7 @@ import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 import { canManageLocation } from '../auth/authorization';
+import { hasSupportModeContext } from '../auth/support-mode.util';
 import { createHash, randomBytes } from 'crypto';
 
 function toGymSlug(name: string): string {
@@ -129,7 +130,7 @@ export class GymsService {
     }
 
     const allowed = await canManageLocation(this.prisma, user.id, user.orgId, gym.id);
-    if (!allowed) {
+    if (!allowed && !hasSupportModeContext(user, gym.orgId, gym.id)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -187,7 +188,7 @@ export class GymsService {
       throw new NotFoundException('Gym not found');
     }
     const allowed = await canManageLocation(this.prisma, user.id, user.orgId, gym.id);
-    if (!allowed) {
+    if (!allowed && !hasSupportModeContext(user, gym.orgId, gym.id)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -213,7 +214,7 @@ export class GymsService {
       throw new NotFoundException('Gym not found');
     }
     const allowed = await canManageLocation(this.prisma, user.id, user.orgId, gym.id);
-    if (!allowed) {
+    if (!allowed && !hasSupportModeContext(user, gym.orgId, gym.id)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -239,7 +240,7 @@ export class GymsService {
       where: { userId: user.id, orgId: location.orgId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
       select: { id: true },
     });
-    if (!owner) {
+    if (!owner && !hasSupportModeContext(user, location.orgId, locationId)) {
       throw new ForbiddenException('Only tenant owners can manage managers');
     }
 
@@ -259,7 +260,7 @@ export class GymsService {
       where: { userId: user.id, orgId: location.orgId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
       select: { id: true },
     });
-    if (!owner) {
+    if (!owner && !hasSupportModeContext(user, location.orgId, locationId)) {
       throw new ForbiddenException('Only tenant owners can add managers');
     }
 
@@ -306,7 +307,7 @@ export class GymsService {
       where: { userId: actor.id, orgId: location.orgId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
       select: { id: true },
     });
-    if (!owner) {
+    if (!owner && !hasSupportModeContext(actor, location.orgId, locationId)) {
       throw new ForbiddenException('Only tenant owners can remove managers');
     }
 

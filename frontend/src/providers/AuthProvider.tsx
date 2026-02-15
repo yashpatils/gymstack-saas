@@ -24,6 +24,7 @@ import {
   type SignupRole,
 } from '../lib/auth';
 import type { Membership, MembershipRole, OnboardingState, OwnerOperatorSettings } from '../types/auth';
+import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -68,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setMemberships([]);
     setPlatformRole(null);
+    setStoredPlatformRole(null);
+    setSupportModeContext(null);
     setPermissions([]);
     setActiveContext(undefined);
     setEffectiveRole(undefined);
@@ -80,6 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(meResponse.user);
     setMemberships(meResponse.memberships ?? []);
     setPlatformRole(meResponse.platformRole ?? null);
+    setStoredPlatformRole(meResponse.platformRole ?? null);
+    if (meResponse.platformRole !== 'PLATFORM_ADMIN') {
+      setSupportModeContext(null);
+    }
     setPermissions(meResponse.permissions ?? []);
     setActiveContext(meResponse.activeContext);
     setEffectiveRole(meResponse.effectiveRole);

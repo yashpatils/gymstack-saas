@@ -42,6 +42,10 @@ export type AdminTenantDetailResponse = {
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
+  getUserById(userId: string) {
+    return this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  }
+
   async getMetrics(): Promise<AdminMetrics> {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

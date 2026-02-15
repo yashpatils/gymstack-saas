@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { assertCanCreateLocationInvite } from './invite-permissions';
+import { hasSupportModeContext } from '../auth/support-mode.util';
 
 @Injectable()
 export class InvitesService {
@@ -112,7 +113,7 @@ export class InvitesService {
     }
 
     const tenantId = requester.activeTenantId ?? requester.orgId;
-    if (!tenantId || tenantId !== invite.tenantId) {
+    if (!tenantId || (tenantId !== invite.tenantId && !hasSupportModeContext(requester, invite.tenantId, invite.locationId))) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -127,7 +128,7 @@ export class InvitesService {
       select: { id: true },
     });
 
-    if (!isCreator && !requesterIsOwner) {
+    if (!isCreator && !requesterIsOwner && !hasSupportModeContext(requester, invite.tenantId, invite.locationId)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -182,10 +183,19 @@ export class InvitesService {
     ) ?? null;
 
     const requesterRole = ownerMembership?.role ?? locationAdminMembership?.role ?? staffMembership?.role;
-    if (!requesterRole) {
+    if (!requesterRole && !hasSupportModeContext(requester, tenantId, locationId)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    assertCanCreateLocationInvite(requesterRole, inviteRole, staffMembership);
+    if (!requesterRole && hasSupportModeContext(requester, tenantId, locationId)) {
+      return;
+    }
+
+    const resolvedRequesterRole = requesterRole;
+    if (!resolvedRequesterRole) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    assertCanCreateLocationInvite(resolvedRequesterRole, inviteRole, staffMembership);
   }
 }
