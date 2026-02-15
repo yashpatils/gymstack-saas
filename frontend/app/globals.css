@@ -1278,6 +1278,28 @@ body {
   padding: 0.75rem 1.25rem;
 }
 
+.topbar-zone {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.topbar-zone-left {
+  justify-self: start;
+  justify-content: flex-start;
+}
+
+.topbar-zone-center {
+  justify-self: center;
+  justify-content: center;
+}
+
+.topbar-zone-right {
+  justify-self: end;
+  justify-content: flex-end;
+}
+
 .platform-sidebar-modern {
   width: 17rem;
   flex-shrink: 0;
@@ -1440,6 +1462,16 @@ body {
   .platform-topbar-modern {
     grid-template-columns: 1fr;
     gap: 0.5rem;
+  }
+
+  .topbar-zone-left,
+  .topbar-zone-center,
+  .topbar-zone-right {
+    justify-self: stretch;
+  }
+
+  .topbar-zone-right {
+    justify-content: flex-start;
   }
 
   .platform-sidebar-modern {
