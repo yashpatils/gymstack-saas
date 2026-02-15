@@ -25,6 +25,10 @@ import {
 } from '../lib/auth';
 import type { Membership, MembershipRole, OnboardingState, OwnerOperatorSettings } from '../types/auth';
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
+import { ApiFetchError } from '../lib/apiFetch';
+import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
+
+export type AuthIssue = 'SESSION_EXPIRED' | 'INSUFFICIENT_PERMISSIONS' | null;
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -32,6 +36,9 @@ type AuthContextValue = {
   token: string | null;
   loading: boolean;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  meStatus: 200 | 401 | 403 | null;
+  authIssue: AuthIssue;
   memberships: Membership[];
   platformRole?: 'PLATFORM_ADMIN' | null;
   permissions: string[];
@@ -63,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeMode, setActiveMode] = useState<'OWNER' | 'MANAGER' | undefined>(undefined);
   const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
   const [ownerOperatorSettings, setOwnerOperatorSettings] = useState<OwnerOperatorSettings | null | undefined>(undefined);
+  const [meStatus, setMeStatus] = useState<200 | 401 | 403 | null>(null);
+  const [authIssue, setAuthIssue] = useState<AuthIssue>(null);
 
   const clearAuthState = useCallback(() => {
     setUser(null);
@@ -71,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPlatformRole(null);
     setStoredPlatformRole(null);
     setSupportModeContext(null);
+    clearStoredActiveContext();
     setPermissions([]);
     setActiveContext(undefined);
     setEffectiveRole(undefined);
@@ -80,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applyMeResponse = useCallback((meResponse: AuthMeResponse) => {
+    setMeStatus(200);
+    setAuthIssue(null);
     setUser(meResponse.user);
     setMemberships(meResponse.memberships ?? []);
     setPlatformRole(meResponse.platformRole ?? null);
@@ -89,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setPermissions(meResponse.permissions ?? []);
     setActiveContext(meResponse.activeContext);
+    setStoredActiveContext(meResponse.activeContext);
     setEffectiveRole(meResponse.effectiveRole);
     setActiveMode(meResponse.activeMode);
     setOnboarding(meResponse.onboarding);
@@ -96,8 +109,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hydrateFromMe = useCallback(async () => {
-    const meResponse = await getMe();
-    applyMeResponse(meResponse);
+    try {
+      const meResponse = await getMe();
+      applyMeResponse(meResponse);
+      return meResponse;
+    } catch (error) {
+      if (error instanceof ApiFetchError) {
+        if (error.statusCode === 401) {
+          setMeStatus(401);
+          setAuthIssue('SESSION_EXPIRED');
+        } else if (error.statusCode === 403) {
+          setMeStatus(403);
+          setAuthIssue('INSUFFICIENT_PERMISSIONS');
+        }
+      }
+      throw error;
+    }
   }, [applyMeResponse]);
 
   useEffect(() => {
@@ -110,17 +137,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(existingToken);
       if (!existingToken) {
         clearAuthState();
+        setMeStatus(null);
+        setAuthIssue(null);
         setIsLoading(false);
         return;
       }
 
       try {
         await hydrateFromMe();
-      } catch {
-        if (isMounted) {
-          clearAuthState();
+      } catch (error) {
+        if (error instanceof ApiFetchError && error.statusCode === 403) {
+          if (isMounted) {
+            setUser(null);
+            setMemberships([]);
+          }
+        } else {
+          if (isMounted) {
+            clearAuthState();
+          }
+          clearToken();
         }
-        clearToken();
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -138,9 +174,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password);
     setToken(authToken);
-    setUser(loggedInUser);
-    setMemberships(nextMemberships);
-    setActiveContext(nextActiveContext);
     await hydrateFromMe();
     return { user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext };
   }, [hydrateFromMe]);
@@ -148,9 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = useCallback(async (email: string, password: string, role?: SignupRole) => {
     const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role);
     setToken(authToken);
-    setUser(signedUpUser);
-    setMemberships(nextMemberships);
-    setActiveContext(nextActiveContext);
     await hydrateFromMe();
     return { user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning };
   }, [hydrateFromMe]);
@@ -158,9 +188,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const acceptInvite = useCallback(async (input: { token: string; password?: string; email?: string; name?: string }) => {
     const { token: authToken, user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext } = await acceptInviteRequest(input);
     setToken(authToken);
-    setUser(invitedUser);
-    setMemberships(nextMemberships);
-    setActiveContext(nextActiveContext);
     await hydrateFromMe();
     return { user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext };
   }, [hydrateFromMe]);
@@ -178,6 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearToken();
+    setMeStatus(null);
+    setAuthIssue(null);
     clearAuthState();
   }, [clearAuthState]);
 
@@ -185,20 +214,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const existingToken = getToken();
     if (!existingToken) {
       clearAuthState();
+      setMeStatus(null);
+      setAuthIssue(null);
       return null;
     }
 
     try {
-      const meResponse = await getMe();
-      applyMeResponse(meResponse);
+      const meResponse = await hydrateFromMe();
       setToken(existingToken);
       return meResponse.user;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiFetchError && error.statusCode === 403) {
+        return null;
+      }
+
       clearToken();
       clearAuthState();
       return null;
     }
-  }, [applyMeResponse, clearAuthState]);
+  }, [clearAuthState, hydrateFromMe]);
 
   const value = useMemo(
     () => ({
@@ -207,6 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       loading: isLoading,
       isLoading,
+      isAuthenticated: Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS'),
+      meStatus,
+      authIssue,
       memberships,
       platformRole,
       permissions,
@@ -223,7 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [user, token, isLoading, memberships, platformRole, permissions, activeContext, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
+    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, activeContext, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

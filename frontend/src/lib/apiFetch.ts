@@ -1,4 +1,5 @@
 import { getAccessToken } from './auth/tokenStore';
+import { getStoredActiveContext } from './auth/contextStore';
 import { getStoredPlatformRole, getSupportModeContext } from './supportMode';
 
 type ApiFetchInit = Omit<RequestInit, 'body'> & {
@@ -117,10 +118,17 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
 
   const platformRole = getStoredPlatformRole();
   const supportContext = getSupportModeContext();
+  const activeContext = getStoredActiveContext();
   if (platformRole === 'PLATFORM_ADMIN' && supportContext) {
     headers.set('X-Support-Tenant-Id', supportContext.tenantId);
     if (supportContext.locationId) {
       headers.set('X-Support-Location-Id', supportContext.locationId);
+    }
+  }
+  if (activeContext) {
+    headers.set('X-Active-Tenant-Id', activeContext.tenantId);
+    if (activeContext.locationId) {
+      headers.set('X-Active-Location-Id', activeContext.locationId);
     }
   }
 
