@@ -113,7 +113,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         }
         footer={footer}
       >
-        {children}
+        <>
+          {children}
+          {footer ? <div className="container-app pb-6">{footer}</div> : null}
+        </>
       </AppShell>
     </AuthGate>
   );
