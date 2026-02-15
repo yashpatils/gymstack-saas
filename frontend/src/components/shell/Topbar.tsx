@@ -51,12 +51,12 @@ export function Topbar({
   }, [isAccountMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-20 min-h-[64px] border-b border-white/5 bg-[rgba(7,10,20,0.76)] px-4 backdrop-blur-xl md:min-h-[72px] md:px-6">
-      <div className="relative flex min-h-[64px] items-center md:min-h-[72px]">
+    <header className="sticky top-0 z-20 min-h-[64px] border-b border-white/5 bg-[rgba(7,10,20,0.76)] px-3 backdrop-blur-xl sm:px-4 md:min-h-[72px] md:px-6">
+      <div className="grid min-h-[64px] grid-cols-[auto,1fr] items-center gap-2 md:min-h-[72px] md:grid-cols-[minmax(0,1fr),auto,minmax(0,1fr)] md:gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
-            className="button secondary topbar-icon-button"
+            className="button secondary topbar-icon-button lg:hidden"
             onClick={onToggleMenu}
             aria-label="Toggle menu"
           >
@@ -65,22 +65,22 @@ export function Topbar({
           <Link href="/platform" className="text-sm font-semibold text-slate-200 hover:text-white">Platform</Link>
         </div>
 
-        <div className="pointer-events-none absolute left-1/2 flex h-full -translate-x-1/2 items-center justify-center px-3">
+        <div className="pointer-events-none hidden min-w-0 items-center justify-center px-2 md:flex">
           <AppContextTitle />
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm">Workspace</Link> : null}
+        <div className="ml-auto flex min-w-0 items-center justify-end gap-1 sm:gap-2">
+          {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm hidden sm:inline-flex">Workspace</Link> : null}
           {canSwitchMode ? (
             <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs">
               <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
               <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
             </div>
           ) : null}
-          <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
+          <button type="button" className="button ghost topbar-icon-button hidden sm:inline-flex" aria-label="Notifications">🔔</button>
           <Link href="/platform/account" className="button secondary button-sm inline-flex items-center gap-2" aria-label="Open account page">
             <span className="user-chip-avatar">{initials}</span>
-            <span className="max-w-32 truncate">{displayName}</span>
+            <span className="hidden max-w-32 truncate sm:inline">{displayName}</span>
           </Link>
           <div className="relative">
             <button
@@ -116,6 +116,10 @@ export function Topbar({
             ) : null}
           </div>
         </div>
+      </div>
+
+      <div className="pb-2 md:hidden">
+        <AppContextTitle />
       </div>
     </header>
   );
