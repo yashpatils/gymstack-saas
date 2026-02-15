@@ -52,10 +52,6 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-20 min-h-[64px] border-b border-white/5 bg-[rgba(7,10,20,0.76)] px-3 backdrop-blur-xl sm:px-4 md:min-h-[72px] md:px-6">
-      <div className="pt-2 md:hidden">
-        <AppContextTitle />
-      </div>
-
       <div className="grid min-h-[64px] grid-cols-[auto,1fr] items-center gap-2 md:min-h-[72px] md:grid-cols-[minmax(0,1fr),auto,minmax(0,1fr)] md:gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
@@ -122,6 +118,9 @@ export function Topbar({
         </div>
       </div>
 
+      <div className="pb-2 md:hidden">
+        <AppContextTitle />
+      </div>
     </header>
   );
 }
