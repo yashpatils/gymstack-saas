@@ -117,6 +117,10 @@ export function Topbar({
           </div>
         </div>
       </div>
+
+      <div className="pb-2 md:hidden">
+        <AppContextTitle />
+      </div>
     </header>
   );
 }
