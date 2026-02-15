@@ -29,8 +29,7 @@ export function Topbar({
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{orgName}</p>
       </div>
-      {showCompanyName && companyName ? <p className="topbar-company-name">{companyName}</p> : null}
-      <div className="topbar-actions-row">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary">Workspace</Link> : null}
         {canSwitchMode ? (
           <div className="flex items-center gap-2 rounded-full border border-border/70 px-2 py-1 text-xs">
@@ -39,10 +38,10 @@ export function Topbar({
           </div>
         ) : null}
         <button type="button" className="button ghost" aria-label="Notifications">🔔</button>
-        <Link href="/platform/profile" className="user-chip" title={email}>
+        <div className="user-chip" title={email}>
           <span className="user-chip-avatar">{initials}</span>
           <span className="user-chip-email">{email}</span>
-        </Link>
+        </div>
         <button type="button" className="button secondary" onClick={onLogout}>
           Logout
         </button>

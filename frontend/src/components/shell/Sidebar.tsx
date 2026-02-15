@@ -25,18 +25,6 @@ const sections = [
 ] as const;
 
 export function Sidebar({ items, pathname, mobileOpen = false, onClose }: SidebarProps) {
-  const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
-
-  const isItemActive = (href: string) => {
-    const normalizedHref = href.replace(/\/+$/, "") || "/";
-
-    if (normalizedHref === "/platform") {
-      return normalizedPathname === "/platform";
-    }
-
-    return normalizedPathname === normalizedHref || normalizedPathname.startsWith(`${normalizedHref}/`);
-  };
-
   return (
     <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""}`}>
       <div className="rounded-2xl border border-border/80 bg-black/20 p-4">
@@ -55,7 +43,7 @@ export function Sidebar({ items, pathname, mobileOpen = false, onClose }: Sideba
               <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{section.title}</p>
               <ul className="space-y-1">
                 {sectionItems.map((item) => {
-                  const isActive = isItemActive(item.href);
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                   const className = `platform-nav-item ${isActive ? "platform-nav-item-active" : ""} ${item.disabled ? "pointer-events-none opacity-40" : ""}`;
 
                   return (

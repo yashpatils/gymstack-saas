@@ -187,9 +187,7 @@ main {
 
 .button:hover {
   transform: none;
-  filter: brightness(0.95);
-  border-color: rgba(196, 181, 253, 0.45);
-  box-shadow: 0 0 0 1px rgba(196, 181, 253, 0.25), 0 14px 32px rgba(76, 29, 149, 0.35);
+  box-shadow: 0 14px 32px rgba(76, 29, 149, 0.35);
 }
 
 .button:active {
@@ -1263,48 +1261,22 @@ body {
 
 .platform-mobile-nav {
   display: none;
-  padding: 0.85rem 1rem;
-}
-
-.platform-sidebar-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 35;
-  background: rgba(2, 6, 23, 0.55);
-  border: none;
+  padding: 0.75rem 1rem 0;
 }
 
 .platform-topbar-modern {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   border-bottom: 1px solid var(--border);
   background: rgba(7, 10, 20, 0.7);
   backdrop-filter: blur(10px);
   padding: 0.9rem 1.5rem;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-}
-
-.topbar-company-name {
-  grid-column: 2;
-  margin: 0;
-  text-align: center;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.topbar-actions-row {
-  grid-column: 3;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  justify-self: end;
 }
 
 .platform-sidebar-modern {
@@ -1332,12 +1304,12 @@ body {
   border-radius: 0.75rem;
   padding: 0.55rem 0.7rem;
   color: var(--ink-600);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .platform-nav-item:hover {
-  background: transparent;
-  color: var(--ink-600);
+  background: rgba(51, 65, 85, 0.55);
+  color: var(--ink-900);
 }
 
 .platform-nav-item-active {
@@ -1372,69 +1344,6 @@ body {
   gap: 0.75rem;
   font-size: 0.875rem;
   color: var(--ink-600);
-}
-
-.user-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  max-width: 16rem;
-  padding: 0.3rem 0.6rem 0.3rem 0.3rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--card) 85%, transparent);
-}
-
-.compact-button {
-  min-height: 2.3rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.86rem;
-}
-
-.user-chip-avatar {
-  width: 1.9rem;
-  height: 1.9rem;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border: 1px solid rgba(139, 92, 246, 0.35);
-  background: rgba(139, 92, 246, 0.18);
-}
-
-.user-chip-email {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8rem;
-  color: var(--ink-700);
-}
-
-.plan-tier {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.plan-tier:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.35);
-  border-color: rgba(139, 92, 246, 0.4);
-}
-
-.platform-footer {
-  border-top: 1px solid var(--border);
-  padding-top: 0.9rem;
-  font-size: 0.78rem;
-  color: var(--ink-600);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.6rem;
-}
-
-.platform-footer-minimal {
-  justify-content: center;
 }
 
 .button {
@@ -1479,15 +1388,6 @@ body {
 
   .platform-sidebar-open {
     transform: translateX(0);
-  }
-
-  .platform-topbar-modern {
-    display: flex;
-  }
-
-  .topbar-company-name,
-  .topbar-actions-row {
-    grid-column: auto;
   }
 
   .platform-mobile-nav {

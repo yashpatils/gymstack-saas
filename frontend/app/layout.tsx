@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { SessionProvider } from "./components/session-provider";
 import { AuthProvider } from "../src/providers/AuthProvider";
 import { ToastProvider } from "../src/components/toast/ToastProvider";
+import { AuthDebugPanel } from "../src/components/auth/AuthDebugPanel";
 
 const geist = Inter({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <SessionProvider>{children}</SessionProvider>
+            <AuthDebugPanel />
           </ToastProvider>
         </AuthProvider>
       </body>

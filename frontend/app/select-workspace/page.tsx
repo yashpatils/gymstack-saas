@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../src/providers/AuthProvider";
 
@@ -8,9 +8,22 @@ const LAST_WORKSPACE_KEY = "gymstack_last_workspace";
 
 export default function SelectWorkspacePage() {
   const router = useRouter();
-  const { memberships, chooseContext, loading } = useAuth();
+  const { memberships, chooseContext, loading, activeContext } = useAuth();
   const [query, setQuery] = useState("");
 
+
+  useEffect(() => {
+    if (loading || memberships.length !== 1 || activeContext) {
+      return;
+    }
+
+    const membership = memberships[0];
+    void chooseContext(membership.tenantId, membership.locationId ?? membership.gymId ?? undefined)
+      .then(() => {
+        router.replace('/platform');
+      })
+      .catch(() => undefined);
+  }, [activeContext, chooseContext, loading, memberships, router]);
   const filteredMemberships = useMemo(
     () => memberships.filter((membership) => `${membership.tenantId} ${membership.locationId ?? membership.gymId ?? ""} ${membership.role}`.toLowerCase().includes(query.toLowerCase())),
     [memberships, query],

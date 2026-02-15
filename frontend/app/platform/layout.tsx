@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { RequireAuth } from "../../src/components/RequireAuth";
+import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
@@ -91,7 +91,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   ) : null;
 
   return (
-    <RequireAuth>
+    <AuthGate>
       <AppShell
         pathname={pathname}
         items={filteredItems}
@@ -111,12 +111,13 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             }}
           />
         }
+        footer={footer}
       >
         <>
           {children}
           {footer ? <div className="container-app pb-6">{footer}</div> : null}
         </>
       </AppShell>
-    </RequireAuth>
+    </AuthGate>
   );
 }

@@ -47,7 +47,7 @@ export default function TeamPage() {
           </label>
           <button
             type="button"
-            className="button secondary compact-button"
+            className="button"
             onClick={async () => {
               await navigator.clipboard.writeText(`${inviteLink}${inviteLocation ? `&location=${encodeURIComponent(inviteLocation)}` : ""}`);
               setCopied(true);
