@@ -4,6 +4,7 @@ import { buildApiUrl } from '../../../src/lib/apiFetch';
 import type { AuthMeResponse } from '../../../src/types/auth';
 
 const ADMIN_LOGIN_REDIRECT = 'https://admin.gymstack.club/login?next=/';
+const ADMIN_RESTRICTED_REDIRECT = 'https://admin.gymstack.club/login?error=restricted';
 
 export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   const token = cookies().get('gymstack_token')?.value;
@@ -25,7 +26,7 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
 
   const session = (await response.json()) as AuthMeResponse;
   if (session.platformRole !== 'PLATFORM_ADMIN') {
-    redirect(ADMIN_LOGIN_REDIRECT);
+    redirect(ADMIN_RESTRICTED_REDIRECT);
   }
 
   return session;

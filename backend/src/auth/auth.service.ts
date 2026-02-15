@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -212,6 +212,17 @@ export class AuthService implements OnModuleInit {
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
     };
+  }
+
+  async adminLogin(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+    const loginResponse = await this.login(input, context);
+    const isAllowlisted = isPlatformAdmin(loginResponse.user.email, getPlatformAdminEmails(this.configService));
+
+    if (!isAllowlisted) {
+      throw new ForbiddenException('Access restricted');
+    }
+
+    return loginResponse;
   }
 
   async registerWithInvite(

@@ -104,6 +104,20 @@ export class AuthController {
     }
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('admin/login')
+  async adminLogin(
+    @Body() body: LoginDto,
+    @Req() req: Request,
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+    try {
+      return await this.authService.adminLogin(body, getRequestContext(req));
+    } catch (error) {
+      this.logAuthFailure('POST /api/auth/admin/login', req, error);
+      throw error;
+    }
+  }
+
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
   @Post('register-with-invite')
   registerWithInvite(@Body() body: RegisterWithInviteDto, @Req() req: Request) {

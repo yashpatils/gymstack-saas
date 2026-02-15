@@ -5,7 +5,6 @@ const PUBLIC_FILE = /\.(.*)$/;
 const ADMIN_HOST = 'admin.gymstack.club';
 const ADMIN_PUBLIC_ROUTES = [
   '/login',
-  '/signup',
   '/reset-password',
   '/verify-email',
   '/api',
@@ -18,7 +17,8 @@ export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'stati
 
 type HostRouteResolution =
   | { type: 'next' }
-  | { type: 'rewrite'; pathname: string };
+  | { type: 'rewrite'; pathname: string }
+  | { type: 'redirect'; pathname: string; search?: string };
 
 function stripPort(host: string): string {
   return host.split(':')[0] ?? host;
@@ -64,17 +64,37 @@ function isAdminPublicRoute(pathname: string): boolean {
   return ADMIN_PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
-export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
-  if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom') || pathname.startsWith('/_admin')) {
+function isSignupPath(pathname: string): boolean {
+  return pathname === '/signup' || pathname.startsWith('/signup/');
+}
+
+function isAdminPrivatePath(pathname: string): boolean {
+  return pathname === '/' || pathname.startsWith('/_admin') || pathname.startsWith('/admin');
+}
+
+export function resolveHostRoute(host: string, pathname: string, baseDomain: string, hasSessionToken: boolean): HostRouteResolution {
+  if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom')) {
     return { type: 'next' };
   }
 
   if (host === ADMIN_HOST) {
-    if (isAdminPublicRoute(pathname)) {
+    if (isSignupPath(pathname)) {
+      return { type: 'redirect', pathname: '/login' };
+    }
+
+    if (isAdminPrivatePath(pathname) && !hasSessionToken) {
+      return { type: 'redirect', pathname: '/login' };
+    }
+
+    if (pathname.startsWith('/_admin') || isAdminPublicRoute(pathname)) {
       return { type: 'next' };
     }
 
     return { type: 'rewrite', pathname: adminPathname(pathname) };
+  }
+
+  if (pathname.startsWith('/_admin')) {
+    return { type: 'next' };
   }
 
   if (isRootHost(host, baseDomain)) {
@@ -102,10 +122,18 @@ export function middleware(request: NextRequest) {
   const baseDomain = getBaseDomain();
   const hostHeader = request.headers.get('host') ?? '';
   const host = stripPort(hostHeader.toLowerCase());
+  const hasSessionToken = Boolean(request.cookies.get('gymstack_token')?.value);
 
-  const resolution = resolveHostRoute(host, pathname, baseDomain);
+  const resolution = resolveHostRoute(host, pathname, baseDomain, hasSessionToken);
   if (resolution.type === 'next') {
     return NextResponse.next();
+  }
+
+  if (resolution.type === 'redirect') {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = resolution.pathname;
+    redirectUrl.search = resolution.search ?? '';
+    return NextResponse.redirect(redirectUrl);
   }
 
   const rewriteUrl = request.nextUrl.clone();
