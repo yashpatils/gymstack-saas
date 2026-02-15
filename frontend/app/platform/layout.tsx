@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -21,6 +21,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
+  const [hasGymstackHost, setHasGymstackHost] = useState(true);
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -33,6 +34,14 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       router.replace("/platform/onboarding");
     }
   }, [loading, onboarding?.needsOpsChoice, pathname, router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setHasGymstackHost(window.location.hostname.includes("gymstack"));
+  }, []);
 
   const handleSwitchMode = useCallback(async (mode: "OWNER" | "MANAGER") => {
     const tenantId = activeContext?.tenantId;
@@ -67,6 +76,19 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   });
 
   const canSwitchMode = Boolean(ownerOperatorSettings?.allowOwnerStaffLogin || ownerOperatorSettings?.defaultMode === "MANAGER");
+  const isTenantOwner = activeContext?.role === "TENANT_OWNER";
+  const companyName = user?.name ?? activeContext?.tenantId ?? "Your Company";
+
+  const footer = isTenantOwner ? (
+    <footer className="platform-footer">
+      <p>Owner Console • {companyName}</p>
+      <p className="text-muted-foreground">Need billing or domain help? Visit support from Billing or Settings.</p>
+    </footer>
+  ) : hasGymstackHost ? (
+    <footer className="platform-footer platform-footer-minimal">
+      <p>Powered by GymStack</p>
+    </footer>
+  ) : null;
 
   return (
     <AuthGate>
@@ -79,7 +101,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             orgName={activeContext?.tenantId ?? "GymStack"}
             initials={initials}
             memberships={memberships}
-            selectedTenantId={activeContext?.tenantId ?? ""}
+            companyName={companyName}
+            showCompanyName={isTenantOwner}
             onLogout={logout}
             canSwitchMode={canSwitchMode}
             activeMode={activeMode}
@@ -88,6 +111,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             }}
           />
         }
+        footer={footer}
       >
         {children}
       </AppShell>

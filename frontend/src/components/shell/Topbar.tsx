@@ -6,7 +6,8 @@ export function Topbar({
   orgName,
   initials,
   memberships,
-  selectedTenantId,
+  companyName,
+  showCompanyName,
   onLogout,
   canSwitchMode,
   activeMode,
@@ -16,7 +17,8 @@ export function Topbar({
   orgName: string;
   initials: string;
   memberships: Membership[];
-  selectedTenantId: string;
+  companyName?: string;
+  showCompanyName?: boolean;
   onLogout: () => void;
   canSwitchMode: boolean;
   activeMode?: "OWNER" | "MANAGER";
@@ -26,7 +28,6 @@ export function Topbar({
     <header className="platform-topbar-modern">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{orgName}</p>
-        <p className="text-sm text-foreground">{email}</p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary">Workspace</Link> : null}
@@ -45,7 +46,6 @@ export function Topbar({
           Logout
         </button>
       </div>
-      {selectedTenantId ? <p className="w-full text-xs text-muted-foreground">Active tenant: {selectedTenantId}</p> : null}
     </header>
   );
 }
