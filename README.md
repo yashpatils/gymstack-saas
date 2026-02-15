@@ -48,8 +48,9 @@ npm run predeploy
 
 Required environment variables:
 
-- `NEXT_PUBLIC_API_URL` — **Required in Vercel production/preview**. Use the full Railway backend origin (example: `https://your-api.up.railway.app`).
+- `NEXT_PUBLIC_API_URL` — Public browser API origin (example: `https://your-api.up.railway.app`).
   - In local development only, frontend falls back to `http://localhost:3000` when this variable is missing.
+- `API_URL` — **Server-only frontend env var** for SSR/server actions to call Railway backend (usually same origin as `NEXT_PUBLIC_API_URL`).
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` — Stripe price for upgrades (optional if billing checkout is disabled).
 
 - `NEXT_PUBLIC_BASE_DOMAIN` — Platform base domain used for subdomain routing (example: `gymstack.club`).
@@ -82,6 +83,7 @@ Required environment variables:
 - `ACCESS_TOKEN_TTL_MINUTES` — access token TTL in minutes (default: `15`).
 - `REFRESH_TOKEN_TTL_DAYS` — rotating refresh token TTL in days (default: `30`).
 - `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
+- `PLATFORM_ADMIN_EMAILS` — Comma-separated owner allowlist for platform admin access (case-insensitive), used by `/api/auth/me` and `/api/admin/*`.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 
 ## Notes
@@ -143,6 +145,7 @@ Environment overrides:
 Routing is fully environment-driven (no code edits required when changing domains):
 
 - Root marketing/owner login domain: `https://gymstack.club`
+- Platform admin domain: `https://admin.gymstack.club` (rewritten internally to `/_admin/*` and reserved from tenant slug routing).
 - Location fallback domain (no custom domain): `https://<locationSlug>.<NEXT_PUBLIC_BASE_DOMAIN>`
 - Active custom domains override fallback domains for landing/login/join links.
 
@@ -157,6 +160,13 @@ When you purchase a real domain later, update only:
 
 Also ensure Vercel has wildcard domain support configured for `*.your-domain.com` and the apex/root domain attached.
 
+
+
+### Admin domain setup
+
+- Add `admin.gymstack.club` as a production domain in the Vercel frontend project.
+- Keep wildcard domain support enabled for tenant subdomains (`*.gymstack.club`).
+- `admin` is a reserved subdomain and is never treated as a tenant slug.
 
 ## Email verification and account deletion flows
 
