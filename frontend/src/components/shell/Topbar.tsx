@@ -52,15 +52,11 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-20 min-h-[64px] border-b border-white/5 bg-[rgba(7,10,20,0.76)] px-3 backdrop-blur-xl sm:px-4 md:min-h-[72px] md:px-6">
-      <div className="py-2">
-        <AppContextTitle />
-      </div>
-
-      <div className="flex min-h-[64px] items-center gap-2 md:min-h-[72px]">
+      <div className="grid min-h-[64px] grid-cols-[auto,1fr] items-center gap-2 md:min-h-[72px] md:grid-cols-[minmax(0,1fr),auto,minmax(0,1fr)] md:gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
-            className="button secondary topbar-icon-button min-[1025px]:hidden"
+            className="button secondary topbar-icon-button lg:hidden"
             onClick={onToggleMenu}
             aria-label="Toggle menu"
           >
@@ -69,6 +65,9 @@ export function Topbar({
           <Link href="/platform" className="text-sm font-semibold text-slate-200 hover:text-white">Platform</Link>
         </div>
 
+        <div className="pointer-events-none hidden min-w-0 items-center justify-center px-2 md:flex">
+          <AppContextTitle />
+        </div>
 
         <div className="ml-auto flex min-w-0 items-center justify-end gap-1 sm:gap-2">
           {memberships.length > 1 ? <Link href="/select-workspace" className="button secondary button-sm hidden sm:inline-flex">Workspace</Link> : null}
@@ -119,6 +118,9 @@ export function Topbar({
         </div>
       </div>
 
+      <div className="pb-2 md:hidden">
+        <AppContextTitle />
+      </div>
     </header>
   );
 }
