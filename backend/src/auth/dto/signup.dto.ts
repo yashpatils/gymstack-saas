@@ -1,4 +1,10 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+
+export enum SignupRole {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+}
 
 export class SignupDto {
   @IsEmail()
@@ -7,4 +13,8 @@ export class SignupDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @IsOptional()
+  @IsEnum(SignupRole)
+  role?: SignupRole;
 }
