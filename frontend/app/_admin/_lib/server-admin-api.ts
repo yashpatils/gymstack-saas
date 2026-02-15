@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildApiUrl } from '../../../src/lib/apiFetch';
 import type { AuthMeResponse } from '../../../src/types/auth';
 
-const ADMIN_LOGIN_REDIRECT = 'https://gymstack.club/login?next=https://admin.gymstack.club';
+const ADMIN_LOGIN_REDIRECT = 'https://admin.gymstack.club/login?next=/';
 
 export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   const token = cookies().get('gymstack_token')?.value;

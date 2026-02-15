@@ -3,6 +3,17 @@ import type { NextRequest } from 'next/server';
 
 const PUBLIC_FILE = /\.(.*)$/;
 const ADMIN_HOST = 'admin.gymstack.club';
+const ADMIN_PUBLIC_ROUTES = [
+  '/login',
+  '/signup',
+  '/reset-password',
+  '/verify-email',
+  '/api',
+  '/favicon.ico',
+  '/_next',
+  '/robots.txt',
+  '/sitemap.xml',
+];
 export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
 
 type HostRouteResolution =
@@ -49,12 +60,20 @@ function adminPathname(pathname: string): string {
   return pathname === '/' ? '/_admin' : `/_admin${pathname}`;
 }
 
+function isAdminPublicRoute(pathname: string): boolean {
+  return ADMIN_PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
 export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
   if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom') || pathname.startsWith('/_admin')) {
     return { type: 'next' };
   }
 
   if (host === ADMIN_HOST) {
+    if (isAdminPublicRoute(pathname)) {
+      return { type: 'next' };
+    }
+
     return { type: 'rewrite', pathname: adminPathname(pathname) };
   }
 

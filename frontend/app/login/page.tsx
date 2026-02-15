@@ -9,6 +9,34 @@ import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAut
 import { Alert, Button, Input } from "../components/ui";
 
 const ADMIN_HOST = "admin.gymstack.club";
+const ALLOWED_NEXT_HOSTS = new Set(["gymstack.club", "www.gymstack.club", ADMIN_HOST]);
+
+export function getValidatedNextUrl(rawNext: string | null, isAdminHost: boolean): string | null {
+  if (!rawNext) {
+    return null;
+  }
+
+  if (rawNext.startsWith("/")) {
+    return rawNext;
+  }
+
+  try {
+    const parsed = new URL(rawNext);
+    const isAllowedHost = ALLOWED_NEXT_HOSTS.has(parsed.host.toLowerCase());
+    const isAllowedProtocol = parsed.protocol === "https:" || parsed.protocol === "http:";
+    if (!isAllowedHost || !isAllowedProtocol) {
+      return null;
+    }
+
+    if (isAdminHost && parsed.host.toLowerCase() === "gymstack.club") {
+      return null;
+    }
+
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
 
 const personaOptions: Array<{ label: string; value: OAuthPersona }> = [
   { label: 'Owner', value: 'OWNER' },
@@ -43,17 +71,20 @@ function LoginPageContent() {
     [],
   );
 
-  const nextUrl = useMemo(() => {
-    const rawNext = searchParams.get('next');
-    return rawNext && rawNext.length > 0 ? rawNext : null;
-  }, [searchParams]);
+  const nextUrl = useMemo(() => getValidatedNextUrl(searchParams.get('next'), isAdminHost), [isAdminHost, searchParams]);
 
   useEffect(() => {
     if (!loading && user) {
-      if (isAdminHost) {
-        redirectTo(nextUrl ?? `https://${ADMIN_HOST}`);
+      if (nextUrl) {
+        redirectTo(nextUrl);
         return;
       }
+
+      if (isAdminHost) {
+        redirectTo(`https://${ADMIN_HOST}`);
+        return;
+      }
+
       router.replace("/platform");
     }
   }, [isAdminHost, loading, nextUrl, router, user]);
@@ -68,8 +99,13 @@ function LoginPageContent() {
           setSubmitting(true);
           try {
             const result = await login(email, password);
+            if (nextUrl) {
+              redirectTo(nextUrl);
+              return;
+            }
+
             if (isAdminHost) {
-              redirectTo(nextUrl ?? `https://${ADMIN_HOST}`);
+              redirectTo(`https://${ADMIN_HOST}`);
               return;
             }
             const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');
