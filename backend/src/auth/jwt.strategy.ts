@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    const secret = configService.get<string>('JWT_SECRET');
+    const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
 
     if (!secret) {
       const logger = new Logger(JwtStrategy.name);
