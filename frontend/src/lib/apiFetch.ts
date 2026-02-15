@@ -1,12 +1,12 @@
+import { getAccessToken } from './auth/tokenStore';
+
 type ApiFetchInit = Omit<RequestInit, 'body'> & {
   body?: BodyInit | Record<string, unknown> | null;
   skipAuthRetry?: boolean;
 };
 
-const AUTH_TOKEN_STORAGE_KEY = 'gymstack_token';
 const DEV_LOCALHOST_API_URL = 'http://localhost:3000';
 
-let getAccessToken: (() => string | null) | null = null;
 let refreshAccessToken: (() => Promise<string | null>) | null = null;
 let handleUnauthorized: (() => void) | null = null;
 
@@ -36,11 +36,9 @@ export class ApiFetchError extends Error {
 }
 
 export function configureApiAuth(
-  getTokenFn: () => string | null,
   refreshFn: () => Promise<string | null>,
   onUnauthorized?: () => void,
 ): void {
-  getAccessToken = getTokenFn;
   refreshAccessToken = refreshFn;
   handleUnauthorized = onUnauthorized ?? null;
 }
@@ -66,18 +64,6 @@ function isRecordBody(value: unknown): value is Record<string, unknown> {
     !(value instanceof Blob) &&
     !(value instanceof ArrayBuffer)
   );
-}
-
-function getStoredAuthToken(): string | null {
-  if (getAccessToken) {
-    return getAccessToken();
-  }
-
-  if (isServer()) {
-    return null;
-  }
-
-  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
 }
 
 export function getApiBaseUrl(): string {
@@ -109,7 +95,7 @@ export function buildApiUrl(path: string): string {
 
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const headers = new Headers(init.headers ?? {});
-  const token = getStoredAuthToken();
+  const token = getAccessToken();
 
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);

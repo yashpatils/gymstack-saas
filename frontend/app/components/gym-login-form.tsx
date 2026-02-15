@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
-import { applyOAuthToken } from '@/src/lib/auth';
+import { applyOAuthTokens } from '@/src/lib/auth';
 import { Alert, Button, Input } from './ui';
 import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
 import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
@@ -22,8 +22,9 @@ export function GymLoginForm() {
     const params = new URLSearchParams(window.location.search);
     const oauth = params.get('oauth');
     const token = params.get('token');
+    const refreshToken = params.get('refreshToken') ?? params.get('refresh_token');
     if (oauth === 'success' && token) {
-      applyOAuthToken(token);
+      applyOAuthTokens({ accessToken: token, refreshToken: refreshToken ?? undefined });
       router.replace('/platform');
     }
   }, [router]);

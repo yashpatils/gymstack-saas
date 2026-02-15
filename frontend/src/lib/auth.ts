@@ -1,10 +1,7 @@
 import { ApiFetchError, apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
+import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth/tokenStore';
 import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from '../types/auth';
 
-const ACCESS_TOKEN_STORAGE_KEY = 'gymstack_token';
-const REFRESH_TOKEN_STORAGE_KEY = 'gymstack_refresh_token';
-
-let inMemoryAccessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
 
 export type { AuthUser, AuthMeResponse, ActiveContext };
@@ -12,52 +9,12 @@ export type SignupRole = 'OWNER' | 'ADMIN' | 'USER';
 
 type AuthTokens = { accessToken: string; refreshToken?: string };
 
-function setStoredAccessToken(token: string): void {
-  if (typeof window === 'undefined') {
-    inMemoryAccessToken = token;
-    return;
-  }
-
-  inMemoryAccessToken = token;
-  const secureAttribute = window.location.protocol === 'https:' ? '; Secure' : '';
-  window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
-  document.cookie = `gymstack_token=${token}; Path=/; SameSite=Lax${secureAttribute}`;
-}
-
-function setStoredRefreshToken(token: string): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token);
-}
-
 function setAuthTokens(tokens: AuthTokens): void {
-  setStoredAccessToken(tokens.accessToken);
-  if (tokens.refreshToken) {
-    setStoredRefreshToken(tokens.refreshToken);
-  }
+  setTokens(tokens);
 }
 
 export function getToken(): string | null {
-  if (inMemoryAccessToken) {
-    return inMemoryAccessToken;
-  }
-
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const stored = window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-  inMemoryAccessToken = stored;
-  return stored;
-}
-
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  return window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+  return getAccessToken();
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
@@ -143,7 +100,7 @@ export async function acceptInvite(params: { token: string; password?: string; e
 
 export async function setContext(tenantId: string, gymId?: string): Promise<{ token: string }> {
   const data = await apiFetch<{ accessToken: string }>('/api/auth/set-context', { method: 'POST', body: JSON.stringify({ tenantId, gymId }), headers: { 'Content-Type': 'application/json' } });
-  setStoredAccessToken(data.accessToken);
+  setTokens({ accessToken: data.accessToken });
   return { token: data.accessToken };
 }
 
@@ -168,8 +125,13 @@ export function oauthStartUrl(
 }
 
 
+
+export function applyOAuthTokens(tokens: { accessToken: string; refreshToken?: string }): void {
+  setTokens(tokens);
+}
+
 export function applyOAuthToken(token: string): void {
-  setStoredAccessToken(token);
+  applyOAuthTokens({ accessToken: token });
 }
 
 export async function me(): Promise<AuthMeResponse> {
@@ -184,20 +146,10 @@ export async function me(): Promise<AuthMeResponse> {
 }
 
 export function logout(): void {
-  if (typeof window === 'undefined') {
-    inMemoryAccessToken = null;
-    return;
-  }
-
-  const secureAttribute = window.location.protocol === 'https:' ? '; Secure' : '';
-  inMemoryAccessToken = null;
-  window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-  document.cookie = `gymstack_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${secureAttribute}`;
+  clearTokens();
 }
 
 configureApiAuth(
-  () => getToken(),
   refreshAccessToken,
   () => {
     logout();
