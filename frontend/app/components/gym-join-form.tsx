@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
-import { applyOAuthToken, me } from '@/src/lib/auth';
+import { applyOAuthTokens, me } from '@/src/lib/auth';
 import { Alert, Button, Input } from './ui';
 import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
 import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
@@ -31,10 +31,11 @@ export function GymJoinForm() {
   useEffect(() => {
     const oauth = searchParams.get('oauth');
     const oauthToken = searchParams.get('token');
+    const refreshToken = searchParams.get('refreshToken') ?? searchParams.get('refresh_token');
     const oauthError = searchParams.get('error');
 
     if (oauth === 'success' && oauthToken) {
-      applyOAuthToken(oauthToken);
+      applyOAuthTokens({ accessToken: oauthToken, refreshToken: refreshToken ?? undefined });
       void me().then((currentUser) => {
         if (currentUser.effectiveRole === 'GYM_STAFF_COACH' || currentUser.effectiveRole === 'TENANT_LOCATION_ADMIN') {
           router.replace('/platform/coach');

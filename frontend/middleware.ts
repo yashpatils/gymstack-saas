@@ -48,14 +48,6 @@ export function middleware(request: NextRequest) {
   const baseDomain = getBaseDomain();
   const hostHeader = request.headers.get('host') ?? '';
   const host = stripPort(hostHeader.toLowerCase());
-
-  if (pathname.startsWith('/platform')) {
-    const token = request.cookies.get('gymstack_token')?.value;
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
   if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom') || isRootHost(host, baseDomain)) {
     return NextResponse.next();
   }
