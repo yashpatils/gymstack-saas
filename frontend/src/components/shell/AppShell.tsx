@@ -11,6 +11,14 @@ export function AppShell({ items, topbar, children }: { items: ShellNavItem[]; t
 
   return (
     <div className="platform-shell">
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+          aria-label="Close menu"
+        />
+      ) : null}
       <Sidebar items={items} mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         {topbar({ onToggleMenu: () => setMobileNavOpen((value) => !value) })}
