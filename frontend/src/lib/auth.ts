@@ -201,7 +201,11 @@ configureApiAuth(
   refreshAccessToken,
   () => {
     logout();
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.pathname !== '/login' &&
+      window.location.pathname !== '/'
+    ) {
       window.location.assign('/login');
     }
   },
