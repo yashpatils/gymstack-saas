@@ -1377,14 +1377,23 @@ body {
 }
 
 .topbar-icon-button {
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
-  padding: 0.35rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  border-radius: 0.75rem;
+  padding: 0;
   display: inline-flex;
   justify-content: center;
   align-items: center;
   line-height: 1;
+}
+
+@media (min-width: 768px) {
+  .topbar-icon-button {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+  }
 }
 
 .platform-footer {

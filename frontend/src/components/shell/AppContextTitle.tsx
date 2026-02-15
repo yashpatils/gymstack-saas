@@ -11,7 +11,7 @@ export function AppContextTitle() {
       : activeLocation?.name ?? "Gym Stack";
 
   return (
-    <p className="mx-auto max-w-[20rem] truncate text-center text-sm font-medium tracking-[0.02em] text-slate-300 md:max-w-[28rem] md:text-base">
+    <p className="max-w-[50vw] truncate text-center text-base font-semibold tracking-wide text-foreground/90 sm:max-w-[40vw] md:max-w-[32rem] md:text-lg">
       {title}
     </p>
   );
