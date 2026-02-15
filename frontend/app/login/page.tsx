@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
 import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { Alert, Button, Input } from "../components/ui";
+
+const ADMIN_HOST = "admin.gymstack.club";
 
 const personaOptions: Array<{ label: string; value: OAuthPersona }> = [
   { label: 'Owner', value: 'OWNER' },
@@ -14,6 +16,12 @@ const personaOptions: Array<{ label: string; value: OAuthPersona }> = [
   { label: 'Coach', value: 'COACH' },
   { label: 'Client', value: 'CLIENT' },
 ];
+
+function redirectTo(url: string) {
+  if (typeof window !== 'undefined') {
+    window.location.assign(url);
+  }
+}
 
 function LoginPageContent() {
   const router = useRouter();
@@ -30,9 +38,25 @@ function LoginPageContent() {
   const showOAuth = shouldShowOAuth({ pathname, selectedPersona });
   const sessionMessage = searchParams.get("message");
 
+  const isAdminHost = useMemo(
+    () => (typeof window !== 'undefined' ? window.location.host.toLowerCase() === ADMIN_HOST : false),
+    [],
+  );
+
+  const nextUrl = useMemo(() => {
+    const rawNext = searchParams.get('next');
+    return rawNext && rawNext.length > 0 ? rawNext : null;
+  }, [searchParams]);
+
   useEffect(() => {
-    if (!loading && user) router.replace("/platform");
-  }, [loading, router, user]);
+    if (!loading && user) {
+      if (isAdminHost) {
+        redirectTo(nextUrl ?? `https://${ADMIN_HOST}`);
+        return;
+      }
+      router.replace("/platform");
+    }
+  }, [isAdminHost, loading, nextUrl, router, user]);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
@@ -44,6 +68,10 @@ function LoginPageContent() {
           setSubmitting(true);
           try {
             const result = await login(email, password);
+            if (isAdminHost) {
+              redirectTo(nextUrl ?? `https://${ADMIN_HOST}`);
+              return;
+            }
             const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');
             if (result.memberships.length === 0) {
               router.push('/platform');
@@ -61,8 +89,8 @@ function LoginPageContent() {
           }
         }}
       >
-        <h1 className="text-2xl font-semibold text-white">Welcome back</h1>
-        <p className="text-sm text-slate-300">Sign in to your gym workspace.</p>
+        <h1 className="text-2xl font-semibold text-white">{isAdminHost ? 'Platform Admin Sign In' : 'Welcome back'}</h1>
+        <p className="text-sm text-slate-300">{isAdminHost ? 'Sign in with your company owner account.' : 'Sign in to your gym workspace.'}</p>
         <div className="grid grid-cols-2 gap-2">
           {personaOptions.map((option) => {
             const isActive = selectedPersona === option.value;

@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const PUBLIC_FILE = /\.(.*)$/;
+export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
+
+type HostRouteResolution =
+  | { type: 'next' }
+  | { type: 'rewrite'; pathname: string };
 
 function stripPort(host: string): string {
   return host.split(':')[0] ?? host;
@@ -39,6 +44,35 @@ function getSubdomain(host: string, baseDomain: string): string | null {
   return null;
 }
 
+function adminPathname(pathname: string): string {
+  return pathname === '/' ? '/_admin' : `/_admin${pathname}`;
+}
+
+export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
+  if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom') || pathname.startsWith('/_admin')) {
+    return { type: 'next' };
+  }
+
+  if (host === 'admin.gymstack.club') {
+    return { type: 'rewrite', pathname: adminPathname(pathname) };
+  }
+
+  if (isRootHost(host, baseDomain)) {
+    return { type: 'next' };
+  }
+
+  const slug = getSubdomain(host, baseDomain);
+  if (slug) {
+    if (RESERVED_SUBDOMAINS.has(slug)) {
+      return { type: 'next' };
+    }
+
+    return { type: 'rewrite', pathname: `/_sites/${slug}${pathname}` };
+  }
+
+  return { type: 'rewrite', pathname: `/_custom/${encodeURIComponent(host)}${pathname}` };
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (shouldBypass(pathname)) {
@@ -48,19 +82,14 @@ export function middleware(request: NextRequest) {
   const baseDomain = getBaseDomain();
   const hostHeader = request.headers.get('host') ?? '';
   const host = stripPort(hostHeader.toLowerCase());
-  if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom') || isRootHost(host, baseDomain)) {
+
+  const resolution = resolveHostRoute(host, pathname, baseDomain);
+  if (resolution.type === 'next') {
     return NextResponse.next();
   }
 
-  const slug = getSubdomain(host, baseDomain);
-  if (slug) {
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = `/_sites/${slug}${pathname}`;
-    return NextResponse.rewrite(rewriteUrl);
-  }
-
   const rewriteUrl = request.nextUrl.clone();
-  rewriteUrl.pathname = `/_custom/${encodeURIComponent(host)}${pathname}`;
+  rewriteUrl.pathname = resolution.pathname;
   return NextResponse.rewrite(rewriteUrl);
 }
 

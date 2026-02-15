@@ -18,7 +18,8 @@ npm run predeploy
 
 Required env vars:
 
-- `NEXT_PUBLIC_API_URL` (required in Vercel production/preview; local development can fallback to `http://localhost:3000`)
+- `NEXT_PUBLIC_API_URL` (public browser API origin)
+- `API_URL` (server-only API origin for SSR/server actions; point to Railway backend)
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` (optional if billing checkout flow disabled)
 
 
@@ -27,3 +28,8 @@ Required env vars:
 - **Root Directory:** `frontend`
 - **Build Command:** `npm run predeploy`
 - **Install Command:** `npm install`
+
+## Domains
+
+- Attach `gymstack.club`, `www.gymstack.club`, wildcard `*.gymstack.club`, and `admin.gymstack.club` to the Vercel project.
+- `admin.gymstack.club` is reserved for the platform-owner console and rewrites to `/_admin/*`.
