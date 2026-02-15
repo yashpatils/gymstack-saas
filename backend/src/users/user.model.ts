@@ -15,4 +15,10 @@ export interface User {
   activeRole?: string;
   activeMode?: 'OWNER' | 'MANAGER';
   permissions?: string[];
+  isPlatformAdmin?: boolean;
+  supportMode?: {
+    tenantId: string;
+    locationId?: string;
+  };
 }
+

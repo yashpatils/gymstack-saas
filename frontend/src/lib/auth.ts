@@ -136,7 +136,7 @@ export function applyOAuthToken(token: string): void {
 
 export async function me(): Promise<AuthMeResponse> {
   try {
-    return await apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET' });
+    return await apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store' });
   } catch (error) {
     if (error instanceof ApiFetchError && error.statusCode === 401) {
       logout();

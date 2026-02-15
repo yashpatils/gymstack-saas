@@ -1,4 +1,5 @@
 import { getAccessToken } from './auth/tokenStore';
+import { getStoredPlatformRole, getSupportModeContext } from './supportMode';
 
 type ApiFetchInit = Omit<RequestInit, 'body'> & {
   body?: BodyInit | Record<string, unknown> | null;
@@ -111,6 +112,16 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
 
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json');
+  }
+
+
+  const platformRole = getStoredPlatformRole();
+  const supportContext = getSupportModeContext();
+  if (platformRole === 'PLATFORM_ADMIN' && supportContext) {
+    headers.set('X-Support-Tenant-Id', supportContext.tenantId);
+    if (supportContext.locationId) {
+      headers.set('X-Support-Location-Id', supportContext.locationId);
+    }
   }
 
   const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;

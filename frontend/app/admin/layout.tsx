@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getAdminSessionOrRedirect } from './_lib/server-admin-api';
+import { SupportModePanel } from './support-mode-panel';
 
 const adminNavItems = [
   { href: '/admin', label: 'Dashboard' },
@@ -23,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             ))}
           </nav>
         </aside>
-        <main className="space-y-6">{children}</main>
+        <main className="space-y-6"><SupportModePanel />{children}</main>
       </div>
     </div>
   );
