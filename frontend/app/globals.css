@@ -113,8 +113,8 @@ main {
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.6);
+  transform: none;
+  box-shadow: var(--glow);
 }
 
 .card h3 {
@@ -186,8 +186,8 @@ main {
 }
 
 .button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 18px 40px rgba(76, 29, 149, 0.45);
+  transform: none;
+  box-shadow: 0 14px 32px rgba(76, 29, 149, 0.35);
 }
 
 .button:active {

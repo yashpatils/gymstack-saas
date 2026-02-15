@@ -37,7 +37,10 @@ export function Topbar({
           </div>
         ) : null}
         <button type="button" className="button ghost" aria-label="Notifications">🔔</button>
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-xs font-semibold">{initials}</span>
+        <div className="user-chip" title={email}>
+          <span className="user-chip-avatar">{initials}</span>
+          <span className="user-chip-email">{email}</span>
+        </div>
         <button type="button" className="button secondary" onClick={onLogout}>
           Logout
         </button>
