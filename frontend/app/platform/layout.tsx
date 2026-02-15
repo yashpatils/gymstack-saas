@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { RequireAuth } from "../../src/components/RequireAuth";
+import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
@@ -69,7 +69,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const canSwitchMode = Boolean(ownerOperatorSettings?.allowOwnerStaffLogin || ownerOperatorSettings?.defaultMode === "MANAGER");
 
   return (
-    <RequireAuth>
+    <AuthGate>
       <AppShell
         pathname={pathname}
         items={filteredItems}
@@ -91,6 +91,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       >
         {children}
       </AppShell>
-    </RequireAuth>
+    </AuthGate>
   );
 }

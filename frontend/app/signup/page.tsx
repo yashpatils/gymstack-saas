@@ -49,7 +49,7 @@ function SignupPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { signup, acceptInvite } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<Intent | null>(getIntentFromQuery(searchParams.get('intent')));
+  const [selectedRole, setSelectedRole] = useState<Intent>(getIntentFromQuery(searchParams.get('intent')));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState(searchParams.get("token") ?? "");
@@ -58,8 +58,8 @@ function SignupPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const intent = selectedRole ?? 'owner';
-  const selectedPersona = selectedRole ? getPersonaForIntent(selectedRole) : null;
+  const intent = selectedRole;
+  const selectedPersona = getPersonaForIntent(selectedRole);
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
   const showOAuth = shouldShowOAuth({ pathname, selectedPersona });
 

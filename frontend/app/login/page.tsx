@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { login, loading, user } = useAuth();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +28,7 @@ export default function LoginPage() {
   const [selectedPersona, setSelectedPersona] = useState<OAuthPersona>('OWNER');
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
   const showOAuth = shouldShowOAuth({ pathname, selectedPersona });
+  const sessionMessage = searchParams.get("message");
 
   useEffect(() => {
     if (!loading && user) router.replace("/platform");
@@ -43,7 +45,15 @@ export default function LoginPage() {
           try {
             const result = await login(email, password);
             const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');
-            router.push(hasOwnerRole ? '/platform/context' : result.memberships.length > 1 ? '/select-workspace' : '/platform');
+            if (result.memberships.length === 0) {
+              router.push('/platform');
+              return;
+            }
+            if (hasOwnerRole) {
+              router.push('/platform/context');
+              return;
+            }
+            router.push(result.memberships.length > 1 ? '/select-workspace' : '/platform');
           } catch (submitError) {
             setError(submitError instanceof Error ? submitError.message : "Unable to login.");
           } finally {
@@ -69,6 +79,7 @@ export default function LoginPage() {
             );
           })}
         </div>
+        {sessionMessage ? <Alert tone="info">{sessionMessage}</Alert> : null}
         {error ? <Alert tone="error">{error}</Alert> : null}
         <Input label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         <Input label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />

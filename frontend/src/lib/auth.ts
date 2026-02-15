@@ -158,7 +158,8 @@ configureApiAuth(
       window.location.pathname !== '/login' &&
       window.location.pathname !== '/'
     ) {
-      window.location.assign('/login');
+      const params = new URLSearchParams({ message: 'Session expired. Please sign in again.' });
+      window.location.assign(`/login?${params.toString()}`);
     }
   },
 );
