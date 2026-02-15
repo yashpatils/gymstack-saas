@@ -97,12 +97,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         items={filteredItems}
         topbar={
           <Topbar
-            email={email}
-            orgName={activeContext?.tenantId ?? "GymStack"}
             initials={initials}
             memberships={memberships}
-            companyName={companyName}
-            showCompanyName={isTenantOwner}
             onLogout={logout}
             canSwitchMode={canSwitchMode}
             activeMode={activeMode}
