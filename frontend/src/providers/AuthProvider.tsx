@@ -15,6 +15,7 @@ import {
   type AuthUser,
   acceptInvite as acceptInviteRequest,
   getToken,
+  adminLogin as adminLoginRequest,
   login as loginRequest,
   logout as clearToken,
   me as getMe,
@@ -50,7 +51,7 @@ type AuthContextValue = {
   activeMode?: 'OWNER' | 'MANAGER';
   onboarding?: OnboardingState;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
-  login: (email: string, password: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  login: (email: string, password: string, options?: { adminOnly?: boolean }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
@@ -183,8 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearAuthState, hydrateFromMe]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password);
+  const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean }) => {
+    const loginMethod = options?.adminOnly ? adminLoginRequest : loginRequest;
+    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginMethod(email, password);
     setToken(authToken);
     await hydrateFromMe();
     return { user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext };
