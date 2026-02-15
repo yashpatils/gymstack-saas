@@ -29,7 +29,7 @@ export default function BillingPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         {plans.map((plan) => (
-          <article key={plan.name} className={`section-card plan-tier ${plan.featured ? "section-card-featured" : ""}`}>
+          <article key={plan.name} className={`section-card ${plan.featured ? "section-card-featured" : ""}`}>
             <p className="text-sm text-muted-foreground">{plan.name}</p>
             <p className="mt-2 text-3xl font-semibold">{plan.price}</p>
             <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
