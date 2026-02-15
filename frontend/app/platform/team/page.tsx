@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageHeader } from "../../../src/components/common/PageHeader";
+import DataTable, { type DataTableColumn } from "../../../src/components/DataTable";
 import { EmptyState } from "../../../src/components/common/EmptyState";
+import { PageHeader } from "../../../src/components/common/PageHeader";
+import { SectionCard } from "../../../src/components/common/SectionCard";
 import { useAuth } from "../../../src/providers/AuthProvider";
 
 const roles = ["TENANT_LOCATION_ADMIN", "GYM_STAFF_COACH", "CLIENT"] as const;
@@ -18,13 +20,18 @@ export default function TeamPage() {
     [inviteRole],
   );
 
+  const columns: DataTableColumn<(typeof memberships)[number]>[] = [
+    { id: "workspace", header: "Workspace", cell: (membership) => membership.tenantId, sortable: true, sortValue: (membership) => membership.tenantId },
+    { id: "role", header: "Role", cell: (membership) => membership.role, sortable: true, sortValue: (membership) => membership.role },
+    { id: "status", header: "Status", cell: (membership) => <span className="badge success">{membership.status}</span>, sortable: true, sortValue: (membership) => membership.status },
+  ];
+
   return (
     <section className="space-y-6">
-      <PageHeader title="Team" subtitle="Invite admins, coaches, and clients with clear role boundaries." />
+      <PageHeader title="Staff & team" subtitle="Invite admins, coaches, and clients with clear role boundaries." />
 
-      <article className="rounded-2xl border border-border bg-card/70 p-5">
-        <h2 className="text-lg font-semibold text-foreground">Invite user</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Generate a role-aware invite link and share it securely.</p>
+      <SectionCard title="Invite user">
+        <p className="text-sm text-muted-foreground">Generate a role-aware invite link and share it securely.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <label className="grid gap-1 text-sm">
             Role
@@ -38,33 +45,27 @@ export default function TeamPage() {
             Location
             <input className="input" value={inviteLocation} onChange={(event) => setInviteLocation(event.target.value)} placeholder="Main Downtown" />
           </label>
-          <button type="button" className="button" onClick={async () => {
-            await navigator.clipboard.writeText(`${inviteLink}${inviteLocation ? `&location=${encodeURIComponent(inviteLocation)}` : ""}`);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1200);
-          }}>{copied ? "Copied" : "Copy invite link"}</button>
+          <button
+            type="button"
+            className="button secondary compact-button"
+            onClick={async () => {
+              await navigator.clipboard.writeText(`${inviteLink}${inviteLocation ? `&location=${encodeURIComponent(inviteLocation)}` : ""}`);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 1200);
+            }}
+          >
+            {copied ? "Copied" : "Copy invite link"}
+          </button>
         </div>
-      </article>
+      </SectionCard>
 
-      {memberships.length === 0 ? (
-        <EmptyState title="No memberships yet" description="Invite staff or clients after creating your first location." />
-      ) : (
-        <article className="rounded-2xl border border-border bg-card/70 p-5">
-          <h2 className="text-lg font-semibold">Team status</h2>
-          <table className="table mt-3">
-            <thead><tr><th>Workspace</th><th>Role</th><th>Status</th></tr></thead>
-            <tbody>
-              {memberships.map((membership) => (
-                <tr key={membership.id}>
-                  <td>{membership.tenantId}</td>
-                  <td>{membership.role}</td>
-                  <td><span className="badge success">{membership.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </article>
-      )}
+      <SectionCard title="Team status">
+        {memberships.length === 0 ? (
+          <EmptyState title="No memberships yet" description="Invite staff or clients after creating your first location." />
+        ) : (
+          <DataTable rows={memberships} columns={columns} getRowKey={(row) => row.id} searchPlaceholder="Search memberships" pageSize={8} />
+        )}
+      </SectionCard>
     </section>
   );
 }
