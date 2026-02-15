@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
+import { apiFetch } from "../../src/lib/apiFetch";
 
 const baseNavItems = [
   { label: "Overview", href: "/platform" },
@@ -17,17 +19,23 @@ const baseNavItems = [
   { label: "Settings", href: "/platform/settings" },
 ];
 
+type LocationBranding = {
+  customDomain?: string | null;
+  gymName: string;
+  logoUrl?: string | null;
+};
+
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout, permissions, memberships, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
-  const [hasGymstackHost, setHasGymstackHost] = useState(true);
+  const [locationBranding, setLocationBranding] = useState<LocationBranding | null>(null);
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
-    const source = email.split("@")[0] ?? "PU";
+    const source = (user?.name?.trim() || email.split("@")[0] || "PU");
     return source.slice(0, 2).toUpperCase();
-  }, [email]);
+  }, [email, user?.name]);
 
   useEffect(() => {
     if (!loading && onboarding?.needsOpsChoice && pathname !== "/platform/onboarding") {
@@ -36,12 +44,34 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   }, [loading, onboarding?.needsOpsChoice, pathname, router]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
+    let mounted = true;
+
+    async function loadLocationBranding() {
+      const locationId = activeContext?.locationId;
+      const role = activeContext?.role;
+      if (!locationId || role === "TENANT_OWNER") {
+        setLocationBranding(null);
+        return;
+      }
+
+      try {
+        const branding = await apiFetch<LocationBranding>(`/api/locations/${locationId}/branding`, { method: "GET" });
+        if (mounted) {
+          setLocationBranding(branding);
+        }
+      } catch {
+        if (mounted) {
+          setLocationBranding(null);
+        }
+      }
     }
 
-    setHasGymstackHost(window.location.hostname.includes("gymstack"));
-  }, []);
+    void loadLocationBranding();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeContext?.locationId, activeContext?.role]);
 
   const handleSwitchMode = useCallback(async (mode: "OWNER" | "MANAGER") => {
     const tenantId = activeContext?.tenantId;
@@ -59,8 +89,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     return <main className="p-8 text-muted-foreground">Loading workspace...</main>;
   }
 
-  const navItems = platformRole === 'PLATFORM_ADMIN'
-    ? [...baseNavItems, { label: 'Admin', href: '/admin' }]
+  const navItems = platformRole === "PLATFORM_ADMIN"
+    ? [...baseNavItems, { label: "Admin", href: "/admin" }]
     : baseNavItems;
 
   const filteredItems = navItems.filter((item) => {
@@ -77,27 +107,40 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   const canSwitchMode = Boolean(ownerOperatorSettings?.allowOwnerStaffLogin || ownerOperatorSettings?.defaultMode === "MANAGER");
   const isTenantOwner = activeContext?.role === "TENANT_OWNER";
-  const companyName = user?.name ?? activeContext?.tenantId ?? "Your Company";
+  const companyName = user?.name ?? "Your Company";
+  const staffOrClient = activeContext?.role === "GYM_STAFF_COACH" || activeContext?.role === "CLIENT";
 
   const footer = isTenantOwner ? (
     <footer className="platform-footer">
-      <p>Owner Console • {companyName}</p>
-      <p className="text-muted-foreground">Need billing or domain help? Visit support from Billing or Settings.</p>
+      <div>
+        <p className="text-sm font-medium text-slate-100">{companyName}</p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} GymStack. All rights reserved.</p>
+      </div>
+      <div className="platform-footer-links">
+        <Link href="/terms">Terms</Link>
+        <Link href="/privacy">Privacy</Link>
+        <Link href="/platform/support">Support</Link>
+        <Link href="/contact">Contact</Link>
+      </div>
     </footer>
-  ) : hasGymstackHost ? (
-    <footer className="platform-footer platform-footer-minimal">
-      <p>Powered by GymStack</p>
-    </footer>
+  ) : staffOrClient ? (
+    locationBranding?.customDomain ? null : (
+      <footer className="platform-footer platform-footer-minimal">
+        <p>Powered by GymStack</p>
+      </footer>
+    )
   ) : null;
 
   return (
     <AuthGate>
       <AppShell
-        pathname={pathname}
         items={filteredItems}
-        topbar={
+        topbar={({ onToggleMenu }) => (
           <Topbar
             initials={initials}
+            displayName={user?.name?.trim() || email}
+            tenantName={companyName}
+            isTenantOwner={isTenantOwner}
             memberships={memberships}
             onLogout={logout}
             canSwitchMode={canSwitchMode}
@@ -105,8 +148,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             onSwitchMode={(mode) => {
               void handleSwitchMode(mode);
             }}
+            onToggleMenu={onToggleMenu}
           />
-        }
+        )}
       >
         <>
           {children}

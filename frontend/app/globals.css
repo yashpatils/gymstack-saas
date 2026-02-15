@@ -1268,15 +1268,14 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   border-bottom: 1px solid var(--border);
-  background: rgba(7, 10, 20, 0.7);
+  background: rgba(7, 10, 20, 0.76);
   backdrop-filter: blur(10px);
-  padding: 0.9rem 1.5rem;
+  padding: 0.75rem 1.25rem;
 }
 
 .platform-sidebar-modern {
@@ -1300,22 +1299,26 @@ body {
 }
 
 .platform-nav-item {
+  position: relative;
   display: block;
   border-radius: 0.75rem;
-  padding: 0.55rem 0.7rem;
+  padding: 0.58rem 0.7rem;
   color: var(--ink-600);
+  border: 1px solid transparent;
   transition: all 0.2s ease;
 }
 
 .platform-nav-item:hover {
-  background: rgba(51, 65, 85, 0.55);
+  background: rgba(51, 65, 85, 0.36);
+  border-color: rgba(148, 163, 184, 0.22);
   color: var(--ink-900);
 }
 
 .platform-nav-item-active {
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(99, 102, 241, 0.16);
   color: var(--ink-900);
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  border: 1px solid rgba(139, 92, 246, 0.38);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2), inset 3px 0 0 rgba(167, 139, 250, 0.85);
 }
 
 .data-table-shell {
@@ -1347,10 +1350,16 @@ body {
 }
 
 .button {
-  border-radius: 0.9rem;
+  border-radius: 0.75rem;
   border: 1px solid transparent;
   background: linear-gradient(135deg, #8b5cf6, #6366f1);
   color: white;
+  transition: all 180ms ease;
+}
+
+.button:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.38), 0 8px 24px rgba(99, 102, 241, 0.35);
 }
 .button.secondary {
   background: color-mix(in oklab, var(--card) 85%, transparent);
@@ -1360,6 +1369,45 @@ body {
 .button.ghost {
   background: transparent;
   border-color: var(--border);
+}
+.button-sm {
+  min-height: 2rem;
+  padding: 0.4rem 0.62rem;
+  font-size: 0.75rem;
+}
+
+.topbar-icon-button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.platform-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: rgba(8, 12, 24, 0.55);
+  padding: 0.8rem 1rem;
+}
+
+.platform-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--ink-600);
+}
+
+.platform-footer-minimal {
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--ink-600);
 }
 .input {
   border-radius: 0.9rem;
@@ -1377,6 +1425,11 @@ body {
 }
 
 @media (max-width: 1024px) {
+  .platform-topbar-modern {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
   .platform-sidebar-modern {
     position: fixed;
     inset: 0 auto 0 0;
