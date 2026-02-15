@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
 import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
@@ -15,7 +15,7 @@ const personaOptions: Array<{ label: string; value: OAuthPersona }> = [
   { label: 'Client', value: 'CLIENT' },
 ];
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const { login, loading, user } = useAuth();
@@ -90,4 +90,8 @@ export default function LoginPage() {
       </form>
     </main>
   );
+}
+
+export default function LoginPage() {
+  return <Suspense fallback={<main className="min-h-screen" />}><LoginPageContent /></Suspense>;
 }
