@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const PUBLIC_FILE = /\.(.*)$/;
+const ADMIN_HOST = 'admin.gymstack.club';
 export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
 
 type HostRouteResolution =
@@ -53,7 +54,7 @@ export function resolveHostRoute(host: string, pathname: string, baseDomain: str
     return { type: 'next' };
   }
 
-  if (host === 'admin.gymstack.club') {
+  if (host === ADMIN_HOST) {
     return { type: 'rewrite', pathname: adminPathname(pathname) };
   }
 
