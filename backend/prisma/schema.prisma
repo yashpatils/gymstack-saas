@@ -258,6 +258,7 @@ model Gym {
 model Organization {
   id          String       @id @default(cuid())
   name        String
+  whiteLabelBrandingEnabled Boolean @default(false)
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]

@@ -30,8 +30,21 @@ export class MeDto {
 export class AuthMeResponseDto {
   user!: MeDto;
   platformRole?: 'PLATFORM_ADMIN' | null;
+  role?: MembershipRole | null;
   memberships!: MembershipDto[];
   activeContext?: ActiveContextDto;
+  activeTenant?: {
+    id: string;
+    name: string;
+  };
+  activeLocation?: {
+    id: string;
+    name: string;
+    customDomain?: string | null;
+  };
+  tenantFeatures?: {
+    whiteLabelBranding: boolean;
+  };
   activeMode?: 'OWNER' | 'MANAGER';
   canUseSocialLogin?: boolean;
   effectiveRole?: MembershipRole;

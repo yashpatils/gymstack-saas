@@ -26,12 +26,23 @@ const sections = [
   },
 ] as const;
 
-function isNavItemActive(pathname: string, href: string): boolean {
-  if (href === "/platform") {
-    return pathname === href;
+function normalizePath(s: string): string {
+  if (s.length <= 1) {
+    return s;
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return s.replace(/\/+$/, "");
+}
+
+function isActivePath(pathname: string, href: string): boolean {
+  const p = normalizePath(pathname);
+  const h = normalizePath(href);
+
+  if (h === "/platform") {
+    return p === "/platform";
+  }
+
+  return p === h || p.startsWith(`${h}/`);
 }
 
 export function Sidebar({ items, mobileOpen = false, onClose }: SidebarProps) {
@@ -40,7 +51,7 @@ export function Sidebar({ items, mobileOpen = false, onClose }: SidebarProps) {
   return (
     <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""}`}>
       <div className="rounded-2xl border border-border/80 bg-black/20 p-4">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">GymStack</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Gym Stack</p>
         <p className="mt-2 text-lg font-semibold text-foreground">Platform</p>
       </div>
       <nav className="platform-sidebar-nav" aria-label="Platform navigation">
@@ -55,7 +66,7 @@ export function Sidebar({ items, mobileOpen = false, onClose }: SidebarProps) {
               <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{section.title}</p>
               <ul className="space-y-1">
                 {sectionItems.map((item) => {
-                  const isActive = isNavItemActive(pathname, item.href);
+                  const isActive = isActivePath(pathname, item.href);
                   const className = `platform-nav-item ${isActive ? "platform-nav-item-active" : ""} ${item.disabled ? "pointer-events-none opacity-40" : ""}`;
 
                   return (

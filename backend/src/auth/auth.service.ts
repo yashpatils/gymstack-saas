@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger, OnModuleInit, UnauthorizedExce
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { ActiveMode, AuthTokenPurpose, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
+import { ActiveMode, AuthTokenPurpose, DomainStatus, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -494,11 +494,41 @@ export class AuthService implements OnModuleInit {
       }
     }
 
+    const activeTenant = activeContext?.tenantId
+      ? await this.prisma.organization.findUnique({
+        where: { id: activeContext.tenantId },
+        select: { id: true, name: true, whiteLabelBrandingEnabled: true },
+      })
+      : null;
+
+    const activeLocation = activeContext?.gymId
+      ? await this.prisma.gym.findUnique({
+        where: { id: activeContext.gymId },
+        select: { id: true, name: true },
+      })
+      : null;
+
+    const activeLocationDomain = activeLocation
+      ? await this.prisma.customDomain.findFirst({
+        where: { locationId: activeLocation.id, status: DomainStatus.ACTIVE },
+        orderBy: { createdAt: 'desc' },
+        select: { hostname: true },
+      })
+      : null;
+
     return {
       user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '', emailVerified: Boolean(user.emailVerifiedAt), emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null },
       platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
+      role: activeContext?.role ?? null,
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext: activeContext ?? undefined,
+      activeTenant: activeTenant ? { id: activeTenant.id, name: activeTenant.name } : undefined,
+      activeLocation: activeLocation ? {
+        id: activeLocation.id,
+        name: activeLocation.name,
+        customDomain: activeLocationDomain?.hostname ?? null,
+      } : undefined,
+      tenantFeatures: activeTenant ? { whiteLabelBranding: activeTenant.whiteLabelBrandingEnabled } : undefined,
       activeMode,
       canUseSocialLogin,
       effectiveRole: activeContext?.role,

@@ -23,7 +23,7 @@ import {
   signup as signupRequest,
   type SignupRole,
 } from '../lib/auth';
-import type { Membership, MembershipRole, OnboardingState, OwnerOperatorSettings } from '../types/auth';
+import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, TenantFeatures } from '../types/auth';
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
@@ -43,6 +43,9 @@ type AuthContextValue = {
   platformRole?: 'PLATFORM_ADMIN' | null;
   permissions: string[];
   activeContext?: ActiveContext;
+  activeTenant?: ActiveTenant;
+  activeLocation?: ActiveLocation;
+  tenantFeatures?: TenantFeatures;
   effectiveRole?: MembershipRole;
   activeMode?: 'OWNER' | 'MANAGER';
   onboarding?: OnboardingState;
@@ -66,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [platformRole, setPlatformRole] = useState<'PLATFORM_ADMIN' | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [activeContext, setActiveContext] = useState<ActiveContext | undefined>(undefined);
+  const [activeTenant, setActiveTenant] = useState<ActiveTenant | undefined>(undefined);
+  const [activeLocation, setActiveLocation] = useState<ActiveLocation | undefined>(undefined);
+  const [tenantFeatures, setTenantFeatures] = useState<TenantFeatures | undefined>(undefined);
   const [effectiveRole, setEffectiveRole] = useState<MembershipRole | undefined>(undefined);
   const [activeMode, setActiveMode] = useState<'OWNER' | 'MANAGER' | undefined>(undefined);
   const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
@@ -83,6 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearStoredActiveContext();
     setPermissions([]);
     setActiveContext(undefined);
+    setActiveTenant(undefined);
+    setActiveLocation(undefined);
+    setTenantFeatures(undefined);
     setEffectiveRole(undefined);
     setActiveMode(undefined);
     setOnboarding(undefined);
@@ -102,6 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPermissions(meResponse.permissions ?? []);
     setActiveContext(meResponse.activeContext);
     setStoredActiveContext(meResponse.activeContext);
+    setActiveTenant(meResponse.activeTenant);
+    setActiveLocation(meResponse.activeLocation);
+    setTenantFeatures(meResponse.tenantFeatures);
     setEffectiveRole(meResponse.effectiveRole);
     setActiveMode(meResponse.activeMode);
     setOnboarding(meResponse.onboarding);
@@ -248,6 +260,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       platformRole,
       permissions,
       activeContext,
+      activeTenant,
+      activeLocation,
+      tenantFeatures,
       effectiveRole,
       activeMode,
       onboarding,
@@ -260,7 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, activeContext, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
+    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

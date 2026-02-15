@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PageHeader } from "../../../src/components/common/PageHeader";
 import { SectionCard } from "../../../src/components/common/SectionCard";
+import { useAuth } from "../../../src/providers/AuthProvider";
 
 const plans = [
   { name: "Starter", price: "$49", description: "Single location", featured: false },
@@ -12,6 +13,8 @@ const plans = [
 
 export default function BillingPage() {
   const stripeConfigured = Boolean(process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "");
+  const { activeContext, tenantFeatures } = useAuth();
+  const isOwner = activeContext?.role === "TENANT_OWNER";
 
   return (
     <section className="space-y-6">
@@ -26,6 +29,17 @@ export default function BillingPage() {
           <div className="rounded-2xl border border-emerald-300/40 bg-emerald-400/10 p-4 text-sm text-emerald-100">Stripe configuration detected.</div>
         )}
       </SectionCard>
+
+      {isOwner ? (
+        <SectionCard title="Add-ons">
+          <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-sm text-slate-200">
+            <p className="font-medium text-white">White Label Branding</p>
+            <p className="mt-1">Status: <span className="font-semibold">{tenantFeatures?.whiteLabelBranding ? "Enabled" : "Disabled"}</span></p>
+            <p className="mt-2 text-xs text-slate-400">Remove Gym Stack branding on custom domains for staff/client experiences.</p>
+            <button type="button" className="button secondary mt-3">Upgrade to enable</button>
+          </div>
+        </SectionCard>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         {plans.map((plan) => (

@@ -1,3 +1,4 @@
+import { FeatureToggle } from "./feature-toggle";
 import { adminApiFetch } from '../../_lib/server-admin-api';
 import type { AdminTenantDetail } from '../../../../src/types/admin';
 
@@ -9,7 +10,12 @@ export default async function AdminTenantDetailPage({ params }: { params: { tena
       <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/20 via-slate-900/30 to-cyan-500/10 p-6 backdrop-blur-xl">
         <h1 className="text-3xl font-semibold text-white">{tenant.tenant.name}</h1>
         <p className="mt-2 text-sm text-slate-300">Tenant ID: {tenant.tenant.id}</p>
+        <p className="mt-1 text-sm text-slate-300">White label: {tenant.tenant.whiteLabelBranding ? "Enabled" : "Disabled"}</p>
       </header>
+
+
+
+      <FeatureToggle tenantId={tenant.tenant.id} initialWhiteLabel={tenant.tenant.whiteLabelBranding} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
