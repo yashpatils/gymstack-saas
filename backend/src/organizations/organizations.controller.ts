@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Patch, Req } from '@nestjs/common';
 import { User } from '../users/user.model';
 import { UpdateOrgDto } from './dto/update-org.dto';
 import { OrganizationsService } from './organizations.service';
@@ -21,15 +21,6 @@ export class OrganizationsController {
 
 
   @Get('dashboard-summary')
-  getDashboardSummary(@Req() req: { user?: User }) {
-    const user = req.user;
-    if (!user) {
-      throw new ForbiddenException('Missing user');
-    }
-
-    return this.organizationsService.getDashboardSummary(user.id, user.activeTenantId ?? user.orgId);
-  }
-
   @Get('dashboard/summary')
   getDashboardSummary(@Req() req: { user?: User }) {
     const user = req.user;
@@ -42,7 +33,7 @@ export class OrganizationsController {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    return this.organizationsService.getDashboardSummary(tenantId, user.id);
+    return this.organizationsService.getDashboardSummary(user.id, tenantId);
   }
 
   @Patch()

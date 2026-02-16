@@ -30,32 +30,41 @@ export default function PlatformPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("locations");
 
+  const isTenantOwner = memberships.some((membership) => membership.role === "TENANT_OWNER");
+
   useEffect(() => {
     let active = true;
+
     const run = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const [gymData, userData, summaryData] = await Promise.all([
-          listGyms(),
-          listUsers(),
-          apiFetch<DashboardSummary>("/api/org/dashboard-summary", { method: "GET" }),
-        ]);
-        if (!active) {
-          return;
-        }
-        setGyms(gymData);
-        setUsers(userData);
-        setSummary(summaryData);
-      } catch (loadError) {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : "Could not load platform data.");
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+
+      const [gymResult, userResult, summaryResult] = await Promise.allSettled([
+        listGyms(),
+        listUsers(),
+        apiFetch<DashboardSummary>("/api/org/dashboard-summary", { method: "GET" }),
+      ]);
+
+      if (!active) {
+        return;
       }
+
+      if (gymResult.status === "fulfilled") {
+        setGyms(gymResult.value);
+      } else {
+        setGyms([]);
+        setError(gymResult.reason instanceof Error ? gymResult.reason.message : "Could not load platform data.");
+      }
+
+      setUsers(userResult.status === "fulfilled" ? userResult.value : []);
+      setSummary(summaryResult.status === "fulfilled" ? summaryResult.value : {
+        locations: 0,
+        members: 0,
+        mrr: null,
+        invites: 0,
+      });
+
+      setLoading(false);
     };
 
     void run();
@@ -64,8 +73,7 @@ export default function PlatformPage() {
     };
   }, []);
 
-  const isTenantOwner = memberships.some((membership) => membership.role === "TENANT_OWNER");
-  const showFirstRunState = !loading && !error && isTenantOwner && gyms.length === 0;
+  const showFirstRunState = !loading && isTenantOwner && gyms.length === 0;
 
   const staff = useMemo(
     () => users.filter((member) => member.role?.includes("COACH") || member.role?.includes("STAFF") || member.role?.includes("ADMIN")),
@@ -114,7 +122,7 @@ export default function PlatformPage() {
         }
       />
 
-      {error ? (
+      {error && !showFirstRunState ? (
         <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-sm text-rose-200">
           {error} <button type="button" onClick={() => window.location.reload()} className="ml-2 underline">Retry</button>
         </div>
