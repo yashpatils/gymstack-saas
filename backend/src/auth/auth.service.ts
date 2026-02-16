@@ -324,7 +324,15 @@ export class AuthService implements OnModuleInit {
       await this.emailService.sendVerifyEmail({ to: user.email, token: verificationToken });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown email error';
-      this.logger.error(`resend-verification email failed: ${message}`);
+      this.logger.error(
+        JSON.stringify({
+          event: 'resend_verification_email_failed',
+          email: this.redactEmail(user.email),
+          statusCode: error instanceof EmailProviderError ? error.statusCode ?? null : null,
+          providerCode: error instanceof EmailProviderError ? error.providerCode ?? null : null,
+          message,
+        }),
+      );
     }
 
     return { ok: true, message: 'If your account exists, a verification email has been sent.' };
@@ -542,6 +550,20 @@ export class AuthService implements OnModuleInit {
     const activeContext = await this.getDefaultContext(memberships);
     return this.signToken(user.id, user.email, user.role, activeContext);
   }
+
+  private redactEmail(email: string): string {
+    const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) {
+      return '***';
+    }
+
+    if (localPart.length <= 2) {
+      return `${localPart[0] ?? '*'}***@${domain}`;
+    }
+
+    return `${localPart.slice(0, 2)}***@${domain}`;
+  }
+
 
   private toMembershipDto(membership: Membership): MembershipDto {
     return {
