@@ -179,11 +179,7 @@ export class PublicService {
 
     return {
       tenantId: location.orgId,
-      tenant: {
-        id: tenant?.id ?? location.orgId,
-        name: tenant?.name ?? '',
-        whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled || tenant?.whiteLabelBrandingEnabled),
-      },
+      tenant: this.toTenantBranding(tenant, location.orgId),
       location: {
         id: location.id,
         slug: location.slug,
