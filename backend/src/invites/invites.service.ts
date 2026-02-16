@@ -66,7 +66,6 @@ export class InvitesService {
       role: input.role,
       tenantId,
       locationId: location.id,
-      token,
     };
   }
 
@@ -79,27 +78,27 @@ export class InvitesService {
       tenantId: string;
       locationName?: string;
       locationSlug?: string;
-      emailBound?: string | null;
+      emailBound?: boolean;
       expiresAt: string;
-      targeted: boolean;
+      errorCode?: undefined;
     }
-    | { ok: false; valid: false; reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED' }
+    | { ok: false; valid: false; reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED'; errorCode: 'invite_invalid' | 'invite_expired' | 'invite_already_used' | 'invite_revoked' }
   > {
     const invite = await this.findByToken(token);
     if (!invite) {
-      return { ok: false, valid: false, reason: 'INVALID' };
+      return { ok: false, valid: false, reason: 'INVALID', errorCode: 'invite_invalid' };
     }
 
     if (invite.revokedAt || invite.status === InviteStatus.REVOKED) {
-      return { ok: false, valid: false, reason: 'REVOKED' };
+      return { ok: false, valid: false, reason: 'REVOKED', errorCode: 'invite_revoked' };
     }
 
     if (invite.status === InviteStatus.ACCEPTED || invite.consumedAt) {
-      return { ok: false, valid: false, reason: 'ALREADY_USED' };
+      return { ok: false, valid: false, reason: 'ALREADY_USED', errorCode: 'invite_already_used' };
     }
 
     if (invite.expiresAt.getTime() < Date.now()) {
-      return { ok: false, valid: false, reason: 'EXPIRED' };
+      return { ok: false, valid: false, reason: 'EXPIRED', errorCode: 'invite_expired' };
     }
 
     const location = await this.prisma.gym.findUnique({ where: { id: invite.locationId }, select: { name: true, slug: true } });
@@ -112,9 +111,8 @@ export class InvitesService {
       tenantId: invite.tenantId,
       locationName: location?.name,
       locationSlug: location?.slug,
-      emailBound: invite.email,
+      emailBound: Boolean(invite.email),
       expiresAt: invite.expiresAt.toISOString(),
-      targeted: Boolean(invite.email),
     };
   }
 

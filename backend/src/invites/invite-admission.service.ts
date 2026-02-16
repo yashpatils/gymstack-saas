@@ -14,7 +14,29 @@ export class InviteAdmissionService {
     if (!input.emailFromProviderOrSignup) {
       throw new BadRequestException('Invite required to join this gym.');
     }
-    const invite = await this.invitesService.getUsableInvite(input.token, input.emailFromProviderOrSignup);
+    const normalizedEmail = input.emailFromProviderOrSignup.toLowerCase();
+    const inviteByToken = await this.invitesService.findByToken(input.token);
+    if (!inviteByToken) {
+      throw new BadRequestException('Invite token is invalid.');
+    }
+
+    if (inviteByToken.revokedAt || inviteByToken.status === 'REVOKED') {
+      throw new BadRequestException('Invite has been revoked.');
+    }
+
+    if (inviteByToken.consumedAt || inviteByToken.status === 'ACCEPTED') {
+      throw new BadRequestException('Invite already used.');
+    }
+
+    if (inviteByToken.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Invite expired.');
+    }
+
+    if (inviteByToken.email && inviteByToken.email.toLowerCase() !== normalizedEmail) {
+      throw new BadRequestException('Invite email does not match this account.');
+    }
+
+    const invite = await this.invitesService.getUsableInvite(input.token, normalizedEmail);
     if (!invite) {
       throw new BadRequestException('Invite required to join this gym.');
     }

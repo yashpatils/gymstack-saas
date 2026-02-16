@@ -40,8 +40,9 @@ export class InvitesController {
   }
 
   @Post('consume')
-  consumeInvite(@Body() body: ValidateInviteDto) {
-    return this.invitesService.consumeByToken(body.token);
+  @UseGuards(JwtAuthGuard)
+  consumeInvite(@Req() req: { user: User }, @Body() body: ValidateInviteDto) {
+    return this.invitesService.consumeByToken(body.token, req.user.email, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)

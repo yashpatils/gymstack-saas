@@ -17,4 +17,8 @@ export class SignupDto {
   @IsOptional()
   @IsEnum(SignupRole)
   role?: SignupRole;
+
+  @IsOptional()
+  @IsString()
+  inviteToken?: string;
 }

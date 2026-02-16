@@ -53,7 +53,7 @@ type AuthContextValue = {
   onboarding?: OnboardingState;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
   login: (email: string, password: string, options?: { adminOnly?: boolean }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
-  signup: (email: string, password: string, role?: SignupRole) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
+  signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
   switchMode: (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => Promise<void>;
@@ -251,8 +251,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [hydrateFromMe, normalizeMemberships]);
 
-  const signup = useCallback(async (email: string, password: string, role?: SignupRole) => {
-    const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role);
+  const signup = useCallback(async (email: string, password: string, role?: SignupRole, inviteToken?: string) => {
+    const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role, inviteToken);
     setToken(authToken);
     await hydrateFromMe();
     return { user: signedUpUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext, emailDeliveryWarning };
