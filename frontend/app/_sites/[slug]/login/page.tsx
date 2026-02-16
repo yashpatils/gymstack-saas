@@ -9,7 +9,11 @@ export default async function SiteLoginPage({ params }: { params: { slug: string
     ? await getPublicLocationByHost(host).catch(() => getPublicLocationBySlug(params.slug))
     : await getPublicLocationBySlug(params.slug);
 
-  const tenantId = 'tenantId' in data ? data.tenantId : data.tenant.id;
+  const tenantId = 'tenantId' in data ? data.tenantId : data.tenant?.id;
+
+  if (!tenantId) {
+    throw new Error('Unable to resolve tenant for login page');
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-4 px-6">
