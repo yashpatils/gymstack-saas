@@ -62,7 +62,7 @@ export default function VerifyEmailClient() {
               className="button"
               onClick={async () => {
                 const result = await resendVerification(email);
-                setMessage(result.message);
+                setMessage(result.emailDeliveryWarning ?? result.message);
               }}
             >
               Resend verification

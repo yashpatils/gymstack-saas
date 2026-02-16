@@ -22,7 +22,7 @@ export function EmailVerificationBanner() {
           className="button secondary"
           onClick={async () => {
             const result = await resendVerification(user.email);
-            setMessage(result.message);
+            setMessage(result.emailDeliveryWarning ?? result.message);
           }}
         >
           Resend verification
