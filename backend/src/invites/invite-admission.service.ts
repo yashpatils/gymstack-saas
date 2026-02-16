@@ -42,7 +42,7 @@ export class InviteAdmissionService {
       },
     });
 
-    await this.invitesService.consumeInvite(invite.id);
+    await this.invitesService.consumeInvite(invite.id, input.userId);
 
     return { tenantId: invite.tenantId, locationId: invite.locationId, role: invite.role };
   }

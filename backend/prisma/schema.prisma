@@ -92,6 +92,7 @@ model User {
   invites              Invite[]             @relation("InviteCreator")
   customDomains        CustomDomain[]
   locationInvites      LocationInvite[]
+  consumedLocationInvites LocationInvite[] @relation("InviteConsumer")
   auditLogs            AuditLog[]
   notifications        Notification[]
   authTokens           AuthToken[]
@@ -307,7 +308,7 @@ model CustomDomain {
 }
 
 model LocationInvite {
-  id              String           @id @default(cuid())
+  id              String           @id @default(uuid())
   tenantId        String
   locationId      String
   role            MembershipRole
@@ -317,15 +318,21 @@ model LocationInvite {
   expiresAt       DateTime
   status          InviteStatus     @default(PENDING)
   consumedAt      DateTime?
+  consumedByUserId String?
+  revokedAt       DateTime?
   createdByUserId String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   tenant          Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location        Gym              @relation(fields: [locationId], references: [id], onDelete: Cascade)
   creator         User             @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  consumer        User?            @relation("InviteConsumer", fields: [consumedByUserId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([locationId])
   @@index([createdByUserId])
   @@index([tenantId, locationId, status])
+  @@index([tenantId, locationId])
+  @@index([role, consumedAt])
+  @@index([tokenPrefix])
 }

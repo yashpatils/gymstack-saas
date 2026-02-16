@@ -2,6 +2,9 @@ import { IsEmail, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-vali
 
 export class CreateInviteDto {
   @IsString()
+  tenantId!: string;
+
+  @IsString()
   locationId!: string;
 
   @IsIn(['GYM_STAFF_COACH', 'CLIENT'])
@@ -9,11 +12,11 @@ export class CreateInviteDto {
 
   @IsOptional()
   @IsEmail()
-  email?: string;
+  email?: string | null;
 
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(24 * 30)
-  expiresInHours?: number;
+  @Max(90)
+  expiresInDays?: number;
 }
