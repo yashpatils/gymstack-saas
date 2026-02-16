@@ -37,7 +37,7 @@ export default async function SiteLoginPage({ params }: { params: { slug: string
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-4 px-6">
-      <p className="text-sm text-slate-300">{data.location.displayName ?? data.location.name}</p>
+      <p className="text-sm text-slate-300">{data.location.displayName ?? data.location.slug}</p>
       <GymLoginForm tenantId={tenantId} locationId={data.location.id} />
     </main>
   );
