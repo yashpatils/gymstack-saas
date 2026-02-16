@@ -1,16 +1,17 @@
 import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { getPlatformAdminEmails, isPlatformAdmin } from '../auth/platform-admin.util';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
 type RequestUser = {
   id: string;
 };
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
+@VerifiedEmailRequired()
+@UseGuards(RequirePlatformAdminGuard)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,

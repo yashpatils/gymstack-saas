@@ -10,17 +10,17 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserRole } from './user.model';
 import { UsersService } from './users.service';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
+@VerifiedEmailRequired()
+@UseGuards(RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

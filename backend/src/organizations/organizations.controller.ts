@@ -1,12 +1,11 @@
 import { Body, Controller, ForbiddenException, Get, Patch, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { User } from '../users/user.model';
 import { UpdateOrgDto } from './dto/update-org.dto';
 import { OrganizationsService } from './organizations.service';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
 @Controller('org')
-@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
+@VerifiedEmailRequired()
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 

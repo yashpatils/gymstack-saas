@@ -49,10 +49,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(
     request: { headers: Record<string, string | string[] | undefined>; ip?: string },
     payload: JwtPayload,
-  ): Promise<JwtPayload & { userId: string; permissions: string[]; isPlatformAdmin: boolean; supportMode?: SupportModeContext }> {
+  ): Promise<JwtPayload & { userId: string; permissions: string[]; isPlatformAdmin: boolean; supportMode?: SupportModeContext; emailVerifiedAt: Date | null }> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { email: true },
+      select: { email: true, emailVerifiedAt: true },
     });
 
     const userIsPlatformAdmin = isPlatformAdmin(user?.email, getPlatformAdminEmails(this.configService));
@@ -73,6 +73,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       permissions,
       isPlatformAdmin: userIsPlatformAdmin,
       supportMode,
+      emailVerifiedAt: user?.emailVerifiedAt ?? null,
     };
   }
 
