@@ -15,7 +15,6 @@ import {
   type AuthUser,
   acceptInvite as acceptInviteRequest,
   getToken,
-  adminLogin as adminLoginRequest,
   login as loginRequest,
   logout as clearToken,
   me as getMe,
@@ -166,9 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthIssue(null);
     setUser(meResponse.user);
     setMemberships(normalizeMemberships(meResponse.memberships));
-    setPlatformRole(meResponse.platformRole ?? null);
-    setStoredPlatformRole(meResponse.platformRole ?? null);
-    if (meResponse.platformRole !== 'PLATFORM_ADMIN') {
+    const nextPlatformRole = meResponse.isPlatformAdmin ? 'PLATFORM_ADMIN' : (meResponse.platformRole ?? null);
+    setPlatformRole(nextPlatformRole);
+    setStoredPlatformRole(nextPlatformRole);
+    if (nextPlatformRole !== 'PLATFORM_ADMIN') {
       setSupportModeContext(null);
     }
     setPermissions(normalizePermissions(meResponse.permissions));
@@ -247,9 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearAuthState, hydrateFromMe]);
 
-  const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean }) => {
-    const loginMethod = options?.adminOnly ? adminLoginRequest : loginRequest;
-    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginMethod(email, password);
+  const login = useCallback(async (email: string, password: string, _options?: { adminOnly?: boolean }) => {
+    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password);
     setToken(authToken);
     await hydrateFromMe();
     return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };

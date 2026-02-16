@@ -66,6 +66,11 @@ function isAdminPublicRoute(pathname: string): boolean {
   return ADMIN_PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
+
+function isAdminLoginAlias(pathname: string): boolean {
+  return pathname === '/admin/login' || pathname.startsWith('/admin/login/');
+}
+
 function isSignupPath(pathname: string): boolean {
   return pathname === '/signup' || pathname.startsWith('/signup/');
 }
@@ -78,6 +83,10 @@ export function resolveHostRoute(host: string, pathname: string, baseDomain: str
   if (isAdminHost(host, baseDomain)) {
     if (isSignupPath(pathname)) {
       return { type: 'redirect', pathname: '/login' };
+    }
+
+    if (isAdminLoginAlias(pathname)) {
+      return { type: 'redirect', pathname: '/login', search: '?next=/admin' };
     }
 
     if (pathname === '/') {

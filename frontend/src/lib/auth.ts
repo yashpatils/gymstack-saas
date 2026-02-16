@@ -69,24 +69,7 @@ export async function login(email: string, password: string): Promise<{ token: s
 }
 
 
-export async function adminLogin(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
-  const data = await apiFetch<AuthLoginResponse>('/api/auth/admin/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
 
-  setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-  return {
-    token: data.accessToken,
-    user: data.user,
-    activeContext: data.activeContext,
-    memberships: data.memberships,
-    emailDeliveryWarning: data.emailDeliveryWarning,
-  };
-}
 
 export async function signup(email: string, password: string, role?: SignupRole, inviteToken?: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/signup', {
