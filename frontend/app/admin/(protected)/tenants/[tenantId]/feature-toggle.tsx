@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch } from "../../../../src/lib/apiFetch";
+import { apiFetch } from "../../../../../src/lib/apiFetch";
 
 export function FeatureToggle({ tenantId, initialWhiteLabel }: { tenantId: string; initialWhiteLabel: boolean }) {
   const [whiteLabel, setWhiteLabel] = useState(initialWhiteLabel);

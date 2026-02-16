@@ -4,22 +4,22 @@ import { resolveHostRoute } from './middleware';
 describe('resolveHostRoute', () => {
   const baseDomain = 'gymstack.club';
 
-  it('rewrites admin host root to /_admin', () => {
-    expect(resolveHostRoute('admin.gymstack.club', '/', baseDomain)).toEqual({ type: 'rewrite', pathname: '/_admin' });
+  it('redirects admin host root to /admin', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/', baseDomain)).toEqual({ type: 'redirect', pathname: '/admin' });
   });
 
-  it('rewrites admin host nested path under /_admin', () => {
-    expect(resolveHostRoute('admin.gymstack.club', '/tenants', baseDomain)).toEqual({ type: 'rewrite', pathname: '/_admin/tenants' });
+  it('keeps admin host /admin routes untouched', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/admin/tenants', baseDomain)).toEqual({ type: 'next' });
   });
 
 
-  it('keeps admin login route untouched', () => {
-    expect(resolveHostRoute('admin.gymstack.club', '/login', baseDomain)).toEqual({ type: 'next' });
+  it('keeps dedicated admin login route untouched', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/admin/login', baseDomain)).toEqual({ type: 'next' });
   });
 
 
   it('redirects admin signup to login', () => {
-    expect(resolveHostRoute('admin.gymstack.club', '/signup', baseDomain)).toEqual({ type: 'redirect', pathname: '/login' });
+    expect(resolveHostRoute('admin.gymstack.club', '/signup', baseDomain)).toEqual({ type: 'redirect', pathname: '/admin/login' });
   });
 
 
