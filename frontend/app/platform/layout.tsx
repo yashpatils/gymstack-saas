@@ -52,7 +52,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   }
 
   const navItems = platformRole === "PLATFORM_ADMIN"
-    ? [...baseNavItems, { label: "Admin", href: "/admin" }]
+    ? [...baseNavItems, { label: "Admin", href: "https://admin.gymstack.club" }]
     : baseNavItems;
 
   const filteredItems = navItems.filter((item) => {
