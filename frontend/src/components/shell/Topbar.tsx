@@ -69,12 +69,17 @@ export function Topbar({
           </div>
 
           <div className="justify-self-center">
-            <span className="truncate text-base font-semibold tracking-wide text-foreground/90 md:text-lg">
-              Gym Stack
-            </span>
+            <span className="truncate text-base font-semibold tracking-wide text-foreground/90 md:text-lg">Gym Stack</span>
           </div>
 
-          <div className="justify-self-end flex items-center gap-2 whitespace-nowrap">
+          <div className="justify-self-end flex items-center gap-2">
+            {canSwitchMode ? (
+              <div className="hidden items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs lg:flex">
+                <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
+                <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
+              </div>
+            ) : null}
+
             <div className="flex flex-col items-end">
               <button
                 ref={triggerRef}
@@ -85,30 +90,12 @@ export function Topbar({
                 aria-haspopup="menu"
                 aria-label="Open account menu"
               >
-                <span className="user-chip-avatar h-8 w-8 rounded-full">{initials}</span>
+                <span className="h-8 w-8 rounded-full user-chip-avatar">{initials}</span>
                 <span className="hidden sm:block truncate max-w-[120px]">{displayName}</span>
                 <span className="text-xs">▾</span>
               </button>
               {isAccountMenuOpen ? (
                 <div ref={accountMenuRef} className="z-20 mt-2 w-56 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
-                  {canSwitchMode ? (
-                    <div className="mb-1 grid grid-cols-2 gap-1 rounded-lg border border-border/70 bg-slate-900/40 p-1">
-                      <button
-                        type="button"
-                        className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`}
-                        onClick={() => onSwitchMode("OWNER")}
-                      >
-                        Owner
-                      </button>
-                      <button
-                        type="button"
-                        className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`}
-                        onClick={() => onSwitchMode("MANAGER")}
-                      >
-                        Manager
-                      </button>
-                    </div>
-                  ) : null}
                   <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
                     Account info
                   </Link>
