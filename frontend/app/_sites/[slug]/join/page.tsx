@@ -6,6 +6,10 @@ import type { SlugPageProps } from '@/src/lib/pageProps';
 export default async function SiteJoinPage({ params }: SlugPageProps) {
   const data = await getPublicLocationBySlug(params.slug);
 
+  if (!data.location) {
+    throw new Error('Unable to resolve location for join page');
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-4 px-6">
       <p className="text-sm text-slate-300">{data.location.displayName}</p>
