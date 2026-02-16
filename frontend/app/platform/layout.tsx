@@ -9,7 +9,8 @@ import { Topbar } from "../../src/components/shell/Topbar";
 import { AppFooter } from "../../src/components/shell/AppFooter";
 import { EmailVerificationBanner } from "../components/email-verification-banner";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
-import { resendVerification } from "../../src/lib/auth";
+import { listGyms } from "../../src/lib/gyms";
+import type { LocationOption } from "../../src/types/auth";
 
 const baseNavItems = [
   { label: "Overview", href: "/platform" },
@@ -25,8 +26,8 @@ const baseNavItems = [
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
-  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole, memberships } = useAuth();
+  const [locations, setLocations] = useState<LocationOption[]>([]);
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -40,17 +41,58 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     }
   }, [loading, onboarding?.needsOpsChoice, pathname, router]);
 
+  const hasOwnerMembership = memberships.some((membership) => membership.role === "TENANT_OWNER");
+  const hasManagerMembership = memberships.some((membership) => membership.role === "TENANT_LOCATION_ADMIN");
+  const canShowLocationSwitcher = hasOwnerMembership || activeContext?.role === "TENANT_LOCATION_ADMIN";
+
+  useEffect(() => {
+    if (!canShowLocationSwitcher) {
+      setLocations([]);
+      return;
+    }
+
+    let mounted = true;
+    void listGyms().then((gyms) => {
+      if (!mounted) {
+        return;
+      }
+      setLocations(gyms.map((gym) => ({ id: gym.id, displayName: gym.name, slug: gym.id })));
+    }).catch(() => {
+      if (mounted) {
+        setLocations([]);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [canShowLocationSwitcher]);
+
   const handleSwitchMode = useCallback(async (mode: "OWNER" | "MANAGER") => {
     const tenantId = activeContext?.tenantId;
     if (!tenantId) {
       return;
     }
 
-    const locationId = activeContext?.locationId ?? ownerOperatorSettings?.defaultLocationId ?? undefined;
-    await switchMode(tenantId, mode, mode === "MANAGER" ? locationId ?? undefined : undefined);
-    await chooseContext(tenantId, mode === "MANAGER" ? locationId ?? undefined : undefined);
-    await router.push("/platform");
-  }, [activeContext?.locationId, activeContext?.tenantId, chooseContext, ownerOperatorSettings?.defaultLocationId, router, switchMode]);
+    const fallbackLocationId = activeContext?.locationId ?? ownerOperatorSettings?.defaultLocationId ?? locations[0]?.id;
+    if (mode === "MANAGER" && !fallbackLocationId) {
+      return;
+    }
+
+    await switchMode(tenantId, mode, mode === "MANAGER" ? fallbackLocationId ?? undefined : undefined);
+    await router.refresh();
+  }, [activeContext?.locationId, activeContext?.tenantId, locations, ownerOperatorSettings?.defaultLocationId, router, switchMode]);
+
+  const handleSelectLocation = useCallback(async (locationId: string | null) => {
+    const tenantId = activeContext?.tenantId;
+    if (!tenantId) {
+      return;
+    }
+
+    const nextMode = locationId ? "MANAGER" : "OWNER";
+    await chooseContext(tenantId, locationId ?? undefined, nextMode);
+    await router.refresh();
+  }, [activeContext?.tenantId, chooseContext, router]);
 
   if (loading) {
     return <main className="p-8 text-muted-foreground">Loading workspace...</main>;
@@ -65,8 +107,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     || user?.role === "OWNER"
     || user?.role === "ADMIN";
 
-  const canManageLocationSettings = activeContext?.role === 'TENANT_OWNER'
-    || activeContext?.role === 'TENANT_LOCATION_ADMIN';
+  const canManageLocationSettings = activeContext?.role === "TENANT_OWNER"
+    || activeContext?.role === "TENANT_LOCATION_ADMIN";
 
   const filteredItems = navItems.filter((item) => {
     if (item.href === "/platform/billing") {
@@ -88,11 +130,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     return true;
   });
 
-  const canSwitchMode = Boolean(
-    activeContext?.role === "TENANT_OWNER"
-    || ownerOperatorSettings?.allowOwnerStaffLogin
-    || ownerOperatorSettings?.defaultMode === "MANAGER",
-  );
+  const canSwitchMode = Boolean(hasOwnerMembership && hasManagerMembership);
 
   return (
     <AuthGate>
@@ -104,12 +142,16 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             displayName={user?.name?.trim() || email}
             onLogout={logout}
             canSwitchMode={canSwitchMode}
-            activeMode={activeMode}
+            activeMode={activeMode ?? "OWNER"}
             onSwitchMode={(mode) => {
               void handleSwitchMode(mode);
             }}
             onToggleMenu={onToggleMenu}
             showAdminPortalLink={platformRole === "PLATFORM_ADMIN"}
+            canShowLocationSwitcher={canShowLocationSwitcher}
+            locations={locations}
+            activeLocationId={activeContext?.locationId}
+            onSelectLocation={handleSelectLocation}
           />
         )}
       >

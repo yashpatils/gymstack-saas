@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../lib/adminPortal";
+import { ModeToggle } from "./ModeToggle";
+import { LocationSwitcher } from "./LocationSwitcher";
+import type { LocationOption } from "../../types/auth";
 
 export function Topbar({
   initials,
@@ -15,16 +18,26 @@ export function Topbar({
   onToggleMenu,
   showAdminPortalLink = false,
   adminPortalUrl = ADMIN_PORTAL_FRESH_LOGIN_URL,
+  showMenuToggle = true,
+  canShowLocationSwitcher = false,
+  locations = [],
+  activeLocationId,
+  onSelectLocation,
 }: {
   initials: string;
   displayName: string;
   onLogout: () => void;
   canSwitchMode: boolean;
-  activeMode?: "OWNER" | "MANAGER";
+  activeMode: "OWNER" | "MANAGER";
   onSwitchMode: (mode: "OWNER" | "MANAGER") => void;
   onToggleMenu: () => void;
   showAdminPortalLink?: boolean;
   adminPortalUrl?: string;
+  showMenuToggle?: boolean;
+  canShowLocationSwitcher?: boolean;
+  locations?: LocationOption[];
+  activeLocationId?: string | null;
+  onSelectLocation: (locationId: string | null) => Promise<void>;
 }) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -53,43 +66,33 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 backdrop-blur-xl">
-      <div className="px-4 md:px-6">
-        <div className="flex min-h-14 items-center gap-3 py-2">
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              className="button secondary platform-menu-toggle h-9 w-9 rounded-xl p-0 md:h-10 md:w-10"
-              onClick={onToggleMenu}
-              aria-label="Toggle menu"
-            >
-              ☰
-            </button>
-            <button
-              type="button"
-              className="button ghost h-9 w-9 rounded-xl p-0 md:h-10 md:w-10"
-              aria-label="Notifications"
-            >
-              🔔
-            </button>
-          </div>
-
-          <div className="flex min-w-0 flex-1 items-center justify-center px-2">
-            <span className="truncate text-base font-semibold tracking-wide text-foreground/90 md:text-lg">Gym Stack</span>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            {canSwitchMode ? (
-              <div className="hidden items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs md:flex">
-                <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
-                <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
+      <div className="px-4 py-2 md:px-6">
+        <div className="flex justify-center py-1">
+          <h1 className="text-base font-semibold tracking-wide text-foreground/95 md:text-lg">Gym Stack</h1>
+        </div>
+        <div className="grid min-h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 py-2">
+          <div className="flex items-center gap-2">
+            {showMenuToggle ? (
+              <button type="button" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Toggle menu">☰</button>
+            ) : null}
+            <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
+            {canShowLocationSwitcher ? (
+              <div className="hidden md:block">
+                <LocationSwitcher locations={locations} activeLocationId={activeLocationId} activeMode={activeMode} onSelect={onSelectLocation} canCreate />
               </div>
             ) : null}
+          </div>
 
+          <div className="flex justify-center">
+            {canSwitchMode ? <ModeToggle activeMode={activeMode} onSwitchMode={onSwitchMode} /> : null}
+          </div>
+
+          <div className="flex justify-end">
             <div className="relative">
               <button
                 ref={triggerRef}
                 type="button"
-                className="button secondary h-10 flex items-center gap-2 rounded-xl px-2 hover:bg-white/5 transition"
+                className="button secondary h-10 flex items-center gap-2 rounded-xl px-2"
                 onClick={() => setIsAccountMenuOpen((current) => !current)}
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
@@ -104,55 +107,26 @@ export function Topbar({
                   {canSwitchMode ? (
                     <div className="mb-2 rounded-lg border border-white/10 bg-white/5 p-1 md:hidden">
                       <p className="px-2 pb-1 pt-0.5 text-[11px] uppercase tracking-[0.2em] text-slate-400">Mode</p>
-                      <div className="grid grid-cols-2 gap-1">
-                        <button
-                          type="button"
-                          className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`}
-                          onClick={() => {
-                            setIsAccountMenuOpen(false);
-                            onSwitchMode("OWNER");
-                          }}
-                        >
-                          Owner
-                        </button>
-                        <button
-                          type="button"
-                          className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`}
-                          onClick={() => {
-                            setIsAccountMenuOpen(false);
-                            onSwitchMode("MANAGER");
-                          }}
-                        >
-                          Manager
-                        </button>
-                      </div>
+                      <ModeToggle activeMode={activeMode} onSwitchMode={(mode) => {
+                        setIsAccountMenuOpen(false);
+                        onSwitchMode(mode);
+                      }} />
                     </div>
                   ) : null}
-                  <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
-                    Account info
-                  </Link>
-                  <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
-                    Settings
-                  </Link>
-                  {showAdminPortalLink ? (
-                    <a
-                      href={adminPortalUrl}
-                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-sky-200 hover:bg-white/10"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                    >
-                      Admin portal
-                    </a>
+                  {canShowLocationSwitcher ? (
+                    <div className="mb-2 rounded-lg border border-white/10 bg-white/5 p-2 md:hidden">
+                      <LocationSwitcher locations={locations} activeLocationId={activeLocationId} activeMode={activeMode} onSelect={onSelectLocation} canCreate />
+                    </div>
                   ) : null}
-                  <button
-                    type="button"
-                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
-                    onClick={() => {
-                      setIsAccountMenuOpen(false);
-                      onLogout();
-                    }}
-                  >
-                    Logout
-                  </button>
+                  <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>Account info</Link>
+                  <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>Settings</Link>
+                  {showAdminPortalLink ? (
+                    <a href={adminPortalUrl} className="mt-1 block rounded-lg px-3 py-2 text-sm text-sky-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>Admin portal</a>
+                  ) : null}
+                  <button type="button" className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20" onClick={() => {
+                    setIsAccountMenuOpen(false);
+                    onLogout();
+                  }}>Logout</button>
                 </div>
               ) : null}
             </div>

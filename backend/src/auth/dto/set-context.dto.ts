@@ -1,4 +1,5 @@
-import { IsOptional, IsString } from 'class-validator';
+import { ActiveMode } from '@prisma/client';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class SetContextDto {
   @IsString()
@@ -11,4 +12,8 @@ export class SetContextDto {
   @IsOptional()
   @IsString()
   locationId?: string;
+
+  @IsOptional()
+  @IsEnum(ActiveMode)
+  mode?: ActiveMode;
 }

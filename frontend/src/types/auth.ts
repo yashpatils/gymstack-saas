@@ -4,6 +4,26 @@ export type MembershipRole =
   | 'GYM_STAFF_COACH'
   | 'CLIENT';
 
+
+export type MembershipSummary = {
+  tenantId: string;
+  locationId?: string;
+  role: MembershipRole;
+};
+
+export type UserContext = {
+  activeTenantId: string | null;
+  activeLocationId?: string | null;
+  mode: 'OWNER' | 'MANAGER';
+  emailVerified: boolean;
+};
+
+export type LocationOption = {
+  id: string;
+  displayName: string;
+  slug: string;
+};
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -84,6 +104,9 @@ export type AuthMeResponse = {
   activeTenant?: ActiveTenant;
   activeLocation?: ActiveLocation;
   activeMode?: 'OWNER' | 'MANAGER';
+  activeTenantId?: string | null;
+  activeLocationId?: string | null;
+  userContext?: UserContext;
   canUseSocialLogin?: boolean;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
   onboarding?: OnboardingState;
