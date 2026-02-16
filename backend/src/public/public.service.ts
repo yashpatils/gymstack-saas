@@ -1,10 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DomainStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeHostname } from '../domains/domain.util';
 
 const DEFAULT_BASE_DOMAIN = 'gymstack.club';
-const RESERVED_HOSTS = new Set(['www', 'admin']);
+const RESERVED_SUBDOMAINS = new Set(['www', 'admin']);
+
+type PublicLocation = {
+  id: string;
+  slug: string;
+  displayName: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  accentGradient: string | null;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+};
+
+type PublicTenant = {
+  id: string;
+  whiteLabelEnabled: boolean;
+};
+
+type PublicLocationContext = {
+  location: PublicLocation;
+  tenant: PublicTenant;
+};
 
 @Injectable()
 export class PublicService {
@@ -23,49 +43,111 @@ export class PublicService {
     return slug || null;
   }
 
-  private toTenantBranding(tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean } | null | undefined, fallbackTenantId: string) {
-    return {
-      id: tenant?.id ?? fallbackTenantId,
-      name: tenant?.name ?? '',
-      whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled ?? false) || Boolean(tenant?.whiteLabelBrandingEnabled ?? false),
-    };
+  private isBaseAppHost(hostname: string, baseDomain: string): boolean {
+    return new Set([baseDomain, `www.${baseDomain}`, `admin.${baseDomain}`]).has(hostname);
   }
 
-  private async resolveLocationByHost(host: string) {
+  async resolveLocationFromHost(host: string): Promise<PublicLocationContext | null> {
     const hostname = normalizeHostname(host).split(':')[0] ?? '';
     const baseDomain = this.getBaseDomain();
 
-    if (!hostname || hostname === baseDomain || RESERVED_HOSTS.has(hostname)) {
+    if (!hostname || this.isBaseAppHost(hostname, baseDomain)) {
       return null;
     }
 
-    const byCustomField = await this.prisma.gym.findFirst({
-      where: { customDomain: hostname },
-      select: { id: true, orgId: true },
+    const byCustomDomain = await this.prisma.gym.findFirst({
+      where: {
+        customDomain: hostname,
+        domainVerifiedAt: { not: null },
+      },
+      select: {
+        id: true,
+        slug: true,
+        displayName: true,
+        logoUrl: true,
+        primaryColor: true,
+        accentGradient: true,
+        heroTitle: true,
+        heroSubtitle: true,
+        orgId: true,
+        org: {
+          select: {
+            id: true,
+            whiteLabelEnabled: true,
+            whiteLabelBrandingEnabled: true,
+          },
+        },
+      },
     });
 
-    if (byCustomField) {
-      return byCustomField;
-    }
-
-    const customDomain = await this.prisma.customDomain.findFirst({
-      where: { hostname, status: DomainStatus.ACTIVE, locationId: { not: null } },
-      select: { locationId: true, tenantId: true },
-    });
-
-    if (customDomain?.locationId) {
-      return { id: customDomain.locationId, orgId: customDomain.tenantId };
+    if (byCustomDomain) {
+      return {
+        location: {
+          id: byCustomDomain.id,
+          slug: byCustomDomain.slug,
+          displayName: byCustomDomain.displayName,
+          logoUrl: byCustomDomain.logoUrl,
+          primaryColor: byCustomDomain.primaryColor,
+          accentGradient: byCustomDomain.accentGradient,
+          heroTitle: byCustomDomain.heroTitle,
+          heroSubtitle: byCustomDomain.heroSubtitle,
+        },
+        tenant: {
+          id: byCustomDomain.org.id,
+          whiteLabelEnabled: Boolean(
+            byCustomDomain.org.whiteLabelEnabled || byCustomDomain.org.whiteLabelBrandingEnabled,
+          ),
+        },
+      };
     }
 
     const slug = this.extractSubdomain(hostname, baseDomain);
-    if (!slug || RESERVED_HOSTS.has(slug)) {
+    if (!slug || RESERVED_SUBDOMAINS.has(slug)) {
       return null;
     }
 
-    return this.prisma.gym.findUnique({
+    const bySlug = await this.prisma.gym.findUnique({
       where: { slug },
-      select: { id: true, orgId: true },
+      select: {
+        id: true,
+        slug: true,
+        displayName: true,
+        logoUrl: true,
+        primaryColor: true,
+        accentGradient: true,
+        heroTitle: true,
+        heroSubtitle: true,
+        orgId: true,
+        org: {
+          select: {
+            id: true,
+            whiteLabelEnabled: true,
+            whiteLabelBrandingEnabled: true,
+          },
+        },
+      },
     });
+
+    if (!bySlug) {
+      return null;
+    }
+
+    return {
+      location: {
+        id: bySlug.id,
+        slug: bySlug.slug,
+        displayName: bySlug.displayName,
+        logoUrl: bySlug.logoUrl,
+        primaryColor: bySlug.primaryColor,
+        accentGradient: bySlug.accentGradient,
+        heroTitle: bySlug.heroTitle,
+        heroSubtitle: bySlug.heroSubtitle,
+      },
+      tenant: {
+        id: bySlug.org.id,
+        whiteLabelEnabled: Boolean(bySlug.org.whiteLabelEnabled || bySlug.org.whiteLabelBrandingEnabled),
+      },
+    };
   }
 
   async getLocationBySlug(slug: string) {
@@ -118,41 +200,18 @@ export class PublicService {
   }
 
   async getLocationByHost(host: string) {
-    const locationKey = await this.resolveLocationByHost(host);
-    if (!locationKey) {
+    const resolved = await this.resolveLocationFromHost(host);
+
+    if (!resolved) {
       return {
         location: null,
         tenant: null,
       };
     }
 
-    const location = await this.prisma.gym.findUnique({
-      where: { id: locationKey.id },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        displayName: true,
-        logoUrl: true,
-        primaryColor: true,
-        accentGradient: true,
-        heroTitle: true,
-        heroSubtitle: true,
-      },
-    });
-
-    if (!location) {
-      throw new NotFoundException('Site not found');
-    }
-
-    const tenant = await this.prisma.organization.findUnique({
-      where: { id: locationKey.orgId },
-      select: { id: true, name: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
-    });
-
     return {
-      location,
-      tenant: this.toTenantBranding(tenant, locationKey.orgId),
+      location: resolved.location,
+      tenant: resolved.tenant,
     };
   }
 
@@ -162,13 +221,24 @@ export class PublicService {
       throw new NotFoundException('Site not found');
     }
 
+    const [locationDetails, tenantDetails] = await Promise.all([
+      this.prisma.gym.findUnique({
+        where: { id: locationResult.location.id },
+        select: { name: true },
+      }),
+      this.prisma.organization.findUnique({
+        where: { id: locationResult.tenant.id },
+        select: { name: true },
+      }),
+    ]);
+
     return {
       kind: 'location' as const,
-      tenant: { id: locationResult.tenant.id, name: locationResult.tenant.name },
+      tenant: { id: locationResult.tenant.id, name: tenantDetails?.name ?? '' },
       location: {
         id: locationResult.location.id,
         slug: locationResult.location.slug,
-        name: locationResult.location.name,
+        name: locationDetails?.name ?? '',
         displayName: locationResult.location.displayName,
       },
       branding: {
@@ -178,7 +248,11 @@ export class PublicService {
         heroTitle: locationResult.location.heroTitle,
         heroSubtitle: locationResult.location.heroSubtitle,
       },
-      tenantFeature: locationResult.tenant,
+      tenantFeature: {
+        id: locationResult.tenant.id,
+        name: tenantDetails?.name ?? '',
+        whiteLabelEnabled: locationResult.tenant.whiteLabelEnabled,
+      },
     };
   }
 }

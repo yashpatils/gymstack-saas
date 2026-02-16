@@ -17,6 +17,6 @@ export class PublicController {
 
   @Get('location-by-host')
   locationByHost(@Headers('host') hostHeader?: string, @Query('host') hostQuery?: string) {
-    return this.publicService.getLocationByHost(hostQuery ?? hostHeader ?? '');
+    return this.publicService.getLocationByHost(hostHeader ?? hostQuery ?? '');
   }
 }

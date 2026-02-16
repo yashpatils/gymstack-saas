@@ -148,6 +148,7 @@ Routing is fully environment-driven (no code edits required when changing domain
 - Platform admin domain: `https://admin.gymstack.club` (rewritten internally to `/_admin/*` and reserved from tenant slug routing).
 - Location fallback domain (no custom domain): `https://<locationSlug>.<NEXT_PUBLIC_BASE_DOMAIN>`
 - Active custom domains override fallback domains for landing/login/join links.
+- Public host resolver endpoint: `GET /api/public/location-by-host` (reads `Host` header, strips port, returns safe `{ location, tenant }` branding context for custom domains or `<slug>.<BASE_DOMAIN>`).
 
 For local development without wildcard DNS:
 

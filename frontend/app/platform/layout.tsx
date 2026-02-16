@@ -19,6 +19,7 @@ const baseNavItems = [
   { label: "Coach", href: "/platform/coach" },
   { label: "Client", href: "/platform/client" },
   { label: "Settings", href: "/platform/settings" },
+  { label: "Location settings", href: "/platform/locations/settings" },
 ];
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {

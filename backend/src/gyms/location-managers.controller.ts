@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../guards/roles.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { User } from '../users/user.model';
 import { GymsService } from './gyms.service';
 import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
+import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
+import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
 
 @Controller('locations')
 @VerifiedEmailRequired()
@@ -19,6 +21,38 @@ export class LocationManagersController {
       throw new ForbiddenException('Missing user');
     }
     return this.gymsService.getLocationBranding(locationId, req.user);
+  }
+
+  @Patch(':locationId/branding')
+  updateBranding(
+    @Param('locationId') locationId: string,
+    @Body() body: UpdateLocationBrandingDto,
+    @Req() req: { user?: User },
+  ) {
+    if (!req.user) {
+      throw new ForbiddenException('Missing user');
+    }
+    return this.gymsService.updateLocationBranding(locationId, body, req.user);
+  }
+
+  @Post(':locationId/custom-domain')
+  configureCustomDomain(
+    @Param('locationId') locationId: string,
+    @Body() body: ConfigureLocationDomainDto,
+    @Req() req: { user?: User },
+  ) {
+    if (!req.user) {
+      throw new ForbiddenException('Missing user');
+    }
+    return this.gymsService.configureLocationCustomDomain(locationId, body, req.user);
+  }
+
+  @Post(':locationId/verify-domain')
+  verifyCustomDomain(@Param('locationId') locationId: string, @Req() req: { user?: User }) {
+    if (!req.user) {
+      throw new ForbiddenException('Missing user');
+    }
+    return this.gymsService.requestLocationDomainVerification(locationId, req.user);
   }
 
   @Get(':locationId/managers')

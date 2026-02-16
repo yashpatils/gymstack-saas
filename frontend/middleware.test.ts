@@ -49,4 +49,9 @@ describe('resolveHostRoute', () => {
       pathname: '/_custom/tenant-brand.com/join',
     });
   });
+
+  it('does not rewrite protected app routes on custom domains', () => {
+    expect(resolveHostRoute('tenant-brand.com', '/platform', baseDomain)).toEqual({ type: 'next' });
+    expect(resolveHostRoute('tenant-brand.com', '/admin', baseDomain)).toEqual({ type: 'next' });
+  });
 });
