@@ -88,6 +88,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
               void handleSwitchMode(mode);
             }}
             onToggleMenu={onToggleMenu}
+            showAdminPortalLink={platformRole === "PLATFORM_ADMIN"}
           />
         )}
       >
