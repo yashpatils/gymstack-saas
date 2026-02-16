@@ -2,6 +2,11 @@ const ACCESS_TOKEN_STORAGE_KEY = 'gymstack_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'gymstack_refresh_token';
 const ACCESS_TOKEN_COOKIE_NAME = 'gymstack_token';
 const REFRESH_TOKEN_COOKIE_NAME = 'gymstack_refresh_token';
+const ADMIN_ACCESS_TOKEN_STORAGE_KEY = 'gymstack_admin_token';
+const ADMIN_REFRESH_TOKEN_STORAGE_KEY = 'gymstack_admin_refresh_token';
+const ADMIN_SESSION_STARTED_AT_KEY = 'gymstack_admin_session_started_at';
+const ADMIN_HOST = 'admin.gymstack.club';
+const ADMIN_SESSION_MAX_AGE_MS = 15 * 60 * 1000;
 
 type AuthTokens = {
   accessToken: string;
@@ -16,6 +21,42 @@ function isServer(): boolean {
 
 function isProductionHost(hostname: string): boolean {
   return hostname === 'gymstack.club' || hostname.endsWith('.gymstack.club');
+}
+
+function isAdminHost(): boolean {
+  if (isServer()) {
+    return false;
+  }
+
+  return window.location.hostname.toLowerCase() === ADMIN_HOST;
+}
+
+function isAdminSessionExpired(): boolean {
+  if (isServer() || !isAdminHost()) {
+    return false;
+  }
+
+  const startedAtRaw = window.sessionStorage.getItem(ADMIN_SESSION_STARTED_AT_KEY);
+  if (!startedAtRaw) {
+    return true;
+  }
+
+  const startedAt = Number.parseInt(startedAtRaw, 10);
+  if (!Number.isFinite(startedAt)) {
+    return true;
+  }
+
+  return Date.now() - startedAt > ADMIN_SESSION_MAX_AGE_MS;
+}
+
+function clearAdminSessionStorage(): void {
+  if (isServer()) {
+    return;
+  }
+
+  window.sessionStorage.removeItem(ADMIN_ACCESS_TOKEN_STORAGE_KEY);
+  window.sessionStorage.removeItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY);
+  window.sessionStorage.removeItem(ADMIN_SESSION_STARTED_AT_KEY);
 }
 
 function getCookieDomain(): string | null {
@@ -108,6 +149,21 @@ export function getAccessToken(): string | null {
     return null;
   }
 
+  if (isAdminHost()) {
+    if (isAdminSessionExpired()) {
+      clearAdminSessionStorage();
+      return null;
+    }
+
+    const adminToken = window.sessionStorage.getItem(ADMIN_ACCESS_TOKEN_STORAGE_KEY);
+    if (adminToken) {
+      inMemoryAccessToken = adminToken;
+      return adminToken;
+    }
+
+    return null;
+  }
+
   const storedToken = window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
   if (storedToken) {
     inMemoryAccessToken = storedToken;
@@ -127,6 +183,15 @@ export function getAccessToken(): string | null {
 export function getRefreshToken(): string | null {
   if (isServer()) {
     return null;
+  }
+
+  if (isAdminHost()) {
+    if (isAdminSessionExpired()) {
+      clearAdminSessionStorage();
+      return null;
+    }
+
+    return window.sessionStorage.getItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY);
   }
 
   const storedRefreshToken = window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
@@ -150,6 +215,15 @@ export function setTokens({ accessToken, refreshToken }: AuthTokens): void {
     return;
   }
 
+  if (isAdminHost()) {
+    window.sessionStorage.setItem(ADMIN_ACCESS_TOKEN_STORAGE_KEY, accessToken);
+    window.sessionStorage.setItem(ADMIN_SESSION_STARTED_AT_KEY, Date.now().toString());
+    if (refreshToken) {
+      window.sessionStorage.setItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+    }
+    return;
+  }
+
   window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
   writeCookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, 60 * 60 * 24 * 30);
   if (refreshToken) {
@@ -162,6 +236,11 @@ export function clearTokens(): void {
   inMemoryAccessToken = null;
 
   if (isServer()) {
+    return;
+  }
+
+  if (isAdminHost()) {
+    clearAdminSessionStorage();
     return;
   }
 
