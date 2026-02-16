@@ -22,7 +22,7 @@ const sections = [
   },
   {
     title: "Settings",
-    routes: ["/platform/settings", "/admin"],
+    routes: ["/platform/settings", "https://admin.gymstack.club"],
   },
 ] as const;
 
