@@ -112,39 +112,8 @@ export class AuthService implements OnModuleInit {
       return { user, membership, location };
     });
 
-    const { rawToken: verificationToken, tokenHash, expiresAt } = generateVerificationToken();
-    await this.prisma.user.update({
-      where: { id: created.user.id },
-      data: {
-        emailVerificationTokenHash: tokenHash,
-        emailVerificationTokenExpiresAt: expiresAt,
-        emailVerificationLastSentAt: new Date(),
-        emailVerificationSendCount: 1,
-      },
-    });
-
-    let emailDeliveryWarning: string | undefined;
-    if (!this.isVerificationEmailDeliveryEnabled()) {
-      emailDeliveryWarning = 'Email delivery is not configured in this environment yet. Contact support.';
-    }
-    try {
-      await this.emailService.sendVerifyEmail({ to: created.user.email, token: verificationToken });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown email error';
-      this.logger.error(
-        JSON.stringify({
-          event: 'signup_verification_email_failed',
-          email: this.redactEmail(created.user.email),
-          statusCode: error instanceof EmailProviderError ? error.statusCode ?? null : null,
-          providerCode: error instanceof EmailProviderError ? error.providerCode ?? null : null,
-          message,
-        }),
-      );
-
-      emailDeliveryWarning = error instanceof EmailProviderError && error.statusCode === 403
-        ? 'Email delivery not configured yet. Contact support.'
-        : 'We could not send your verification email right now. Please use resend verification.';
-    }
+    const verification = await this.sendVerificationIfNeeded(created.user.id);
+    const emailDeliveryWarning = verification.emailDeliveryWarning;
 
     await this.notificationsService.createForUser({
       userId: created.user.id,
@@ -188,7 +157,7 @@ export class AuthService implements OnModuleInit {
   private async signupWithInvite(
     input: { email: string; password: string; inviteToken: string },
     context?: { ip?: string; userAgent?: string },
-  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
 
     const user = await this.prisma.$transaction(async (tx) => {
@@ -229,6 +198,8 @@ export class AuthService implements OnModuleInit {
       emailFromProviderOrSignup: input.email,
     });
 
+    const verification = await this.sendVerificationIfNeeded(user.id);
+
     const memberships = await this.prisma.membership.findMany({
       where: { userId: user.id, status: MembershipStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
@@ -249,6 +220,7 @@ export class AuthService implements OnModuleInit {
       },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
+      emailDeliveryWarning: verification.emailDeliveryWarning,
     };
   }
 
@@ -320,7 +292,7 @@ export class AuthService implements OnModuleInit {
   async registerWithInvite(
     input: RegisterWithInviteDto,
     context?: { ip?: string; userAgent?: string },
-  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     const normalizedEmail = input.email.toLowerCase();
     const existing = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     const user = existing ?? await this.prisma.user.create({
@@ -338,6 +310,8 @@ export class AuthService implements OnModuleInit {
       userId: user.id,
       emailFromProviderOrSignup: normalizedEmail,
     });
+
+    const verification = await this.sendVerificationIfNeeded(user.id);
 
     const memberships = await this.prisma.membership.findMany({
       where: { userId: user.id, status: MembershipStatus.ACTIVE },
@@ -359,6 +333,7 @@ export class AuthService implements OnModuleInit {
       },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
+      emailDeliveryWarning: verification.emailDeliveryWarning,
     };
   }
 
@@ -405,12 +380,8 @@ export class AuthService implements OnModuleInit {
       : normalizedEmail
         ? await this.prisma.user.findUnique({ where: { email: normalizedEmail } })
         : null;
-    const fallbackWarning = !this.isVerificationEmailDeliveryEnabled()
-      ? 'Email delivery is not configured in this environment yet. Contact support.'
-      : undefined;
-
     if (!user || user.status !== UserStatus.ACTIVE || user.emailVerifiedAt) {
-      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: fallbackWarning };
+      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: this.getVerificationFallbackWarning() };
     }
 
     const now = new Date();
@@ -421,49 +392,14 @@ export class AuthService implements OnModuleInit {
     const sendCount = withinOneHour ? user.emailVerificationSendCount : 0;
 
     if ((lastSentAt && now.getTime() - lastSentAt.getTime() < minimumIntervalMs) || sendCount >= maxSendsPerHour) {
-      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: fallbackWarning };
+      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: this.getVerificationFallbackWarning() };
     }
-
-    const { rawToken: verificationToken, tokenHash, expiresAt } = generateVerificationToken();
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerificationTokenHash: tokenHash,
-        emailVerificationTokenExpiresAt: expiresAt,
-        emailVerificationLastSentAt: now,
-        emailVerificationSendCount: sendCount + 1,
-      },
-    });
-
-    try {
-      await this.emailService.sendVerifyEmail({ to: user.email, token: verificationToken });
-    } catch (error) {
-      let emailDeliveryWarning = fallbackWarning;
-      if (error instanceof EmailProviderError && error.statusCode === 403) {
-        emailDeliveryWarning = 'Email delivery not configured yet. Contact support.';
-      }
-      const message = error instanceof Error ? error.message : 'Unknown email error';
-      this.logger.error(
-        JSON.stringify({
-          event: 'resend_verification_email_failed',
-          email: this.redactEmail(user.email),
-          statusCode: error instanceof EmailProviderError ? error.statusCode ?? null : null,
-          providerCode: error instanceof EmailProviderError ? error.providerCode ?? null : null,
-          message,
-        }),
-      );
-
-      return {
-        ok: true,
-        message: 'If your account exists, a verification email has been sent.',
-        emailDeliveryWarning,
-      };
-    }
+    const verification = await this.sendVerificationIfNeeded(user.id);
 
     return {
       ok: true,
       message: 'If your account exists, a verification email has been sent.',
-      emailDeliveryWarning: fallbackWarning,
+      emailDeliveryWarning: verification.emailDeliveryWarning,
     };
   }
 
@@ -474,6 +410,71 @@ export class AuthService implements OnModuleInit {
     const emailDisabled = ['true', '1', 'yes', 'on'].includes(emailDisableRaw);
 
     return !emailDisabled && Boolean(apiKey);
+  }
+
+  private getVerificationFallbackWarning(): string | undefined {
+    if (this.isVerificationEmailDeliveryEnabled()) {
+      return undefined;
+    }
+
+    return 'Email delivery is not configured in this environment yet. Contact support.';
+  }
+
+  private async sendVerificationIfNeeded(userId: string): Promise<{ emailDeliveryWarning?: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        // Name is not currently part of User schema; kept optional in sendVerifyEmail payload.
+        emailVerifiedAt: true,
+        emailVerificationTokenHash: true,
+        emailVerificationTokenExpiresAt: true,
+        emailVerificationLastSentAt: true,
+        emailVerificationSendCount: true,
+      },
+    });
+
+    if (!user || user.emailVerifiedAt) {
+      return {};
+    }
+
+    const { rawToken: verificationToken, tokenHash, expiresAt } = generateVerificationToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+        emailVerificationLastSentAt: new Date(),
+        emailVerificationSendCount: { increment: 1 },
+      },
+    });
+
+    const fallbackWarning = this.getVerificationFallbackWarning();
+
+    try {
+      await this.emailService.sendVerifyEmail({ to: user.email, token: verificationToken });
+      this.logger.log(JSON.stringify({ event: 'auth_verification_email_sent', email: this.redactEmail(user.email), userId: user.id }));
+      return { emailDeliveryWarning: fallbackWarning };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown email error';
+      this.logger.error(
+        JSON.stringify({
+          event: 'auth_verification_email_send_failed',
+          email: this.redactEmail(user.email),
+          userId: user.id,
+          statusCode: error instanceof EmailProviderError ? error.statusCode ?? null : null,
+          providerCode: error instanceof EmailProviderError ? error.providerCode ?? null : null,
+          message,
+        }),
+      );
+
+      if (error instanceof EmailProviderError && error.statusCode === 403) {
+        return { emailDeliveryWarning: 'Email delivery not configured yet. Contact support.' };
+      }
+
+      return { emailDeliveryWarning: 'We could not send your verification email right now. Please use resend verification.' };
+    }
   }
 
   async verifyEmail(token: string): Promise<{ ok: true }> {
