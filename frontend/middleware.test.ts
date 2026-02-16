@@ -13,13 +13,12 @@ describe('resolveHostRoute', () => {
   });
 
 
-  it('keeps dedicated admin login route untouched', () => {
-    expect(resolveHostRoute('admin.gymstack.club', '/admin/login', baseDomain)).toEqual({ type: 'next' });
+  it('keeps dedicated host login route untouched', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/login', baseDomain)).toEqual({ type: 'next' });
   });
 
-
   it('redirects admin signup to login', () => {
-    expect(resolveHostRoute('admin.gymstack.club', '/signup', baseDomain)).toEqual({ type: 'redirect', pathname: '/admin/login' });
+    expect(resolveHostRoute('admin.gymstack.club', '/signup', baseDomain)).toEqual({ type: 'redirect', pathname: '/login' });
   });
 
 
@@ -38,7 +37,8 @@ describe('resolveHostRoute', () => {
   });
 
   it('does not treat reserved subdomains as tenants', () => {
-    for (const subdomain of ['admin', 'www', 'api', 'app', 'static']) {
+    expect(resolveHostRoute('admin.gymstack.club', '/', baseDomain)).toEqual({ type: 'redirect', pathname: '/admin' });
+    for (const subdomain of ['www', 'api', 'app', 'static']) {
       expect(resolveHostRoute(`${subdomain}.gymstack.club`, '/', baseDomain)).toEqual({ type: 'next' });
     }
   });

@@ -5,7 +5,6 @@ const PUBLIC_FILE = /\.(.*)$/;
 const ADMIN_HOST = 'admin.gymstack.club';
 const ADMIN_PUBLIC_ROUTES = [
   '/admin',
-  '/admin/login',
   '/login',
   '/reset-password',
   '/verify-email',
@@ -42,6 +41,10 @@ function getBaseDomain(): string {
   return (process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'localhost').toLowerCase();
 }
 
+function isAdminHost(host: string, baseDomain: string): boolean {
+  return host === ADMIN_HOST || host === `admin.${baseDomain}`;
+}
+
 function isRootHost(host: string, baseDomain: string): boolean {
   return host === baseDomain || host === `www.${baseDomain}` || host === 'localhost';
 }
@@ -67,13 +70,9 @@ function isSignupPath(pathname: string): boolean {
 }
 
 export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
-  if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom')) {
-    return { type: 'next' };
-  }
-
-  if (host === ADMIN_HOST) {
+  if (isAdminHost(host, baseDomain)) {
     if (isSignupPath(pathname)) {
-      return { type: 'redirect', pathname: '/admin/login' };
+      return { type: 'redirect', pathname: '/login' };
     }
 
     if (pathname === '/') {
@@ -84,6 +83,10 @@ export function resolveHostRoute(host: string, pathname: string, baseDomain: str
       return { type: 'next' };
     }
 
+    return { type: 'next' };
+  }
+
+  if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom')) {
     return { type: 'next' };
   }
 
