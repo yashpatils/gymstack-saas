@@ -51,6 +51,7 @@ export type ActiveLocation = {
 
 export type TenantFeatures = {
   whiteLabelBranding: boolean;
+  whiteLabelEnabled?: boolean;
 };
 
 export type OwnerOperatorSettings = {
