@@ -143,7 +143,6 @@ export function Topbar({
               ) : null}
             </div>
           </div>
-        ) : null}
       </div>
     </header>
   );
