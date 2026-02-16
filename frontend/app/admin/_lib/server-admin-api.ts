@@ -51,7 +51,7 @@ export async function getAdminSession(): Promise<AdminSessionState> {
 export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   const session = await getAdminSession();
   if (!session.isAuthenticated) {
-    redirect('/admin/login');
+    redirect('/login?next=/admin');
   }
 
   if (!session.isPlatformAdmin || !session.session) {
@@ -64,7 +64,7 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
 export async function adminApiFetch<T>(path: string): Promise<T> {
   const token = cookies().get('gymstack_token')?.value;
   if (!token) {
-    redirect('/admin/login');
+    redirect('/login?next=/admin');
   }
 
   const response = await fetch(buildApiUrl(path), {
@@ -76,7 +76,7 @@ export async function adminApiFetch<T>(path: string): Promise<T> {
   });
 
   if (response.status === 401) {
-    redirect('/admin/login');
+    redirect('/login?next=/admin');
   }
 
   if (response.status === 403) {

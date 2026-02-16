@@ -58,7 +58,7 @@ function LoginPageContent() {
       }
 
       if (isAdminHost) {
-        redirectTo(`https://${ADMIN_HOST}/`);
+        redirectTo('/admin');
         return;
       }
 
@@ -84,7 +84,7 @@ function LoginPageContent() {
             }
 
             if (isAdminHost) {
-              redirectTo(`https://${ADMIN_HOST}/`);
+              redirectTo('/admin');
               return;
             }
             const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');

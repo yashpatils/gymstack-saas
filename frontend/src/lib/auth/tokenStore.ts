@@ -152,6 +152,8 @@ export function getAccessToken(): string | null {
   if (isAdminHost()) {
     if (isAdminSessionExpired()) {
       clearAdminSessionStorage();
+      clearCookie(ACCESS_TOKEN_COOKIE_NAME);
+      clearCookie(REFRESH_TOKEN_COOKIE_NAME);
       return null;
     }
 
@@ -159,6 +161,14 @@ export function getAccessToken(): string | null {
     if (adminToken) {
       inMemoryAccessToken = adminToken;
       return adminToken;
+    }
+
+    const cookieToken = parseCookieValue(ACCESS_TOKEN_COOKIE_NAME);
+    if (cookieToken) {
+      inMemoryAccessToken = cookieToken;
+      window.sessionStorage.setItem(ADMIN_ACCESS_TOKEN_STORAGE_KEY, cookieToken);
+      window.sessionStorage.setItem(ADMIN_SESSION_STARTED_AT_KEY, Date.now().toString());
+      return cookieToken;
     }
 
     return null;
@@ -188,10 +198,23 @@ export function getRefreshToken(): string | null {
   if (isAdminHost()) {
     if (isAdminSessionExpired()) {
       clearAdminSessionStorage();
+      clearCookie(ACCESS_TOKEN_COOKIE_NAME);
+      clearCookie(REFRESH_TOKEN_COOKIE_NAME);
       return null;
     }
 
-    return window.sessionStorage.getItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY);
+    const adminRefreshToken = window.sessionStorage.getItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY);
+    if (adminRefreshToken) {
+      return adminRefreshToken;
+    }
+
+    const refreshCookieToken = parseCookieValue(REFRESH_TOKEN_COOKIE_NAME);
+    if (refreshCookieToken) {
+      window.sessionStorage.setItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY, refreshCookieToken);
+      return refreshCookieToken;
+    }
+
+    return null;
   }
 
   const storedRefreshToken = window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
@@ -218,8 +241,10 @@ export function setTokens({ accessToken, refreshToken }: AuthTokens): void {
   if (isAdminHost()) {
     window.sessionStorage.setItem(ADMIN_ACCESS_TOKEN_STORAGE_KEY, accessToken);
     window.sessionStorage.setItem(ADMIN_SESSION_STARTED_AT_KEY, Date.now().toString());
+    writeCookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, ADMIN_SESSION_MAX_AGE_MS / 1000);
     if (refreshToken) {
       window.sessionStorage.setItem(ADMIN_REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+      writeCookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, ADMIN_SESSION_MAX_AGE_MS / 1000);
     }
     return;
   }
@@ -241,6 +266,8 @@ export function clearTokens(): void {
 
   if (isAdminHost()) {
     clearAdminSessionStorage();
+    clearCookie(ACCESS_TOKEN_COOKIE_NAME);
+    clearCookie(REFRESH_TOKEN_COOKIE_NAME);
     return;
   }
 
