@@ -11,7 +11,7 @@ import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { AuthTokenService } from './auth-token.service';
-import { RequireVerifiedEmailGuard } from './require-verified-email.guard';
+import { RequireVerifiedEmailGuard } from './guards/require-verified-email.guard';
 import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
 import { OAuthIdentityService } from './oauth-identity.service';
 import { OAuthStateService } from './oauth-state.service';

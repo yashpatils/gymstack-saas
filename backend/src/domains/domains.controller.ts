@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { User } from '../users/user.model';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainsService } from './domains.service';
@@ -7,7 +8,7 @@ import { RequestLocationDomainVerificationDto } from './dto/request-location-dom
 import { VerifyLocationDomainDto } from './dto/verify-location-domain.dto';
 
 @Controller('domains')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
 export class DomainsController {
   constructor(private readonly domainsService: DomainsService) {}
 

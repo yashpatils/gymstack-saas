@@ -1,10 +1,11 @@
 import { Controller, ForbiddenException, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { User } from '../users/user.model';
 import { NotificationsService } from './notifications.service';
 
 @Controller('notifications')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 

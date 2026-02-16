@@ -37,6 +37,42 @@ export class ApiFetchError extends Error {
   }
 }
 
+type ApiErrorPayload = {
+  code?: unknown;
+};
+
+function extractApiErrorCode(details: unknown): string | null {
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  const payload = details as ApiErrorPayload;
+  return typeof payload.code === 'string' ? payload.code : null;
+}
+
+function getCurrentBrowserPath(): string {
+  if (typeof window === 'undefined') {
+    return '/platform';
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function redirectUnverifiedUserToVerifyEmail(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (window.location.pathname === '/verify-email') {
+    return;
+  }
+
+  const params = new URLSearchParams({
+    next: getCurrentBrowserPath(),
+  });
+  window.location.assign(`/verify-email?${params.toString()}`);
+}
+
 export function configureApiAuth(
   refreshFn: () => Promise<string | null>,
   onUnauthorized?: () => void,
@@ -162,6 +198,12 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
 
   if (!response.ok) {
     const details = isJson ? ((await response.json()) as unknown) : await response.text();
+    const errorCode = extractApiErrorCode(details);
+
+    if (response.status === 403 && errorCode === 'EMAIL_NOT_VERIFIED') {
+      redirectUnverifiedUserToVerifyEmail();
+    }
+
     const message =
       typeof details === 'string'
         ? details

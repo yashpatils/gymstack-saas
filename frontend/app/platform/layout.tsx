@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -8,6 +8,7 @@ import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
 import { AppFooter } from "../../src/components/shell/AppFooter";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
+import { resendVerification } from "../../src/lib/auth";
 
 const baseNavItems = [
   { label: "Overview", href: "/platform" },
@@ -23,6 +24,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -94,6 +96,27 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         )}
       >
         <>
+          {!user?.emailVerifiedAt ? (
+            <div className="container-app pt-4">
+              <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+                <p className="font-medium">Verify your email to unlock full access.</p>
+                <button
+                  type="button"
+                  className="mt-2 underline"
+                  onClick={async () => {
+                    if (!user?.email) {
+                      return;
+                    }
+                    const response = await resendVerification(user.email);
+                    setVerificationMessage(response.message);
+                  }}
+                >
+                  Resend verification email
+                </button>
+                {verificationMessage ? <p className="mt-2 text-xs text-amber-200">{verificationMessage}</p> : null}
+              </div>
+            </div>
+          ) : null}
           {children}
           <div className="container-app pb-6">
             <AppFooter />

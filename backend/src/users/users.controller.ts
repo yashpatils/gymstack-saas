@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -19,7 +20,7 @@ import { User, UserRole } from './user.model';
 import { UsersService } from './users.service';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
