@@ -162,7 +162,8 @@ export class AuthService implements OnModuleInit {
   }
 
   async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
-    const { email, password } = input;
+    const email = input.email?.trim().toLowerCase();
+    const { password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
