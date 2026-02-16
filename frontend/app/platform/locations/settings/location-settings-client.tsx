@@ -42,6 +42,7 @@ type DomainResponse = {
   locationId: string;
   customDomain: string | null;
   domainVerifiedAt: string | null;
+  status?: "pending_verification" | "verified";
   dnsInstructions: {
     txtRecord: {
       type: "TXT";
@@ -95,6 +96,7 @@ export default function LocationSettingsClient() {
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isSavingDomain, setIsSavingDomain] = useState(false);
   const [isVerifyingDomain, setIsVerifyingDomain] = useState(false);
+  const [isManuallyVerifyingDomain, setIsManuallyVerifyingDomain] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -303,6 +305,34 @@ export default function LocationSettingsClient() {
     }
   };
 
+  const handleManualVerifyDomain = async () => {
+    if (!selectedLocation) return;
+
+    setIsManuallyVerifyingDomain(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await apiFetch<DomainResponse>(`/api/locations/${selectedLocation.id}/verify-domain`, {
+        method: "POST",
+        body: { manualVerify: true },
+      });
+
+      setSelectedLocation((current) => (
+        current
+          ? { ...current, customDomain: response.customDomain, domainVerifiedAt: response.domainVerifiedAt }
+          : current
+      ));
+      setDnsTxtName(response.dnsInstructions.txtRecord.name ?? "");
+      setDnsTxtValue(response.dnsInstructions.txtRecord.value);
+      setNotice("Domain manually marked as verified for MVP rollout.");
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : "Unable to manually verify domain.");
+    } finally {
+      setIsManuallyVerifyingDomain(false);
+    }
+  };
+
   const domainStatus = getDomainStatus(selectedLocation ?? undefined);
   const statusClasses = {
     "Not set": "bg-slate-500/20 text-slate-200",
@@ -417,6 +447,14 @@ export default function LocationSettingsClient() {
                 </button>
                 <button className="button secondary" type="button" onClick={handleVerifyDomain} disabled={isVerifyingDomain || domainStatus === "Not set"}>
                   {isVerifyingDomain ? "Requesting..." : "Request verification"}
+                </button>
+                <button
+                  className="button secondary"
+                  type="button"
+                  onClick={handleManualVerifyDomain}
+                  disabled={isManuallyVerifyingDomain || domainStatus === "Not set" || domainStatus === "Verified"}
+                >
+                  {isManuallyVerifyingDomain ? "Verifying..." : "Mark verified (MVP)"}
                 </button>
               </div>
             </div>
