@@ -53,7 +53,7 @@ export function Topbar({
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              className="button secondary h-9 w-9 rounded-xl p-0 lg:hidden md:h-10 md:w-10"
+              className="button secondary platform-menu-toggle h-9 w-9 rounded-xl p-0 md:h-10 md:w-10"
               onClick={onToggleMenu}
               aria-label="Toggle menu"
             >

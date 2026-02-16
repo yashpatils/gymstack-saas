@@ -1410,6 +1410,12 @@ body {
   line-height: 1;
 }
 
+.platform-menu-toggle {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
 @media (min-width: 768px) {
   .topbar-icon-button {
     width: 2.5rem;
@@ -1497,6 +1503,10 @@ body {
 }
 
 @media (min-width: 1025px) {
+  .platform-menu-toggle {
+    display: none;
+  }
+
   .dashboard-main-grid {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   }
