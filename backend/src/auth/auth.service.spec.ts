@@ -117,7 +117,7 @@ describe('AuthService resendVerification', () => {
 
     expect(response).toEqual({
       ok: true,
-      message: 'If an account exists, we sent a verification email.',
+      message: 'If an account exists and is not already verified, we sent a verification email.',
     });
     expect(emailService.sendVerifyEmail).toHaveBeenCalledTimes(1);
     expect(emailService.sendVerifyEmail).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe('AuthService resendVerification', () => {
 
     expect(response).toEqual({
       ok: true,
-      message: 'If an account exists, we sent a verification email.',
+      message: 'If an account exists and is not already verified, we sent a verification email.',
     });
     expect(emailService.sendVerifyEmail).not.toHaveBeenCalled();
   });
@@ -153,7 +153,7 @@ describe('AuthService resendVerification', () => {
 
     expect(response).toEqual({
       ok: true,
-      message: 'If an account exists, we sent a verification email.',
+      message: 'If an account exists and is not already verified, we sent a verification email.',
     });
     expect(emailService.sendVerifyEmail).not.toHaveBeenCalled();
   });
@@ -173,7 +173,7 @@ describe('AuthService resendVerification', () => {
 
     expect(response).toEqual({
       ok: true,
-      message: 'If an account exists, we sent a verification email.',
+      message: 'If an account exists and is not already verified, we sent a verification email.',
     });
     expect(emailService.sendVerifyEmail).not.toHaveBeenCalled();
   });
