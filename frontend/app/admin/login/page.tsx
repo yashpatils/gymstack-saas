@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { adminLogin, logout, me } from '../../../src/lib/auth';
 import { ApiFetchError } from '../../../src/lib/apiFetch';
@@ -10,6 +10,8 @@ const ADMIN_ONLY_ERROR = 'Access restricted: admins only';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forceFreshLogin = searchParams.get('fresh') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +22,15 @@ export default function AdminLoginPage() {
     let isMounted = true;
 
     const checkSession = async () => {
+      if (forceFreshLogin) {
+        logout();
+        if (isMounted) {
+          setError(null);
+          setCheckingSession(false);
+        }
+        return;
+      }
+
       try {
         const session = await me();
         if (!isMounted) {
@@ -54,7 +65,7 @@ export default function AdminLoginPage() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [forceFreshLogin, router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6">

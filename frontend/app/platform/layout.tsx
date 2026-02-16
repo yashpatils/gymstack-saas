@@ -7,6 +7,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
 import { AppFooter } from "../../src/components/shell/AppFooter";
+import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
 
 const baseNavItems = [
   { label: "Overview", href: "/platform" },
@@ -52,7 +53,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   }
 
   const navItems = platformRole === "PLATFORM_ADMIN"
-    ? [...baseNavItems, { label: "Admin", href: "https://admin.gymstack.club" }]
+    ? [...baseNavItems, { label: "Admin", href: ADMIN_PORTAL_FRESH_LOGIN_URL }]
     : baseNavItems;
 
   const filteredItems = navItems.filter((item) => {
