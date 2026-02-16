@@ -20,6 +20,7 @@ import { AdminModule } from './admin/admin.module';
 import { AccountModule } from './account/account.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
+import { LocationAppModule } from './location-app/location-app.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service
     AdminModule,
     AccountModule,
     OnboardingModule,
+    LocationAppModule,
   ],
   controllers: [AppController],
   providers: [

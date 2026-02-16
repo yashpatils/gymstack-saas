@@ -79,6 +79,9 @@ export type AuthMeResponse = {
   platformRole?: 'PLATFORM_ADMIN' | null;
   memberships: CanonicalMemberships | Membership[];
   activeContext: ActiveContext;
+  activeTenantId?: string | null;
+  activeLocationId?: string | null;
+  mode?: 'OWNER' | 'MANAGER';
   permissions: PermissionFlags | string[];
   permissionKeys?: string[];
   activeTenant?: ActiveTenant;

@@ -729,6 +729,9 @@ export class AuthService implements OnModuleInit {
           })),
       },
       activeContext: canonicalContext,
+      activeTenantId: canonicalContext.tenantId,
+      activeLocationId: canonicalContext.locationId,
+      mode: active?.activeMode ?? ActiveMode.OWNER,
       permissions: permissionFlags,
       permissionKeys: permissionFlagsToKeys(permissionFlags),
     };
