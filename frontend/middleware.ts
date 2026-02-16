@@ -68,21 +68,13 @@ function isSignupPath(pathname: string): boolean {
   return pathname === '/signup' || pathname.startsWith('/signup/');
 }
 
-function isAdminPrivatePath(pathname: string): boolean {
-  return pathname === '/' || pathname.startsWith('/_admin') || pathname.startsWith('/admin');
-}
-
-export function resolveHostRoute(host: string, pathname: string, baseDomain: string, hasSessionToken: boolean): HostRouteResolution {
+export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
   if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom')) {
     return { type: 'next' };
   }
 
   if (host === ADMIN_HOST) {
     if (isSignupPath(pathname)) {
-      return { type: 'redirect', pathname: '/login' };
-    }
-
-    if (isAdminPrivatePath(pathname) && !hasSessionToken) {
       return { type: 'redirect', pathname: '/login' };
     }
 
@@ -122,9 +114,7 @@ export function middleware(request: NextRequest) {
   const baseDomain = getBaseDomain();
   const hostHeader = request.headers.get('host') ?? '';
   const host = stripPort(hostHeader.toLowerCase());
-  const hasSessionToken = Boolean(request.cookies.get('gymstack_token')?.value);
-
-  const resolution = resolveHostRoute(host, pathname, baseDomain, hasSessionToken);
+  const resolution = resolveHostRoute(host, pathname, baseDomain);
   if (resolution.type === 'next') {
     return NextResponse.next();
   }

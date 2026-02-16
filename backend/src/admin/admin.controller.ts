@@ -18,13 +18,15 @@ export class AdminController {
   ) {}
 
   @Get('whoami')
-  async whoami(@Req() req: { user: RequestUser }): Promise<{ email: string; platformRole: 'PLATFORM_ADMIN' | null; allowlistedEmailsCount: number }> {
+  async whoami(@Req() req: { user: RequestUser }): Promise<{ email: string; isPlatformAdmin: boolean; platformRole: 'PLATFORM_ADMIN' | null }> {
     const user = await this.adminService.getUserById(req.user.id);
     const allowlistedEmails = getPlatformAdminEmails(this.configService);
+    const isPlatformAdminUser = isPlatformAdmin(user?.email, allowlistedEmails);
+
     return {
       email: user?.email ?? '',
-      platformRole: isPlatformAdmin(user?.email, allowlistedEmails) ? 'PLATFORM_ADMIN' : null,
-      allowlistedEmailsCount: allowlistedEmails.length,
+      isPlatformAdmin: isPlatformAdminUser,
+      platformRole: isPlatformAdminUser ? 'PLATFORM_ADMIN' : null,
     };
   }
 
