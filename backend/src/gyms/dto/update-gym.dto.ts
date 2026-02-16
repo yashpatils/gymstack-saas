@@ -24,4 +24,28 @@ export class UpdateGymDto {
   @IsOptional()
   @IsString()
   logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  primaryColor?: string;
+
+  @IsOptional()
+  @IsString()
+  accentGradient?: string;
+
+  @IsOptional()
+  @IsString()
+  heroTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  heroSubtitle?: string;
+
+  @IsOptional()
+  @IsString()
+  customDomain?: string;
 }

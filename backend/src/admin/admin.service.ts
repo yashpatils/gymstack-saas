@@ -128,7 +128,7 @@ export class AdminService {
           managersCount,
           customDomainsCount: organization._count.customDomains,
           subscriptionStatus: organization.users[0]?.subscriptionStatus ?? null,
-          whiteLabelBranding: organization.whiteLabelBrandingEnabled,
+          whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
         };
       }),
       page: safePage,
@@ -245,7 +245,7 @@ export class AdminService {
         name: organization.name,
         createdAt: organization.createdAt.toISOString(),
         subscriptionStatus: organization.users[0]?.subscriptionStatus ?? null,
-        whiteLabelBranding: organization.whiteLabelBrandingEnabled,
+        whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
       locations: organization.gyms.map((gym) => ({
         id: gym.id,
@@ -272,8 +272,8 @@ export class AdminService {
   async setTenantFeatures(tenantId: string, features: { whiteLabelBranding: boolean }, actorUserId: string): Promise<{ tenantId: string; whiteLabelBranding: boolean }> {
     const tenant = await this.prisma.organization.update({
       where: { id: tenantId },
-      data: { whiteLabelBrandingEnabled: features.whiteLabelBranding },
-      select: { id: true, whiteLabelBrandingEnabled: true },
+      data: { whiteLabelBrandingEnabled: features.whiteLabelBranding, whiteLabelEnabled: features.whiteLabelBranding },
+      select: { id: true, whiteLabelBrandingEnabled: true, whiteLabelEnabled: true },
     });
 
     await this.prisma.auditLog.create({
@@ -283,13 +283,13 @@ export class AdminService {
         action: 'tenant.features.updated',
         entityType: 'organization',
         entityId: tenant.id,
-        metadata: { whiteLabelBranding: tenant.whiteLabelBrandingEnabled },
+        metadata: { whiteLabelBranding: tenant.whiteLabelEnabled || tenant.whiteLabelBrandingEnabled },
       },
     });
 
     return {
       tenantId: tenant.id,
-      whiteLabelBranding: tenant.whiteLabelBrandingEnabled,
+      whiteLabelBranding: tenant.whiteLabelEnabled || tenant.whiteLabelBrandingEnabled,
     };
   }
 

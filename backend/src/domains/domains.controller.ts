@@ -3,6 +3,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../users/user.model';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainsService } from './domains.service';
+import { RequestLocationDomainVerificationDto } from './dto/request-location-domain-verification.dto';
+import { VerifyLocationDomainDto } from './dto/verify-location-domain.dto';
 
 @Controller('domains')
 @UseGuards(JwtAuthGuard)
@@ -17,6 +19,16 @@ export class DomainsController {
   @Get()
   list(@Req() req: { user: User }) {
     return this.domainsService.list(req.user);
+  }
+
+  @Post('location/request-verification')
+  requestLocationVerification(@Req() req: { user: User }, @Body() body: RequestLocationDomainVerificationDto) {
+    return this.domainsService.requestLocationVerification(req.user, body.locationId, body.hostname);
+  }
+
+  @Post('location/verify')
+  verifyLocationDomain(@Req() req: { user: User }, @Body() body: VerifyLocationDomainDto) {
+    return this.domainsService.verifyLocationDomain(req.user, body.locationId);
   }
 
   @Post(':id/verify')

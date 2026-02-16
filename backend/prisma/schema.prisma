@@ -242,7 +242,14 @@ model Gym {
   logoUrl      String?
   displayName  String?
   accentColor  String?
+  primaryColor String?
+  accentGradient String?
+  heroTitle    String?
+  heroSubtitle String?
   heroImageUrl String?
+  customDomain String?      @unique
+  domainVerifiedAt DateTime?
+  domainVerificationToken String?
   ownerId      String
   orgId        String
   owner        User         @relation(fields: [ownerId], references: [id])
@@ -260,6 +267,7 @@ model Organization {
   id          String       @id @default(cuid())
   name        String
   whiteLabelBrandingEnabled Boolean @default(false)
+  whiteLabelEnabled Boolean @default(false)
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
