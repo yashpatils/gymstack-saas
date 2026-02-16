@@ -254,6 +254,7 @@ model Gym {
   customDomain String?      @unique
   domainVerifiedAt DateTime?
   domainVerificationToken String?
+  verificationRequestedAt DateTime?
   ownerId      String
   orgId        String
   owner        User         @relation(fields: [ownerId], references: [id])
