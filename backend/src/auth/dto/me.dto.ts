@@ -1,4 +1,5 @@
 import { MembershipRole } from '@prisma/client';
+import { PermissionFlags } from '../permission-resolver';
 
 export class MembershipDto {
   id!: string;
@@ -10,53 +11,41 @@ export class MembershipDto {
   status!: string;
 }
 
-export class ActiveContextDto {
+export class TenantMembershipDto {
   tenantId!: string;
-  gymId?: string | null;
-  locationId?: string | null;
-  branchId?: string | null;
-  role!: MembershipRole;
+  role!: 'TENANT_OWNER';
+}
+
+export class LocationMembershipDto {
+  tenantId!: string;
+  locationId!: string;
+  role!: 'TENANT_LOCATION_ADMIN' | 'GYM_STAFF_COACH' | 'CLIENT';
+}
+
+export class ActiveContextDto {
+  tenantId!: string | null;
+  locationId!: string | null;
+  role!: MembershipRole | null;
 }
 
 export class MeDto {
   id!: string;
   email!: string;
-  role!: string;
-  orgId!: string;
-  emailVerified!: boolean;
-  emailVerifiedAt!: string | null;
+  name?: string | null;
+  role?: string;
+  orgId?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
 }
 
 export class AuthMeResponseDto {
   user!: MeDto;
-  platformRole?: 'PLATFORM_ADMIN' | null;
-  role?: MembershipRole | null;
-  memberships!: MembershipDto[];
-  activeContext?: ActiveContextDto;
-  activeTenant?: {
-    id: string;
-    name: string;
+  platformRole!: 'PLATFORM_ADMIN' | null;
+  memberships!: {
+    tenant: TenantMembershipDto[];
+    location: LocationMembershipDto[];
   };
-  activeLocation?: {
-    id: string;
-    name: string;
-    customDomain?: string | null;
-  };
-  tenantFeatures?: {
-    whiteLabelBranding: boolean;
-  };
-  activeMode?: 'OWNER' | 'MANAGER';
-  canUseSocialLogin?: boolean;
-  effectiveRole?: MembershipRole;
-  ownerOperatorSettings?: {
-    allowOwnerStaffLogin: boolean;
-    defaultMode: 'OWNER' | 'MANAGER';
-    defaultLocationId?: string | null;
-  } | null;
-  onboarding?: {
-    needsOpsChoice: boolean;
-    tenantId?: string;
-    locationId?: string;
-  };
-  permissions!: string[];
+  activeContext!: ActiveContextDto;
+  permissions!: PermissionFlags;
+  permissionKeys!: string[];
 }

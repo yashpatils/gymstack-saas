@@ -11,8 +11,8 @@ export type AuthUser = {
   role?: string | null;
   tenantId?: string | null;
   orgId?: string | null;
-  emailVerified: boolean;
-  emailVerifiedAt: string | null;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
 };
 
 export type Membership = {
@@ -25,15 +25,18 @@ export type Membership = {
   status: string;
 };
 
+export type CanonicalMemberships = {
+  tenant: Array<{ tenantId: string; role: 'TENANT_OWNER' }>;
+  location: Array<{ tenantId: string; locationId: string; role: 'TENANT_LOCATION_ADMIN' | 'GYM_STAFF_COACH' | 'CLIENT' }>;
+};
+
 export type ActiveContext = {
-  tenantId: string;
+  tenantId: string | null;
   gymId?: string | null;
   locationId?: string | null;
   branchId?: string | null;
-  role: MembershipRole;
+  role: MembershipRole | null;
 };
-
-
 
 export type ActiveTenant = {
   id: string;
@@ -62,12 +65,22 @@ export type OnboardingState = {
   locationId?: string;
 };
 
+export type PermissionFlags = {
+  canManageTenant: boolean;
+  canManageLocations: boolean;
+  canInviteStaff: boolean;
+  canInviteClients: boolean;
+  canManageBilling: boolean;
+  canManageUsers: boolean;
+};
+
 export type AuthMeResponse = {
   user: AuthUser;
   platformRole?: 'PLATFORM_ADMIN' | null;
-  role?: MembershipRole | null;
-  memberships: Membership[];
-  activeContext?: ActiveContext;
+  memberships: CanonicalMemberships | Membership[];
+  activeContext: ActiveContext;
+  permissions: PermissionFlags | string[];
+  permissionKeys?: string[];
   activeTenant?: ActiveTenant;
   activeLocation?: ActiveLocation;
   activeMode?: 'OWNER' | 'MANAGER';
@@ -75,7 +88,6 @@ export type AuthMeResponse = {
   ownerOperatorSettings?: OwnerOperatorSettings | null;
   onboarding?: OnboardingState;
   effectiveRole?: MembershipRole;
-  permissions: string[];
   subscriptionStatus?: string | null;
   stripeConfigured?: boolean;
   tenantFeatures?: TenantFeatures;

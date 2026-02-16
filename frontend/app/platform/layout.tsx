@@ -22,7 +22,7 @@ const baseNavItems = [
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout, permissions, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
+  const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {
@@ -58,11 +58,11 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   const filteredItems = navItems.filter((item) => {
     if (item.href === "/platform/billing") {
-      return permissions.includes("billing:manage") || user?.role === "OWNER" || user?.role === "ADMIN";
+      return permissions.canManageBilling || permissionKeys.includes("billing:manage") || user?.role === "OWNER" || user?.role === "ADMIN";
     }
 
     if (item.href === "/platform/team") {
-      return permissions.some((permission) => ["users:crud", "staff:crud", "tenant:manage"].includes(permission));
+      return permissions.canManageUsers || permissions.canManageTenant || permissionKeys.some((permission) => ["users:crud", "staff:crud", "tenant:manage"].includes(permission));
     }
 
     return true;

@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleIn
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { ActiveMode, AuthTokenPurpose, DomainStatus, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
+import { ActiveMode, AuthTokenPurpose, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -12,7 +12,7 @@ import { AuthTokenService } from './auth-token.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
-import { resolveEffectivePermissions } from './authorization';
+import { permissionFlagsToKeys, resolvePermissions } from './permission-resolver';
 import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { RefreshTokenService } from './refresh-token.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
@@ -347,19 +347,17 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  async setContext(userId: string, tenantId: string, gymId?: string): Promise<{ accessToken: string }> {
-    const membership = await this.prisma.membership.findFirst({
-      where: {
-        userId,
-        orgId: tenantId,
-        status: MembershipStatus.ACTIVE,
-      },
+  async setContext(userId: string, tenantId: string, gymId?: string): Promise<{ accessToken: string; me: AuthMeResponseDto }> {
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId, orgId: tenantId, status: MembershipStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
     });
 
-    if (!membership) {
-      throw new UnauthorizedException('Invalid context for user');
+    if (memberships.length === 0) {
+      throw new ForbiddenException('Invalid context for user');
     }
+
+    const ownerMembership = memberships.find((membership) => membership.role === MembershipRole.TENANT_OWNER);
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.status !== UserStatus.ACTIVE) {
@@ -369,38 +367,42 @@ export class AuthService implements OnModuleInit {
     if (gymId) {
       const gym = await this.prisma.gym.findFirst({ where: { id: gymId, orgId: tenantId }, select: { id: true } });
       if (!gym) {
-        throw new UnauthorizedException('Invalid context for user');
+        throw new ForbiddenException('Invalid context for user');
       }
     }
 
-    const canUseGym = !gymId || await this.prisma.membership.findFirst({
-      where: {
-        userId,
-        orgId: tenantId,
-        status: MembershipStatus.ACTIVE,
-        OR: [
-          { gymId, role: { in: [MembershipRole.TENANT_LOCATION_ADMIN, MembershipRole.GYM_STAFF_COACH, MembershipRole.CLIENT] } },
-          { gymId: null, role: { in: [MembershipRole.TENANT_OWNER] } },
-        ],
-      },
-      select: { id: true },
-    });
+    const locationMembership = memberships.find(
+      (membership) => membership.gymId === gymId
+        && (membership.role === MembershipRole.TENANT_LOCATION_ADMIN || membership.role === MembershipRole.GYM_STAFF_COACH || membership.role === MembershipRole.CLIENT),
+    );
 
-    if (!canUseGym) {
-      throw new UnauthorizedException('Invalid context for user');
+    if (gymId && !locationMembership) {
+      const locations = await this.prisma.gym.findMany({ where: { orgId: tenantId }, select: { id: true } });
+      const canOwnerActAsManager = Boolean(ownerMembership) && (
+        locations.length === 1
+        || memberships.some((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN && membership.gymId === gymId)
+      );
+      if (!canOwnerActAsManager) {
+        throw new ForbiddenException('Invalid context for user');
+      }
     }
 
     const activeContext = {
-      tenantId: membership.orgId,
+      tenantId,
       gymId: gymId ?? null,
       locationId: gymId ?? null,
-      role: membership.role,
+      role: locationMembership?.role ?? ownerMembership?.role ?? memberships[0].role,
     };
 
     const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
+    const accessToken = this.signToken(user.id, user.email, resolvedRole, activeContext);
 
-    return { accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext) };
+    return {
+      accessToken,
+      me: await this.me(user.id, { tenantId, gymId: gymId ?? undefined, role: activeContext.role }),
+    };
   }
+
 
 
   async setMode(userId: string, tenantId: string, mode: ActiveMode, locationId?: string): Promise<AuthMeResponseDto> {
@@ -444,7 +446,7 @@ export class AuthService implements OnModuleInit {
   }
 
   async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole; activeMode?: ActiveMode; accessToken?: string }): Promise<AuthMeResponseDto> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, role: true, emailVerifiedAt: true, status: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, status: true } });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -455,100 +457,42 @@ export class AuthService implements OnModuleInit {
     });
 
     const fallbackContext = await this.getDefaultContext(memberships);
-    const activeContext = active?.tenantId && active.role
+    const selectedContext = active?.tenantId && active.role
       ? { tenantId: active.tenantId, gymId: active.gymId ?? null, locationId: active.gymId ?? null, role: active.role }
       : fallbackContext;
 
-    const permissions = activeContext
-      ? await resolveEffectivePermissions(this.prisma, userId, activeContext.tenantId, activeContext.gymId ?? undefined)
-      : [];
-
     const allowlistedEmails = getPlatformAdminEmails(this.configService);
     const userIsPlatformAdmin = isPlatformAdmin(user.email, allowlistedEmails);
-    const resolvedRole = userIsPlatformAdmin ? Role.PLATFORM_ADMIN : user.role;
 
-    const activeMode = active?.activeMode ?? (activeContext?.role === MembershipRole.TENANT_OWNER ? ActiveMode.OWNER : ActiveMode.MANAGER);
-    const canUseSocialLogin = activeMode === ActiveMode.MANAGER || activeContext?.role !== MembershipRole.TENANT_OWNER;
+    const canonicalContext = {
+      tenantId: selectedContext?.tenantId ?? null,
+      locationId: selectedContext?.locationId ?? null,
+      role: selectedContext?.role ?? null,
+    };
 
-    const ownerOperatorSettings = activeContext?.tenantId
-      ? await this.prisma.ownerOperatorSetting.findUnique({
-        where: { userId_tenantId: { userId, tenantId: activeContext.tenantId } },
-        select: { allowOwnerStaffLogin: true, defaultMode: true, defaultLocationId: true },
-      })
-      : null;
-
-    let onboarding: { needsOpsChoice: boolean; tenantId?: string; locationId?: string } = { needsOpsChoice: false };
-    if (activeContext?.tenantId && activeContext.role === MembershipRole.TENANT_OWNER) {
-      const tenantGyms = await this.prisma.gym.findMany({
-        where: { orgId: activeContext.tenantId },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true },
-      });
-
-      if (tenantGyms.length === 1) {
-        const firstLocationId = tenantGyms[0].id;
-        const otherManager = await this.prisma.membership.findFirst({
-          where: {
-            orgId: activeContext.tenantId,
-            gymId: firstLocationId,
-            role: MembershipRole.TENANT_LOCATION_ADMIN,
-            status: MembershipStatus.ACTIVE,
-            userId: { not: userId },
-          },
-          select: { id: true },
-        });
-
-        onboarding = {
-          needsOpsChoice: !ownerOperatorSettings && !otherManager,
-          tenantId: activeContext.tenantId,
-          locationId: firstLocationId,
-        };
-      }
-    }
-
-    const activeTenant = activeContext?.tenantId
-      ? await this.prisma.organization.findUnique({
-        where: { id: activeContext.tenantId },
-        select: { id: true, name: true, whiteLabelBrandingEnabled: true },
-      })
-      : null;
-
-    const activeLocation = activeContext?.gymId
-      ? await this.prisma.gym.findUnique({
-        where: { id: activeContext.gymId },
-        select: { id: true, name: true },
-      })
-      : null;
-
-    const activeLocationDomain = activeLocation
-      ? await this.prisma.customDomain.findFirst({
-        where: { locationId: activeLocation.id, status: DomainStatus.ACTIVE },
-        orderBy: { createdAt: 'desc' },
-        select: { hostname: true },
-      })
-      : null;
+    const permissionFlags = resolvePermissions(canonicalContext.role);
 
     return {
-      user: { id: user.id, email: user.email, role: resolvedRole, orgId: activeContext?.tenantId ?? '', emailVerified: Boolean(user.emailVerifiedAt), emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null },
+      user: { id: user.id, email: user.email },
       platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
-      role: activeContext?.role ?? null,
-      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
-      activeContext: activeContext ?? undefined,
-      activeTenant: activeTenant ? { id: activeTenant.id, name: activeTenant.name } : undefined,
-      activeLocation: activeLocation ? {
-        id: activeLocation.id,
-        name: activeLocation.name,
-        customDomain: activeLocationDomain?.hostname ?? null,
-      } : undefined,
-      tenantFeatures: activeTenant ? { whiteLabelBranding: activeTenant.whiteLabelBrandingEnabled } : undefined,
-      activeMode,
-      canUseSocialLogin,
-      effectiveRole: activeContext?.role,
-      ownerOperatorSettings,
-      onboarding,
-      permissions,
+      memberships: {
+        tenant: memberships
+          .filter((membership) => membership.role === MembershipRole.TENANT_OWNER)
+          .map((membership) => ({ tenantId: membership.orgId, role: 'TENANT_OWNER' as const })),
+        location: memberships
+          .filter((membership) => membership.gymId && membership.role !== MembershipRole.TENANT_OWNER)
+          .map((membership) => ({
+            tenantId: membership.orgId,
+            locationId: membership.gymId as string,
+            role: membership.role as 'TENANT_LOCATION_ADMIN' | 'GYM_STAFF_COACH' | 'CLIENT',
+          })),
+      },
+      activeContext: canonicalContext,
+      permissions: permissionFlags,
+      permissionKeys: permissionFlagsToKeys(permissionFlags),
     };
   }
+
 
   async forgotPassword(email: string): Promise<{ ok: true }> {
     const user = await this.prisma.user.findUnique({ where: { email } });

@@ -149,7 +149,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('set-context')
-  setContext(@Req() req: AuthenticatedRequest, @Body() body: SetContextDto): Promise<{ accessToken: string }> {
+  setContext(@Req() req: AuthenticatedRequest, @Body() body: SetContextDto): Promise<{ accessToken: string; me: AuthMeResponseDto }> {
     return this.authService.setContext(req.user.id, body.tenantId, body.gymId ?? body.locationId);
   }
 

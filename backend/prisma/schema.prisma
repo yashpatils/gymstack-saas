@@ -313,6 +313,7 @@ model LocationInvite {
   role            MembershipRole
   email           String?
   tokenHash       String           @unique
+  tokenPrefix     String
   expiresAt       DateTime
   status          InviteStatus     @default(PENDING)
   consumedAt      DateTime?
@@ -326,4 +327,5 @@ model LocationInvite {
   @@index([tenantId])
   @@index([locationId])
   @@index([createdByUserId])
+  @@index([tenantId, locationId, status])
 }

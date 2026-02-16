@@ -2,10 +2,8 @@ ALTER TABLE "LocationInvite"
   ADD COLUMN "tokenHash" TEXT,
   ADD COLUMN "consumedAt" TIMESTAMP(3);
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 UPDATE "LocationInvite"
-SET "tokenHash" = encode(digest("token", 'sha256'), 'hex')
+SET "tokenHash" = "token"
 WHERE "tokenHash" IS NULL;
 
 ALTER TABLE "LocationInvite"

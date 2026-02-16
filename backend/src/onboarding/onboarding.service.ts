@@ -72,6 +72,7 @@ export class OnboardingService {
         role: MembershipRole.TENANT_LOCATION_ADMIN,
         email: managerEmail,
         tokenHash: createHash('sha256').update(token).digest('hex'),
+        tokenPrefix: token.slice(0, 6),
         expiresAt,
         createdByUserId: user.id,
         status: InviteStatus.PENDING,
