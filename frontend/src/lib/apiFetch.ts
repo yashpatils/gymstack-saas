@@ -125,7 +125,7 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
       headers.set('X-Support-Location-Id', supportContext.locationId);
     }
   }
-  if (activeContext) {
+  if (activeContext?.tenantId) {
     headers.set('X-Active-Tenant-Id', activeContext.tenantId);
     if (activeContext.locationId) {
       headers.set('X-Active-Location-Id', activeContext.locationId);
