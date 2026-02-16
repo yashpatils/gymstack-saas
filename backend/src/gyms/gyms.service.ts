@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, Prisma, Role, DomainStatus } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
@@ -9,6 +9,8 @@ import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 import { canManageLocation } from '../auth/authorization';
 import { hasSupportModeContext } from '../auth/support-mode.util';
 import { createHash, randomBytes } from 'crypto';
+import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
+import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -269,6 +271,160 @@ export class GymsService {
       customDomain: domain?.hostname ?? null,
       gymName: location.name,
       logoUrl: location.logoUrl ?? null,
+    };
+  }
+
+  async updateLocationBranding(locationId: string, payload: UpdateLocationBrandingDto, user: User) {
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const location = await this.prisma.gym.findFirst({
+      where: { id: locationId, orgId: tenantId },
+      select: { id: true, orgId: true },
+    });
+
+    if (!location) {
+      throw new NotFoundException('Location not found');
+    }
+
+    const allowed = await canManageLocation(this.prisma, user.id, tenantId, locationId);
+    if (!allowed && !hasSupportModeContext(user, tenantId, locationId)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return this.prisma.gym.update({
+      where: { id: locationId },
+      data: {
+        displayName: payload.displayName,
+        logoUrl: payload.logoUrl,
+        primaryColor: payload.primaryColor,
+        accentGradient: payload.accentGradient,
+        heroTitle: payload.heroTitle,
+        heroSubtitle: payload.heroSubtitle,
+      },
+      select: {
+        id: true,
+        displayName: true,
+        logoUrl: true,
+        primaryColor: true,
+        accentGradient: true,
+        heroTitle: true,
+        heroSubtitle: true,
+      },
+    });
+  }
+
+  async configureLocationCustomDomain(locationId: string, payload: ConfigureLocationDomainDto, user: User) {
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const location = await this.prisma.gym.findFirst({
+      where: { id: locationId, orgId: tenantId },
+      select: { id: true },
+    });
+
+    if (!location) {
+      throw new NotFoundException('Location not found');
+    }
+
+    const allowed = await canManageLocation(this.prisma, user.id, tenantId, locationId);
+    if (!allowed && !hasSupportModeContext(user, tenantId, locationId)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const normalizedDomain = payload.customDomain
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/+$/, '')
+      .split('/')[0]
+      ?.replace(/\.$/, '');
+
+    if (!normalizedDomain) {
+      throw new BadRequestException('Invalid custom domain');
+    }
+
+    const domainVerificationToken = randomBytes(24).toString('base64url');
+
+    let updated: { id: string; customDomain: string | null; domainVerificationToken: string | null; domainVerifiedAt: Date | null };
+    try {
+      updated = await this.prisma.gym.update({
+        where: { id: locationId },
+        data: {
+          customDomain: normalizedDomain,
+          domainVerificationToken,
+          domainVerifiedAt: null,
+        },
+        select: {
+          id: true,
+          customDomain: true,
+          domainVerificationToken: true,
+          domainVerifiedAt: true,
+        },
+      });
+    } catch {
+      throw new BadRequestException('Custom domain is already in use');
+    }
+
+    return {
+      locationId: updated.id,
+      customDomain: updated.customDomain,
+      domainVerifiedAt: updated.domainVerifiedAt,
+      dnsInstructions: {
+        txtRecord: {
+          type: 'TXT' as const,
+          name: normalizedDomain,
+          value: `gymstack-verify=${domainVerificationToken}`,
+        },
+        cnameGuidance: 'Optional: point your custom domain CNAME to cname.vercel-dns.com if your DNS provider supports it.',
+      },
+    };
+  }
+
+  async requestLocationDomainVerification(locationId: string, user: User) {
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const location = await this.prisma.gym.findFirst({
+      where: { id: locationId, orgId: tenantId },
+      select: { id: true, customDomain: true, domainVerificationToken: true },
+    });
+
+    if (!location || !location.customDomain || !location.domainVerificationToken) {
+      throw new NotFoundException('Pending domain verification not found');
+    }
+
+    const allowed = await canManageLocation(this.prisma, user.id, tenantId, locationId);
+    if (!allowed && !hasSupportModeContext(user, tenantId, locationId)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const updated = await this.prisma.gym.update({
+      where: { id: locationId },
+      data: { verificationRequestedAt: new Date() },
+      select: { id: true, customDomain: true, domainVerifiedAt: true, verificationRequestedAt: true },
+    });
+
+    return {
+      locationId: updated.id,
+      customDomain: updated.customDomain,
+      domainVerifiedAt: updated.domainVerifiedAt,
+      verificationRequestedAt: updated.verificationRequestedAt,
+      status: 'pending_verification' as const,
+      dnsInstructions: {
+        txtRecord: {
+          type: 'TXT' as const,
+          name: updated.customDomain,
+          value: `gymstack-verify=${location.domainVerificationToken}`,
+        },
+        cnameGuidance: 'Optional: point your custom domain CNAME to cname.vercel-dns.com if your DNS provider supports it.',
+      },
     };
   }
 
