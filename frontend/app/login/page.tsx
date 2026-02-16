@@ -7,12 +7,15 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
 import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { ApiFetchError } from "../../src/lib/apiFetch";
+import { me as fetchCurrentSession } from "../../src/lib/auth";
 import { Alert, Button, Input } from "../components/ui";
 import { getValidatedNextUrl } from "./next-url";
 
 const ADMIN_HOST = "admin.gymstack.club";
 const MAIN_SITE_LOGIN = "https://gymstack.club/login";
+const MAIN_SITE_PLATFORM = "https://gymstack.club/platform";
 const ADMIN_RESTRICTED_MESSAGE = "Access restricted. This portal is for Gym Stack administrators only.";
+const ADMIN_NOT_AN_ACCOUNT_MESSAGE = 'Not an admin account. Sign in on the main platform instead.';
 
 const personaOptions: Array<{ label: string; value: OAuthPersona }> = [
   { label: 'Owner', value: 'OWNER' },
@@ -40,10 +43,15 @@ function LoginPageContent() {
   const [selectedPersona, setSelectedPersona] = useState<OAuthPersona>('OWNER');
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
 
-  const isAdminHost = useMemo(
-    () => (typeof window !== 'undefined' ? window.location.host.toLowerCase() === ADMIN_HOST : false),
-    [],
-  );
+  const isAdminHost = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const host = window.location.hostname.toLowerCase();
+    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'gymstack.club').toLowerCase();
+    return host === ADMIN_HOST || host === `admin.${baseDomain}`;
+  }, []);
 
   const showOAuth = shouldShowOAuth({ pathname, selectedPersona }) && !isAdminHost;
   const sessionMessage = searchParams.get("message");
@@ -60,7 +68,10 @@ function LoginPageContent() {
       if (isAdminHost) {
         if (platformRole === 'PLATFORM_ADMIN') {
           redirectTo('/admin');
+          return;
         }
+
+        setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
         return;
       }
 
@@ -86,7 +97,13 @@ function LoginPageContent() {
             }
 
             if (isAdminHost) {
-              redirectTo('/admin');
+              const session = await fetchCurrentSession();
+              if (session.isPlatformAdmin || session.platformRole === 'PLATFORM_ADMIN') {
+                redirectTo('/admin');
+                return;
+              }
+
+              setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
               return;
             }
             const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');
@@ -141,6 +158,9 @@ function LoginPageContent() {
         {!isAdminHost ? <p className="text-sm text-slate-300">No account? <Link href="/signup" className="text-sky-300">Create one</Link></p> : null}
         {isAdminHost ? (
           <p className="text-sm text-slate-300">Need member login? <a href={MAIN_SITE_LOGIN} className="text-sky-300">Go to gymstack.club/login</a></p>
+        ) : null}
+        {isAdminHost && error === ADMIN_NOT_AN_ACCOUNT_MESSAGE ? (
+          <a href={MAIN_SITE_PLATFORM} className="block text-sm text-sky-300">Continue to platform</a>
         ) : null}
       </form>
     </main>

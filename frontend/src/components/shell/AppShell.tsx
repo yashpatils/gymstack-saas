@@ -1,13 +1,30 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar, type ShellNavItem } from "./Sidebar";
 
 type TopbarRenderer = (controls: { onToggleMenu: () => void }) => ReactNode;
 
 export function AppShell({ items, topbar, children }: { items: ShellNavItem[]; topbar: TopbarRenderer; children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileNavOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileNavOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileNavOpen]);
 
   return (
     <div className="platform-shell">

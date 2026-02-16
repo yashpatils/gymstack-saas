@@ -153,7 +153,7 @@ export default function PlatformPage() {
         <div className="space-y-4">
           <SectionCard title="Recent activity">
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Workspace context set to {activeContext?.tenantId ?? "Platform"}.</li>
+              <li>• Workspace context synced.</li>
               <li>• {gyms.length} locations synced.</li>
               <li>• {users.length} identities indexed for access control.</li>
             </ul>
@@ -169,8 +169,7 @@ export default function PlatformPage() {
         <div className="space-y-4">
           <SectionCard title="Current context">
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>Tenant: {activeContext?.tenantId ?? "Not selected"}</p>
-              <p>Location: {activeContext?.locationId ?? "All"}</p>
+              <p>Scope: {activeContext?.locationId ? "Single location" : "All locations"}</p>
               <p>Memberships: {memberships.length}</p>
             </div>
           </SectionCard>

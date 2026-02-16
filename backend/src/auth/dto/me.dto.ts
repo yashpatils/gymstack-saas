@@ -40,15 +40,16 @@ export class MeDto {
 
 export class AuthMeResponseDto {
   user!: MeDto;
+  isPlatformAdmin!: boolean;
   platformRole!: 'PLATFORM_ADMIN' | null;
   memberships!: {
     tenant: TenantMembershipDto[];
     location: LocationMembershipDto[];
   };
   activeContext!: ActiveContextDto;
-  activeTenantId?: string | null;
-  activeLocationId?: string | null;
-  mode?: 'OWNER' | 'MANAGER';
+  activeTenantId!: string | null;
+  activeLocationId!: string | null;
+  activeMode!: "OWNER" | "MANAGER";
   permissions!: PermissionFlags;
   permissionKeys!: string[];
 }
