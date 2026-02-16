@@ -248,22 +248,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginMethod(email, password);
     setToken(authToken);
     await hydrateFromMe();
-    return { user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext };
-  }, [hydrateFromMe]);
+    return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
+  }, [hydrateFromMe, normalizeMemberships]);
 
   const signup = useCallback(async (email: string, password: string, role?: SignupRole) => {
     const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role);
     setToken(authToken);
     await hydrateFromMe();
-    return { user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning };
-  }, [hydrateFromMe]);
+    return { user: signedUpUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext, emailDeliveryWarning };
+  }, [hydrateFromMe, normalizeMemberships]);
 
   const acceptInvite = useCallback(async (input: { token: string; password?: string; email?: string; name?: string }) => {
     const { token: authToken, user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext } = await acceptInviteRequest(input);
     setToken(authToken);
     await hydrateFromMe();
-    return { user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext };
-  }, [hydrateFromMe]);
+    return { user: invitedUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
+  }, [hydrateFromMe, normalizeMemberships]);
 
   const chooseContext = useCallback(async (tenantId: string, gymId?: string) => {
     const { token: nextToken, me } = await setContextRequest(tenantId, gymId);
