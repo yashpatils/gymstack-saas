@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../lib/adminPortal";
 
-export type ShellNavItem = { label: string; href: string; disabled?: boolean };
+export type ShellNavItem = { label: string; href: string; disabled?: boolean; debugOnly?: boolean };
 
 type SidebarProps = {
   items: ShellNavItem[];

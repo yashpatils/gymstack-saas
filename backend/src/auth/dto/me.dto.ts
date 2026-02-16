@@ -46,6 +46,9 @@ export class AuthMeResponseDto {
     location: LocationMembershipDto[];
   };
   activeContext!: ActiveContextDto;
+  activeTenantId!: string | null;
+  activeLocationId!: string | null;
+  activeMode!: "OWNER" | "MANAGER";
   permissions!: PermissionFlags;
   permissionKeys!: string[];
 }

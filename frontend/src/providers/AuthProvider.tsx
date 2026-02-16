@@ -21,7 +21,6 @@ import {
   me as getMe,
   resendVerification as resendVerificationRequest,
   setContext as setContextRequest,
-  setMode as setModeRequest,
   signup as signupRequest,
   type SignupRole,
   verifyEmail as verifyEmailRequest,
@@ -57,7 +56,7 @@ type AuthContextValue = {
   login: (email: string, password: string, options?: { adminOnly?: boolean }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
-  chooseContext: (tenantId: string, gymId?: string) => Promise<void>;
+  chooseContext: (tenantId: string, locationId?: string, mode?: 'OWNER' | 'MANAGER') => Promise<void>;
   switchMode: (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
@@ -269,15 +268,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { user: invitedUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [hydrateFromMe, normalizeMemberships]);
 
-  const chooseContext = useCallback(async (tenantId: string, gymId?: string) => {
-    const { token: nextToken, me } = await setContextRequest(tenantId, gymId);
+  const chooseContext = useCallback(async (tenantId: string, locationId?: string, mode: 'OWNER' | 'MANAGER' = 'OWNER') => {
+    const { token: nextToken, me } = await setContextRequest(tenantId, locationId, mode);
     setToken(nextToken);
     applyMeResponse(me);
   }, [applyMeResponse]);
 
   const switchMode = useCallback(async (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => {
-    const meResponse = await setModeRequest(tenantId, mode, locationId);
-    applyMeResponse(meResponse);
+    const { token: nextToken, me } = await setContextRequest(tenantId, locationId, mode);
+    setToken(nextToken);
+    applyMeResponse(me);
   }, [applyMeResponse]);
 
   const logout = useCallback(() => {

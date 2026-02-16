@@ -118,8 +118,8 @@ export async function acceptInvite(params: { token: string; password?: string; e
   return { token: data.accessToken, user: data.user, activeContext: data.activeContext, memberships: data.memberships };
 }
 
-export async function setContext(tenantId: string, gymId?: string): Promise<{ token: string; me: AuthMeResponse }> {
-  const data = await apiFetch<{ accessToken: string; me: AuthMeResponse }>('/api/auth/set-context', { method: 'POST', body: JSON.stringify({ tenantId, gymId }), headers: { 'Content-Type': 'application/json' } });
+export async function setContext(tenantId: string, locationId?: string | null, mode: 'OWNER' | 'MANAGER' = 'OWNER'): Promise<{ token: string; me: AuthMeResponse }> {
+  const data = await apiFetch<{ accessToken: string; me: AuthMeResponse }>('/api/auth/set-context', { method: 'POST', body: JSON.stringify({ tenantId, locationId: locationId ?? null, mode }), headers: { 'Content-Type': 'application/json' } });
   setTokens({ accessToken: data.accessToken });
   return { token: data.accessToken, me: data.me };
 }
@@ -154,7 +154,7 @@ export function applyOAuthToken(token: string): void {
   applyOAuthTokens({ accessToken: token });
 }
 
-export async function me(): Promise<AuthMeResponse> {
+export async function getMe(): Promise<AuthMeResponse> {
   try {
     return await apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store' });
   } catch (error) {
@@ -183,3 +183,6 @@ configureApiAuth(
     }
   },
 );
+
+
+export const me = getMe;

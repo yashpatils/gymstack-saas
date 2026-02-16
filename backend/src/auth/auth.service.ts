@@ -197,6 +197,7 @@ export class AuthService implements OnModuleInit {
       orderBy: { createdAt: 'asc' },
     });
     const activeContext = await this.getDefaultContext(memberships);
+    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     return {
@@ -243,6 +244,7 @@ export class AuthService implements OnModuleInit {
     });
 
     const activeContext = await this.getDefaultContext(memberships);
+    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     await this.auditService.log({
@@ -256,7 +258,6 @@ export class AuthService implements OnModuleInit {
       userAgent: context?.userAgent,
     });
 
-    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
 
     return {
       accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
@@ -571,7 +572,7 @@ export class AuthService implements OnModuleInit {
     return { ok: true };
   }
 
-  async setContext(userId: string, tenantId: string, gymId?: string): Promise<{ accessToken: string; me: AuthMeResponseDto }> {
+  async setContext(userId: string, tenantId: string, gymId?: string, mode: ActiveMode = ActiveMode.OWNER): Promise<{ accessToken: string; me: AuthMeResponseDto }> {
     const memberships = await this.prisma.membership.findMany({
       where: { userId, orgId: tenantId, status: MembershipStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
@@ -623,12 +624,22 @@ export class AuthService implements OnModuleInit {
       role: locationMembership?.role ?? ownerMembership?.role ?? memberships[0].role,
     };
 
-    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
-    const accessToken = this.signToken(user.id, user.email, resolvedRole, activeContext);
+    const activeMode = mode === ActiveMode.MANAGER ? ActiveMode.MANAGER : ActiveMode.OWNER;
+
+    if (activeMode === ActiveMode.MANAGER && !resolvedGymId) {
+      throw new BadRequestException('locationId is required for manager mode');
+    }
+
+    if (activeMode === ActiveMode.MANAGER && !locationMembership) {
+      throw new ForbiddenException('Manager mode requires an active location manager membership');
+    }
+
+    const tokenRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
+    const accessToken = this.signToken(user.id, user.email, tokenRole, activeContext, activeMode);
 
     return {
       accessToken,
-      me: await this.me(user.id, { tenantId, gymId: gymId ?? undefined, role: activeContext.role }),
+      me: await this.me(user.id, { tenantId, gymId: resolvedGymId ?? undefined, role: activeContext.role, activeMode, accessToken }),
     };
   }
 
@@ -729,6 +740,9 @@ export class AuthService implements OnModuleInit {
           })),
       },
       activeContext: canonicalContext,
+      activeTenantId: canonicalContext.tenantId,
+      activeLocationId: canonicalContext.locationId,
+      activeMode: active?.activeMode ?? ActiveMode.OWNER,
       permissions: permissionFlags,
       permissionKeys: permissionFlagsToKeys(permissionFlags),
     };

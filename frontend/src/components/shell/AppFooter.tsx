@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "../../providers/AuthProvider";
 
 export function AppFooter() {
-  const { activeContext, tenantFeatures } = useAuth();
+  const { activeContext, tenantFeatures, activeLocation } = useAuth();
   const role = activeContext?.role;
 
   if (role === "TENANT_OWNER") {
@@ -26,7 +26,7 @@ export function AppFooter() {
     return null;
   }
 
-  if (tenantFeatures?.whiteLabelBranding) {
+  if (tenantFeatures?.whiteLabelBranding || Boolean(activeLocation?.customDomain)) {
     return null;
   }
 
