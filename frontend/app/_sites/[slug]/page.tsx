@@ -18,10 +18,13 @@ export default async function SiteLandingPage({ params }: { params: { slug: stri
     throw new Error('Unable to resolve public site location');
   }
 
+  const title = location.displayName ?? ('name' in location ? location.name : location.slug);
+  const subtitle = 'address' in location ? location.address ?? null : null;
+
   return (
     <LocationShell
-      title={location.displayName ?? location.name}
-      subtitle={location.address ?? null}
+      title={title}
+      subtitle={subtitle}
       logoUrl={location.logoUrl ?? null}
       primaryColor={location.primaryColor ?? null}
       accentGradient={location.accentGradient ?? null}
