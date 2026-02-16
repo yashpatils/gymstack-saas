@@ -6,30 +6,6 @@ import { PrismaService } from '../prisma/prisma.service';
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboardSummary(orgId: string, userId: string): Promise<{ locations: number; members: number; mrr: null; invites: number }> {
-    const membership = await this.prisma.membership.findFirst({
-      where: { userId, orgId, status: MembershipStatus.ACTIVE },
-      select: { id: true },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
-
-    const [locations, members, invites] = await Promise.all([
-      this.prisma.gym.count({ where: { orgId } }),
-      this.prisma.membership.count({ where: { orgId, status: MembershipStatus.ACTIVE } }),
-      this.prisma.locationInvite.count({ where: { tenantId: orgId, status: InviteStatus.PENDING } }),
-    ]);
-
-    return {
-      locations,
-      members,
-      mrr: null,
-      invites,
-    };
-  }
-
   async getOrg(orgId: string) {
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId },
@@ -48,7 +24,7 @@ export class OrganizationsService {
   }
 
 
-  async getDashboardSummary(userId: string, orgId?: string) {
+  async getDashboardSummary(userId: string, orgId?: string): Promise<{ locations: number; members: number; mrr: null; invites: number }> {
     if (!orgId) {
       throw new ForbiddenException('Insufficient permissions');
     }
@@ -64,7 +40,13 @@ export class OrganizationsService {
 
     const [locations, members, invites] = await Promise.all([
       this.prisma.gym.count({ where: { orgId } }),
-      this.prisma.membership.count({ where: { orgId, status: MembershipStatus.ACTIVE } }),
+      this.prisma.membership.count({
+        where: {
+          orgId,
+          status: MembershipStatus.ACTIVE,
+          gymId: { not: null },
+        },
+      }),
       this.prisma.locationInvite.count({
         where: {
           status: InviteStatus.PENDING,
