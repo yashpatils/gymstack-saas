@@ -85,6 +85,26 @@ export function getApiBaseUrl(): string {
   return publicUrl;
 }
 
+
+function extractErrorCode(details: unknown): string | null {
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  if ('code' in details && typeof (details as { code?: unknown }).code === 'string') {
+    return (details as { code: string }).code;
+  }
+
+  if ('message' in details && typeof (details as { message?: unknown }).message === 'object') {
+    const nested = (details as { message: { code?: unknown } }).message;
+    if (nested && typeof nested.code === 'string') {
+      return nested.code;
+    }
+  }
+
+  return null;
+}
+
 export function buildApiUrl(path: string): string {
   const normalized = normalizePath(path);
   if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
@@ -162,6 +182,13 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
 
   if (!response.ok) {
     const details = isJson ? ((await response.json()) as unknown) : await response.text();
+    const errorCode = extractErrorCode(details);
+
+    if (!isServer() && response.status === 403 && errorCode === 'EMAIL_NOT_VERIFIED') {
+      const params = new URLSearchParams({ reason: 'EMAIL_NOT_VERIFIED' });
+      window.location.assign(`/verify-email?${params.toString()}`);
+    }
+
     const message =
       typeof details === 'string'
         ? details
