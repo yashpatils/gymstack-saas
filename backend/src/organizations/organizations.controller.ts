@@ -19,6 +19,21 @@ export class OrganizationsController {
     return this.organizationsService.getOrg(user.orgId);
   }
 
+  @Get('dashboard/summary')
+  getDashboardSummary(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return this.organizationsService.getDashboardSummary(tenantId, user.id);
+  }
+
   @Patch()
   renameOrg(@Req() req: { user?: User }, @Body() body: UpdateOrgDto) {
     const user = req.user;

@@ -246,6 +246,8 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    await this.ensureTenantForLegacyOwner(user.id);
+
     const memberships = await this.prisma.membership.findMany({
       where: { userId: user.id, status: MembershipStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
@@ -609,21 +611,26 @@ export class AuthService implements OnModuleInit {
         && (membership.role === MembershipRole.TENANT_LOCATION_ADMIN || membership.role === MembershipRole.GYM_STAFF_COACH || membership.role === MembershipRole.CLIENT),
     );
 
+    let resolvedGymId = gymId;
+
     if (gymId && !locationMembership) {
       const locations = await this.prisma.gym.findMany({ where: { orgId: tenantId }, select: { id: true } });
+      if (ownerMembership && locations.length === 0) {
+        resolvedGymId = undefined;
+      }
       const canOwnerActAsManager = Boolean(ownerMembership) && (
         locations.length === 1
         || memberships.some((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN && membership.gymId === gymId)
       );
-      if (!canOwnerActAsManager) {
+      if (!canOwnerActAsManager && resolvedGymId) {
         throw new ForbiddenException('Invalid context for user');
       }
     }
 
     const activeContext = {
       tenantId,
-      gymId: gymId ?? null,
-      locationId: gymId ?? null,
+      gymId: resolvedGymId ?? null,
+      locationId: resolvedGymId ?? null,
       role: locationMembership?.role ?? ownerMembership?.role ?? memberships[0].role,
     };
 
@@ -681,11 +688,13 @@ export class AuthService implements OnModuleInit {
   async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole; activeMode?: ActiveMode; accessToken?: string }): Promise<AuthMeResponseDto> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, status: true, emailVerifiedAt: true },
+      select: { id: true, email: true, status: true, emailVerifiedAt: true, role: true, orgId: true },
     });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.ensureTenantForLegacyOwner(user.id);
 
     const memberships = await this.prisma.membership.findMany({
       where: { userId, status: MembershipStatus.ACTIVE },
@@ -776,6 +785,9 @@ export class AuthService implements OnModuleInit {
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.ensureTenantForLegacyOwner(user.id);
+
     const memberships = await this.prisma.membership.findMany({
       where: { userId, status: MembershipStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
@@ -865,6 +877,56 @@ export class AuthService implements OnModuleInit {
     }
 
     return fallback;
+  }
+
+  private async ensureTenantForLegacyOwner(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true, orgId: true, status: true },
+    });
+
+    if (!user || user.status !== UserStatus.ACTIVE || user.role !== Role.OWNER) {
+      return;
+    }
+
+    if (user.orgId) {
+      return;
+    }
+
+    const existingOwnerMembership = await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        role: MembershipRole.TENANT_OWNER,
+        status: MembershipStatus.ACTIVE,
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { orgId: true },
+    });
+
+    if (existingOwnerMembership) {
+      await this.prisma.user.update({ where: { id: userId }, data: { orgId: existingOwnerMembership.orgId } });
+      return;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: { name: `${user.email.split('@')[0]}'s Tenant` },
+      });
+
+      await tx.membership.create({
+        data: {
+          orgId: organization.id,
+          userId,
+          role: MembershipRole.TENANT_OWNER,
+          status: MembershipStatus.ACTIVE,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { orgId: organization.id },
+      });
+    });
   }
 }
 
