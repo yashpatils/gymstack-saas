@@ -30,7 +30,7 @@ function redirectTo(url: string) {
 function LoginPageContent() {
   const router = useRouter();
   const pathname = usePathname();
-  const { login, loading, user } = useAuth();
+  const { login, loading, platformRole, user } = useAuth();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,13 +58,15 @@ function LoginPageContent() {
       }
 
       if (isAdminHost) {
-        redirectTo('/admin');
+        if (platformRole === 'PLATFORM_ADMIN') {
+          redirectTo('/admin');
+        }
         return;
       }
 
       router.replace("/platform");
     }
-  }, [isAdminHost, loading, nextUrl, router, user]);
+  }, [isAdminHost, loading, nextUrl, platformRole, router, user]);
 
   const adminBlocked = isAdminHost && accessError === 'restricted';
 
