@@ -30,6 +30,17 @@ type PublicLocationContext = {
 export class PublicService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toTenantBranding(
+    tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean } | null,
+    fallbackTenantId: string,
+  ) {
+    return {
+      id: tenant?.id ?? fallbackTenantId,
+      name: tenant?.name ?? '',
+      whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled || tenant?.whiteLabelBrandingEnabled),
+    };
+  }
+
   private getBaseDomain(): string {
     return (process.env.BASE_DOMAIN ?? process.env.NEXT_PUBLIC_BASE_DOMAIN ?? DEFAULT_BASE_DOMAIN).toLowerCase();
   }
