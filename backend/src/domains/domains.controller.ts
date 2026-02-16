@@ -24,7 +24,12 @@ export class DomainsController {
 
   @Post('location/request-verification')
   requestLocationVerification(@Req() req: { user: User }, @Body() body: RequestLocationDomainVerificationDto) {
-    return this.domainsService.requestLocationVerification(req.user, body.locationId, body.hostname);
+    return this.domainsService.requestLocationVerification(req.user, body.locationId, body.customDomain ?? body.hostname ?? '');
+  }
+
+  @Post('location/set')
+  setLocationDomain(@Req() req: { user: User }, @Body() body: RequestLocationDomainVerificationDto) {
+    return this.domainsService.requestLocationVerification(req.user, body.locationId, body.customDomain ?? body.hostname ?? '');
   }
 
   @Post('location/verify')

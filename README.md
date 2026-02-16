@@ -78,7 +78,7 @@ Required environment variables:
 - `EMAIL_PROVIDER` — Email provider selector (`RESEND`).
 - `RESEND_API_KEY` — Resend API key used by backend transactional email sender. Required when `NODE_ENV=production`.
 - `EMAIL_DISABLE` — Optional boolean (`true`/`false`) to disable provider delivery while keeping logs (default: `false`).
-- `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` — verification token TTL in minutes (default: `60`).
+- `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` — legacy verification-token TTL (email verification now uses a fixed 24-hour token window on user records).
 - `DELETE_ACCOUNT_TOKEN_TTL_MINUTES` — account delete token TTL in minutes (default: `30`).
 - `ACCESS_TOKEN_TTL_MINUTES` — access token TTL in minutes (default: `15`).
 - `REFRESH_TOKEN_TTL_DAYS` — rotating refresh token TTL in days (default: `30`).
@@ -170,7 +170,9 @@ Also ensure Vercel has wildcard domain support configured for `*.your-domain.com
 
 ## Email verification and account deletion flows
 
-- Signup and resend-verification send a verification email (`/verify-email?token=...`).
+- Signup and resend-verification send a verification email (`/verify-email?token=...`) on the base app domain.
+- Verification links are single-use; backend stores only a SHA-256 token hash and 24-hour expiry on the user record.
+- Resend verification is anti-abuse limited (minimum 60s between sends, max 5 sends per rolling hour).
 - Forgot-password sends reset links (`/reset-password?token=...`).
 - Account deletion requires password confirmation, then email confirmation (`/confirm-delete-account?token=...`).
 - `POST /api/auth/resend-verification` and `POST /api/auth/forgot-password` always return generic success responses to avoid email enumeration.
