@@ -221,7 +221,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     const errorCode = extractErrorCode(details);
 
     if (!isServer() && response.status === 403 && errorCode === 'EMAIL_NOT_VERIFIED') {
-      const params = new URLSearchParams({ reason: 'EMAIL_NOT_VERIFIED' });
+      const params = new URLSearchParams({
+        reason: 'EMAIL_NOT_VERIFIED',
+        next: getCurrentBrowserPath(),
+      });
       window.location.assign(`/verify-email?${params.toString()}`);
     }
 

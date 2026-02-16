@@ -1,11 +1,11 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../users/user.model';
 import { OwnerOpsModeDto } from './dto/owner-ops-mode.dto';
 import { OnboardingService } from './onboarding.service';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
 @Controller('onboarding')
-@UseGuards(JwtAuthGuard)
+@VerifiedEmailRequired()
 export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}
 

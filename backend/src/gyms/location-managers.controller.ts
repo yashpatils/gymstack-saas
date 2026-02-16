@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { User } from '../users/user.model';
 import { GymsService } from './gyms.service';
 import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
 @Controller('locations')
-@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard, PermissionsGuard)
+@VerifiedEmailRequired()
+@UseGuards(RolesGuard, PermissionsGuard)
 export class LocationManagersController {
   constructor(private readonly gymsService: GymsService) {}
 

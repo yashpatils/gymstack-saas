@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { resendVerification } from '@/src/lib/auth';
 import { useAuth } from '@/src/providers/AuthProvider';
 
@@ -26,6 +27,9 @@ export function EmailVerificationBanner() {
         >
           Resend verification
         </button>
+        <Link href="/verify-email" className="text-xs font-semibold underline underline-offset-2">
+          Open verification page
+        </Link>
       </div>
       {message ? <p className="mt-2 text-xs text-amber-200">{message}</p> : null}
     </div>

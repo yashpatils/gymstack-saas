@@ -10,13 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { AuditService } from '../audit/audit.service';
 import { RolesGuard } from '../guards/roles.guard';
 import { User, UserRole } from '../users/user.model';
 import { BillingService } from './billing.service';
-import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
 type CreateCustomerBody = {
   email: string;
@@ -45,7 +44,8 @@ export class BillingController {
   ) {}
 
   @Post('create-customer')
-  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
+  @VerifiedEmailRequired()
+@UseGuards(RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   async createCustomer(@Body() body: CreateCustomerBody) {
     const customer = await this.billingService.createCustomer(
@@ -56,7 +56,8 @@ export class BillingController {
   }
 
   @Post('create-subscription')
-  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
+  @VerifiedEmailRequired()
+@UseGuards(RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   async createSubscription(@Body() body: CreateSubscriptionBody) {
     const session = await this.billingService.createSubscription(body);
@@ -64,7 +65,8 @@ export class BillingController {
   }
 
   @Post('checkout')
-  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
+  @VerifiedEmailRequired()
+@UseGuards(RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   async createCheckoutSession(
     @Body() body: CreateCheckoutBody,
@@ -99,7 +101,8 @@ export class BillingController {
   }
 
   @Get('status/:userId')
-  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard)
+  @VerifiedEmailRequired()
+@UseGuards(RolesGuard)
   @Roles(UserRole.Owner, UserRole.Admin)
   getSubscriptionStatus(@Param('userId') userId: string) {
     return this.billingService.getSubscriptionStatus(userId);
