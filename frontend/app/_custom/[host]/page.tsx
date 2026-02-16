@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import { notFound } from 'next/navigation';
 import { LocationShell } from '@/app/components/location-shell';
 import { getPublicLocationByHost } from '@/src/lib/sites';
 
@@ -6,10 +7,14 @@ export default async function CustomDomainLanding({ params }: { params: { host: 
   const host = decodeURIComponent(params.host);
   const data = await getPublicLocationByHost(host);
 
+  if (!data.location || !data.tenant) {
+    notFound();
+  }
+
   return (
     <LocationShell
       title={data.location.displayName ?? data.location.name}
-      subtitle={data.location.address ?? null}
+      subtitle={null}
       logoUrl={data.location.logoUrl ?? null}
       primaryColor={data.location.primaryColor ?? null}
       accentGradient={data.location.accentGradient ?? null}

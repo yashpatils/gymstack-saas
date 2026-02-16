@@ -15,6 +15,7 @@ const ADMIN_PUBLIC_ROUTES = [
   '/sitemap.xml',
 ];
 export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
+const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin'];
 
 type HostRouteResolution =
   | { type: 'next' }
@@ -69,6 +70,10 @@ function isSignupPath(pathname: string): boolean {
   return pathname === '/signup' || pathname.startsWith('/signup/');
 }
 
+function isProtectedAppPath(pathname: string): boolean {
+  return PROTECTED_APP_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
   if (isAdminHost(host, baseDomain)) {
     if (isSignupPath(pathname)) {
@@ -87,6 +92,10 @@ export function resolveHostRoute(host: string, pathname: string, baseDomain: str
   }
 
   if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom')) {
+    return { type: 'next' };
+  }
+
+  if (isProtectedAppPath(pathname)) {
     return { type: 'next' };
   }
 
