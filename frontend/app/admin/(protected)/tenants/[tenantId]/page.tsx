@@ -1,6 +1,6 @@
 import { FeatureToggle } from "./feature-toggle";
-import { adminApiFetch } from '../../_lib/server-admin-api';
-import type { AdminTenantDetail } from '../../../../src/types/admin';
+import { adminApiFetch } from '../../../_lib/server-admin-api';
+import type { AdminTenantDetail } from '../../../../../src/types/admin';
 
 export default async function AdminTenantDetailPage({ params }: { params: { tenantId: string } }) {
   const tenant = await adminApiFetch<AdminTenantDetail>(`/api/admin/tenants/${params.tenantId}`);

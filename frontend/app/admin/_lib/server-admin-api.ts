@@ -3,10 +3,20 @@ import { redirect } from 'next/navigation';
 import { buildApiUrl } from '../../../src/lib/apiFetch';
 import type { AuthMeResponse } from '../../../src/types/auth';
 
-export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
+type AdminSessionState = {
+  isAuthenticated: boolean;
+  isPlatformAdmin: boolean;
+  session: AuthMeResponse | null;
+};
+
+export async function getAdminSession(): Promise<AdminSessionState> {
   const token = cookies().get('gymstack_token')?.value;
   if (!token) {
-    redirect('/login');
+    return {
+      isAuthenticated: false,
+      isPlatformAdmin: false,
+      session: null,
+    };
   }
 
   const response = await fetch(buildApiUrl('/api/auth/me'), {
@@ -17,22 +27,44 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
     },
   });
 
+  if (response.status === 401) {
+    return {
+      isAuthenticated: false,
+      isPlatformAdmin: false,
+      session: null,
+    };
+  }
+
   if (!response.ok) {
-    redirect('/login');
+    throw new Error(`Failed auth session lookup (${response.status})`);
   }
 
   const session = (await response.json()) as AuthMeResponse;
-  if (session.platformRole !== 'PLATFORM_ADMIN') {
-    redirect('/platform');
+
+  return {
+    isAuthenticated: true,
+    isPlatformAdmin: session.platformRole === 'PLATFORM_ADMIN',
+    session,
+  };
+}
+
+export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated) {
+    redirect('/admin/login');
   }
 
-  return session;
+  if (!session.isPlatformAdmin || !session.session) {
+    redirect('/admin');
+  }
+
+  return session.session;
 }
 
 export async function adminApiFetch<T>(path: string): Promise<T> {
   const token = cookies().get('gymstack_token')?.value;
   if (!token) {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   const response = await fetch(buildApiUrl(path), {
@@ -44,11 +76,11 @@ export async function adminApiFetch<T>(path: string): Promise<T> {
   });
 
   if (response.status === 401) {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   if (response.status === 403) {
-    redirect('/platform');
+    redirect('/admin');
   }
 
   if (!response.ok) {

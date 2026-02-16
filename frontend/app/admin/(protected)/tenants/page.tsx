@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { adminApiFetch } from '../_lib/server-admin-api';
-import type { AdminTenantListResponse } from '../../../src/types/admin';
+import { adminApiFetch } from '../../_lib/server-admin-api';
+import type { AdminTenantListResponse } from '../../../../src/types/admin';
 
 export default async function AdminTenantsPage({
   searchParams,
