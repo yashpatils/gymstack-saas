@@ -13,7 +13,7 @@ export default async function CustomDomainLanding({ params }: { params: { host: 
 
   return (
     <LocationShell
-      title={data.location.displayName ?? data.location.name}
+      title={data.location.displayName ?? data.location.slug}
       subtitle={null}
       logoUrl={data.location.logoUrl ?? null}
       primaryColor={data.location.primaryColor ?? null}

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeHostname } from '../domains/domain.util';
+import { PublicLocationByHostResponseDto } from './dto/public-location-by-host.dto';
 
 const DEFAULT_BASE_DOMAIN = 'gymstack.club';
 const RESERVED_SUBDOMAINS = new Set(['www', 'admin']);
@@ -210,7 +211,7 @@ export class PublicService {
     };
   }
 
-  async getLocationByHost(host: string) {
+  async getLocationByHost(host: string): Promise<PublicLocationByHostResponseDto> {
     const resolved = await this.resolveLocationFromHost(host);
 
     if (!resolved) {

@@ -1,9 +1,16 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/src/providers/AuthProvider";
 import { PageHeader } from "@/src/components/common/PageHeader";
 import { SectionCard } from "@/src/components/common/SectionCard";
 import { apiFetch } from "@/src/lib/apiFetch";
+
+type LocationListItem = {
+  id: string;
+  name: string;
+  displayName?: string | null;
+};
 
 type LocationSettings = {
   id: string;
@@ -16,6 +23,10 @@ type LocationSettings = {
   accentGradient?: string | null;
   customDomain?: string | null;
   domainVerifiedAt?: string | null;
+  tenant?: {
+    id: string;
+    whiteLabelEnabled: boolean;
+  };
 };
 
 type BrandingForm = {
@@ -27,13 +38,17 @@ type BrandingForm = {
   accentGradient: string;
 };
 
-type DomainRequestResponse = {
-  verificationToken: string;
-  instructions?: {
-    txt?: {
-      host?: string;
-      value?: string;
+type DomainResponse = {
+  locationId: string;
+  customDomain: string | null;
+  domainVerifiedAt: string | null;
+  dnsInstructions: {
+    txtRecord: {
+      type: "TXT";
+      name: string | null;
+      value: string;
     };
+    cnameGuidance: string;
   };
 };
 
@@ -60,8 +75,10 @@ function getDomainStatus(location?: LocationSettings): "Not set" | "Pending" | "
 }
 
 export default function LocationSettingsClient() {
-  const [locations, setLocations] = useState<LocationSettings[]>([]);
+  const { loading: authLoading, permissions, permissionKeys, activeContext, tenantFeatures } = useAuth();
+  const [locations, setLocations] = useState<LocationListItem[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<LocationSettings | null>(null);
   const [brandingForm, setBrandingForm] = useState<BrandingForm>({
     displayName: "",
     logoUrl: "",
@@ -71,34 +88,42 @@ export default function LocationSettingsClient() {
     accentGradient: "",
   });
   const [customDomain, setCustomDomain] = useState("");
-  const [verificationToken, setVerificationToken] = useState("");
-  const [verificationHost, setVerificationHost] = useState("");
+  const [dnsTxtName, setDnsTxtName] = useState("");
+  const [dnsTxtValue, setDnsTxtValue] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(true);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
-  const [isRequestingVerification, setIsRequestingVerification] = useState(false);
+  const [isSavingDomain, setIsSavingDomain] = useState(false);
   const [isVerifyingDomain, setIsVerifyingDomain] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const canManageLocationSettings = useMemo(
+    () =>
+      permissions.canManageLocations
+      || permissions.canManageTenant
+      || permissionKeys.includes("location:manage")
+      || permissionKeys.includes("locations:update")
+      || activeContext?.role === "TENANT_OWNER"
+      || activeContext?.role === "TENANT_LOCATION_ADMIN",
+    [activeContext?.role, permissionKeys, permissions.canManageLocations, permissions.canManageTenant],
+  );
 
+  useEffect(() => {
+    if (authLoading || !canManageLocationSettings) {
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const gyms = await apiFetch<LocationSettings[]>("/api/gyms", { method: "GET" });
+        const gyms = await apiFetch<LocationListItem[]>("/api/gyms", { method: "GET" });
         if (!active) return;
-
         setLocations(gyms);
-        const firstLocationId = gyms[0]?.id ?? "";
-        setSelectedLocationId(firstLocationId);
-
-        if (gyms[0]) {
-          setBrandingForm(toBrandingForm(gyms[0]));
-          setCustomDomain(gyms[0].customDomain ?? "");
-        }
+        setSelectedLocationId(gyms[0]?.id ?? "");
       } catch (loadError) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : "Unable to load locations.");
@@ -115,23 +140,41 @@ export default function LocationSettingsClient() {
     return () => {
       active = false;
     };
-  }, []);
-
-  const selectedLocation = useMemo(
-    () => locations.find((location) => location.id === selectedLocationId),
-    [locations, selectedLocationId],
-  );
+  }, [authLoading, canManageLocationSettings]);
 
   useEffect(() => {
-    if (!selectedLocation) return;
-    setBrandingForm(toBrandingForm(selectedLocation));
-    setCustomDomain(selectedLocation.customDomain ?? "");
-    setVerificationToken("");
-    setVerificationHost("");
-    setErrors({});
-    setNotice(null);
-    setError(null);
-  }, [selectedLocation]);
+    if (!selectedLocationId || !canManageLocationSettings) {
+      setSelectedLocation(null);
+      return;
+    }
+
+    let active = true;
+    const loadLocationSettings = async () => {
+      setError(null);
+      try {
+        const details = await apiFetch<LocationSettings>(`/api/locations/${selectedLocationId}/branding`, { method: "GET" });
+        if (!active) return;
+
+        setSelectedLocation(details);
+        setBrandingForm(toBrandingForm(details));
+        setCustomDomain(details.customDomain ?? "");
+        setDnsTxtName("");
+        setDnsTxtValue("");
+        setNotice(null);
+        setErrors({});
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load location settings.");
+        }
+      }
+    };
+
+    void loadLocationSettings();
+
+    return () => {
+      active = false;
+    };
+  }, [canManageLocationSettings, selectedLocationId]);
 
   const validate = (): FieldErrors => {
     const nextErrors: FieldErrors = {};
@@ -175,12 +218,17 @@ export default function LocationSettingsClient() {
         accentGradient: brandingForm.accentGradient.trim() || null,
       };
 
-      const updated = await apiFetch<LocationSettings>(`/api/gyms/${selectedLocation.id}`, {
+      const updated = await apiFetch<LocationSettings>(`/api/locations/${selectedLocation.id}/branding`, {
         method: "PATCH",
         body: payload,
       });
 
-      setLocations((existing) => existing.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+      setSelectedLocation((current) => (current ? { ...current, ...updated } : current));
+      setLocations((existing) => existing.map((item) => (
+        item.id === updated.id
+          ? { ...item, displayName: updated.displayName ?? item.displayName }
+          : item
+      )));
       setNotice("Branding updated.");
       setErrors({});
     } catch (saveError) {
@@ -190,7 +238,7 @@ export default function LocationSettingsClient() {
     }
   };
 
-  const handleRequestVerification = async () => {
+  const handleSaveCustomDomain = async () => {
     if (!selectedLocation) return;
 
     const nextErrors = validate();
@@ -199,32 +247,32 @@ export default function LocationSettingsClient() {
       return;
     }
 
-    setIsRequestingVerification(true);
+    setIsSavingDomain(true);
     setError(null);
     setNotice(null);
 
     try {
-      const response = await apiFetch<DomainRequestResponse>("/api/domains/location/request-verification", {
+      const response = await apiFetch<DomainResponse>(`/api/locations/${selectedLocation.id}/custom-domain`, {
         method: "POST",
         body: {
-          locationId: selectedLocation.id,
           customDomain: customDomain.trim(),
         },
       });
 
-      setVerificationToken(response.verificationToken);
-      setVerificationHost(response.instructions?.txt?.host ?? `_gymstack-verification.${customDomain.trim()}`);
-      setLocations((existing) => existing.map((item) => (
-        item.id === selectedLocation.id
-          ? { ...item, customDomain: customDomain.trim(), domainVerifiedAt: null }
-          : item
-      )));
-      setNotice("Verification token created. Add the TXT record, then request verification.");
+      setSelectedLocation((current) => (
+        current
+          ? { ...current, customDomain: response.customDomain, domainVerifiedAt: response.domainVerifiedAt }
+          : current
+      ));
+      setCustomDomain(response.customDomain ?? "");
+      setDnsTxtName(response.dnsInstructions.txtRecord.name ?? "");
+      setDnsTxtValue(response.dnsInstructions.txtRecord.value);
+      setNotice("Custom domain saved. Add the TXT record, then request verification.");
       setErrors({});
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to request verification.");
+      setError(requestError instanceof Error ? requestError.message : "Unable to save custom domain.");
     } finally {
-      setIsRequestingVerification(false);
+      setIsSavingDomain(false);
     }
   };
 
@@ -236,17 +284,18 @@ export default function LocationSettingsClient() {
     setNotice(null);
 
     try {
-      const response = await apiFetch<{ domainVerifiedAt: string }>("/api/domains/location/verify", {
+      const response = await apiFetch<DomainResponse>(`/api/locations/${selectedLocation.id}/verify-domain`, {
         method: "POST",
-        body: { locationId: selectedLocation.id },
       });
 
-      setLocations((existing) => existing.map((item) => (
-        item.id === selectedLocation.id
-          ? { ...item, customDomain: customDomain.trim() || item.customDomain, domainVerifiedAt: response.domainVerifiedAt }
-          : item
-      )));
-      setNotice("Domain marked as verified.");
+      setSelectedLocation((current) => (
+        current
+          ? { ...current, customDomain: response.customDomain, domainVerifiedAt: response.domainVerifiedAt }
+          : current
+      ));
+      setDnsTxtName(response.dnsInstructions.txtRecord.name ?? "");
+      setDnsTxtValue(response.dnsInstructions.txtRecord.value);
+      setNotice("Verification request recorded. Domain will remain pending until proof is confirmed.");
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : "Unable to verify domain.");
     } finally {
@@ -254,36 +303,45 @@ export default function LocationSettingsClient() {
     }
   };
 
-  const domainStatus = getDomainStatus(selectedLocation);
+  const domainStatus = getDomainStatus(selectedLocation ?? undefined);
   const statusClasses = {
     "Not set": "bg-slate-500/20 text-slate-200",
     Pending: "bg-amber-500/20 text-amber-200",
     Verified: "bg-emerald-500/20 text-emerald-200",
   }[domainStatus];
 
+  if (authLoading || loading) {
+    return <section className="space-y-6"><PageHeader title="Location settings" subtitle="Manage branding and custom domains for each location." /><p className="text-sm text-muted-foreground">Loading location settings...</p></section>;
+  }
+
+  if (!canManageLocationSettings) {
+    return (
+      <section className="space-y-6">
+        <PageHeader title="Location settings" subtitle="Manage branding and custom domains for each location." />
+        <SectionCard title="Access denied">
+          <p className="text-sm text-muted-foreground">Only tenant owners or location admins can access location branding and domain controls.</p>
+        </SectionCard>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
-      <PageHeader
-        title="Location settings"
-        subtitle="Manage branding and custom domains for each location."
-      />
+      <PageHeader title="Location settings" subtitle="Manage branding and custom domains for each location." />
 
       <SectionCard title="Select location">
-        {loading ? <p className="text-sm text-muted-foreground">Loading locations...</p> : null}
-        {!loading ? (
-          <select
-            className="input max-w-xl"
-            value={selectedLocationId}
-            onChange={(event) => setSelectedLocationId(event.target.value)}
-          >
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.displayName ?? location.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        {!loading && locations.length === 0 ? (
+        <select
+          className="input max-w-xl"
+          value={selectedLocationId}
+          onChange={(event) => setSelectedLocationId(event.target.value)}
+        >
+          {locations.map((location) => (
+            <option key={location.id} value={location.id}>
+              {location.displayName ?? location.name}
+            </option>
+          ))}
+        </select>
+        {locations.length === 0 ? (
           <p className="text-sm text-muted-foreground">Create a location first to manage branding and domain settings.</p>
         ) : null}
       </SectionCard>
@@ -294,64 +352,34 @@ export default function LocationSettingsClient() {
             <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSaveBranding}>
               <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Display name</span>
-                <input
-                  className="input"
-                  value={brandingForm.displayName}
-                  onChange={(event) => setBrandingForm((current) => ({ ...current, displayName: event.target.value }))}
-                  placeholder="Downtown Gym"
-                />
+                <input className="input" value={brandingForm.displayName} onChange={(event) => setBrandingForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Downtown Gym" />
               </label>
 
               <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Logo URL</span>
-                <input
-                  className="input"
-                  value={brandingForm.logoUrl}
-                  onChange={(event) => setBrandingForm((current) => ({ ...current, logoUrl: event.target.value }))}
-                  placeholder="https://cdn.example.com/logo.png"
-                />
+                <input className="input" value={brandingForm.logoUrl} onChange={(event) => setBrandingForm((current) => ({ ...current, logoUrl: event.target.value }))} placeholder="https://cdn.example.com/logo.png" />
                 {errors.logoUrl ? <p className="text-xs text-rose-300">{errors.logoUrl}</p> : null}
               </label>
 
               <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Hero title</span>
-                <input
-                  className="input"
-                  value={brandingForm.heroTitle}
-                  onChange={(event) => setBrandingForm((current) => ({ ...current, heroTitle: event.target.value }))}
-                  placeholder="Train with confidence"
-                />
+                <input className="input" value={brandingForm.heroTitle} onChange={(event) => setBrandingForm((current) => ({ ...current, heroTitle: event.target.value }))} placeholder="Train with confidence" />
               </label>
 
               <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Hero subtitle</span>
-                <input
-                  className="input"
-                  value={brandingForm.heroSubtitle}
-                  onChange={(event) => setBrandingForm((current) => ({ ...current, heroSubtitle: event.target.value }))}
-                  placeholder="Book classes, track progress, and stay connected."
-                />
+                <input className="input" value={brandingForm.heroSubtitle} onChange={(event) => setBrandingForm((current) => ({ ...current, heroSubtitle: event.target.value }))} placeholder="Book classes, track progress, and stay connected." />
               </label>
 
               <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Primary color</span>
-                <input
-                  className="input"
-                  value={brandingForm.primaryColor}
-                  onChange={(event) => setBrandingForm((current) => ({ ...current, primaryColor: event.target.value }))}
-                  placeholder="#4f46e5"
-                />
+                <input className="input" value={brandingForm.primaryColor} onChange={(event) => setBrandingForm((current) => ({ ...current, primaryColor: event.target.value }))} placeholder="#4f46e5" />
                 {errors.primaryColor ? <p className="text-xs text-rose-300">{errors.primaryColor}</p> : null}
               </label>
 
               <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Accent gradient</span>
-                <input
-                  className="input"
-                  value={brandingForm.accentGradient}
-                  onChange={(event) => setBrandingForm((current) => ({ ...current, accentGradient: event.target.value }))}
-                  placeholder="linear-gradient(135deg, #4f46e5, #22d3ee)"
-                />
+                <input className="input" value={brandingForm.accentGradient} onChange={(event) => setBrandingForm((current) => ({ ...current, accentGradient: event.target.value }))} placeholder="linear-gradient(135deg, #4f46e5, #22d3ee)" />
               </label>
 
               <div className="md:col-span-2 flex justify-end">
@@ -371,33 +399,37 @@ export default function LocationSettingsClient() {
 
               <label className="space-y-1 block">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Custom domain</span>
-                <input
-                  className="input"
-                  value={customDomain}
-                  onChange={(event) => setCustomDomain(event.target.value)}
-                  placeholder="location.yourbrand.com"
-                />
+                <input className="input" value={customDomain} onChange={(event) => setCustomDomain(event.target.value)} placeholder="location.yourbrand.com" />
                 {errors.customDomain ? <p className="text-xs text-rose-300">{errors.customDomain}</p> : null}
               </label>
 
-              {(verificationToken || verificationHost) ? (
+              {(dnsTxtValue || dnsTxtName) ? (
                 <div className="rounded-xl border border-white/10 bg-slate-900/40 p-4 text-sm text-slate-200 space-y-2">
                   <p className="font-medium text-slate-100">DNS verification (TXT record)</p>
-                  <p>Host: <code className="text-indigo-200">{verificationHost || `_gymstack-verification.${customDomain}`}</code></p>
-                  <p>Value: <code className="text-indigo-200">{verificationToken}</code></p>
+                  <p>Host: <code className="text-indigo-200">{dnsTxtName || customDomain}</code></p>
+                  <p>Value: <code className="text-indigo-200">{dnsTxtValue}</code></p>
                 </div>
               ) : null}
 
               <div className="flex flex-wrap gap-3">
-                <button className="button" type="button" onClick={handleRequestVerification} disabled={isRequestingVerification || !customDomain.trim()}>
-                  {isRequestingVerification ? "Requesting..." : "Request verification"}
+                <button className="button" type="button" onClick={handleSaveCustomDomain} disabled={isSavingDomain || !customDomain.trim()}>
+                  {isSavingDomain ? "Saving..." : "Save custom domain"}
                 </button>
                 <button className="button secondary" type="button" onClick={handleVerifyDomain} disabled={isVerifyingDomain || domainStatus === "Not set"}>
-                  {isVerifyingDomain ? "Verifying..." : "Verify now"}
+                  {isVerifyingDomain ? "Requesting..." : "Request verification"}
                 </button>
               </div>
             </div>
           </SectionCard>
+
+          {!((selectedLocation.tenant?.whiteLabelEnabled ?? tenantFeatures?.whiteLabelEnabled ?? false)) ? (
+            <SectionCard title="White-label branding">
+              <p className="text-sm text-muted-foreground">Remove Gym Stack branding from your microsites.</p>
+              <div className="mt-4 rounded-lg border border-indigo-400/30 bg-indigo-500/10 p-4">
+                <p className="text-sm text-indigo-100">Upgrade to white-label to remove the microsite footer branding. Coming soon in billing.</p>
+              </div>
+            </SectionCard>
+          ) : null}
         </>
       ) : null}
 
