@@ -12,6 +12,8 @@ export function Topbar({
   activeMode,
   onSwitchMode,
   onToggleMenu,
+  showAdminPortalLink = false,
+  adminPortalUrl = "https://admin.gymstack.club",
 }: {
   initials: string;
   displayName: string;
@@ -20,6 +22,8 @@ export function Topbar({
   activeMode?: "OWNER" | "MANAGER";
   onSwitchMode: (mode: "OWNER" | "MANAGER") => void;
   onToggleMenu: () => void;
+  showAdminPortalLink?: boolean;
+  adminPortalUrl?: string;
 }) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -129,6 +133,15 @@ export function Topbar({
                   <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>
                     Settings
                   </Link>
+                  {showAdminPortalLink ? (
+                    <a
+                      href={adminPortalUrl}
+                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-sky-200 hover:bg-white/10"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                    >
+                      Admin portal
+                    </a>
+                  ) : null}
                   <button
                     type="button"
                     className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
