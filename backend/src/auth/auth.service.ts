@@ -130,20 +130,20 @@ export class AuthService implements OnModuleInit {
     try {
       await this.emailService.sendVerifyEmail({ to: created.user.email, token: verificationToken });
     } catch (error) {
-      if (error instanceof EmailProviderError && error.statusCode === 403) {
-        this.logger.error(
-          JSON.stringify({
-            event: 'email_delivery_not_configured',
-            provider: 'resend',
-            statusCode: error.statusCode,
-            providerCode: error.providerCode ?? null,
-            message: error.message,
-          }),
-        );
-        emailDeliveryWarning = 'Email delivery not configured yet. Contact support.';
-      } else {
-        throw error;
-      }
+      const message = error instanceof Error ? error.message : 'Unknown email error';
+      this.logger.error(
+        JSON.stringify({
+          event: 'signup_verification_email_failed',
+          email: this.redactEmail(created.user.email),
+          statusCode: error instanceof EmailProviderError ? error.statusCode ?? null : null,
+          providerCode: error instanceof EmailProviderError ? error.providerCode ?? null : null,
+          message,
+        }),
+      );
+
+      emailDeliveryWarning = error instanceof EmailProviderError && error.statusCode === 403
+        ? 'Email delivery not configured yet. Contact support.'
+        : 'We could not send your verification email right now. Please use resend verification.';
     }
 
     await this.notificationsService.createForUser({
