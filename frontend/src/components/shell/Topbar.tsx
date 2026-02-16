@@ -49,7 +49,7 @@ export function Topbar({
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 backdrop-blur-xl">
       <div className="px-4 md:px-6">
-        <div className="grid min-h-12 grid-cols-3 items-center py-1 md:min-h-14">
+        <div className="grid h-12 grid-cols-3 items-center md:h-14">
           <div className="justify-self-start flex items-center gap-2">
             <button
               type="button"
@@ -69,23 +69,28 @@ export function Topbar({
           </div>
 
           <div className="justify-self-center">
-            <span className="truncate text-base font-semibold tracking-wide text-foreground/90 md:text-lg">
-              Gym Stack
-            </span>
+            <span className="truncate text-base font-semibold tracking-wide text-foreground/90 md:text-lg">Gym Stack</span>
           </div>
 
-          <div className="justify-self-end flex items-center gap-2 whitespace-nowrap">
+          <div className="justify-self-end flex items-center gap-2">
+            {canSwitchMode ? (
+              <div className="hidden items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs lg:flex">
+                <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
+                <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
+              </div>
+            ) : null}
+
             <div className="flex flex-col items-end">
               <button
                 ref={triggerRef}
                 type="button"
-                className="h-10 flex items-center gap-2 rounded-xl px-2 hover:bg-white/5 transition"
+                className="button secondary h-10 flex items-center gap-2 rounded-xl px-2 hover:bg-white/5 transition"
                 onClick={() => setIsAccountMenuOpen((current) => !current)}
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
                 aria-label="Open account menu"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-100">{initials}</span>
+                <span className="h-8 w-8 rounded-full user-chip-avatar">{initials}</span>
                 <span className="hidden sm:block truncate max-w-[120px]">{displayName}</span>
                 <span className="text-xs">▾</span>
               </button>
@@ -109,15 +114,6 @@ export function Topbar({
                   </button>
                 </div>
               ) : null}
-            </div>
-          </div>
-        </div>
-
-        {canSwitchMode ? (
-          <div className="pb-2">
-            <div className="mx-auto flex w-fit items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs">
-              <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")}>Owner</button>
-              <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")}>Manager</button>
             </div>
           </div>
         ) : null}
