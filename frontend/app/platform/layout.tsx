@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -9,6 +9,7 @@ import { Topbar } from "../../src/components/shell/Topbar";
 import { AppFooter } from "../../src/components/shell/AppFooter";
 import { EmailVerificationBanner } from "../components/email-verification-banner";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
+import { resendVerification } from "../../src/lib/auth";
 
 const baseNavItems = [
   { label: "Overview", href: "/platform" },
@@ -24,6 +25,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole } = useAuth();
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
 
   const email = user?.email ?? "platform.user@gymstack.app";
   const initials = useMemo(() => {

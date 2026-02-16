@@ -8,12 +8,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 import { UserRole } from '../users/user.model';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { SettingsService } from './settings.service';
 
 @Controller('settings')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 

@@ -6,7 +6,7 @@ import { UpdateOrgDto } from './dto/update-org.dto';
 import { OrganizationsService } from './organizations.service';
 
 @Controller('org')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
@@ -20,7 +20,6 @@ export class OrganizationsController {
     return this.organizationsService.getOrg(user.orgId);
   }
 
-  @UseGuards(RequireVerifiedEmailGuard)
   @Patch()
   renameOrg(@Req() req: { user?: User }, @Body() body: UpdateOrgDto) {
     const user = req.user;

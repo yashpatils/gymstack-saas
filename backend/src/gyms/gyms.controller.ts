@@ -21,7 +21,7 @@ import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequireVerifiedEmailGuard } from '../auth/require-verified-email.guard';
 
 @Controller('gyms')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard, RolesGuard, PermissionsGuard)
 export class GymsController {
   constructor(private readonly gymsService: GymsService) {}
 
@@ -34,7 +34,6 @@ export class GymsController {
     return this.gymsService.listGyms(user.activeTenantId ?? user.orgId);
   }
 
-  @UseGuards(RequireVerifiedEmailGuard)
   @Post()
   createGym(@Body() data: CreateGymDto, @Req() req: { user?: User }) {
     const user = req.user;
@@ -55,7 +54,6 @@ export class GymsController {
     return this.gymsService.getGymForUser(id, { ...user, orgId: user.activeTenantId ?? user.orgId });
   }
 
-  @UseGuards(RequireVerifiedEmailGuard)
   @Patch(':id')
   updateGym(
     @Param('id') id: string,
@@ -69,7 +67,6 @@ export class GymsController {
     return this.gymsService.updateGymForUser(id, data, { ...user, orgId: user.activeTenantId ?? user.orgId });
   }
 
-  @UseGuards(RequireVerifiedEmailGuard)
   @Patch(':id/owner')
   @Roles(UserRole.Admin)
   updateGymOwner(
@@ -85,7 +82,6 @@ export class GymsController {
     return this.gymsService.updateGym(id, user.activeTenantId ?? user.orgId, data);
   }
 
-  @UseGuards(RequireVerifiedEmailGuard)
   @Delete(':id')
   deleteGym(@Param('id') id: string, @Req() req: { user?: User }) {
     const user = req.user;
