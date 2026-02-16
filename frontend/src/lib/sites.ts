@@ -7,18 +7,26 @@ export type PublicLocation = {
   displayName?: string | null;
   address?: string | null;
   timezone?: string | null;
-};
-
-export type PublicBranding = {
   logoUrl?: string | null;
-  accentColor?: string | null;
-  heroImageUrl?: string | null;
+  primaryColor?: string | null;
+  accentGradient?: string | null;
+  heroTitle?: string | null;
+  heroSubtitle?: string | null;
 };
 
-export async function getPublicLocationBySlug(slug: string): Promise<{ location: PublicLocation; branding: PublicBranding; tenantId: string }> {
+export type TenantBranding = {
+  id: string;
+  whiteLabelEnabled: boolean;
+};
+
+export async function getPublicLocationBySlug(slug: string): Promise<{ location: PublicLocation; branding: PublicLocation; tenant: TenantBranding; tenantId: string }> {
   return apiFetch(`/api/public/locations/by-slug/${encodeURIComponent(slug)}`);
 }
 
-export async function resolvePublicSite(host: string): Promise<{ kind: 'location' | 'tenant'; tenant: { id: string; name: string }; location?: PublicLocation; branding: PublicBranding }> {
+export async function getPublicLocationByHost(host: string): Promise<{ location: PublicLocation; tenant: TenantBranding }> {
+  return apiFetch(`/api/public/location-by-host?host=${encodeURIComponent(host)}`);
+}
+
+export async function resolvePublicSite(host: string): Promise<{ kind: 'location' | 'tenant'; tenant: { id: string; name: string }; location?: PublicLocation; branding: PublicLocation; tenantFeature?: TenantBranding }> {
   return apiFetch(`/api/public/sites/resolve?host=${encodeURIComponent(host)}`);
 }

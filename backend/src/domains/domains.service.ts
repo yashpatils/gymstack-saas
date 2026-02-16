@@ -91,6 +91,78 @@ export class DomainsService {
     return { ok: true };
   }
 
+
+  async requestLocationVerification(requester: User, locationId: string, hostnameInput: string) {
+    const tenantId = requester.activeTenantId ?? requester.orgId;
+    if (!tenantId) throw new ForbiddenException('Missing tenant context');
+
+    await this.assertManagePermission(requester.id, tenantId, locationId);
+
+    const hostname = normalizeHostname(hostnameInput);
+    if (!hostname) {
+      throw new BadRequestException('Invalid hostname');
+    }
+
+    const verificationToken = randomBytes(16).toString('hex');
+    const location = await this.prisma.gym.updateMany({
+      where: { id: locationId, orgId: tenantId },
+      data: {
+        customDomain: hostname,
+        domainVerificationToken: verificationToken,
+        domainVerifiedAt: null,
+      },
+    });
+
+    if (location.count === 0) {
+      throw new NotFoundException('Location not found');
+    }
+
+    return {
+      locationId,
+      hostname,
+      verificationToken,
+      instructions: {
+        txt: {
+          host: `_gymstack-verification.${hostname}`,
+          value: verificationToken,
+        },
+        cname: {
+          host: hostname,
+          value: 'cname.vercel-dns.com',
+        },
+      },
+    };
+  }
+
+  async verifyLocationDomain(requester: User, locationId: string) {
+    const tenantId = requester.activeTenantId ?? requester.orgId;
+    if (!tenantId) throw new ForbiddenException('Missing tenant context');
+
+    await this.assertManagePermission(requester.id, tenantId, locationId);
+
+    const location = await this.prisma.gym.findFirst({
+      where: { id: locationId, orgId: tenantId },
+      select: { id: true, customDomain: true, domainVerificationToken: true },
+    });
+
+    if (!location || !location.customDomain || !location.domainVerificationToken) {
+      throw new NotFoundException('Pending domain verification not found');
+    }
+
+    const updated = await this.prisma.gym.update({
+      where: { id: location.id },
+      data: { domainVerifiedAt: new Date() },
+      select: { id: true, customDomain: true, domainVerifiedAt: true },
+    });
+
+    return {
+      locationId: updated.id,
+      hostname: updated.customDomain,
+      domainVerifiedAt: updated.domainVerifiedAt,
+      mode: 'manual',
+    };
+  }
+
   private async assertManagePermission(userId: string, tenantId: string, locationId: string | null) {
     const membership = await this.prisma.membership.findFirst({
       where: {

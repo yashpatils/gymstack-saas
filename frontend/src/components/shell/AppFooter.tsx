@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "../../providers/AuthProvider";
 
 export function AppFooter() {
-  const { activeContext, activeLocation, tenantFeatures } = useAuth();
+  const { activeContext, tenantFeatures } = useAuth();
   const role = activeContext?.role;
 
   if (role === "TENANT_OWNER") {
@@ -26,18 +26,13 @@ export function AppFooter() {
     return null;
   }
 
-  if (activeLocation?.customDomain) {
-    if (tenantFeatures?.whiteLabelBranding) {
-      return null;
-    }
-
-    return <footer className="platform-footer platform-footer-minimal"><p className="text-xs text-muted-foreground">Member portal</p></footer>;
+  if (tenantFeatures?.whiteLabelBranding) {
+    return null;
   }
 
   return (
     <footer className="platform-footer platform-footer-minimal">
-      <p>Powered by Gym Stack</p>
-      <p>© 2026 Gym Stack</p>
+      <p>Powered by Gym Stack © 2026</p>
     </footer>
   );
 }
