@@ -128,7 +128,7 @@ export class EmailService {
   async sendEmail(input: SendEmailInput): Promise<void> {
     const redactedRecipient = this.redactEmail(input.to);
 
-    if (this.emailConfig.emailDisable || !this.emailConfig.isProduction) {
+    if (this.emailConfig.emailDisable || !this.emailConfig.resendApiKey) {
       this.logger.log(
         `DEV email template=${input.template} recipient=${redactedRecipient} subject="${input.subject}"`,
       );
