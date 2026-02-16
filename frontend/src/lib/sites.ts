@@ -23,8 +23,9 @@ export async function getPublicLocationBySlug(slug: string): Promise<{ location:
   return apiFetch(`/api/public/locations/by-slug/${encodeURIComponent(slug)}`);
 }
 
-export async function getPublicLocationByHost(host: string): Promise<{ location: PublicLocation; tenant: TenantBranding }> {
-  return apiFetch(`/api/public/location-by-host?host=${encodeURIComponent(host)}`);
+export async function getPublicLocationByHost(host?: string): Promise<{ location: PublicLocation | null; tenant: TenantBranding | null }> {
+  const query = host ? `?host=${encodeURIComponent(host)}` : '';
+  return apiFetch(`/api/public/location-by-host${query}`);
 }
 
 export async function resolvePublicSite(host: string): Promise<{ kind: 'location' | 'tenant'; tenant: { id: string; name: string }; location?: PublicLocation; branding: PublicLocation; tenantFeature?: TenantBranding }> {
