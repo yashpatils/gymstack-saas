@@ -21,6 +21,11 @@ function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
 }
 
+const RESEND_VERIFICATION_RESPONSE = {
+  ok: true as const,
+  message: 'If an account exists, we sent a verification email.',
+};
+
 
 function generateVerificationToken(): { rawToken: string; tokenHash: string; expiresAt: Date } {
   const rawToken = randomBytes(32).toString('base64url');
@@ -373,15 +378,44 @@ export class AuthService implements OnModuleInit {
     return { ok: true };
   }
 
-  async resendVerification(email?: string, userId?: string): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
+  async resendVerification(email?: string, userId?: string): Promise<{ ok: true; message: string }> {
     const normalizedEmail = email?.trim().toLowerCase();
+    const emailIdentifier = normalizedEmail ? this.hashEmailForLogs(normalizedEmail) : undefined;
+    this.logger.log(JSON.stringify({
+      event: 'resend_verification_request_received',
+      userId: userId ?? null,
+      emailHash: emailIdentifier ?? null,
+    }));
+
     const user = userId
       ? await this.prisma.user.findUnique({ where: { id: userId } })
       : normalizedEmail
         ? await this.prisma.user.findUnique({ where: { email: normalizedEmail } })
         : null;
-    if (!user || user.status !== UserStatus.ACTIVE || user.emailVerifiedAt) {
-      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: this.getVerificationFallbackWarning() };
+
+    this.logger.log(JSON.stringify({
+      event: 'resend_verification_lookup_result',
+      userId: user?.id ?? null,
+      emailHash: emailIdentifier ?? null,
+      userFound: Boolean(user),
+      userActive: Boolean(user && user.status === UserStatus.ACTIVE),
+    }));
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      this.logger.log(JSON.stringify({
+        event: 'resend_verification_no_user',
+        emailHash: emailIdentifier ?? null,
+      }));
+      return RESEND_VERIFICATION_RESPONSE;
+    }
+
+    if (user.emailVerifiedAt) {
+      this.logger.log(JSON.stringify({
+        event: 'resend_verification_already_verified',
+        userId: user.id,
+        emailHash: this.hashEmailForLogs(user.email),
+      }));
+      return RESEND_VERIFICATION_RESPONSE;
     }
 
     const now = new Date();
@@ -391,16 +425,45 @@ export class AuthService implements OnModuleInit {
     const withinOneHour = Boolean(lastSentAt && now.getTime() - lastSentAt.getTime() < 60 * 60_000);
     const sendCount = withinOneHour ? user.emailVerificationSendCount : 0;
 
-    if ((lastSentAt && now.getTime() - lastSentAt.getTime() < minimumIntervalMs) || sendCount >= maxSendsPerHour) {
-      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: this.getVerificationFallbackWarning() };
+    const isRateLimited = Boolean((lastSentAt && now.getTime() - lastSentAt.getTime() < minimumIntervalMs) || sendCount >= maxSendsPerHour);
+    if (isRateLimited) {
+      this.logger.log(JSON.stringify({
+        event: 'resend_verification_rate_limited',
+        userId: user.id,
+        emailHash: this.hashEmailForLogs(user.email),
+        minimumIntervalMs,
+        maxSendsPerHour,
+        sendCount,
+        lastSentAt: lastSentAt?.toISOString() ?? null,
+      }));
+      return RESEND_VERIFICATION_RESPONSE;
     }
-    const verification = await this.sendVerificationIfNeeded(user.id);
 
-    return {
-      ok: true,
-      message: 'If your account exists, a verification email has been sent.',
-      emailDeliveryWarning: verification.emailDeliveryWarning,
-    };
+    this.logger.log(JSON.stringify({
+      event: 'resend_verification_send_attempted',
+      userId: user.id,
+      emailHash: this.hashEmailForLogs(user.email),
+    }));
+
+    const verification = await this.sendVerificationIfNeeded(user.id);
+    if (verification.sent) {
+      this.logger.log(JSON.stringify({
+        event: 'resend_verification_sent',
+        userId: user.id,
+        emailHash: this.hashEmailForLogs(user.email),
+      }));
+    } else {
+      this.logger.error(JSON.stringify({
+        event: 'resend_verification_send_failed',
+        userId: user.id,
+        emailHash: this.hashEmailForLogs(user.email),
+        statusCode: verification.providerError?.statusCode ?? null,
+        providerCode: verification.providerError?.providerCode ?? null,
+        message: verification.providerError?.message ?? 'Unknown email error',
+      }));
+    }
+
+    return RESEND_VERIFICATION_RESPONSE;
   }
 
 
@@ -420,7 +483,7 @@ export class AuthService implements OnModuleInit {
     return 'Email delivery is not configured in this environment yet. Contact support.';
   }
 
-  private async sendVerificationIfNeeded(userId: string): Promise<{ emailDeliveryWarning?: string }> {
+  private async sendVerificationIfNeeded(userId: string): Promise<{ emailDeliveryWarning?: string; sent: boolean; providerError?: { statusCode: number | null; providerCode: string | null; message: string } }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -436,7 +499,7 @@ export class AuthService implements OnModuleInit {
     });
 
     if (!user || user.emailVerifiedAt) {
-      return {};
+      return { sent: false };
     }
 
     const { rawToken: verificationToken, tokenHash, expiresAt } = generateVerificationToken();
@@ -455,7 +518,7 @@ export class AuthService implements OnModuleInit {
     try {
       await this.emailService.sendVerifyEmail({ to: user.email, token: verificationToken });
       this.logger.log(JSON.stringify({ event: 'auth_verification_email_sent', email: this.redactEmail(user.email), userId: user.id }));
-      return { emailDeliveryWarning: fallbackWarning };
+      return { emailDeliveryWarning: fallbackWarning, sent: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown email error';
       this.logger.error(
@@ -470,10 +533,26 @@ export class AuthService implements OnModuleInit {
       );
 
       if (error instanceof EmailProviderError && error.statusCode === 403) {
-        return { emailDeliveryWarning: 'Email delivery not configured yet. Contact support.' };
+        return {
+          emailDeliveryWarning: 'Email delivery not configured yet. Contact support.',
+          sent: false,
+          providerError: {
+            statusCode: error.statusCode ?? null,
+            providerCode: error.providerCode ?? null,
+            message,
+          },
+        };
       }
 
-      return { emailDeliveryWarning: 'We could not send your verification email right now. Please use resend verification.' };
+      return {
+        emailDeliveryWarning: 'We could not send your verification email right now. Please use resend verification.',
+        sent: false,
+        providerError: {
+          statusCode: error instanceof EmailProviderError ? error.statusCode ?? null : null,
+          providerCode: error instanceof EmailProviderError ? error.providerCode ?? null : null,
+          message,
+        },
+      };
     }
   }
 
@@ -708,6 +787,10 @@ export class AuthService implements OnModuleInit {
     }
 
     return `${localPart.slice(0, 2)}***@${domain}`;
+  }
+
+  private hashEmailForLogs(email: string): string {
+    return createHash('sha256').update(email).digest('hex').slice(0, 12);
   }
 
 

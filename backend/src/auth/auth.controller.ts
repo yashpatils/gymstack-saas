@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { MembershipRole } from '@prisma/client';
@@ -133,7 +133,8 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(JwtAuthGuard)
   @Post('resend-verification-authenticated')
-  resendVerificationAuthenticated(@Req() req: AuthenticatedRequest): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
+  @HttpCode(200)
+  resendVerificationAuthenticated(@Req() req: AuthenticatedRequest): Promise<{ ok: true; message: string }> {
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
     this.sensitiveRateLimitService.check(`resend:${ipKey}:${req.user.id}`, 20, 60 * 60_000);
@@ -143,7 +144,8 @@ export class AuthController {
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('resend-verification')
-  resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
+  @HttpCode(200)
+  resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string }> {
     const context = getRequestContext(req);
     const emailKey = body.email?.trim().toLowerCase() ?? 'unknown';
     const ipKey = context.ip ?? 'unknown';

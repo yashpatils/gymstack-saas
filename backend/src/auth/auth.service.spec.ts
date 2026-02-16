@@ -95,3 +95,86 @@ describe('AuthService verification emails', () => {
     );
   });
 });
+
+describe('AuthService resendVerification', () => {
+  it('sends verification email for existing unverified user who is not rate limited', async () => {
+    const { service, prisma, emailService } = createMocks();
+    const user = {
+      id: 'user-resend',
+      email: 'resend@example.com',
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: null,
+      emailVerificationLastSentAt: new Date(Date.now() - 61_000),
+      emailVerificationSendCount: 1,
+    };
+
+    prisma.user.findUnique
+      .mockResolvedValueOnce(user)
+      .mockResolvedValueOnce(user);
+    prisma.user.update.mockResolvedValue(user);
+
+    const response = await service.resendVerification(user.email);
+
+    expect(response).toEqual({
+      ok: true,
+      message: 'If an account exists, we sent a verification email.',
+    });
+    expect(emailService.sendVerifyEmail).toHaveBeenCalledTimes(1);
+    expect(emailService.sendVerifyEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: user.email, token: expect.any(String) }),
+    );
+  });
+
+  it('does not send verification email when no user exists', async () => {
+    const { service, prisma, emailService } = createMocks();
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    const response = await service.resendVerification('missing@example.com');
+
+    expect(response).toEqual({
+      ok: true,
+      message: 'If an account exists, we sent a verification email.',
+    });
+    expect(emailService.sendVerifyEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not send verification email when user is already verified', async () => {
+    const { service, prisma, emailService } = createMocks();
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'verified-user',
+      email: 'verified@example.com',
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+      emailVerificationLastSentAt: null,
+      emailVerificationSendCount: 0,
+    });
+
+    const response = await service.resendVerification('verified@example.com');
+
+    expect(response).toEqual({
+      ok: true,
+      message: 'If an account exists, we sent a verification email.',
+    });
+    expect(emailService.sendVerifyEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not send verification email when resend is rate limited', async () => {
+    const { service, prisma, emailService } = createMocks();
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'limited-user',
+      email: 'limited@example.com',
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: null,
+      emailVerificationLastSentAt: new Date(Date.now() - 30_000),
+      emailVerificationSendCount: 4,
+    });
+
+    const response = await service.resendVerification('limited@example.com');
+
+    expect(response).toEqual({
+      ok: true,
+      message: 'If an account exists, we sent a verification email.',
+    });
+    expect(emailService.sendVerifyEmail).not.toHaveBeenCalled();
+  });
+});
