@@ -88,10 +88,10 @@ export async function adminLogin(email: string, password: string): Promise<{ tok
   };
 }
 
-export async function signup(email: string, password: string, role?: SignupRole): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
+export async function signup(email: string, password: string, role?: SignupRole, inviteToken?: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify({ email, password, role, inviteToken }),
     headers: {
       'Content-Type': 'application/json',
     },

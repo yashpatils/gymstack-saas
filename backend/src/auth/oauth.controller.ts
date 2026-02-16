@@ -64,8 +64,7 @@ export class OauthController {
       }
       const inviteRoleSupported =
         invite.role === MembershipRole.GYM_STAFF_COACH ||
-        invite.role === MembershipRole.CLIENT ||
-        invite.role === MembershipRole.TENANT_LOCATION_ADMIN;
+        invite.role === MembershipRole.CLIENT;
       if (!inviteRoleSupported) {
         res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_invalid'));
         return;
@@ -162,8 +161,7 @@ export class OauthController {
       }
       const inviteRoleSupported =
         invite.role === MembershipRole.GYM_STAFF_COACH ||
-        invite.role === MembershipRole.CLIENT ||
-        invite.role === MembershipRole.TENANT_LOCATION_ADMIN;
+        invite.role === MembershipRole.CLIENT;
       if (!inviteRoleSupported) {
         res.redirect(this.withOAuthError(parsedState.returnTo, 'invite_invalid'));
         return;

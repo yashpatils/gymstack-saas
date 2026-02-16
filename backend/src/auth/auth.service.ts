@@ -49,9 +49,18 @@ export class AuthService implements OnModuleInit {
   }
 
   async signup(input: SignupDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
-    const { email, password } = input;
+    const email = input.email?.trim().toLowerCase();
+    const { password } = input;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
+    }
+
+    if (input.inviteToken) {
+      return this.signupWithInvite({
+        email,
+        password,
+        inviteToken: input.inviteToken,
+      }, context);
     }
 
     const existingUser = await this.prisma.user.findUnique({ where: { email } });
@@ -158,6 +167,73 @@ export class AuthService implements OnModuleInit {
       memberships,
       activeContext,
       emailDeliveryWarning,
+    };
+  }
+
+  private async signupWithInvite(
+    input: { email: string; password: string; inviteToken: string },
+    context?: { ip?: string; userAgent?: string },
+  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+    const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      if (!existing) {
+        return tx.user.create({
+          data: {
+            email: input.email,
+            password: await bcrypt.hash(input.password, 10),
+            role: Role.USER,
+            emailVerifiedAt: null,
+            status: UserStatus.ACTIVE,
+          },
+        });
+      }
+
+      if (existing.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedException('Account is unavailable');
+      }
+
+      if (existing.password) {
+        const passwordMatches = await bcrypt.compare(input.password, existing.password);
+        if (!passwordMatches) {
+          throw new UnauthorizedException('Invalid credentials');
+        }
+      } else {
+        await tx.user.update({
+          where: { id: existing.id },
+          data: { password: await bcrypt.hash(input.password, 10) },
+        });
+      }
+
+      return existing;
+    });
+
+    await this.inviteAdmissionService.admitWithInvite({
+      token: input.inviteToken,
+      userId: user.id,
+      emailFromProviderOrSignup: input.email,
+    });
+
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: user.id, status: MembershipStatus.ACTIVE },
+      orderBy: { createdAt: 'asc' },
+    });
+    const activeContext = await this.getDefaultContext(memberships);
+    const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
+
+    return {
+      accessToken: this.signToken(user.id, user.email, user.role, activeContext),
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        orgId: activeContext?.tenantId ?? '',
+        emailVerified: Boolean(user.emailVerifiedAt),
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+      },
+      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
+      activeContext,
     };
   }
 
