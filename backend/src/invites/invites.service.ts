@@ -35,6 +35,7 @@ export class InvitesService {
         role: input.role,
         email: input.email?.toLowerCase() ?? null,
         tokenHash,
+        tokenPrefix: token.slice(0, 6),
         expiresAt,
         createdByUserId: requester.id,
         status: InviteStatus.PENDING,
@@ -104,6 +105,43 @@ export class InvitesService {
       where: { id: inviteId },
       data: { status: InviteStatus.ACCEPTED, consumedAt: new Date() },
     });
+  }
+
+
+  async consumeByToken(token: string, expectedEmail?: string): Promise<{ ok: true; inviteId: string; role: MembershipRole; tenantId: string; locationId: string }> {
+    const invite = await this.getUsableInvite(token, expectedEmail);
+    if (!invite) {
+      throw new BadRequestException('Invalid or expired invite token');
+    }
+
+    await this.consumeInvite(invite.id);
+    return { ok: true, inviteId: invite.id, role: invite.role, tenantId: invite.tenantId, locationId: invite.locationId };
+  }
+
+  async listInvites(requester: User, locationId?: string): Promise<Array<{ id: string; role: MembershipRole; email: string | null; status: InviteStatus; tokenPrefix: string; expiresAt: string; consumedAt: string | null; createdAt: string }>> {
+    const tenantId = requester.activeTenantId ?? requester.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const invites = await this.prisma.locationInvite.findMany({
+      where: {
+        tenantId,
+        ...(locationId ? { locationId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return invites.map((invite) => ({
+      id: invite.id,
+      role: invite.role,
+      email: invite.email,
+      status: invite.status,
+      tokenPrefix: invite.tokenPrefix,
+      expiresAt: invite.expiresAt.toISOString(),
+      consumedAt: invite.consumedAt ? invite.consumedAt.toISOString() : null,
+      createdAt: invite.createdAt.toISOString(),
+    }));
   }
 
   async revokeInvite(requester: User, inviteId: string): Promise<{ ok: true }> {

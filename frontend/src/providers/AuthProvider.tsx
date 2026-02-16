@@ -24,7 +24,7 @@ import {
   signup as signupRequest,
   type SignupRole,
 } from '../lib/auth';
-import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, TenantFeatures } from '../types/auth';
+import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, PermissionFlags, TenantFeatures } from '../types/auth';
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
@@ -42,7 +42,8 @@ type AuthContextValue = {
   authIssue: AuthIssue;
   memberships: Membership[];
   platformRole?: 'PLATFORM_ADMIN' | null;
-  permissions: string[];
+  permissions: PermissionFlags;
+  permissionKeys: string[];
   activeContext?: ActiveContext;
   activeTenant?: ActiveTenant;
   activeLocation?: ActiveLocation;
@@ -68,7 +69,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [platformRole, setPlatformRole] = useState<'PLATFORM_ADMIN' | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<PermissionFlags>({
+    canManageTenant: false,
+    canManageLocations: false,
+    canInviteStaff: false,
+    canInviteClients: false,
+    canManageBilling: false,
+    canManageUsers: false,
+  });
+  const [permissionKeys, setPermissionKeys] = useState<string[]>([]);
   const [activeContext, setActiveContext] = useState<ActiveContext | undefined>(undefined);
   const [activeTenant, setActiveTenant] = useState<ActiveTenant | undefined>(undefined);
   const [activeLocation, setActiveLocation] = useState<ActiveLocation | undefined>(undefined);
@@ -88,7 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredPlatformRole(null);
     setSupportModeContext(null);
     clearStoredActiveContext();
-    setPermissions([]);
+    setPermissions({
+      canManageTenant: false,
+      canManageLocations: false,
+      canInviteStaff: false,
+      canInviteClients: false,
+      canManageBilling: false,
+      canManageUsers: false,
+    });
+    setPermissionKeys([]);
     setActiveContext(undefined);
     setActiveTenant(undefined);
     setActiveLocation(undefined);
@@ -99,17 +116,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOwnerOperatorSettings(undefined);
   }, []);
 
+  const normalizeMemberships = useCallback((source: AuthMeResponse['memberships']): Membership[] => {
+    if (Array.isArray(source)) {
+      return source;
+    }
+
+    const tenantMemberships: Membership[] = source.tenant.map((membership, index) => ({
+      id: `tenant-${membership.tenantId}-${index}`,
+      tenantId: membership.tenantId,
+      gymId: null,
+      locationId: null,
+      role: membership.role,
+      status: 'ACTIVE',
+    }));
+
+    const locationMemberships: Membership[] = source.location.map((membership, index) => ({
+      id: `location-${membership.locationId}-${index}`,
+      tenantId: membership.tenantId,
+      gymId: membership.locationId,
+      locationId: membership.locationId,
+      role: membership.role,
+      status: 'ACTIVE',
+    }));
+
+    return [...tenantMemberships, ...locationMemberships];
+  }, []);
+
+  const normalizePermissions = useCallback((source: AuthMeResponse['permissions']): PermissionFlags => {
+    if (Array.isArray(source)) {
+      return {
+        canManageTenant: source.includes('tenant:manage'),
+        canManageLocations: source.includes('location:manage') || source.includes('locations:update'),
+        canInviteStaff: source.includes('staff:crud') || source.includes('invites:staff:create'),
+        canInviteClients: source.includes('clients:crud') || source.includes('invites:clients:create'),
+        canManageBilling: source.includes('billing:manage'),
+        canManageUsers: source.includes('users:crud') || source.includes('users:manage'),
+      };
+    }
+
+    return source;
+  }, []);
+
   const applyMeResponse = useCallback((meResponse: AuthMeResponse) => {
     setMeStatus(200);
     setAuthIssue(null);
     setUser(meResponse.user);
-    setMemberships(meResponse.memberships ?? []);
+    setMemberships(normalizeMemberships(meResponse.memberships));
     setPlatformRole(meResponse.platformRole ?? null);
     setStoredPlatformRole(meResponse.platformRole ?? null);
     if (meResponse.platformRole !== 'PLATFORM_ADMIN') {
       setSupportModeContext(null);
     }
-    setPermissions(meResponse.permissions ?? []);
+    setPermissions(normalizePermissions(meResponse.permissions));
+    setPermissionKeys(meResponse.permissionKeys ?? []);
     setActiveContext(meResponse.activeContext);
     setStoredActiveContext(meResponse.activeContext);
     setActiveTenant(meResponse.activeTenant);
@@ -119,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveMode(meResponse.activeMode);
     setOnboarding(meResponse.onboarding);
     setOwnerOperatorSettings(meResponse.ownerOperatorSettings);
-  }, []);
+  }, [normalizeMemberships, normalizePermissions]);
 
   const hydrateFromMe = useCallback(async () => {
     try {
@@ -207,10 +266,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hydrateFromMe]);
 
   const chooseContext = useCallback(async (tenantId: string, gymId?: string) => {
-    const { token: nextToken } = await setContextRequest(tenantId, gymId);
+    const { token: nextToken, me } = await setContextRequest(tenantId, gymId);
     setToken(nextToken);
-    await hydrateFromMe();
-  }, [hydrateFromMe]);
+    applyMeResponse(me);
+  }, [applyMeResponse]);
 
   const switchMode = useCallback(async (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => {
     const meResponse = await setModeRequest(tenantId, mode, locationId);
@@ -261,6 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       memberships,
       platformRole,
       permissions,
+      permissionKeys,
       activeContext,
       activeTenant,
       activeLocation,
@@ -277,7 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
+    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

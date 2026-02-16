@@ -311,13 +311,15 @@ export class GymsService {
       if (existingUser) {
         targetUserId = existingUser.id;
       } else {
+        const rawToken = randomBytes(32).toString('base64url');
         const invite = await this.prisma.locationInvite.create({
           data: {
             tenantId: location.orgId,
             locationId,
             role: MembershipRole.TENANT_LOCATION_ADMIN,
             email: payload.email.toLowerCase(),
-            tokenHash: createHash('sha256').update(randomBytes(32).toString('base64url')).digest('hex'),
+            tokenHash: createHash('sha256').update(rawToken).digest('hex'),
+            tokenPrefix: rawToken.slice(0, 6),
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
             createdByUserId: user.id,
           },

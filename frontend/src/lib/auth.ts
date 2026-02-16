@@ -118,10 +118,10 @@ export async function acceptInvite(params: { token: string; password?: string; e
   return { token: data.accessToken, user: data.user, activeContext: data.activeContext, memberships: data.memberships };
 }
 
-export async function setContext(tenantId: string, gymId?: string): Promise<{ token: string }> {
-  const data = await apiFetch<{ accessToken: string }>('/api/auth/set-context', { method: 'POST', body: JSON.stringify({ tenantId, gymId }), headers: { 'Content-Type': 'application/json' } });
+export async function setContext(tenantId: string, gymId?: string): Promise<{ token: string; me: AuthMeResponse }> {
+  const data = await apiFetch<{ accessToken: string; me: AuthMeResponse }>('/api/auth/set-context', { method: 'POST', body: JSON.stringify({ tenantId, gymId }), headers: { 'Content-Type': 'application/json' } });
   setTokens({ accessToken: data.accessToken });
-  return { token: data.accessToken };
+  return { token: data.accessToken, me: data.me };
 }
 
 export async function setMode(tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string): Promise<AuthMeResponse> { return apiFetch<AuthMeResponse>('/api/auth/set-mode', { method: 'POST', body: JSON.stringify({ tenantId, mode, locationId }), headers: { 'Content-Type': 'application/json' } }); }
