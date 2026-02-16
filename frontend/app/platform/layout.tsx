@@ -59,6 +59,11 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     ? [...baseNavItems, { label: "Admin", href: ADMIN_PORTAL_FRESH_LOGIN_URL }]
     : baseNavItems;
 
+  const canManageTenantSettings = permissions.canManageTenant
+    || permissionKeys.includes("tenant:manage")
+    || user?.role === "OWNER"
+    || user?.role === "ADMIN";
+
   const filteredItems = navItems.filter((item) => {
     if (item.href === "/platform/billing") {
       return permissions.canManageBilling || permissionKeys.includes("billing:manage") || user?.role === "OWNER" || user?.role === "ADMIN";
@@ -66,6 +71,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
     if (item.href === "/platform/team") {
       return permissions.canManageUsers || permissions.canManageTenant || permissionKeys.some((permission) => ["users:crud", "staff:crud", "tenant:manage"].includes(permission));
+    }
+
+    if (item.href === "/platform/settings") {
+      return canManageTenantSettings;
     }
 
     return true;

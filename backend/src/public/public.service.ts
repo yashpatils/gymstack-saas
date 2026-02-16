@@ -23,6 +23,14 @@ export class PublicService {
     return slug || null;
   }
 
+  private toTenantBranding(tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean } | null | undefined, fallbackTenantId: string) {
+    return {
+      id: tenant?.id ?? fallbackTenantId,
+      name: tenant?.name ?? '',
+      whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled ?? false) || Boolean(tenant?.whiteLabelBrandingEnabled ?? false),
+    };
+  }
+
   private async resolveLocationByHost(host: string) {
     const hostname = normalizeHostname(host).split(':')[0] ?? '';
     const baseDomain = this.getBaseDomain();
@@ -89,11 +97,7 @@ export class PublicService {
 
     return {
       tenantId: location.orgId,
-      tenant: {
-        id: tenant?.id ?? location.orgId,
-        name: tenant?.name ?? '',
-        whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled || tenant?.whiteLabelBrandingEnabled),
-      },
+      tenant: this.toTenantBranding(tenant, location.orgId),
       location: {
         id: location.id,
         slug: location.slug,
@@ -148,11 +152,7 @@ export class PublicService {
 
     return {
       location,
-      tenant: {
-        id: tenant?.id ?? locationKey.orgId,
-        name: tenant?.name ?? '',
-        whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled || tenant?.whiteLabelBrandingEnabled),
-      },
+      tenant: this.toTenantBranding(tenant, locationKey.orgId),
     };
   }
 

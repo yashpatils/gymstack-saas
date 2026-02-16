@@ -51,7 +51,7 @@ function maskApiBaseUrl(url: string): string {
 }
 
 export default function PlatformSettingsPage() {
-  const { logout, user, tenantFeatures } = useAuth();
+  const { logout, user, tenantFeatures, permissions, permissionKeys } = useAuth();
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +62,24 @@ export default function PlatformSettingsPage() {
   const [brandingLocationId, setBrandingLocationId] = useState('');
 
   const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
+  const canManageTenantSettings = permissions.canManageTenant
+    || permissionKeys.includes('tenant:manage')
+    || user?.role === 'OWNER'
+    || user?.role === 'ADMIN';
   const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
+
+  if (!canManageTenantSettings) {
+    return (
+      <section className="page">
+        <div className="card space-y-2 border border-amber-300/30 bg-amber-500/10 text-amber-50">
+          <h1 className="section-title">Tenant settings are restricted</h1>
+          <p className="text-sm text-amber-100/90">
+            You don&apos;t have permission to manage tenant-level settings. Contact your owner/admin if this seems incorrect.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const apiBaseUrl = useMemo(() => {
     try {
