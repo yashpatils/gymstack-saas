@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { GymLoginForm } from '@/app/components/gym-login-form';
 import { getPublicLocationByHost, getPublicLocationBySlug } from '@/src/lib/sites';
+import type { SlugPageProps } from '@/src/lib/pageProps';
 
 type SiteLoginData =
   | Awaited<ReturnType<typeof getPublicLocationBySlug>>
@@ -18,7 +19,7 @@ function getTenantId(data: SiteLoginData): string | null {
   return null;
 }
 
-export default async function SiteLoginPage({ params }: { params: { slug: string } }) {
+export default async function SiteLoginPage({ params }: SlugPageProps) {
   const hostHeader = headers().get('host');
   const host = hostHeader?.split(':')[0] ?? null;
   const data = host

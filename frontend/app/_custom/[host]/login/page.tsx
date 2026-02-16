@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import { GymLoginForm } from '@/app/components/gym-login-form';
 import { getPublicLocationByHost } from '@/src/lib/sites';
+import type { HostPageProps } from '@/src/lib/pageProps';
 
-export default async function CustomLoginPage({ params }: { params: { host: string } }) {
+export default async function CustomLoginPage({ params }: HostPageProps) {
   const host = decodeURIComponent(params.host);
   const data = await getPublicLocationByHost(host);
 

@@ -2,8 +2,9 @@ export const dynamic = 'force-dynamic';
 import { notFound } from 'next/navigation';
 import { LocationShell } from '@/app/components/location-shell';
 import { getPublicLocationByHost } from '@/src/lib/sites';
+import type { HostPageProps } from '@/src/lib/pageProps';
 
-export default async function CustomDomainLanding({ params }: { params: { host: string } }) {
+export default async function CustomDomainLanding({ params }: HostPageProps) {
   const host = decodeURIComponent(params.host);
   const data = await getPublicLocationByHost(host);
 
