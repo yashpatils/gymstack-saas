@@ -23,7 +23,7 @@ function toGymSlug(name: string): string {
 
 const RESEND_VERIFICATION_RESPONSE = {
   ok: true as const,
-  message: 'If an account exists, we sent a verification email.',
+  message: 'If an account exists and is not already verified, we sent a verification email.',
 };
 
 
