@@ -1,12 +1,15 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole } from '@prisma/client';
+import { InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOrg(orgId: string) {
+  async getOrg(orgId?: string) {
+    if (!orgId) {
+      throw new NotFoundException('Organization not found');
+    }
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: {
@@ -23,7 +26,45 @@ export class OrganizationsService {
     return organization;
   }
 
-  async renameOrg(orgId: string, userId: string, name: string) {
+
+  async getDashboardSummary(userId: string, orgId?: string) {
+    if (!orgId) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, orgId, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const [locations, members, invites] = await Promise.all([
+      this.prisma.gym.count({ where: { orgId } }),
+      this.prisma.membership.count({ where: { orgId, status: MembershipStatus.ACTIVE } }),
+      this.prisma.locationInvite.count({
+        where: {
+          status: InviteStatus.PENDING,
+          tenantId: orgId,
+        },
+      }),
+    ]);
+
+    return {
+      locations,
+      members,
+      mrr: null,
+      invites,
+    };
+  }
+
+  async renameOrg(orgId: string | undefined, userId: string, name: string) {
+    if (!orgId) {
+      throw new ForbiddenException('Organization access denied');
+    }
+
     const membership = await this.prisma.membership.findFirst({
       where: { userId, orgId },
     });

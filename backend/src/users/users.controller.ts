@@ -32,7 +32,7 @@ export class UsersController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.usersService.listUsers(user.orgId);
+    return this.usersService.listUsers(user.activeTenantId ?? user.orgId);
   }
 
   @Get('me')
@@ -52,7 +52,7 @@ export class UsersController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.usersService.getUser(id, user.orgId);
+    return this.usersService.getUser(id, user.activeTenantId ?? user.orgId);
   }
 
   @Patch(':id')
@@ -66,7 +66,7 @@ export class UsersController {
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.usersService.updateUserForRequester(id, user.orgId, data, user);
+    return this.usersService.updateUserForRequester(id, user.activeTenantId ?? user.orgId, data, user);
   }
 
   @Delete(':id')
@@ -77,7 +77,7 @@ export class UsersController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.usersService.deleteUser(id, user.orgId, user.id);
+    return this.usersService.deleteUser(id, user.activeTenantId ?? user.orgId, user.id);
   }
 
   @Patch('me/password')

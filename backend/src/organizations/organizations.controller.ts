@@ -16,7 +16,18 @@ export class OrganizationsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.organizationsService.getOrg(user.orgId);
+    return this.organizationsService.getOrg(user.activeTenantId ?? user.orgId);
+  }
+
+
+  @Get('dashboard-summary')
+  getDashboardSummary(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.organizationsService.getDashboardSummary(user.id, user.activeTenantId ?? user.orgId);
   }
 
   @Patch()
@@ -26,6 +37,6 @@ export class OrganizationsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.organizationsService.renameOrg(user.orgId, user.id, body.name);
+    return this.organizationsService.renameOrg(user.activeTenantId ?? user.orgId, user.id, body.name);
   }
 }

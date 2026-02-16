@@ -30,7 +30,10 @@ export class UsersService {
     private readonly auditService: AuditService,
   ) {}
 
-  listUsers(orgId: string) {
+  listUsers(orgId?: string) {
+    if (!orgId) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
     return this.prisma.user.findMany({
       where: {
         memberships: {
@@ -41,7 +44,10 @@ export class UsersService {
     });
   }
 
-  getUser(id: string, orgId: string) {
+  getUser(id: string, orgId?: string) {
+    if (!orgId) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
     return this.prisma.user.findFirst({
       where: {
         id,
@@ -53,7 +59,7 @@ export class UsersService {
     });
   }
 
-  async updateUser(id: string, orgId: string, data: UpdateUserDto) {
+  async updateUser(id: string, orgId: string | undefined, data: UpdateUserDto) {
     const existing = await this.getUser(id, orgId);
     if (!existing) {
       throw new NotFoundException('User not found');
@@ -68,7 +74,7 @@ export class UsersService {
 
   async updateUserForRequester(
     id: string,
-    orgId: string,
+    orgId: string | undefined,
     data: UpdateUserDto,
     requester: User,
   ) {
@@ -98,7 +104,7 @@ export class UsersService {
     return updatedUser;
   }
 
-  async deleteUser(id: string, orgId: string, requesterId: string) {
+  async deleteUser(id: string, orgId: string | undefined, requesterId: string) {
     const existing = await this.getUser(id, orgId);
     if (!existing) {
       throw new NotFoundException('User not found');
