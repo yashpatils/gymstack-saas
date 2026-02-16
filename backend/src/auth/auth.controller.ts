@@ -132,7 +132,7 @@ export class AuthController {
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('resend-verification')
-  resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string }> {
+  resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
     const context = getRequestContext(req);
     const emailKey = body.email.trim().toLowerCase();
     const ipKey = context.ip ?? 'unknown';
