@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../lib/adminPortal";
 
 export function Topbar({
   initials,
@@ -13,7 +14,7 @@ export function Topbar({
   onSwitchMode,
   onToggleMenu,
   showAdminPortalLink = false,
-  adminPortalUrl = "https://admin.gymstack.club",
+  adminPortalUrl = ADMIN_PORTAL_FRESH_LOGIN_URL,
 }: {
   initials: string;
   displayName: string;

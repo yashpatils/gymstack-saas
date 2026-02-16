@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../lib/adminPortal";
 
 export type ShellNavItem = { label: string; href: string; disabled?: boolean };
 
@@ -22,7 +23,7 @@ const sections = [
   },
   {
     title: "Settings",
-    routes: ["/platform/settings", "https://admin.gymstack.club"],
+    routes: ["/platform/settings", ADMIN_PORTAL_FRESH_LOGIN_URL],
   },
 ] as const;
 

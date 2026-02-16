@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
 
 function AuthNavSkeleton() {
   return <div className="h-10 w-44 animate-pulse rounded-full bg-white/10" aria-hidden="true" />;
@@ -43,7 +44,7 @@ export function AuthNav() {
         <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl">
           <Link href="/platform" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10">Dashboard</Link>
           <Link href="/platform/profile" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10">Profile</Link>
-          {platformRole === "PLATFORM_ADMIN" ? <a href="https://admin.gymstack.club" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10">Platform Admin</a> : null}
+          {platformRole === "PLATFORM_ADMIN" ? <a href={ADMIN_PORTAL_FRESH_LOGIN_URL} className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10">Platform Admin</a> : null}
           <button type="button" className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20" onClick={logout}>Logout</button>
         </div>
       </details>
