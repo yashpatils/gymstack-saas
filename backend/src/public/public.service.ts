@@ -9,7 +9,7 @@ const RESERVED_SUBDOMAINS = new Set(['www', 'admin']);
 type PublicLocation = {
   id: string;
   slug: string;
-  displayName: string | null;
+  displayName: string;
   logoUrl: string | null;
   primaryColor: string | null;
   accentGradient: string | null;
@@ -76,6 +76,7 @@ export class PublicService {
         id: true,
         slug: true,
         displayName: true,
+        name: true,
         logoUrl: true,
         primaryColor: true,
         accentGradient: true,
@@ -97,7 +98,7 @@ export class PublicService {
         location: {
           id: byCustomDomain.id,
           slug: byCustomDomain.slug,
-          displayName: byCustomDomain.displayName,
+          displayName: byCustomDomain.displayName ?? byCustomDomain.name ?? byCustomDomain.slug,
           logoUrl: byCustomDomain.logoUrl,
           primaryColor: byCustomDomain.primaryColor,
           accentGradient: byCustomDomain.accentGradient,
@@ -124,6 +125,7 @@ export class PublicService {
         id: true,
         slug: true,
         displayName: true,
+        name: true,
         logoUrl: true,
         primaryColor: true,
         accentGradient: true,
@@ -148,7 +150,7 @@ export class PublicService {
       location: {
         id: bySlug.id,
         slug: bySlug.slug,
-        displayName: bySlug.displayName,
+        displayName: bySlug.displayName ?? bySlug.name ?? bySlug.slug,
         logoUrl: bySlug.logoUrl,
         primaryColor: bySlug.primaryColor,
         accentGradient: bySlug.accentGradient,
