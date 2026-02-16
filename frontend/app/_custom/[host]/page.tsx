@@ -15,8 +15,8 @@ export default async function CustomDomainLanding({ params }: { params: { host: 
       accentGradient={data.location.accentGradient ?? null}
       heroTitle={data.location.heroTitle ?? null}
       heroSubtitle={data.location.heroSubtitle ?? null}
-      loginHref={`/_custom/${encodeURIComponent(host)}/login`}
-      joinHref={`/_custom/${encodeURIComponent(host)}/join`}
+      loginHref="/login"
+      joinHref="/join?token="
       whiteLabelEnabled={data.tenant.whiteLabelEnabled}
     />
   );
