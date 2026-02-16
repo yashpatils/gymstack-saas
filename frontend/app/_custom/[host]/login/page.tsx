@@ -6,7 +6,7 @@ export default async function CustomLoginPage({ params }: { params: { host: stri
   const host = decodeURIComponent(params.host);
   const data = await getPublicLocationByHost(host);
 
-  if (!data.location) {
+  if (!data.location || !data.tenant) {
     notFound();
   }
 
