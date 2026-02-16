@@ -55,7 +55,7 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   }
 
   if (!session.isPlatformAdmin || !session.session) {
-    redirect('/admin');
+    redirect('/login?error=restricted');
   }
 
   return session.session;
@@ -80,7 +80,7 @@ export async function adminApiFetch<T>(path: string): Promise<T> {
   }
 
   if (response.status === 403) {
-    redirect('/admin');
+    redirect('/login?error=restricted');
   }
 
   if (!response.ok) {
