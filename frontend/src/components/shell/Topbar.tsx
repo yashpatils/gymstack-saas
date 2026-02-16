@@ -116,7 +116,7 @@ export function Topbar({
               ) : null}
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </header>
   );
