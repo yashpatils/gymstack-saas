@@ -6,17 +6,28 @@ import { User, UserRole } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { assertCanCreateLocationInvite } from './invite-permissions';
 import { hasSupportModeContext } from '../auth/support-mode.util';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class InvitesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
-    const tenantId = requester.activeTenantId ?? requester.orgId;
-    if (!tenantId) throw new ForbiddenException('Missing tenant context');
-
     if (input.role !== MembershipRole.GYM_STAFF_COACH && input.role !== MembershipRole.CLIENT) {
       throw new ForbiddenException('Unsupported invite role');
+    }
+
+    const tenantId = input.tenantId;
+    const requesterTenantId = requester.activeTenantId ?? requester.orgId;
+    if (!requesterTenantId && !hasSupportModeContext(requester, tenantId, input.locationId)) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    if (requesterTenantId && requesterTenantId !== tenantId && !hasSupportModeContext(requester, tenantId, input.locationId)) {
+      throw new ForbiddenException('Insufficient permissions for tenant');
     }
 
     const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId: tenantId } });
@@ -26,62 +37,82 @@ export class InvitesService {
 
     const token = randomBytes(32).toString('base64url');
     const tokenHash = this.hashToken(token);
-    const expiresAt = new Date(Date.now() + (input.expiresInHours ?? 168) * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + (input.expiresInDays ?? 7) * 24 * 60 * 60 * 1000);
 
-    await this.prisma.locationInvite.create({
+    const invite = await this.prisma.locationInvite.create({
       data: {
         tenantId,
         locationId: location.id,
         role: input.role,
         email: input.email?.toLowerCase() ?? null,
         tokenHash,
-        tokenPrefix: token.slice(0, 6),
+        tokenPrefix: token.slice(0, 8),
         expiresAt,
         createdByUserId: requester.id,
         status: InviteStatus.PENDING,
       },
     });
 
+    const inviteUrl = await this.buildInviteLink(token, location.id, location.slug);
+    if (invite.email) {
+      await this.emailService.sendLocationInvite(invite.email, inviteUrl);
+    }
+
     return {
-      token,
-      inviteUrl: await this.buildInviteLink(token, location.id, location.slug),
+      inviteId: invite.id,
+      inviteUrl,
+      tokenPrefix: invite.tokenPrefix,
+      expiresAt: expiresAt.toISOString(),
       role: input.role,
       tenantId,
       locationId: location.id,
-      expiresAt: expiresAt.toISOString(),
+      token,
     };
   }
 
   async validateInvite(token: string): Promise<
-    | { ok: true; role: MembershipRole; locationId: string; tenantId: string; locationName?: string; locationSlug?: string; expiresAt: string; targeted: boolean }
-    | { ok: false; reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED' }
+    | {
+      ok: true;
+      valid: true;
+      role: MembershipRole;
+      locationId: string;
+      tenantId: string;
+      locationName?: string;
+      locationSlug?: string;
+      emailBound?: string | null;
+      expiresAt: string;
+      targeted: boolean;
+    }
+    | { ok: false; valid: false; reason: 'INVALID' | 'EXPIRED' | 'ALREADY_USED' | 'REVOKED' }
   > {
     const invite = await this.findByToken(token);
     if (!invite) {
-      return { ok: false, reason: 'INVALID' };
+      return { ok: false, valid: false, reason: 'INVALID' };
     }
 
-    if (invite.status === InviteStatus.REVOKED) {
-      return { ok: false, reason: 'REVOKED' };
+    if (invite.revokedAt || invite.status === InviteStatus.REVOKED) {
+      return { ok: false, valid: false, reason: 'REVOKED' };
     }
 
     if (invite.status === InviteStatus.ACCEPTED || invite.consumedAt) {
-      return { ok: false, reason: 'ALREADY_USED' };
+      return { ok: false, valid: false, reason: 'ALREADY_USED' };
     }
 
-    if (invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now()) {
-      return { ok: false, reason: 'EXPIRED' };
+    if (invite.expiresAt.getTime() < Date.now()) {
+      return { ok: false, valid: false, reason: 'EXPIRED' };
     }
 
     const location = await this.prisma.gym.findUnique({ where: { id: invite.locationId }, select: { name: true, slug: true } });
 
     return {
       ok: true,
+      valid: true,
       role: invite.role,
       locationId: invite.locationId,
       tenantId: invite.tenantId,
       locationName: location?.name,
       locationSlug: location?.slug,
+      emailBound: invite.email,
       expiresAt: invite.expiresAt.toISOString(),
       targeted: Boolean(invite.email),
     };
@@ -89,7 +120,7 @@ export class InvitesService {
 
   async getUsableInvite(token: string, expectedEmail?: string): Promise<LocationInvite | null> {
     const invite = await this.findByToken(token);
-    if (!invite || invite.status !== InviteStatus.PENDING || invite.expiresAt.getTime() < Date.now() || invite.consumedAt) {
+    if (!invite || invite.expiresAt.getTime() < Date.now() || invite.consumedAt || invite.revokedAt || invite.status !== InviteStatus.PENDING) {
       return null;
     }
 
@@ -100,25 +131,38 @@ export class InvitesService {
     return invite;
   }
 
-  async consumeInvite(inviteId: string): Promise<void> {
-    await this.prisma.locationInvite.update({
-      where: { id: inviteId },
-      data: { status: InviteStatus.ACCEPTED, consumedAt: new Date() },
+  async consumeInvite(inviteId: string, consumedByUserId?: string): Promise<void> {
+    const consumed = await this.prisma.locationInvite.updateMany({
+      where: {
+        id: inviteId,
+        consumedAt: null,
+        revokedAt: null,
+        status: InviteStatus.PENDING,
+        expiresAt: { gt: new Date() },
+      },
+      data: {
+        status: InviteStatus.ACCEPTED,
+        consumedAt: new Date(),
+        consumedByUserId: consumedByUserId ?? null,
+      },
     });
+
+    if (consumed.count === 0) {
+      throw new BadRequestException('Invalid or expired invite token');
+    }
   }
 
-
-  async consumeByToken(token: string, expectedEmail?: string): Promise<{ ok: true; inviteId: string; role: MembershipRole; tenantId: string; locationId: string }> {
+  async consumeByToken(token: string, expectedEmail?: string, consumedByUserId?: string): Promise<{ ok: true; inviteId: string; role: MembershipRole; tenantId: string; locationId: string }> {
     const invite = await this.getUsableInvite(token, expectedEmail);
     if (!invite) {
       throw new BadRequestException('Invalid or expired invite token');
     }
 
-    await this.consumeInvite(invite.id);
+    await this.consumeInvite(invite.id, consumedByUserId);
     return { ok: true, inviteId: invite.id, role: invite.role, tenantId: invite.tenantId, locationId: invite.locationId };
   }
 
-  async listInvites(requester: User, locationId?: string): Promise<Array<{ id: string; role: MembershipRole; email: string | null; status: InviteStatus; tokenPrefix: string; expiresAt: string; consumedAt: string | null; createdAt: string }>> {
+  async listInvites(requester: User, locationId?: string): Promise<Array<{ id: string; role: MembershipRole; email: string | null; status: InviteStatus; tokenPrefix: string; expiresAt: string; consumedAt: string | null; consumedByUserId: string | null; revokedAt: string | null; createdAt: string }>> {
     const tenantId = requester.activeTenantId ?? requester.orgId;
     if (!tenantId) {
       throw new ForbiddenException('Missing tenant context');
@@ -140,6 +184,8 @@ export class InvitesService {
       tokenPrefix: invite.tokenPrefix,
       expiresAt: invite.expiresAt.toISOString(),
       consumedAt: invite.consumedAt ? invite.consumedAt.toISOString() : null,
+      consumedByUserId: invite.consumedByUserId ?? null,
+      revokedAt: invite.revokedAt ? invite.revokedAt.toISOString() : null,
       createdAt: invite.createdAt.toISOString(),
     }));
   }
@@ -170,7 +216,10 @@ export class InvitesService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    await this.prisma.locationInvite.update({ where: { id: inviteId }, data: { status: InviteStatus.REVOKED } });
+    await this.prisma.locationInvite.update({
+      where: { id: inviteId },
+      data: { status: InviteStatus.REVOKED, revokedAt: new Date() },
+    });
     return { ok: true };
   }
 

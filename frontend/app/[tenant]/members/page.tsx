@@ -22,8 +22,8 @@ export default function TenantMembersPage() {
   const { activeContext } = useAuth();
 
   const inviteClient = async () => {
-    if (!activeContext?.locationId) return;
-    const response = await createInvite({ locationId: activeContext.locationId, role: 'CLIENT' });
+    if (!activeContext?.locationId || !activeContext?.tenantId) return;
+    const response = await createInvite({ tenantId: activeContext.tenantId, locationId: activeContext.locationId, role: 'CLIENT' });
     await navigator.clipboard.writeText(response.inviteUrl);
     callBackend(`Client invite copied: ${response.inviteUrl}`);
   };

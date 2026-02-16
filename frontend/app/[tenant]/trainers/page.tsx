@@ -22,8 +22,8 @@ export default function TenantTrainersPage() {
   const { activeContext } = useAuth();
 
   const inviteStaff = async () => {
-    if (!activeContext?.locationId) return;
-    const response = await createInvite({ locationId: activeContext.locationId, role: 'GYM_STAFF_COACH' });
+    if (!activeContext?.locationId || !activeContext?.tenantId) return;
+    const response = await createInvite({ tenantId: activeContext.tenantId, locationId: activeContext.locationId, role: 'GYM_STAFF_COACH' });
     await navigator.clipboard.writeText(response.inviteUrl);
     callBackend(`Staff invite copied: ${response.inviteUrl}`);
   };

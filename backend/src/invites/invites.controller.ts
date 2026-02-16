@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -48,6 +48,12 @@ export class InvitesController {
   @Get()
   listInvites(@Req() req: { user: User }, @Query('locationId') locationId?: string) {
     return this.invitesService.listInvites(req.user, locationId);
+  }
+
+  @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
+  @Delete(':id')
+  revokeInviteById(@Req() req: { user: User }, @Param('id') inviteId: string) {
+    return this.invitesService.revokeInvite(req.user, inviteId);
   }
 
   @UseGuards(JwtAuthGuard, RequireVerifiedEmailGuard)
