@@ -14,14 +14,14 @@ import { formatSubscriptionStatus, isActiveSubscription } from "../../../../src/
 import { useAuth } from "../../../../src/providers/AuthProvider";
 import { apiFetch } from "@/src/lib/apiFetch";
 import { useToast } from "../../../../src/components/toast/ToastProvider";
-import { me } from "../../../../src/lib/auth";
+import type { Gym } from "../../../../src/types/gym";
 
 type GymForm = {
   name: string;
 };
 
 export default function NewGymPage() {
-  const { user } = useAuth();
+  const { user, activeTenant, activeContext, chooseContext } = useAuth();
   const router = useRouter();
   const toast = useToast();
   const [form, setForm] = useState<GymForm>({
@@ -47,14 +47,13 @@ export default function NewGymPage() {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch<void>("/api/gyms", { method: "POST", body: form });
-      const profile = await me();
-      toast.success("Gym created", "The gym was added successfully.");
-      if (profile.onboarding?.needsOpsChoice) {
-        router.push("/platform/onboarding");
-        return;
+      const createdGym = await apiFetch<Gym>("/api/gyms", { method: "POST", body: form });
+      const tenantId = activeTenant?.id ?? activeContext?.tenantId;
+      if (tenantId) {
+        await chooseContext(tenantId, createdGym.id);
       }
-      router.push("/platform/gyms");
+      toast.success("Gym created", "Entering your new gym workspace.");
+      router.push(`/platform/gyms/${createdGym.id}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unable to create gym.";
       setError(errorMessage);

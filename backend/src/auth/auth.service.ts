@@ -17,10 +17,6 @@ import { RefreshTokenService } from './refresh-token.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
 import { InviteAdmissionService } from '../invites/invite-admission.service';
 
-function toGymSlug(name: string): string {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
-}
-
 const RESEND_VERIFICATION_RESPONSE = {
   ok: true as const,
   message: 'If an account exists and is not already verified, we sent a verification email.',
@@ -95,15 +91,6 @@ export class AuthService implements OnModuleInit {
         data: { name: `${email.split('@')[0]}'s Tenant` },
       });
 
-      const location = await tx.gym.create({
-        data: {
-          name: `${email.split('@')[0]}'s Main Location`,
-          slug: `${toGymSlug(email.split('@')[0])}-main`,
-          ownerId: user.id,
-          orgId: organization.id,
-        },
-      });
-
       const membership = await tx.membership.create({
         data: {
           orgId: organization.id,
@@ -114,7 +101,7 @@ export class AuthService implements OnModuleInit {
       });
 
       await tx.user.update({ where: { id: user.id }, data: { orgId: organization.id } });
-      return { user, membership, location };
+      return { user, membership };
     });
 
     const verification = await this.sendVerificationIfNeeded(created.user.id);
@@ -240,6 +227,8 @@ export class AuthService implements OnModuleInit {
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.ensureTenantForOwnerWithoutTenant(user.id);
 
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
@@ -686,6 +675,8 @@ export class AuthService implements OnModuleInit {
   }
 
   async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole; activeMode?: ActiveMode; accessToken?: string }): Promise<AuthMeResponseDto> {
+    await this.ensureTenantForOwnerWithoutTenant(userId);
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, status: true, emailVerifiedAt: true, role: true, orgId: true },
@@ -781,6 +772,8 @@ export class AuthService implements OnModuleInit {
   }
 
   async issueAccessTokenForUser(userId: string): Promise<string> {
+    await this.ensureTenantForOwnerWithoutTenant(userId);
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
@@ -849,6 +842,69 @@ export class AuthService implements OnModuleInit {
     };
   }
 
+
+  private async ensureTenantForOwnerWithoutTenant(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true, orgId: true, status: true },
+    });
+
+    if (!user || user.status !== UserStatus.ACTIVE || user.role !== Role.OWNER) {
+      return;
+    }
+
+    const ownerMembership = await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        role: MembershipRole.TENANT_OWNER,
+        status: MembershipStatus.ACTIVE,
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { orgId: true },
+    });
+
+    if (ownerMembership?.orgId) {
+      if (!user.orgId) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { orgId: ownerMembership.orgId },
+        });
+      }
+      return;
+    }
+
+    if (user.orgId) {
+      await this.prisma.membership.create({
+        data: {
+          userId,
+          orgId: user.orgId,
+          role: MembershipRole.TENANT_OWNER,
+          status: MembershipStatus.ACTIVE,
+        },
+      });
+      return;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: { name: `${user.email.split('@')[0]}'s Tenant` },
+      });
+
+      await tx.membership.create({
+        data: {
+          userId,
+          orgId: organization.id,
+          role: MembershipRole.TENANT_OWNER,
+          status: MembershipStatus.ACTIVE,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { orgId: organization.id },
+      });
+    });
+  }
   private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER): string {
     return this.jwtService.sign({
       sub: userId,

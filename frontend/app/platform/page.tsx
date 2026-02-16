@@ -10,14 +10,22 @@ import { SectionCard } from "../../src/components/common/SectionCard";
 import { StatCard } from "../../src/components/common/StatCard";
 import { listGyms, type Gym } from "../../src/lib/gyms";
 import { listUsers, type User } from "../../src/lib/users";
+import { apiFetch } from "../../src/lib/apiFetch";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 type DashboardTab = "locations" | "staff" | "clients";
+type DashboardSummary = {
+  locations: number;
+  members: number;
+  mrr: number | null;
+  invites: number;
+};
 
 export default function PlatformPage() {
   const { memberships, activeContext } = useAuth();
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("locations");
@@ -28,12 +36,17 @@ export default function PlatformPage() {
       setLoading(true);
       setError(null);
       try {
-        const [gymData, userData] = await Promise.all([listGyms(), listUsers()]);
+        const [gymData, userData, summaryData] = await Promise.all([
+          listGyms(),
+          listUsers(),
+          apiFetch<DashboardSummary>("/api/org/dashboard-summary", { method: "GET" }),
+        ]);
         if (!active) {
           return;
         }
         setGyms(gymData);
         setUsers(userData);
+        setSummary(summaryData);
       } catch (loadError) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : "Could not load platform data.");
@@ -50,6 +63,9 @@ export default function PlatformPage() {
       active = false;
     };
   }, []);
+
+  const isTenantOwner = memberships.some((membership) => membership.role === "TENANT_OWNER");
+  const showFirstRunState = !loading && !error && isTenantOwner && gyms.length === 0;
 
   const staff = useMemo(
     () => users.filter((member) => member.role?.includes("COACH") || member.role?.includes("STAFF") || member.role?.includes("ADMIN")),
@@ -104,14 +120,24 @@ export default function PlatformPage() {
         </div>
       ) : null}
 
+      {showFirstRunState ? (
+        <div className="rounded-3xl border border-indigo-300/25 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-900/40 p-14 text-center shadow-2xl shadow-indigo-950/30">
+          <h2 className="text-3xl font-semibold text-white">Create your first gym</h2>
+          <p className="mx-auto mt-3 max-w-xl text-base text-slate-300">This will be your workspace for staff and members.</p>
+          <div className="mt-8 flex justify-center">
+            <Link href="/platform/gyms/new" className="button">Create Gym</Link>
+          </div>
+        </div>
+      ) : null}
+
       {loading ? (
         <KpiSkeletonGrid />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Total Locations" value={String(gyms.length)} icon="📍" hint="Active locations" />
-          <StatCard label="Active Members" value={String(users.length)} icon="👥" hint="People in workspace" />
-          <StatCard label="MRR" value="$ --" icon="💳" hint="Connect Stripe for live values" />
-          <StatCard label="Pending Invites" value="3" icon="✉️" hint="Awaiting acceptance" />
+          <StatCard label="Total Locations" value={String(summary?.locations ?? gyms.length)} icon="📍" hint="Active locations" />
+          <StatCard label="Active Members" value={String(summary?.members ?? users.length)} icon="👥" hint="People in workspace" />
+          <StatCard label="MRR" value={summary?.mrr == null ? "$ --" : `$ ${summary.mrr}`} icon="💳" hint="Connect Stripe for live values" />
+          <StatCard label="Pending Invites" value={String(summary?.invites ?? 0)} icon="✉️" hint="Awaiting acceptance" />
         </div>
       )}
 
