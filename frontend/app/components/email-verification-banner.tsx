@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { resendVerification } from '@/src/lib/auth';
 import { useAuth } from '@/src/providers/AuthProvider';
 
 export function EmailVerificationBanner() {
-  const { user } = useAuth();
+  const { user, resendVerification } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
 
-  if (!user || user.emailVerified) {
+  if (!user || Boolean(user.emailVerifiedAt)) {
     return null;
   }
 

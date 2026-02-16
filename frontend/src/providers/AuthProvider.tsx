@@ -19,10 +19,12 @@ import {
   login as loginRequest,
   logout as clearToken,
   me as getMe,
+  resendVerification as resendVerificationRequest,
   setContext as setContextRequest,
   setMode as setModeRequest,
   signup as signupRequest,
   type SignupRole,
+  verifyEmail as verifyEmailRequest,
 } from '../lib/auth';
 import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, PermissionFlags, TenantFeatures } from '../types/auth';
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
@@ -59,6 +61,8 @@ type AuthContextValue = {
   switchMode: (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<{ ok: true; message: string; emailDeliveryWarning?: string }>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -307,6 +311,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuthState, hydrateFromMe]);
 
+  const verifyEmail = useCallback(async (tokenToVerify: string) => {
+    await verifyEmailRequest(tokenToVerify);
+    await refreshUser();
+  }, [refreshUser]);
+
+  const resendVerification = useCallback(async (email: string) => {
+    const response = await resendVerificationRequest(email);
+    await refreshUser();
+    return response;
+  }, [refreshUser]);
+
   const value = useMemo(
     () => ({
       user,
@@ -336,8 +351,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       switchMode,
       logout,
       refreshUser,
+      verifyEmail,
+      resendVerification,
     }),
-    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser],
+    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
