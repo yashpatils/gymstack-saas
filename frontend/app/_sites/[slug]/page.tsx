@@ -10,18 +10,26 @@ export default async function SiteLandingPage({ params }: { params: { slug: stri
     ? await getPublicLocationByHost(host).catch(() => getPublicLocationBySlug(params.slug))
     : await getPublicLocationBySlug(params.slug);
 
+  const fallback = data.location && data.tenant ? null : await getPublicLocationBySlug(params.slug);
+  const location = data.location ?? fallback?.location;
+  const tenant = data.tenant ?? fallback?.tenant;
+
+  if (!location || !tenant) {
+    throw new Error('Unable to resolve public site location');
+  }
+
   return (
     <LocationShell
-      title={data.location.displayName ?? data.location.name}
-      subtitle={data.location.address ?? null}
-      logoUrl={data.location.logoUrl ?? null}
-      primaryColor={data.location.primaryColor ?? null}
-      accentGradient={data.location.accentGradient ?? null}
-      heroTitle={data.location.heroTitle ?? null}
-      heroSubtitle={data.location.heroSubtitle ?? null}
+      title={location.displayName ?? location.name}
+      subtitle={location.address ?? null}
+      logoUrl={location.logoUrl ?? null}
+      primaryColor={location.primaryColor ?? null}
+      accentGradient={location.accentGradient ?? null}
+      heroTitle={location.heroTitle ?? null}
+      heroSubtitle={location.heroSubtitle ?? null}
       loginHref="/login"
       joinHref="/join?token="
-      whiteLabelEnabled={data.tenant.whiteLabelEnabled}
+      whiteLabelEnabled={tenant.whiteLabelEnabled}
     />
   );
 }
