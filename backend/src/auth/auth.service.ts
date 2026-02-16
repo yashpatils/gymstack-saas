@@ -726,6 +726,7 @@ export class AuthService implements OnModuleInit {
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
       },
+      isPlatformAdmin: userIsPlatformAdmin,
       platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
       memberships: {
         tenant: memberships

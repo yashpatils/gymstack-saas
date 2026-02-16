@@ -96,6 +96,7 @@ export type PermissionFlags = {
 
 export type AuthMeResponse = {
   user: AuthUser;
+  isPlatformAdmin?: boolean;
   platformRole?: 'PLATFORM_ADMIN' | null;
   memberships: CanonicalMemberships | Membership[];
   activeContext: ActiveContext;

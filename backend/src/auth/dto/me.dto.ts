@@ -40,6 +40,7 @@ export class MeDto {
 
 export class AuthMeResponseDto {
   user!: MeDto;
+  isPlatformAdmin!: boolean;
   platformRole!: 'PLATFORM_ADMIN' | null;
   memberships!: {
     tenant: TenantMembershipDto[];

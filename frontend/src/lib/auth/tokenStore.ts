@@ -38,12 +38,12 @@ function isAdminSessionExpired(): boolean {
 
   const startedAtRaw = window.sessionStorage.getItem(ADMIN_SESSION_STARTED_AT_KEY);
   if (!startedAtRaw) {
-    return true;
+    return false;
   }
 
   const startedAt = Number.parseInt(startedAtRaw, 10);
   if (!Number.isFinite(startedAt)) {
-    return true;
+    return false;
   }
 
   return Date.now() - startedAt > ADMIN_SESSION_MAX_AGE_MS;

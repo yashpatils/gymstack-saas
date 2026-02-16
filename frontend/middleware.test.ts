@@ -17,6 +17,11 @@ describe('resolveHostRoute', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/login', baseDomain)).toEqual({ type: 'next' });
   });
 
+
+  it('redirects /admin/login alias to the dedicated login route', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/admin/login', baseDomain)).toEqual({ type: 'redirect', pathname: '/login', search: '?next=/admin' });
+  });
+
   it('redirects admin signup to login', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/signup', baseDomain)).toEqual({ type: 'redirect', pathname: '/login' });
   });

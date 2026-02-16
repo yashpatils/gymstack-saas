@@ -43,7 +43,7 @@ export async function getAdminSession(): Promise<AdminSessionState> {
 
   return {
     isAuthenticated: true,
-    isPlatformAdmin: session.platformRole === 'PLATFORM_ADMIN',
+    isPlatformAdmin: Boolean(session.isPlatformAdmin || session.platformRole === 'PLATFORM_ADMIN'),
     session,
   };
 }
@@ -55,7 +55,7 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   }
 
   if (!session.isPlatformAdmin || !session.session) {
-    redirect('/login?error=restricted');
+    redirect('/admin');
   }
 
   return session.session;
@@ -80,7 +80,7 @@ export async function adminApiFetch<T>(path: string): Promise<T> {
   }
 
   if (response.status === 403) {
-    redirect('/login?error=restricted');
+    redirect('/admin');
   }
 
   if (!response.ok) {
