@@ -131,12 +131,23 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseGuards(JwtAuthGuard)
+  @Post('resend-verification-authenticated')
+  resendVerificationAuthenticated(@Req() req: AuthenticatedRequest): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    this.sensitiveRateLimitService.check(`resend:${ipKey}:${req.user.id}`, 20, 60 * 60_000);
+
+    return this.authService.resendVerification(undefined, req.user.id);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('resend-verification')
   resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
     const context = getRequestContext(req);
-    const emailKey = body.email.trim().toLowerCase();
+    const emailKey = body.email?.trim().toLowerCase() ?? 'unknown';
     const ipKey = context.ip ?? 'unknown';
-    this.sensitiveRateLimitService.check(`resend:${ipKey}:${emailKey}`, 5, 60_000);
+    this.sensitiveRateLimitService.check(`resend:${ipKey}:${emailKey}`, 20, 60 * 60_000);
 
     return this.authService.resendVerification(body.email);
   }

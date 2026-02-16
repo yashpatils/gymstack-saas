@@ -116,7 +116,10 @@ export class PublicService {
   async getLocationByHost(host: string) {
     const locationKey = await this.resolveLocationByHost(host);
     if (!locationKey) {
-      throw new NotFoundException('Site not found');
+      return {
+        location: null,
+        tenant: null,
+      };
     }
 
     const location = await this.prisma.gym.findUnique({
@@ -155,6 +158,9 @@ export class PublicService {
 
   async resolveByHost(host: string) {
     const locationResult = await this.getLocationByHost(host);
+    if (!locationResult.location || !locationResult.tenant) {
+      throw new NotFoundException('Site not found');
+    }
 
     return {
       kind: 'location' as const,

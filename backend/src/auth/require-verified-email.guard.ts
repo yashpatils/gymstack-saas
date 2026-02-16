@@ -24,7 +24,7 @@ export class RequireVerifiedEmailGuard implements CanActivate {
     }
 
     if (!user.emailVerifiedAt) {
-      throw new ForbiddenException('Email verification required');
+      throw new ForbiddenException({ message: 'Email not verified', code: 'EMAIL_NOT_VERIFIED' });
     }
 
     return true;

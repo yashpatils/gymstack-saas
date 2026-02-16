@@ -2,13 +2,12 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleIn
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { ActiveMode, AuthTokenPurpose, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
+import { ActiveMode, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailProviderError, EmailService } from '../email/email.service';
-import { AuthTokenService } from './auth-token.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,6 +21,14 @@ function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
 }
 
+
+function generateVerificationToken(): { rawToken: string; tokenHash: string; expiresAt: Date } {
+  const rawToken = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60_000);
+  return { rawToken, tokenHash, expiresAt };
+}
+
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
@@ -33,7 +40,6 @@ export class AuthService implements OnModuleInit {
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly authTokenService: AuthTokenService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly inviteAdmissionService: InviteAdmissionService,
   ) {}
@@ -106,11 +112,17 @@ export class AuthService implements OnModuleInit {
       return { user, membership, location };
     });
 
-    const verificationToken = await this.authTokenService.issueToken({
-      userId: created.user.id,
-      purpose: AuthTokenPurpose.EMAIL_VERIFY,
-      ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
+    const { rawToken: verificationToken, tokenHash, expiresAt } = generateVerificationToken();
+    await this.prisma.user.update({
+      where: { id: created.user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+        emailVerificationLastSentAt: new Date(),
+        emailVerificationSendCount: 1,
+      },
     });
+
     let emailDeliveryWarning: string | undefined;
     if (!this.isVerificationEmailDeliveryEnabled()) {
       emailDeliveryWarning = 'Email delivery is not configured in this environment yet. Contact support.';
@@ -386,9 +398,13 @@ export class AuthService implements OnModuleInit {
     return { ok: true };
   }
 
-  async resendVerification(email: string): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+  async resendVerification(email?: string, userId?: string): Promise<{ ok: true; message: string; emailDeliveryWarning?: string }> {
+    const normalizedEmail = email?.trim().toLowerCase();
+    const user = userId
+      ? await this.prisma.user.findUnique({ where: { id: userId } })
+      : normalizedEmail
+        ? await this.prisma.user.findUnique({ where: { email: normalizedEmail } })
+        : null;
     const fallbackWarning = !this.isVerificationEmailDeliveryEnabled()
       ? 'Email delivery is not configured in this environment yet. Contact support.'
       : undefined;
@@ -397,11 +413,28 @@ export class AuthService implements OnModuleInit {
       return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: fallbackWarning };
     }
 
-    const verificationToken = await this.authTokenService.issueToken({
-      userId: user.id,
-      purpose: AuthTokenPurpose.EMAIL_VERIFY,
-      ttlMinutes: this.getTtlMinutes('EMAIL_VERIFICATION_TOKEN_TTL_MINUTES', 60),
+    const now = new Date();
+    const minimumIntervalMs = 60_000;
+    const maxSendsPerHour = 5;
+    const lastSentAt = user.emailVerificationLastSentAt;
+    const withinOneHour = Boolean(lastSentAt && now.getTime() - lastSentAt.getTime() < 60 * 60_000);
+    const sendCount = withinOneHour ? user.emailVerificationSendCount : 0;
+
+    if ((lastSentAt && now.getTime() - lastSentAt.getTime() < minimumIntervalMs) || sendCount >= maxSendsPerHour) {
+      return { ok: true, message: 'If your account exists, a verification email has been sent.', emailDeliveryWarning: fallbackWarning };
+    }
+
+    const { rawToken: verificationToken, tokenHash, expiresAt } = generateVerificationToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+        emailVerificationLastSentAt: now,
+        emailVerificationSendCount: sendCount + 1,
+      },
     });
+
     try {
       await this.emailService.sendVerifyEmail({ to: user.email, token: verificationToken });
     } catch (error) {
@@ -444,20 +477,27 @@ export class AuthService implements OnModuleInit {
   }
 
   async verifyEmail(token: string): Promise<{ ok: true }> {
-    try {
-      const consumed = await this.authTokenService.consumeToken({
-        token,
-        purpose: AuthTokenPurpose.EMAIL_VERIFY,
-      });
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const now = new Date();
 
-      await this.prisma.user.update({
-        where: { id: consumed.userId },
-        data: { emailVerifiedAt: new Date() },
-      });
-      return { ok: true };
-    } catch {
+    const updated = await this.prisma.user.updateMany({
+      where: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: { gt: now },
+        emailVerifiedAt: null,
+      },
+      data: {
+        emailVerifiedAt: now,
+        emailVerificationTokenHash: null,
+        emailVerificationTokenExpiresAt: null,
+      },
+    });
+
+    if (updated.count !== 1) {
       throw new BadRequestException('Invalid or expired verification token');
     }
+
+    return { ok: true };
   }
 
   async setContext(userId: string, tenantId: string, gymId?: string): Promise<{ accessToken: string; me: AuthMeResponseDto }> {

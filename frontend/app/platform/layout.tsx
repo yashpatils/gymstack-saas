@@ -7,6 +7,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
 import { Topbar } from "../../src/components/shell/Topbar";
 import { AppFooter } from "../../src/components/shell/AppFooter";
+import { EmailVerificationBanner } from "../components/email-verification-banner";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
 
 const baseNavItems = [
@@ -94,6 +95,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         )}
       >
         <>
+          <div className="container-app pt-4"><EmailVerificationBanner /></div>
           {children}
           <div className="container-app pb-6">
             <AppFooter />

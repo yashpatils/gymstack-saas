@@ -82,6 +82,10 @@ model User {
   stripeSubscriptionId String?              @unique
   subscriptionStatus   SubscriptionStatus   @default(FREE)
   emailVerifiedAt      DateTime?
+  emailVerificationTokenHash String?
+  emailVerificationTokenExpiresAt DateTime?
+  emailVerificationLastSentAt DateTime?
+  emailVerificationSendCount Int @default(0)
   status               UserStatus           @default(ACTIVE)
   organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
   memberships          Membership[]
