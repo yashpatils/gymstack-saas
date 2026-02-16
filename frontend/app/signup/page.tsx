@@ -79,7 +79,7 @@ function SignupPageContent() {
               setError(null);
               try {
                 const result = await resendVerification(email);
-                setNotice(result.message);
+                setNotice(result.emailDeliveryWarning ?? result.message);
               } catch (resendError) {
                 setError(resendError instanceof Error ? resendError.message : "Unable to resend verification.");
               }
