@@ -7,6 +7,8 @@ type ApiFetchInit = Omit<RequestInit, 'body'> & {
   skipAuthRetry?: boolean;
 };
 
+type ResponseValidator<T> = (value: unknown) => value is T;
+
 const DEV_LOCALHOST_API_URL = 'http://localhost:3000';
 
 let refreshAccessToken: (() => Promise<string | null>) | null = null;
@@ -37,17 +39,16 @@ export class ApiFetchError extends Error {
   }
 }
 
-type ApiErrorPayload = {
-  code?: unknown;
-};
-
 function extractApiErrorCode(details: unknown): string | null {
   if (!details || typeof details !== 'object') {
     return null;
   }
 
-  const payload = details as ApiErrorPayload;
-  return typeof payload.code === 'string' ? payload.code : null;
+  if ('code' in details && typeof details.code === 'string') {
+    return details.code;
+  }
+
+  return null;
 }
 
 function getCurrentBrowserPath(): string {
@@ -127,14 +128,13 @@ function extractErrorCode(details: unknown): string | null {
     return null;
   }
 
-  if ('code' in details && typeof (details as { code?: unknown }).code === 'string') {
-    return (details as { code: string }).code;
+  if ('code' in details && typeof details.code === 'string') {
+    return details.code;
   }
 
-  if ('message' in details && typeof (details as { message?: unknown }).message === 'object') {
-    const nested = (details as { message: { code?: unknown } }).message;
-    if (nested && typeof nested.code === 'string') {
-      return nested.code;
+  if ('message' in details && typeof details.message === 'object' && details.message !== null) {
+    if ('code' in details.message && typeof details.message.code === 'string') {
+      return details.message.code;
     }
   }
 
@@ -159,7 +159,11 @@ export function buildApiUrl(path: string): string {
   return `${baseUrl}${normalized}`;
 }
 
-export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init: ApiFetchInit = {},
+  validate?: ResponseValidator<T>,
+): Promise<T> {
   const headers = new Headers(init.headers ?? {});
   const token = getAccessToken();
 
@@ -217,7 +221,7 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   const requestId = response.headers.get('x-request-id') ?? undefined;
 
   if (!response.ok) {
-    const details = isJson ? ((await response.json()) as unknown) : await response.text();
+    const details = isJson ? await response.json() : await response.text();
     const errorCode = extractErrorCode(details);
 
     if (!isServer() && response.status === 403 && errorCode === 'EMAIL_NOT_VERIFIED') {
@@ -228,11 +232,14 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
       window.location.assign(`/verify-email?${params.toString()}`);
     }
 
+    const apiErrorCode = extractApiErrorCode(details);
     const message =
       typeof details === 'string'
         ? details
         : details && typeof details === 'object' && 'message' in details
-          ? String((details as { message: unknown }).message)
+          ? String(details.message)
+          : apiErrorCode
+            ? `API request failed: ${apiErrorCode}`
           : `Request failed with status ${response.status}`;
 
     throw new ApiFetchError(message, response.status, details, requestId);
@@ -242,5 +249,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     throw new ApiFetchError('Expected JSON response from API', response.status, await response.text(), requestId);
   }
 
-  return (await response.json()) as T;
+  const payload = await response.json();
+  if (validate && !validate(payload)) {
+    throw new ApiFetchError('Invalid API response shape', response.status, payload, requestId);
+  }
+
+  return payload;
 }

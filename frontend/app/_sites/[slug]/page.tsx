@@ -2,8 +2,9 @@ export const dynamic = 'force-dynamic';
 import { headers } from 'next/headers';
 import { LocationShell } from '@/app/components/location-shell';
 import { getPublicLocationByHost, getPublicLocationBySlug } from '@/src/lib/sites';
+import type { SlugPageProps } from '@/src/lib/pageProps';
 
-export default async function SiteLandingPage({ params }: { params: { slug: string } }) {
+export default async function SiteLandingPage({ params }: SlugPageProps) {
   const hostHeader = headers().get('host');
   const host = hostHeader?.split(':')[0] ?? null;
 
@@ -18,8 +19,8 @@ export default async function SiteLandingPage({ params }: { params: { slug: stri
     throw new Error('Unable to resolve public site location');
   }
 
-  const title = location.displayName ?? ('name' in location ? location.name : location.slug);
-  const subtitle = 'address' in location ? location.address ?? null : null;
+  const title = location.heroTitle ?? location.displayName ?? 'Welcome';
+  const subtitle = location.heroSubtitle ?? 'Sign in or join with your invite';
 
   return (
     <LocationShell

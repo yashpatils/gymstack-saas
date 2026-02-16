@@ -1,15 +1,17 @@
 import Link from 'next/link';
 import { adminApiFetch } from '../_lib/server-admin-api';
 import type { AdminTenantListResponse } from '../../../src/types/admin';
+import { firstString, toStringWithDefault } from '@/src/lib/safe';
+import type { AppSearchParams } from '@/src/lib/pageProps';
 
 export default async function AdminTenantsPage({
   searchParams,
 }: {
-  searchParams?: { query?: string; page?: string; pageSize?: string };
+  searchParams?: AppSearchParams;
 }) {
-  const query = searchParams?.query?.trim() ?? '';
-  const page = Number.parseInt(searchParams?.page ?? '1', 10);
-  const pageSize = Number.parseInt(searchParams?.pageSize ?? '20', 10);
+  const query = toStringWithDefault(firstString(searchParams?.query), '').trim();
+  const page = Number.parseInt(toStringWithDefault(firstString(searchParams?.page), '1'), 10);
+  const pageSize = Number.parseInt(toStringWithDefault(firstString(searchParams?.pageSize), '20'), 10);
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
   const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 20;
 

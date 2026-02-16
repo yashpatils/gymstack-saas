@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { JoinClient } from '@/app/join/join-client';
 import { getPublicLocationByHost } from '@/src/lib/sites';
+import type { HostPageProps } from '@/src/lib/pageProps';
 
-export default async function CustomJoinPage({ params }: { params: { host: string } }) {
+export default async function CustomJoinPage({ params }: HostPageProps) {
   const host = decodeURIComponent(params.host);
   const data = await getPublicLocationByHost(host);
 
