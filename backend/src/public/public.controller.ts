@@ -17,7 +17,10 @@ export class PublicController {
   }
 
   @Get('location-by-host')
-  locationByHost(@Headers('host') hostHeader?: string, @Query('host') hostQuery?: string): Promise<PublicLocationByHostResponseDto> {
+  locationByHost(
+    @Headers('host') hostHeader?: string,
+    @Query('host') hostQuery?: string,
+  ): Promise<PublicLocationByHostResponseDto> {
     return this.publicService.getLocationByHost(hostQuery?.trim() || hostHeader || '');
   }
 }

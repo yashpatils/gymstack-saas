@@ -1,28 +1,35 @@
 export const dynamic = 'force-dynamic';
-import { notFound } from 'next/navigation';
-import { LocationShell } from '@/app/components/location-shell';
-import { getPublicLocationByHost } from '@/src/lib/sites';
-import type { HostPageProps } from '@/src/lib/pageProps';
 
-export default async function CustomDomainLanding({ params }: HostPageProps) {
-  const host = decodeURIComponent(params.host);
-  const data = await getPublicLocationByHost(host);
+import { LocationShell } from '@/src/components/location/LocationShell';
+import { getLocationByHost } from '@/src/lib/publicApi';
+
+export default async function CustomDomainLandingPage() {
+  const data = await getLocationByHost();
 
   if (!data.location || !data.tenant) {
-    notFound();
+    return (
+      <LocationShell
+        title="Domain not configured"
+        subtitle="This domain is not connected to a Gym Stack location yet."
+        logoUrl={null}
+        primaryColor={null}
+        accentGradient={null}
+        whiteLabelEnabled={false}
+      />
+    );
   }
+
+  const location = data.location;
+  const title = location.heroTitle ?? location.displayName;
+  const subtitle = location.heroSubtitle ?? 'Sign in or join with your invite.';
 
   return (
     <LocationShell
-      title={data.location.displayName ?? data.location.slug}
-      subtitle={null}
-      logoUrl={data.location.logoUrl ?? null}
-      primaryColor={data.location.primaryColor ?? null}
-      accentGradient={data.location.accentGradient ?? null}
-      heroTitle={data.location.heroTitle ?? null}
-      heroSubtitle={data.location.heroSubtitle ?? null}
-      loginHref="/login"
-      joinHref="/join?token="
+      title={title}
+      subtitle={subtitle}
+      logoUrl={location.logoUrl}
+      primaryColor={location.primaryColor}
+      accentGradient={location.accentGradient}
       whiteLabelEnabled={data.tenant.whiteLabelEnabled}
     />
   );

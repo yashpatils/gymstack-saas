@@ -1,7 +1,7 @@
 export class PublicHostLocationDto {
   id!: string;
   slug!: string;
-  displayName!: string | null;
+  displayName!: string;
   logoUrl!: string | null;
   primaryColor!: string | null;
   accentGradient!: string | null;
