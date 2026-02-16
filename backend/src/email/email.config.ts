@@ -22,10 +22,11 @@ export class EmailConfig {
     }
 
     this.provider = 'RESEND';
-    this.resendApiKey = this.configService.get<string>('RESEND_API_KEY') ?? undefined;
-    this.from = this.configService.get<string>('EMAIL_FROM') ?? 'Gymstack <no-reply@gymstack.club>';
+    this.resendApiKey = this.configService.get<string>('RESEND_API_KEY')?.trim() || undefined;
+    this.from = this.configService.get<string>('EMAIL_FROM')?.trim() || 'Gymstack <no-reply@gymstack.club>';
     this.appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3000';
-    this.emailDisable = (this.configService.get<string>('EMAIL_DISABLE') ?? 'false').toLowerCase() === 'true';
+    const emailDisableRaw = (this.configService.get<string>('EMAIL_DISABLE') ?? 'false').trim().toLowerCase();
+    this.emailDisable = ['true', '1', 'yes', 'on'].includes(emailDisableRaw);
     this.nodeEnv = this.configService.get<string>('NODE_ENV') ?? 'development';
     this.isProduction = this.nodeEnv === 'production';
 
