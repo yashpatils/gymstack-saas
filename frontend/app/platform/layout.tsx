@@ -65,11 +65,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     || user?.role === "OWNER"
     || user?.role === "ADMIN";
 
-  const canManageLocationSettings = permissions.canManageLocations
-    || permissions.canManageTenant
-    || permissionKeys.includes('location:manage')
-    || permissionKeys.includes('locations:update')
-    || activeContext?.role === 'TENANT_OWNER'
+  const canManageLocationSettings = activeContext?.role === 'TENANT_OWNER'
     || activeContext?.role === 'TENANT_LOCATION_ADMIN';
 
   const filteredItems = navItems.filter((item) => {

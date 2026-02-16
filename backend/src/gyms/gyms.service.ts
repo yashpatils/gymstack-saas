@@ -11,7 +11,6 @@ import { hasSupportModeContext } from '../auth/support-mode.util';
 import { createHash, randomBytes } from 'crypto';
 import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
 import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
-import { VerifyLocationDomainRequestDto } from './dto/verify-location-domain-request.dto';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -391,22 +390,18 @@ export class GymsService {
     return {
       locationId: updated.id,
       customDomain: updated.customDomain,
-      domainVerifiedAt: updated.domainVerifiedAt,
-      dnsInstructions: {
-        txtRecord: {
-          type: 'TXT' as const,
-          name: normalizedDomain,
-          value: `gymstack-verify=${domainVerificationToken}`,
-        },
-        cnameGuidance: 'Optional: point your custom domain CNAME to cname.vercel-dns.com if your DNS provider supports it.',
+      status: 'pending' as const,
+      txtRecord: {
+        name: '_gymstack',
+        value: `gymstack-verify=${domainVerificationToken}`,
       },
+      instructions: 'Add this TXT record to your DNS zone. DNS changes may take time to propagate.',
     };
   }
 
   async requestLocationDomainVerification(
     locationId: string,
     user: User,
-    payload: VerifyLocationDomainRequestDto = {},
   ) {
     const tenantId = user.activeTenantId ?? user.orgId;
     if (!tenantId) {
@@ -427,30 +422,26 @@ export class GymsService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const verifiedAt = payload.manualVerify ? new Date() : null;
     const updated = await this.prisma.gym.update({
       where: { id: locationId },
       data: {
         verificationRequestedAt: new Date(),
-        domainVerifiedAt: verifiedAt,
       },
-      select: { id: true, customDomain: true, domainVerifiedAt: true, verificationRequestedAt: true },
+      select: { id: true, customDomain: true, domainVerifiedAt: true },
     });
 
     return {
       locationId: updated.id,
       customDomain: updated.customDomain,
-      domainVerifiedAt: updated.domainVerifiedAt,
-      verificationRequestedAt: updated.verificationRequestedAt,
-      status: updated.domainVerifiedAt ? ('verified' as const) : ('pending_verification' as const),
-      dnsInstructions: {
-        txtRecord: {
-          type: 'TXT' as const,
-          name: updated.customDomain,
-          value: `gymstack-verify=${location.domainVerificationToken}`,
-        },
-        cnameGuidance: 'Optional: point your custom domain CNAME to cname.vercel-dns.com if your DNS provider supports it.',
+      status: updated.domainVerifiedAt ? ('verified' as const) : ('pending' as const),
+      message: updated.domainVerifiedAt
+        ? 'Domain verified.'
+        : 'Verification pending. Please allow DNS propagation.',
+      txtRecord: {
+        name: '_gymstack',
+        value: `gymstack-verify=${location.domainVerificationToken}`,
       },
+      instructions: 'Add this TXT record to your DNS zone. DNS changes may take time to propagate.',
     };
   }
 
