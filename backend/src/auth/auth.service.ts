@@ -679,7 +679,10 @@ export class AuthService implements OnModuleInit {
   }
 
   async me(userId: string, active?: { tenantId?: string; gymId?: string; role?: MembershipRole; activeMode?: ActiveMode; accessToken?: string }): Promise<AuthMeResponseDto> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, status: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, status: true, emailVerifiedAt: true },
+    });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -706,7 +709,12 @@ export class AuthService implements OnModuleInit {
     const permissionFlags = resolvePermissions(canonicalContext.role);
 
     return {
-      user: { id: user.id, email: user.email },
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified: Boolean(user.emailVerifiedAt),
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+      },
       platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
       memberships: {
         tenant: memberships

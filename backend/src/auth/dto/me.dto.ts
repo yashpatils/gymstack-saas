@@ -34,8 +34,8 @@ export class MeDto {
   name?: string | null;
   role?: string;
   orgId?: string;
-  emailVerified?: boolean;
-  emailVerifiedAt?: string | null;
+  emailVerified!: boolean;
+  emailVerifiedAt!: string | null;
 }
 
 export class AuthMeResponseDto {

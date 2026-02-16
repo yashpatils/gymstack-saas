@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { resendVerification, verifyEmail } from '../../src/lib/auth';
+import { useAuth } from '../../src/providers/AuthProvider';
 
 type VerifyState = 'verifying' | 'success' | 'error';
 
@@ -12,6 +12,7 @@ export default function VerifyEmailClient() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const nextPath = searchParams.get('next');
+  const { verifyEmail, resendVerification } = useAuth();
   const [state, setState] = useState<VerifyState>('verifying');
   const [message, setMessage] = useState<string>('Verifying your email...');
   const [email, setEmail] = useState<string>('');
@@ -39,7 +40,7 @@ export default function VerifyEmailClient() {
     }
 
     void run();
-  }, [nextPath, router, token]);
+  }, [nextPath, router, token, verifyEmail]);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl items-center justify-center p-6">
