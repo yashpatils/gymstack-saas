@@ -7,6 +7,7 @@ import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
 import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
+import { VerifyLocationDomainRequestDto } from './dto/verify-location-domain-request.dto';
 
 @Controller('locations')
 @VerifiedEmailRequired()
@@ -48,11 +49,15 @@ export class LocationManagersController {
   }
 
   @Post(':locationId/verify-domain')
-  verifyCustomDomain(@Param('locationId') locationId: string, @Req() req: { user?: User }) {
+  verifyCustomDomain(
+    @Param('locationId') locationId: string,
+    @Body() body: VerifyLocationDomainRequestDto,
+    @Req() req: { user?: User },
+  ) {
     if (!req.user) {
       throw new ForbiddenException('Missing user');
     }
-    return this.gymsService.requestLocationDomainVerification(locationId, req.user);
+    return this.gymsService.requestLocationDomainVerification(locationId, req.user, body);
   }
 
   @Get(':locationId/managers')

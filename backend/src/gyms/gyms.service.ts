@@ -11,6 +11,7 @@ import { hasSupportModeContext } from '../auth/support-mode.util';
 import { createHash, randomBytes } from 'crypto';
 import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
 import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
+import { VerifyLocationDomainRequestDto } from './dto/verify-location-domain-request.dto';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -402,7 +403,11 @@ export class GymsService {
     };
   }
 
-  async requestLocationDomainVerification(locationId: string, user: User) {
+  async requestLocationDomainVerification(
+    locationId: string,
+    user: User,
+    payload: VerifyLocationDomainRequestDto = {},
+  ) {
     const tenantId = user.activeTenantId ?? user.orgId;
     if (!tenantId) {
       throw new ForbiddenException('Missing tenant context');
@@ -422,9 +427,13 @@ export class GymsService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
+    const verifiedAt = payload.manualVerify ? new Date() : null;
     const updated = await this.prisma.gym.update({
       where: { id: locationId },
-      data: { verificationRequestedAt: new Date() },
+      data: {
+        verificationRequestedAt: new Date(),
+        domainVerifiedAt: verifiedAt,
+      },
       select: { id: true, customDomain: true, domainVerifiedAt: true, verificationRequestedAt: true },
     });
 
@@ -433,7 +442,7 @@ export class GymsService {
       customDomain: updated.customDomain,
       domainVerifiedAt: updated.domainVerifiedAt,
       verificationRequestedAt: updated.verificationRequestedAt,
-      status: 'pending_verification' as const,
+      status: updated.domainVerifiedAt ? ('verified' as const) : ('pending_verification' as const),
       dnsInstructions: {
         txtRecord: {
           type: 'TXT' as const,
