@@ -67,7 +67,11 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     return true;
   });
 
-  const canSwitchMode = Boolean(ownerOperatorSettings?.allowOwnerStaffLogin || ownerOperatorSettings?.defaultMode === "MANAGER");
+  const canSwitchMode = Boolean(
+    activeContext?.role === "TENANT_OWNER"
+    || ownerOperatorSettings?.allowOwnerStaffLogin
+    || ownerOperatorSettings?.defaultMode === "MANAGER",
+  );
 
   return (
     <AuthGate>
