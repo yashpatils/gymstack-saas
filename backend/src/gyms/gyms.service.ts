@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole, MembershipStatus, Prisma, Role, DomainStatus } from '@prisma/client';
+import { MembershipRole, MembershipStatus, Prisma, Role } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -235,42 +235,59 @@ export class GymsService {
 
 
   async getLocationBranding(locationId: string, user: User) {
-    const location = await this.prisma.gym.findUnique({
-      where: { id: locationId },
-      select: { id: true, name: true, orgId: true, logoUrl: true },
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const location = await this.prisma.gym.findFirst({
+      where: { id: locationId, orgId: tenantId },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        logoUrl: true,
+        heroTitle: true,
+        heroSubtitle: true,
+        primaryColor: true,
+        accentGradient: true,
+        customDomain: true,
+        domainVerifiedAt: true,
+        orgId: true,
+        org: {
+          select: {
+            id: true,
+            whiteLabelEnabled: true,
+            whiteLabelBrandingEnabled: true,
+          },
+        },
+      },
     });
 
     if (!location) {
       throw new NotFoundException('Location not found');
     }
 
-    const membership = await this.prisma.membership.findFirst({
-      where: {
-        userId: user.id,
-        orgId: location.orgId,
-        status: MembershipStatus.ACTIVE,
-        OR: [
-          { role: MembershipRole.TENANT_OWNER },
-          { gymId: locationId },
-        ],
-      },
-      select: { id: true },
-    });
-
-    if (!membership && !hasSupportModeContext(user, location.orgId, locationId)) {
+    const allowed = await canManageLocation(this.prisma, user.id, tenantId, locationId);
+    if (!allowed && !hasSupportModeContext(user, tenantId, locationId)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const domain = await this.prisma.customDomain.findFirst({
-      where: { locationId, status: DomainStatus.ACTIVE },
-      orderBy: { createdAt: 'desc' },
-      select: { hostname: true },
-    });
-
     return {
-      customDomain: domain?.hostname ?? null,
-      gymName: location.name,
-      logoUrl: location.logoUrl ?? null,
+      id: location.id,
+      name: location.name,
+      displayName: location.displayName,
+      logoUrl: location.logoUrl,
+      heroTitle: location.heroTitle,
+      heroSubtitle: location.heroSubtitle,
+      primaryColor: location.primaryColor,
+      accentGradient: location.accentGradient,
+      customDomain: location.customDomain,
+      domainVerifiedAt: location.domainVerifiedAt,
+      tenant: {
+        id: location.org.id,
+        whiteLabelEnabled: Boolean(location.org.whiteLabelEnabled || location.org.whiteLabelBrandingEnabled),
+      },
     };
   }
 

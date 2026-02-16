@@ -6,14 +6,14 @@ import { getPublicLocationByHost, getPublicLocationBySlug } from '@/src/lib/site
 export default async function SiteLandingPage({ params }: { params: { slug: string } }) {
   const hostHeader = headers().get('host');
   const host = hostHeader?.split(':')[0] ?? null;
-  const data = host
-    ? await getPublicLocationByHost(host).catch(() => getPublicLocationBySlug(params.slug))
-    : await getPublicLocationBySlug(params.slug);
+
+  const hostData = host ? await getPublicLocationByHost(host).catch(() => null) : null;
+  const data = hostData?.location && hostData.tenant ? hostData : await getPublicLocationBySlug(params.slug);
 
   return (
     <LocationShell
       title={data.location.displayName ?? data.location.name}
-      subtitle={data.location.address ?? null}
+      subtitle={'address' in data.location ? data.location.address ?? null : null}
       logoUrl={data.location.logoUrl ?? null}
       primaryColor={data.location.primaryColor ?? null}
       accentGradient={data.location.accentGradient ?? null}

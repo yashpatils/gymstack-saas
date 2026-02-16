@@ -65,6 +65,13 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     || user?.role === "OWNER"
     || user?.role === "ADMIN";
 
+  const canManageLocationSettings = permissions.canManageLocations
+    || permissions.canManageTenant
+    || permissionKeys.includes('location:manage')
+    || permissionKeys.includes('locations:update')
+    || activeContext?.role === 'TENANT_OWNER'
+    || activeContext?.role === 'TENANT_LOCATION_ADMIN';
+
   const filteredItems = navItems.filter((item) => {
     if (item.href === "/platform/billing") {
       return permissions.canManageBilling || permissionKeys.includes("billing:manage") || user?.role === "OWNER" || user?.role === "ADMIN";
@@ -76,6 +83,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
     if (item.href === "/platform/settings") {
       return canManageTenantSettings;
+    }
+
+    if (item.href === "/platform/locations/settings") {
+      return canManageLocationSettings;
     }
 
     return true;

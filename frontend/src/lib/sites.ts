@@ -14,6 +14,17 @@ export type PublicLocation = {
   heroSubtitle?: string | null;
 };
 
+export type PublicLocationByHost = {
+  id: string;
+  slug: string;
+  displayName?: string | null;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  accentGradient?: string | null;
+  heroTitle?: string | null;
+  heroSubtitle?: string | null;
+};
+
 export type TenantBranding = {
   id: string;
   whiteLabelEnabled: boolean;
@@ -23,7 +34,7 @@ export async function getPublicLocationBySlug(slug: string): Promise<{ location:
   return apiFetch(`/api/public/locations/by-slug/${encodeURIComponent(slug)}`);
 }
 
-export async function getPublicLocationByHost(host?: string): Promise<{ location: PublicLocation | null; tenant: TenantBranding | null }> {
+export async function getPublicLocationByHost(host?: string): Promise<{ location: PublicLocationByHost | null; tenant: TenantBranding | null }> {
   const query = host ? `?host=${encodeURIComponent(host)}` : '';
   return apiFetch(`/api/public/location-by-host${query}`);
 }

@@ -1,5 +1,6 @@
 import { Controller, Get, Headers, Param, Query } from '@nestjs/common';
 import { PublicService } from './public.service';
+import { PublicLocationByHostResponseDto } from './dto/public-location-by-host.dto';
 
 @Controller('public')
 export class PublicController {
@@ -16,7 +17,7 @@ export class PublicController {
   }
 
   @Get('location-by-host')
-  locationByHost(@Headers('host') hostHeader?: string, @Query('host') hostQuery?: string) {
-    return this.publicService.getLocationByHost(hostHeader ?? hostQuery ?? '');
+  locationByHost(@Headers('host') hostHeader?: string, @Query('host') hostQuery?: string): Promise<PublicLocationByHostResponseDto> {
+    return this.publicService.getLocationByHost(hostQuery?.trim() || hostHeader || '');
   }
 }
