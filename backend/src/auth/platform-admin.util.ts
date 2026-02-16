@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 
 export function parsePlatformAdminEmails(rawValue: string | null | undefined): string[] {
   return (rawValue ?? '')
-    .split(',')
+    .split(/[\s,;]+/)
     .map((email) => email.trim().toLowerCase())
     .filter((email) => email.length > 0);
 }
