@@ -18,6 +18,7 @@ export const platformNavConfig: NavItemConfig[] = [
   { label: "Team", href: "/platform/team", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "PLATFORM_ADMIN"] },
   { label: "Invites", href: "/platform/invites", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "GYM_STAFF_COACH", "PLATFORM_ADMIN"] },
   { label: "Settings", href: "/platform/settings", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "PLATFORM_ADMIN"] },
+  { label: "Data", href: "/platform/data", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "PLATFORM_ADMIN"] },
 ];
 
 export const adminNavConfig: NavItemConfig[] = [
@@ -25,6 +26,7 @@ export const adminNavConfig: NavItemConfig[] = [
   { label: "Tenants", href: "/admin/tenants", rolesAllowed: ["PLATFORM_ADMIN"] },
   { label: "Users", href: "/admin/users", rolesAllowed: ["PLATFORM_ADMIN"] },
   { label: "Audit", href: "/admin/audit", rolesAllowed: ["PLATFORM_ADMIN"] },
+  { label: "Backups", href: "/admin/backups", rolesAllowed: ["PLATFORM_ADMIN"] },
 ];
 
 export const locationNavConfigStaff: NavItemConfig[] = [

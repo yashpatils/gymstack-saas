@@ -25,6 +25,7 @@ import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { TenantModule } from './tenant/tenant.module';
+import { DataExportModule } from './data-export/data-export.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TenantModule } from './tenant/tenant.module';
     FeatureFlagsModule,
     AnalyticsModule,
     TenantModule,
+    DataExportModule,
   ],
   controllers: [AppController],
   providers: [

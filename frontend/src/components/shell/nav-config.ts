@@ -21,6 +21,7 @@ export const platformNavItems: AppNavItem[] = [
   { label: "Insights", href: "/platform/insights", icon: "📈", section: "operations" },
   { label: "Analytics", href: "/platform/analytics", icon: "🩺", section: "operations" },
   { label: "Notifications", href: "/platform/notifications", icon: "🔔", section: "operations" },
+  { label: "Data export", href: "/platform/data", icon: "🗂️", section: "operations" },
   { label: "Settings", href: "/platform/settings", icon: "⚙", section: "settings" },
   { label: "Location settings", href: "/platform/locations/settings", icon: "📍", section: "settings" },
   {
@@ -38,4 +39,5 @@ export const adminNavItems: AppNavItem[] = [
   { label: "Users", href: "/admin/users", icon: "👤", section: "core" },
   { label: "Audit", href: "/admin/audit", icon: "🧾", section: "operations" },
   { label: "Growth", href: "/admin/growth", icon: "📊", section: "operations" },
+  { label: "Backups", href: "/admin/backups", icon: "💾", section: "operations" },
 ];

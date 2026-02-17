@@ -184,6 +184,25 @@ enum JobStatus {
   FAILED
 }
 
+enum DataExportType {
+  members
+  bookings
+  classes
+  attendance
+  full
+}
+
+enum DataExportStatus {
+  pending
+  processing
+  ready
+  failed
+}
+
+enum PlatformBackupType {
+  snapshot
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -218,6 +237,8 @@ model User {
   notifications        Notification[]
   authTokens           AuthToken[]
   authIdentities       AuthIdentity[]
+  requestedDataExportJobs DataExportJob[] @relation("DataExportRequestedBy")
+  createdPlatformBackups PlatformBackup[] @relation("PlatformBackupCreatedBy")
   ownerOperatorSettings OwnerOperatorSetting[]
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
@@ -494,6 +515,8 @@ model Organization {
   referredByTenant Organization? @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
   trialEvents TrialEvent[]
   feedbackItems Feedback[]
+  dataExportJobs DataExportJob[]
+  platformBackups PlatformBackup[]
   planOverride TenantPlanOverride?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -889,6 +912,38 @@ model ReleaseStatus {
   buildStatus  ReleaseBuildStatus @default(unknown)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+}
+
+
+model DataExportJob {
+  id                String           @id @default(uuid())
+  tenantId          String
+  requestedByUserId String
+  type              DataExportType
+  status            DataExportStatus @default(pending)
+  fileUrl           String?
+  expiresAt         DateTime?
+  createdAt         DateTime         @default(now())
+  tenant            Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requestedBy       User             @relation("DataExportRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([requestedByUserId, createdAt])
+  @@index([status, createdAt])
+}
+
+model PlatformBackup {
+  id               String             @id @default(uuid())
+  tenantId         String
+  createdByAdminId String
+  type             PlatformBackupType @default(snapshot)
+  fileUrl          String
+  createdAt        DateTime           @default(now())
+  tenant           Organization       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByAdmin   User               @relation("PlatformBackupCreatedBy", fields: [createdByAdminId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([createdByAdminId, createdAt])
 }
 
 enum InsightSeverity {
