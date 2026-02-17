@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { isAllowlistedPlatformAdminEmail } from '../auth/platform-admin.util';
@@ -21,7 +21,7 @@ export class RequirePlatformAdminGuard implements CanActivate {
     const userId = request.user?.userId ?? request.user?.id ?? request.user?.sub;
 
     if (!userId) {
-      throw new ForbiddenException('Platform admin access is required');
+      throw new UnauthorizedException('Authentication required');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -31,7 +31,7 @@ export class RequirePlatformAdminGuard implements CanActivate {
 
     const isPlatformAdmin = isAllowlistedPlatformAdminEmail(this.configService, user?.email);
     if (!isPlatformAdmin) {
-      throw new ForbiddenException('Platform admin access is required');
+      throw new ForbiddenException({ code: 'ADMIN_ONLY', message: 'Access restricted' });
     }
 
     return true;

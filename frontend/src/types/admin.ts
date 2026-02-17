@@ -9,22 +9,42 @@ export type AdminMetrics = {
   activeSubscriptions?: number;
 };
 
+export type AdminOverview = {
+  totals: {
+    mrrCents: number;
+    activeTenants: number;
+    activeSubscriptions: number;
+    trials: number;
+    pastDue: number;
+    canceled: number;
+  };
+  trends: {
+    newTenants7d: number;
+    newTenants30d: number;
+  };
+};
+
 export type AdminTenant = {
   tenantId: string;
   tenantName: string;
   createdAt: string;
+  subscriptionStatus: string;
+  priceId: string | null;
+  mrrCents: number;
+  whiteLabelEligible: boolean;
+  whiteLabelEnabledEffective: boolean;
   locationsCount: number;
-  ownersCount: number;
-  managersCount: number;
-  customDomainsCount: number;
-  subscriptionStatus?: string | null;
-  whiteLabelBranding: boolean;
+  usersCount: number;
+  isDisabled: boolean;
+  ownersCount?: number;
+  managersCount?: number;
+  customDomainsCount?: number;
+  whiteLabelBranding?: boolean;
 };
 
 export type AdminTenantListResponse = {
   items: AdminTenant[];
   page: number;
-  pageSize: number;
   total: number;
 };
 
@@ -33,27 +53,38 @@ export type AdminTenantDetail = {
     id: string;
     name: string;
     createdAt: string;
-    subscriptionStatus?: string | null;
-    whiteLabelBranding: boolean;
+    isDisabled: boolean;
+    disabledAt: string | null;
   };
   locations: Array<{
     id: string;
     name: string;
     slug: string;
     createdAt: string;
-    membersCount: number;
-    managersCount: number;
-    customDomains: string[];
   }>;
-  owners: Array<{
+  keyUsers: Array<{
     id: string;
     email: string;
-    name?: string;
+    role: string;
+    subscriptionStatus: string;
+    stripeSubscriptionId: string | null;
   }>;
+  billing: {
+    subscriptionStatus: string;
+    priceId: string | null;
+    mrrCents: number;
+  };
   recentAudit?: Array<{
     id: string;
     action: string;
     createdAt: string;
     actorEmail?: string;
+  }>;
+  events: Array<{
+    id: string;
+    type: string;
+    metadata: unknown;
+    createdAt: string;
+    adminUserId: string;
   }>;
 };

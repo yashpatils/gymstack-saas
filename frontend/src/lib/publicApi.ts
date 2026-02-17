@@ -63,6 +63,7 @@ function parsePublicLocationByHost(value: unknown): PublicLocationByHostResponse
   return {
     location: parseLocation(value.location),
     tenant: parseTenant(value.tenant),
+    tenantDisabled: value.tenantDisabled === true,
   };
 }
 
@@ -71,7 +72,7 @@ export async function getLocationByHost(): Promise<PublicLocationByHostResponse>
   const host = headerStore.get('host');
 
   if (!host) {
-    return { location: null, tenant: null };
+    return { location: null, tenant: null, tenantDisabled: false };
   }
 
   const proto = headerStore.get('x-forwarded-proto') ?? 'http';

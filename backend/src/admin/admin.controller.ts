@@ -1,46 +1,40 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { getPlatformAdminEmails, isPlatformAdmin } from '../auth/platform-admin.util';
+import { Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
-type RequestUser = {
-  id: string;
-};
-
 @Controller('admin')
 @VerifiedEmailRequired()
-@UseGuards(RequirePlatformAdminGuard)
+@UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
 export class AdminController {
-  constructor(
-    private readonly adminService: AdminService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly adminService: AdminService) {}
 
-  @Get('whoami')
-  async whoami(@Req() req: { user: RequestUser }): Promise<{ email: string; isPlatformAdmin: boolean; platformRole: 'PLATFORM_ADMIN' | null }> {
-    const user = await this.adminService.getUserById(req.user.id);
-    const allowlistedEmails = getPlatformAdminEmails(this.configService);
-    const isPlatformAdminUser = isPlatformAdmin(user?.email, allowlistedEmails);
-
-    return {
-      email: user?.email ?? '',
-      isPlatformAdmin: isPlatformAdminUser,
-      platformRole: isPlatformAdminUser ? 'PLATFORM_ADMIN' : null,
-    };
+  @Get('overview')
+  overview() {
+    return this.adminService.getOverview();
   }
 
   @Get('metrics')
-  metrics() {
-    return this.adminService.getMetrics();
+  async metrics() {
+    const overview = await this.adminService.getOverview();
+    return {
+      tenantsTotal: overview.totals.activeTenants,
+      locationsTotal: 0,
+      usersTotal: 0,
+      signups7d: overview.trends.newTenants7d,
+      signups30d: overview.trends.newTenants30d,
+      activeMembershipsTotal: 0,
+      mrr: overview.totals.mrrCents / 100,
+      activeSubscriptions: overview.totals.activeSubscriptions,
+    };
   }
 
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('query') query?: string,
+    @Query('status') status?: string,
   ) {
     return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
   }
@@ -98,6 +92,25 @@ export class AdminController {
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
     }
+
     return tenant;
+  }
+
+  @Post('tenants/:tenantId/toggle-active')
+  toggleTenantActive(
+    @Param('tenantId') tenantId: string,
+    @Req() req: { user: { userId?: string; id?: string; sub?: string } },
+  ) {
+    const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
+    return this.adminService.toggleTenantActive(tenantId, adminId);
+  }
+
+  @Post('impersonate')
+  impersonate(
+    @Body() body: { tenantId: string },
+    @Req() req: { user: { userId?: string; id?: string; sub?: string }; ip?: string },
+  ) {
+    const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
+    return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }
 }

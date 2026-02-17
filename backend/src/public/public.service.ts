@@ -21,6 +21,7 @@ type PublicLocation = {
 type PublicTenant = {
   id: string;
   whiteLabelEnabled: boolean;
+  isDisabled: boolean;
 };
 
 type PublicLocationContext = {
@@ -238,12 +239,25 @@ export class PublicService {
       return {
         location: null,
         tenant: null,
+        tenantDisabled: false,
+      };
+    }
+
+    if (resolved.tenant.isDisabled) {
+      return {
+        location: null,
+        tenant: null,
+        tenantDisabled: true,
       };
     }
 
     return {
       location: resolved.location,
-      tenant: resolved.tenant,
+      tenant: {
+        id: resolved.tenant.id,
+        whiteLabelEnabled: resolved.tenant.whiteLabelEnabled,
+      },
+      tenantDisabled: false,
     };
   }
 

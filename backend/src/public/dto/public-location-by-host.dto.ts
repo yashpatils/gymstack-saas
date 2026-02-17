@@ -17,4 +17,5 @@ export class PublicHostTenantDto {
 export class PublicLocationByHostResponseDto {
   location!: PublicHostLocationDto | null;
   tenant!: PublicHostTenantDto | null;
+  tenantDisabled!: boolean;
 }
