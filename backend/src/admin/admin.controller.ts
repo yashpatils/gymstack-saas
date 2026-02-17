@@ -21,6 +21,11 @@ export class AdminController {
     return this.adminService.listTenants(page ?? 1, query);
   }
 
+  @Get('growth')
+  growth() {
+    return this.adminService.getGrowthMetrics();
+  }
+
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -65,7 +70,7 @@ export class AdminController {
   setTenantFeatures(
     @Param('tenantId') tenantId: string,
     @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
-    @Req() req: { user: RequestUser },
+    @Req() req: { user: { id: string } },
   ) {
     return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
   }

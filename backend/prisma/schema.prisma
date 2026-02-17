@@ -66,6 +66,18 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+
+enum TenantActivationStep {
+  TENANT_CREATED
+  LOCATION_CREATED
+  FIRST_STAFF_INVITED
+  FIRST_CLIENT_ADDED
+  FIRST_MEMBERSHIP_PLAN_CREATED
+  FIRST_MEMBERSHIP_ASSIGNED
+  FIRST_CLASS_CREATED
+  FIRST_BOOKING
+}
+
 enum UserStatus {
   ACTIVE
   DELETED
@@ -389,6 +401,8 @@ model Organization {
   stripePriceId String?
   subscriptionStatus String?
   currentPeriodEnd DateTime?
+  trialEndsAt DateTime?
+  isTrialUsed Boolean @default(false)
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
