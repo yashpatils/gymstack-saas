@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "../components/ui";
 import { MarketingFooter, MarketingNavbar } from "../components/marketing-chrome";
+import { toAbsoluteUrl } from "../lib/site";
+
+export const metadata: Metadata = {
+  title: "GymStack Pricing",
+  description: "Transparent plans for gym operators, from starter to enterprise rollouts.",
+  alternates: { canonical: toAbsoluteUrl("/pricing") },
+};
 
 const plans = [
   {
@@ -61,7 +69,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/signup" className={`button w-full justify-center ${plan.featured ? "" : "secondary"}`}>
+              <Link href="/signup?role=tenant_owner" className={`button w-full justify-center ${plan.featured ? "" : "secondary"}`}>
                 {plan.featured ? "Start Growth trial" : "Get started"}
               </Link>
             </Card>
@@ -74,7 +82,7 @@ export default function PricingPage() {
             We can help migrate your locations, configure workflows, and train your team for launch.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <Link href="/signup" className="button">
+            <Link href="/signup?role=tenant_owner" className="button">
               Start free trial
             </Link>
             <Link href="/faq" className="button secondary">

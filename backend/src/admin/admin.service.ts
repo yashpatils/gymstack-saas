@@ -28,6 +28,9 @@ type AdminTenantListItem = {
   whiteLabelEnabledEffective: boolean;
   locationsCount: number;
   usersCount: number;
+  ownersCount: number;
+  managersCount: number;
+  customDomainsCount: number;
   isDisabled: boolean;
 };
 
@@ -36,9 +39,8 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
-    const defaultPlanCents = Number.parseInt(process.env.DEFAULT_TENANT_MRR_CENTS ?? '9900', 10);
-    const planCents = Number.isFinite(defaultPlanCents) ? defaultPlanCents : 9900;
-    return status === SubscriptionStatus.ACTIVE ? planCents : 0;
+    const planCents = Number.parseInt(process.env.DEFAULT_TENANT_MRR_CENTS ?? '9900', 10);
+    return status === SubscriptionStatus.ACTIVE ? (Number.isFinite(planCents) ? planCents : 9900) : 0;
   }
 
   async getOverview(): Promise<AdminOverviewResponse> {
@@ -49,14 +51,9 @@ export class AdminService {
     const [tenants, newTenants7d, newTenants30d] = await Promise.all([
       this.prisma.organization.findMany({
         select: {
-          id: true,
           isDisabled: true,
           users: {
-            select: {
-              subscriptionStatus: true,
-              stripeSubscriptionId: true,
-            },
-            where: { orgId: { not: null } },
+            select: { subscriptionStatus: true },
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
@@ -77,156 +74,102 @@ export class AdminService {
       if (tenant.isDisabled) {
         continue;
       }
-
       activeTenants += 1;
-      const latestUser = tenant.users[0];
-      const status = latestUser?.subscriptionStatus ?? SubscriptionStatus.FREE;
-      if (status === SubscriptionStatus.ACTIVE) {
-        activeSubscriptions += 1;
-      }
-      if (status === SubscriptionStatus.TRIAL) {
-        trials += 1;
-      }
-      if (status === SubscriptionStatus.PAST_DUE) {
-        pastDue += 1;
-      }
-      if (status === SubscriptionStatus.CANCELED) {
-        canceled += 1;
-      }
+      const status = tenant.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
+      if (status === SubscriptionStatus.ACTIVE) activeSubscriptions += 1;
+      if (status === SubscriptionStatus.TRIAL) trials += 1;
+      if (status === SubscriptionStatus.PAST_DUE) pastDue += 1;
+      if (status === SubscriptionStatus.CANCELED) canceled += 1;
       mrrCents += this.resolveMrrCents(status);
     }
 
-    return {
-      totals: { mrrCents, activeTenants, activeSubscriptions, trials, pastDue, canceled },
-      trends: { newTenants7d, newTenants30d },
-    };
+    return { totals: { mrrCents, activeTenants, activeSubscriptions, trials, pastDue, canceled }, trends: { newTenants7d, newTenants30d } };
   }
 
-  async getGrowthMetrics(): Promise<{
-    activationRate: number;
-    trialToPaidConversion: number;
-    averageLocationsPerTenant: number;
-    mrrGrowthRate: number;
-    churnRate: number;
-  }> {
-    const [tenantCount, activatedTenantCount, paidTenantCount, locationCount, canceledTenantCount, overview] = await Promise.all([
-      this.prisma.organization.count(),
-      this.prisma.organization.count({ where: { gyms: { some: {} } } }),
-      this.prisma.organization.count({ where: { subscriptionStatus: { in: ['active', 'ACTIVE'] } } }),
-      this.prisma.gym.count(),
-      this.prisma.organization.count({ where: { subscriptionStatus: { in: ['canceled', 'CANCELED'] } } }),
-      this.getOverview(),
-    ]);
-
-    const activationRate = tenantCount > 0 ? activatedTenantCount / tenantCount : 0;
-    const trialToPaidConversion = tenantCount > 0 ? paidTenantCount / tenantCount : 0;
-    const averageLocationsPerTenant = tenantCount > 0 ? locationCount / tenantCount : 0;
-    const churnRate = tenantCount > 0 ? canceledTenantCount / tenantCount : 0;
-
-    return {
-      activationRate,
-      trialToPaidConversion,
-      averageLocationsPerTenant,
-      mrrGrowthRate: overview.trends.newTenants30d > 0 ? overview.trends.newTenants7d / overview.trends.newTenants30d : 0,
-      churnRate,
-    };
-  }
-
-  async listTenants(page: number, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
+  async listTenants(page: number, pageSize: number, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-    const pageSize = 20;
+    const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.min(Math.floor(pageSize), 100) : 20;
     const normalizedQuery = query?.trim();
     const normalizedStatus = status?.trim().toUpperCase();
 
-    const baseWhere = normalizedQuery
+    const where = normalizedQuery
       ? {
-        name: {
-          contains: normalizedQuery,
-          mode: 'insensitive' as const,
-        },
-      }
-      : {};
+          name: {
+            contains: normalizedQuery,
+            mode: 'insensitive' as const,
+          },
+        }
+      : undefined;
 
     const [total, organizations] = await Promise.all([
-      this.prisma.organization.count({ where: baseWhere }),
+      this.prisma.organization.count({ where }),
       this.prisma.organization.findMany({
-        where: baseWhere,
-        skip: (safePage - 1) * pageSize,
-        take: pageSize,
+        where,
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
         orderBy: { createdAt: 'desc' },
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
         include: {
-          _count: { select: { gyms: true, users: true, customDomains: true } },
+          _count: { select: { gyms: true, users: true } },
           memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
-          users: {
-            select: {
-              subscriptionStatus: true,
-              stripeSubscriptionId: true,
-            },
-          },
-          memberships: {
-            where: { status: MembershipStatus.ACTIVE },
-            select: { role: true },
-          },
+          users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'desc' }, take: 1 },
         },
+        orderBy: { createdAt: 'desc' },
       }),
+      this.prisma.organization.count({ where }),
     ]);
 
-    const mapped = organizations.map((organization) => {
-      const latestUser = organization.users[0];
-      const subscriptionStatus = latestUser?.subscriptionStatus ?? SubscriptionStatus.FREE;
-      const ownersCount = organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length;
-      const managersCount = organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN).length;
-      const whiteLabelBranding = organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled;
-      return {
-        tenantId: organization.id,
-        tenantName: organization.name,
-        createdAt: organization.createdAt.toISOString(),
-        subscriptionStatus,
-        priceId: latestUser?.stripeSubscriptionId ?? null,
-        mrrCents: this.resolveMrrCents(subscriptionStatus),
-        whiteLabelEligible: organization._count.gyms > 0,
-        whiteLabelEnabledEffective: whiteLabelBranding,
-        whiteLabelBranding,
-        locationsCount: organization._count.gyms,
-        usersCount: organization._count.users,
-        ownersCount,
-        managersCount,
-        customDomainsCount: organization._count.customDomains,
-        isDisabled: organization.isDisabled,
-      };
-    });
-
+    const items = organizations
+      .map((organization) => {
+        const latestUser = organization.users[0];
+        const subscriptionStatus = latestUser?.subscriptionStatus ?? SubscriptionStatus.FREE;
         return {
           tenantId: organization.id,
           tenantName: organization.name,
           createdAt: organization.createdAt.toISOString(),
+          subscriptionStatus,
+          priceId: latestUser?.stripeSubscriptionId ?? null,
+          mrrCents: this.resolveMrrCents(subscriptionStatus),
+          whiteLabelEligible: organization._count.gyms > 0,
+          whiteLabelEnabledEffective: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
           locationsCount: organization._count.gyms,
-          ownersCount,
-          managersCount,
+          usersCount: organization._count.users,
+          ownersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length,
+          managersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN).length,
           customDomainsCount: organization._count.customDomains,
-          subscriptionStatus: organization.subscriptionStatus ?? null,
-          whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
+          isDisabled: organization.isDisabled,
         };
-      }),
-      page: safePage,
-      total,
-    };
+      })
+      .filter((item) => (normalizedStatus ? item.subscriptionStatus === normalizedStatus : true));
+
+    return { items, page: safePage, total };
+  }
+
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const updated = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: { whiteLabelEnabled: input.whiteLabelBranding, whiteLabelBrandingEnabled: input.whiteLabelBranding },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: { adminUserId, tenantId, type: 'TENANT_FEATURES_UPDATED', metadata: { whiteLabelBranding: input.whiteLabelBranding } },
+    });
+
+    return { tenantId: updated.id, whiteLabelBranding: updated.whiteLabelEnabled || updated.whiteLabelBrandingEnabled };
   }
 
   async getTenant(tenantId: string) {
     const organization = await this.prisma.organization.findUnique({
       where: { id: tenantId },
       include: {
-        gyms: {
-          orderBy: { createdAt: 'asc' },
-          select: { id: true, name: true, slug: true, createdAt: true },
-        },
+        gyms: { orderBy: { createdAt: 'asc' }, select: { id: true, name: true, slug: true, createdAt: true } },
+        users: { select: { id: true, email: true, role: true, createdAt: true }, orderBy: { createdAt: 'asc' }, take: 10 },
+        adminEvents: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     });
-
-    if (!organization) {
-      return null;
-    }
+    if (!organization) return null;
 
     return {
       tenant: {
@@ -236,100 +179,69 @@ export class AdminService {
         subscriptionStatus: organization.subscriptionStatus ?? null,
         whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
-      locations: organization.gyms.map((gym) => ({
-        id: gym.id,
-        name: gym.name,
-        slug: gym.slug,
-        createdAt: gym.createdAt.toISOString(),
-      })),
+      locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
       billing: {
-        subscriptionStatus: organization.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE,
-        priceId: organization.users[0]?.stripeSubscriptionId ?? null,
-        mrrCents: this.resolveMrrCents(organization.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE),
+        subscriptionStatus: SubscriptionStatus.FREE,
+        priceId: null,
+        mrrCents: 0,
       },
-      events: organization.adminEvents.map((event) => ({
-        ...event,
-        createdAt: event.createdAt.toISOString(),
-      })),
+      events: organization.adminEvents.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
     };
   }
 
   async toggleTenantActive(tenantId: string, adminUserId: string): Promise<{ tenantId: string; isDisabled: boolean }> {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true, isDisabled: true } });
-    if (!org) {
-      throw new NotFoundException('Tenant not found');
-    }
-
+    if (!org) throw new NotFoundException('Tenant not found');
     const isDisabled = !org.isDisabled;
-    await this.prisma.organization.update({
+    await this.prisma.organization.update({ where: { id: tenantId }, data: { isDisabled, disabledAt: isDisabled ? new Date() : null } });
+    await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED' } });
+    return { tenantId, isDisabled };
+  }
+
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const tenant = await this.prisma.organization.update({
       where: { id: tenantId },
       data: {
-        isDisabled,
-        disabledAt: isDisabled ? new Date() : null,
+        whiteLabelBrandingEnabled: input.whiteLabelBranding,
+        whiteLabelEnabled: input.whiteLabelBranding,
       },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
     });
 
     await this.prisma.adminEvent.create({
       data: {
         adminUserId,
         tenantId,
-        type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED',
+        type: 'TENANT_FEATURES_UPDATED',
+        metadata: { whiteLabelBranding: input.whiteLabelBranding },
       },
     });
 
-    return { tenantId, isDisabled };
+    return tenant;
   }
 
   async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined): Promise<{ tenantId: string; supportMode: { tenantId: string } }> {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
-    if (!org) {
-      throw new NotFoundException('Tenant not found');
-    }
-
-    await this.prisma.adminEvent.create({
-      data: {
-        adminUserId,
-        tenantId,
-        type: 'IMPERSONATE_START',
-        metadata: { tenantId },
-        ip: ip ?? null,
-      },
-    });
-
-    return {
-      tenantId,
-      supportMode: { tenantId },
-    };
+    if (!org) throw new NotFoundException('Tenant not found');
+    await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'IMPERSONATE_START', metadata: { tenantId }, ip: ip ?? null } });
+    return { tenantId, supportMode: { tenantId } };
   }
-
 
   async searchUsers(query?: string) {
     const normalizedQuery = query?.trim();
     return this.prisma.user.findMany({
       where: normalizedQuery
-        ? {
-            OR: [
-              { email: { contains: normalizedQuery, mode: 'insensitive' } },
-              { id: { contains: normalizedQuery, mode: 'insensitive' } },
-            ],
-          }
+        ? { OR: [{ email: { contains: normalizedQuery, mode: 'insensitive' } }, { id: { contains: normalizedQuery, mode: 'insensitive' } }] }
         : undefined,
       orderBy: { createdAt: 'desc' },
       take: 50,
-      select: {
-        id: true,
-        email: true,
-        status: true,
-        role: true,
-        createdAt: true,
-        orgId: true,
-      },
+      select: { id: true, email: true, status: true, role: true, createdAt: true, orgId: true },
     });
   }
 
   async getUserDetail(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    return this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -337,114 +249,68 @@ export class AdminService {
         role: true,
         status: true,
         createdAt: true,
-        memberships: {
-          select: {
-            id: true,
-            orgId: true,
-            gymId: true,
-            role: true,
-            status: true,
-            createdAt: true,
-          },
-        },
-        refreshTokens: {
-          where: { revokedAt: null },
-          select: { createdAt: true },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
+        memberships: { select: { id: true, orgId: true, gymId: true, role: true, status: true, createdAt: true } },
+        refreshTokens: { where: { revokedAt: null }, select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
-
-    if (!user) {
-      return null;
-    }
-
-    return {
-      ...user,
-      lastLoginAt: user.refreshTokens[0]?.createdAt ?? null,
-      activeSessions: user.refreshTokens.length,
-    };
+    if (!user) return null;
+    return { ...user, lastLoginAt: user.refreshTokens[0]?.createdAt ?? null, activeSessions: user.refreshTokens.length };
   }
 
   async revokeUserSessions(userId: string, actorUserId: string) {
     const now = new Date();
-    const result = await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: now },
-    });
-
+    const result = await this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
     await this.prisma.auditLog.create({
       data: {
-        actorType: 'ADMIN',
-        actorUserId,
-        tenantId: null,
-        action: 'ADMIN_REVOKE_SESSIONS',
-        targetType: 'USER',
-        targetId: userId,
-        metadata: { revokedCount: result.count },
-        entityType: 'USER',
-        entityId: userId,
+        actorType: 'ADMIN', actorUserId, tenantId: null, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId,
+        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId,
       },
     });
-
     return { ok: true as const, revoked: result.count };
   }
 
   async listImpersonationHistory() {
     return this.prisma.auditLog.findMany({
-      where: {
-        OR: [
-          { action: 'support_mode_assume_context' },
-          { action: 'ADMIN_IMPERSONATE' },
-        ],
-      },
+      where: { OR: [{ action: 'support_mode_assume_context' }, { action: 'ADMIN_IMPERSONATE' }] },
       orderBy: { createdAt: 'desc' },
       take: 100,
-      select: {
-        id: true,
-        action: true,
-        metadata: true,
-        createdAt: true,
-        actorUser: { select: { id: true, email: true } },
-      },
+      select: { id: true, action: true, metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } } },
     });
   }
 
   async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string }) {
-    const where = {
-      tenantId: filters.tenantId || undefined,
-      action: filters.action || undefined,
-      actorUser: filters.actor
-        ? {
-            email: {
-              contains: filters.actor,
-              mode: 'insensitive' as const,
-            },
-          }
-        : undefined,
-      createdAt: {
-        gte: filters.from ? new Date(filters.from) : undefined,
-        lte: filters.to ? new Date(filters.to) : undefined,
-      },
-    };
-
     return this.prisma.auditLog.findMany({
-      where,
+      where: {
+        tenantId: filters.tenantId || undefined,
+        action: filters.action || undefined,
+        actorUser: filters.actor ? { email: { contains: filters.actor, mode: 'insensitive' } } : undefined,
+        createdAt: { gte: filters.from ? new Date(filters.from) : undefined, lte: filters.to ? new Date(filters.to) : undefined },
+      },
       orderBy: { createdAt: 'desc' },
       take: 200,
       select: {
-        id: true,
-        actorType: true,
-        action: true,
-        targetType: true,
-        targetId: true,
-        tenantId: true,
-        locationId: true,
-        metadata: true,
-        createdAt: true,
-        actorUser: { select: { id: true, email: true } },
+        id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true,
+        metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } },
       },
     });
+  }
+
+  async getMigrationStatus() {
+    type MigrationRow = { migration_name: string; started_at: Date; finished_at: Date | null; rolled_back_at: Date | null; logs: string | null };
+    const rows = await this.prisma.$queryRaw<MigrationRow[]>`
+      SELECT migration_name, started_at, finished_at, rolled_back_at, logs
+      FROM _prisma_migrations
+      ORDER BY started_at DESC
+      LIMIT 100
+    `;
+    const failed = rows.filter((row) => row.finished_at === null && row.rolled_back_at === null);
+    return {
+      checkedAt: new Date().toISOString(),
+      total: rows.length,
+      failedCount: failed.length,
+      failedMigrations: failed.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), logs: row.logs })),
+      migrations: rows.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), finishedAt: row.finished_at ? row.finished_at.toISOString() : null, rolledBackAt: row.rolled_back_at ? row.rolled_back_at.toISOString() : null })),
+      guidance: ['Take an immediate backup/snapshot before manual intervention.', 'Inspect the failed migration SQL and deployment logs.', 'Use prisma migrate resolve --rolled-back or --applied after validation.', 'Re-run prisma migrate deploy once the state is consistent.'],
+    };
   }
 }
