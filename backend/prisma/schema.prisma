@@ -311,7 +311,7 @@ model FeatureFlag {
   enabled         Boolean          @default(false)
   scope           FeatureFlagScope @default(GLOBAL)
   tenantId        String?
-  locationId      String?
+  locationId      String??
   updatedByUserId String?
   updatedAt       DateTime         @updatedAt
   createdAt       DateTime         @default(now())
@@ -540,7 +540,7 @@ model CustomDomain {
 model LocationInvite {
   id              String           @id @default(uuid())
   tenantId        String
-  locationId      String
+  locationId      String?
   role            MembershipRole
   email           String?
   tokenHash       String           @unique
@@ -554,7 +554,7 @@ model LocationInvite {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   tenant          Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location        Gym              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location        Gym?             @relation(fields: [locationId], references: [id], onDelete: SetNull)
   creator         User             @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   consumer        User?            @relation("InviteConsumer", fields: [consumedByUserId], references: [id], onDelete: SetNull)
 
@@ -586,7 +586,7 @@ model MembershipPlan {
 model ClientMembership {
   id              String                 @id @default(uuid())
   userId          String
-  locationId      String
+  locationId      String?
   planId          String?
   status          ClientMembershipStatus
   startAt         DateTime

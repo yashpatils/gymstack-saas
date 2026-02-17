@@ -25,7 +25,7 @@ export function AuthNav() {
         <Link href="/login" className="button ghost">
           Login
         </Link>
-        <Link href="/signup?role=tenant_owner" className="button">
+        <Link href="/signup" className="button">
           Get started
         </Link>
       </div>

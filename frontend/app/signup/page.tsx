@@ -1,149 +1,52 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
-import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { useAuth } from "../../src/providers/AuthProvider";
-import { resendVerification } from "../../src/lib/auth";
 import { Alert, Button, Input } from "../components/ui";
-
-type Intent = "owner" | "staff" | "client";
-
-type RoleOption = {
-  value: Intent;
-  label: string;
-  description: string;
-  persona: OAuthPersona;
-};
-
-const roleOptions: RoleOption[] = [
-  { value: 'owner', label: 'Owner', description: 'Create and manage a gym workspace.', persona: 'OWNER' },
-  { value: 'staff', label: 'Staff', description: 'Join as manager or coach via invite.', persona: 'STAFF' },
-  { value: 'client', label: 'Client', description: 'Join member experiences with an invite.', persona: 'CLIENT' },
-];
-
-const getIntentFromQuery = (value: string | null): Intent => {
-  if (value === 'staff' || value === 'client') {
-    return value;
-  }
-
-  return 'owner';
-};
-
-const getPersonaForIntent = (intent: Intent): OAuthPersona => {
-  return roleOptions.find((option) => option.value === intent)?.persona ?? 'OWNER';
-};
-
-function CheckIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
 
 function SignupPageContent() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("inviteToken") ?? searchParams.get("token") ?? "";
   const { signup, acceptInvite } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<Intent>(getIntentFromQuery(searchParams.get('intent')));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState(searchParams.get("token") ?? "");
-  const [showPassword, setShowPassword] = useState(false);
+  const [token, setToken] = useState(inviteToken);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [signupComplete, setSignupComplete] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const intent = selectedRole;
-  const selectedPersona = getPersonaForIntent(selectedRole);
-  const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
-  const showOAuth = shouldShowOAuth({ pathname, selectedPersona });
 
-  const inviteRequired = intent !== "owner";
-  const title = useMemo(() => (intent === "owner" ? "Create owner account" : intent === "staff" ? "Join as staff" : "Join as client"), [intent]);
-
-  if (signupComplete) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <section className="w-full max-w-lg space-y-4 rounded-3xl border border-white/15 bg-slate-900/75 p-6 shadow-2xl">
-          <h1 className="text-2xl font-semibold text-white">Check your inbox</h1>
-          <p className="text-slate-300">We sent a verification link to <span className="font-medium text-white">{email}</span>.</p>
-          {notice ? <Alert tone="success">{notice}</Alert> : null}
-          {error ? <Alert tone="error">{error}</Alert> : null}
-          <div className="flex gap-3">
-            <Button type="button" onClick={async () => {
-              setError(null);
-              try {
-                const result = await resendVerification(email);
-                setNotice(result.emailDeliveryWarning ?? result.message);
-              } catch (resendError) {
-                setError(resendError instanceof Error ? resendError.message : "Unable to resend verification.");
-              }
-            }}>
-              Resend verification
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => router.push('/login')}>Go to login</Button>
-          </div>
-        </section>
-      </main>
-    );
-  }
+  const inviteFlow = useMemo(() => token.trim().length > 0, [token]);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
       <form className="w-full max-w-lg space-y-4 rounded-3xl border border-white/15 bg-slate-900/75 p-6 shadow-2xl" onSubmit={async (event) => {
         event.preventDefault();
-        setError(null);
         setSubmitting(true);
+        setError(null);
         try {
-          if (inviteRequired) {
-            const result = await acceptInvite({ token, email: email || undefined, password: password || undefined });
+          if (inviteFlow) {
+            const result = await acceptInvite({ token, email, password });
             router.push(result.memberships.length > 1 ? "/select-workspace" : "/platform");
-          } else {
-            const result = await signup(email, password);
-            if (result.emailDeliveryWarning) {
-              setNotice(result.emailDeliveryWarning);
-            }
-            setSignupComplete(true);
+            return;
           }
+
+          await signup(email, password);
+          router.push("/platform/onboarding");
         } catch (submitError) {
           setError(submitError instanceof Error ? submitError.message : "Unable to sign up.");
         } finally {
           setSubmitting(false);
         }
       }}>
-        <h1 className="text-2xl font-semibold text-white">{title}</h1>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {roleOptions.map((role) => {
-            const isActive = selectedRole === role.value;
-
-            return (
-              <button
-                key={role.value}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => setSelectedRole(role.value)}
-                className={`rounded-2xl border p-4 text-left transition ${isActive ? 'border-sky-300 bg-sky-500/20 text-sky-100 ring-2 ring-sky-300/60 shadow-[0_0_18px_rgba(56,189,248,0.35)]' : 'border-white/20 text-slate-200 hover:border-slate-300 hover:bg-white/5'}`}
-              >
-                <span className="mb-1 flex items-center justify-between text-sm font-semibold">
-                  {role.label}
-                  {isActive ? <CheckIcon /> : null}
-                </span>
-                <span className="text-xs text-slate-300">{role.description}</span>
-              </button>
-            );
-          })}
-        </div>
+        <h1 className="text-2xl font-semibold text-white">{inviteFlow ? "Join from invite" : "Create owner account"}</h1>
+        <p className="text-sm text-slate-300">{inviteFlow ? "Role is assigned by your invite. Invalid/expired invites cannot be used." : "Owner signup creates your tenant. Staff/client accounts must use an invite token."}</p>
         {error ? <Alert tone="error">{error}</Alert> : null}
-        {inviteRequired ? <Input label="Invite token" value={token} onChange={(event) => setToken(event.target.value)} required /> : null}
+        <Input label="Invite token (optional for owner)" value={token} onChange={(event) => setToken(event.target.value)} />
         <Input label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <Input label="Password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />
-        <Button type="submit" disabled={submitting}>{submitting ? "Submitting..." : title}</Button>
-        {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
+        <Input label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <Button type="submit" disabled={submitting}>{submitting ? "Submitting..." : inviteFlow ? "Join workspace" : "Create owner account"}</Button>
         <p className="text-sm text-slate-300">Already have an account? <Link href="/login" className="text-sky-300">Login</Link></p>
       </form>
     </main>
