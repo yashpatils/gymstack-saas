@@ -88,6 +88,17 @@ enum ActiveMode {
   MANAGER
 }
 
+
+enum AuditActorType {
+  SYSTEM
+  USER
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
+}
 enum ClassSessionStatus {
   SCHEDULED
   CANCELED
@@ -97,6 +108,37 @@ enum ClassBookingStatus {
   BOOKED
   CANCELED
   CHECKED_IN
+}
+
+enum FeedbackPriority {
+  low
+  medium
+  high
+}
+
+enum FeedbackStatus {
+  open
+  planned
+  shipped
+}
+
+enum FeedbackCategory {
+  bug
+  improvement
+  feature
+}
+
+enum ChangelogAudience {
+  admin
+  tenant
+  staff
+  client
+}
+
+enum ReleaseBuildStatus {
+  passing
+  failing
+  unknown
 }
 
 model User {
@@ -133,6 +175,9 @@ model User {
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
   createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
+  feedbackItems         Feedback[]
+  featureFlagsUpdated   FeatureFlag[]       @relation("FeatureFlagUpdatedBy")
+  adminEvents           AdminEvent[]
 
   @@index([orgId])
 }
@@ -324,6 +369,8 @@ model Gym {
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]
+  auditLogs     AuditLog[]
+  featureFlags  FeatureFlag[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -353,8 +400,48 @@ model Organization {
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
   adminEvents AdminEvent[]
+  feedbackItems Feedback[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model Feedback {
+  id         String            @id @default(cuid())
+  tenantId   String
+  userId     String
+  message    String
+  page       String
+  priority   FeedbackPriority
+  status     FeedbackStatus    @default(open)
+  category   FeedbackCategory?
+  taskId     String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([status, priority])
+  @@index([taskId])
+}
+
+model ChangelogEntry {
+  id          String            @id @default(cuid())
+  title       String
+  description String
+  audience    ChangelogAudience
+  createdAt   DateTime          @default(now())
+
+  @@index([audience, createdAt])
+}
+
+model ReleaseStatus {
+  id           String             @id @default(cuid())
+  version      String
+  lastDeployAt DateTime
+  buildStatus  ReleaseBuildStatus @default(unknown)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 }
 
 model AdminEvent {

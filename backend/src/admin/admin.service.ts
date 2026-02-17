@@ -110,11 +110,11 @@ export class AdminService {
 
     const baseWhere = normalizedQuery
       ? {
-        name: {
-          contains: normalizedQuery,
-          mode: 'insensitive' as const,
-        },
-      }
+          name: {
+            contains: normalizedQuery,
+            mode: 'insensitive' as const,
+          },
+        }
       : {};
 
     const [total, organizations] = await Promise.all([
@@ -132,16 +132,14 @@ export class AdminService {
               subscriptionStatus: true,
               stripeSubscriptionId: true,
             },
-          },
-          memberships: {
-            where: { status: MembershipStatus.ACTIVE },
-            select: { role: true },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
           },
         },
       }),
     ]);
 
-    const mapped = organizations.map((organization) => {
+    let items = organizations.map((organization) => {
       const latestUser = organization.users[0];
       const subscriptionStatus = latestUser?.subscriptionStatus ?? SubscriptionStatus.FREE;
       const ownersCount = organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length;
@@ -156,31 +154,17 @@ export class AdminService {
         mrrCents: this.resolveMrrCents(subscriptionStatus),
         whiteLabelEligible: organization._count.gyms > 0,
         whiteLabelEnabledEffective: whiteLabelBranding,
-        whiteLabelBranding,
         locationsCount: organization._count.gyms,
         usersCount: organization._count.users,
-        ownersCount,
-        managersCount,
-        customDomainsCount: organization._count.customDomains,
         isDisabled: organization.isDisabled,
       };
     });
 
-        return {
-          tenantId: organization.id,
-          tenantName: organization.name,
-          createdAt: organization.createdAt.toISOString(),
-          locationsCount: organization._count.gyms,
-          ownersCount,
-          managersCount,
-          customDomainsCount: organization._count.customDomains,
-          subscriptionStatus: organization.subscriptionStatus ?? null,
-          whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
-        };
-      }),
-      page: safePage,
-      total,
-    };
+    if (normalizedStatus && normalizedStatus !== 'ALL') {
+      items = items.filter((item) => item.subscriptionStatus === normalizedStatus);
+    }
+
+    return { items, page: safePage, total };
   }
 
   async getTenant(tenantId: string) {

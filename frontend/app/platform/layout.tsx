@@ -110,6 +110,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const canManageLocationSettings = activeContext?.role === "TENANT_OWNER"
     || activeContext?.role === "TENANT_LOCATION_ADMIN";
 
+  const canSendFeedback = activeContext?.role === "TENANT_OWNER"
+    || activeContext?.role === "TENANT_LOCATION_ADMIN"
+    || activeContext?.role === "GYM_STAFF_COACH";
+
   const filteredItems = navItems.filter((item) => {
     if (item.href === "/platform/billing") {
       return permissions.canManageBilling || permissionKeys.includes("billing:manage") || user?.role === "OWNER" || user?.role === "ADMIN";
@@ -152,6 +156,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             locations={locations}
             activeLocationId={activeContext?.locationId}
             onSelectLocation={handleSelectLocation}
+            showFeedbackLink={Boolean(canSendFeedback)}
           />
         )}
       >

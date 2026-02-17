@@ -12,6 +12,7 @@ import { listGyms, type Gym } from "../../src/lib/gyms";
 import { listUsers, type User } from "../../src/lib/users";
 import { apiFetch } from "../../src/lib/apiFetch";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { listWhatsNew, type ChangelogEntry } from "../../src/lib/feedback";
 
 type DashboardTab = "locations" | "staff" | "clients";
 type DashboardSummary = {
@@ -29,6 +30,7 @@ export default function PlatformPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("locations");
+  const [whatsNew, setWhatsNew] = useState<ChangelogEntry[]>([]);
 
   const isTenantOwner = memberships.some((membership) => membership.role === "TENANT_OWNER");
 
@@ -39,10 +41,11 @@ export default function PlatformPage() {
       setLoading(true);
       setError(null);
 
-      const [gymResult, userResult, summaryResult] = await Promise.allSettled([
+      const [gymResult, userResult, summaryResult, whatsNewResult] = await Promise.allSettled([
         listGyms(),
         listUsers(),
         apiFetch<DashboardSummary>("/api/org/dashboard-summary", { method: "GET" }),
+        listWhatsNew(),
       ]);
 
       if (!active) {
@@ -63,7 +66,7 @@ export default function PlatformPage() {
         mrr: null,
         invites: 0,
       });
-
+      setWhatsNew(whatsNewResult.status === "fulfilled" ? whatsNewResult.value : []);
       setLoading(false);
     };
 
@@ -172,6 +175,20 @@ export default function PlatformPage() {
               <p>Scope: {activeContext?.locationId ? "Single location" : "All locations"}</p>
               <p>Memberships: {memberships.length}</p>
             </div>
+          </SectionCard>
+          <SectionCard title="What's new">
+            {whatsNew.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No changelog updates yet.</p>
+            ) : (
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {whatsNew.slice(0, 5).map((entry) => (
+                  <li key={entry.id}>
+                    <p className="font-medium text-foreground">{entry.title}</p>
+                    <p>{entry.description}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </SectionCard>
           <SectionCard title="Support">
             <p className="text-sm text-muted-foreground">Need help with onboarding or billing setup?</p>
