@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import { getApiBaseUrl } from "../../../src/lib/apiFetch";
-import { apiFetch } from "@/src/lib/apiFetch";
+import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
 import { oauthStartUrl } from '../../../src/lib/auth';
 
 type AccountInfo = {
@@ -22,6 +22,15 @@ type DomainRecord = {
   createdAt: string;
 };
 
+
+
+type TenantOrg = {
+  id: string;
+  name: string;
+  whiteLabelEnabled: boolean;
+  whiteLabelEligible: boolean;
+};
+
 type GymLocation = {
   id: string;
   name: string;
@@ -34,6 +43,19 @@ type GymLocation = {
   customDomain?: string | null;
   domainVerifiedAt?: string | null;
 };
+
+
+function extractErrorCode(details: unknown): string | null {
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  if ('code' in details && typeof details.code === 'string') {
+    return details.code;
+  }
+
+  return null;
+}
 
 function maskApiBaseUrl(url: string): string {
   try {
@@ -51,7 +73,7 @@ function maskApiBaseUrl(url: string): string {
 }
 
 export default function PlatformSettingsPage() {
-  const { logout, user, tenantFeatures, permissions, permissionKeys } = useAuth();
+  const { logout, user, permissions, permissionKeys } = useAuth();
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +82,8 @@ export default function PlatformSettingsPage() {
   const [hostname, setHostname] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [brandingLocationId, setBrandingLocationId] = useState('');
+  const [tenantOrg, setTenantOrg] = useState<TenantOrg | null>(null);
+  const [whiteLabelSaving, setWhiteLabelSaving] = useState(false);
 
   const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
   const canManageTenantSettings = permissions.canManageTenant
@@ -118,6 +142,11 @@ export default function PlatformSettingsPage() {
       if (isMounted) setDomains(data);
     }
 
+    async function loadTenantOrg() {
+      const org = await apiFetch<TenantOrg>('/api/org', { method: 'GET' });
+      if (isMounted) setTenantOrg(org);
+    }
+
     async function loadLocations() {
       const gyms = await apiFetch<GymLocation[]>('/api/gyms', { method: 'GET' });
       if (isMounted) {
@@ -129,6 +158,7 @@ export default function PlatformSettingsPage() {
     void loadAccountInfo();
     void loadDomains();
     void loadLocations();
+    void loadTenantOrg();
 
     return () => {
       isMounted = false;
@@ -141,13 +171,43 @@ export default function PlatformSettingsPage() {
     <section className="page space-y-6">
       <PageHeader title="Settings" subtitle="Account preferences and environment details." breadcrumbs={[{ label: "Platform", href: "/platform" }, { label: "Settings" }]} />
 
-      {!tenantFeatures?.whiteLabelBranding ? (
+      {!tenantOrg?.whiteLabelEligible ? (
         <div className="card space-y-2 border border-indigo-400/40">
           <h2 className="section-title">Remove Gym Stack branding</h2>
-          <p className="text-sm text-slate-300">Upgrade to remove branding from your location microsites and custom domains.</p>
-          <Link href="/platform/billing" className="button w-fit">Upgrade to remove branding</Link>
+          <p className="text-sm text-slate-300">Upgrade to Pro to remove branding from your location microsites and custom domains.</p>
+          <Link href="/platform/billing" className="button w-fit">Upgrade to Pro</Link>
         </div>
-      ) : null}
+      ) : (
+        <div className="card space-y-3 border border-emerald-400/40">
+          <h2 className="section-title">White-label enabled</h2>
+          <p className="text-sm text-slate-300">Control whether Gym Stack branding is shown on custom domains.</p>
+          <button className="button w-fit" type="button" disabled={whiteLabelSaving} onClick={async () => {
+            if (!tenantOrg) {
+              return;
+            }
+
+            setWhiteLabelSaving(true);
+            setError(null);
+            try {
+              const updated = await apiFetch<{ whiteLabelEnabled: boolean }>('/api/org/white-label', {
+                method: 'PATCH',
+                body: { whiteLabelEnabled: !tenantOrg.whiteLabelEnabled },
+              });
+              setTenantOrg({ ...tenantOrg, whiteLabelEnabled: updated.whiteLabelEnabled });
+            } catch (toggleError) {
+              if (toggleError instanceof ApiFetchError && extractErrorCode(toggleError.details) === 'UPGRADE_REQUIRED') {
+                setError('Upgrade required: switch to Pro to enable white-label.');
+              } else {
+                setError(toggleError instanceof Error ? toggleError.message : 'Unable to update white-label setting.');
+              }
+            } finally {
+              setWhiteLabelSaving(false);
+            }
+          }}>
+            {whiteLabelSaving ? 'Saving...' : tenantOrg?.whiteLabelEnabled ? 'Disable white-label' : 'Enable white-label'}
+          </button>
+        </div>
+      )}
 
       <div className="card space-y-4">
         <h2 className="section-title">Location branding</h2>

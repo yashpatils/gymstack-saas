@@ -1,10 +1,14 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly subscriptionGatingService: SubscriptionGatingService,
+  ) {}
 
   async getOrg(orgId: string) {
     const organization = await this.prisma.organization.findUnique({
@@ -13,6 +17,10 @@ export class OrganizationsService {
         id: true,
         name: true,
         createdAt: true,
+        whiteLabelEnabled: true,
+        whiteLabelBrandingEnabled: true,
+        stripePriceId: true,
+        subscriptionStatus: true,
       },
     });
 
@@ -20,7 +28,23 @@ export class OrganizationsService {
       throw new NotFoundException('Organization not found');
     }
 
-    return organization;
+    const whiteLabelEnabled = this.subscriptionGatingService.getEffectiveWhiteLabel({
+      whiteLabelEnabled: Boolean(organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled),
+      stripePriceId: organization.stripePriceId,
+      subscriptionStatus: organization.subscriptionStatus,
+    });
+    const whiteLabelEligible = this.subscriptionGatingService.isWhiteLabelEligible({
+      stripePriceId: organization.stripePriceId,
+      subscriptionStatus: organization.subscriptionStatus,
+    });
+
+    return {
+      id: organization.id,
+      name: organization.name,
+      createdAt: organization.createdAt,
+      whiteLabelEnabled,
+      whiteLabelEligible,
+    };
   }
 
 
@@ -63,6 +87,41 @@ export class OrganizationsService {
     };
   }
 
+
+
+  async updateWhiteLabel(orgId: string | undefined, userId: string, enabled: boolean) {
+    if (!orgId) {
+      throw new ForbiddenException('Organization access denied');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, orgId, status: MembershipStatus.ACTIVE },
+      select: { role: true },
+    });
+
+    if (!membership || membership.role !== MembershipRole.TENANT_OWNER) {
+      throw new ForbiddenException('Only tenant owners can update white-label settings');
+    }
+
+    if (enabled) {
+      const eligible = await this.subscriptionGatingService.getWhiteLabelEligibility(orgId);
+      if (!eligible) {
+        throw new HttpException({ code: 'UPGRADE_REQUIRED', message: 'Upgrade to Pro to enable white-label.' }, HttpStatus.PAYMENT_REQUIRED);
+      }
+    }
+
+    const updated = await this.prisma.organization.update({
+      where: { id: orgId },
+      data: { whiteLabelEnabled: enabled, whiteLabelBrandingEnabled: enabled },
+      select: { id: true, whiteLabelEnabled: true },
+    });
+
+    return {
+      tenantId: updated.id,
+      whiteLabelEnabled: updated.whiteLabelEnabled,
+    };
+  }
+
   async renameOrg(orgId: string | undefined, userId: string, name: string) {
     if (!orgId) {
       throw new ForbiddenException('Organization access denied');
@@ -90,6 +149,10 @@ export class OrganizationsService {
         id: true,
         name: true,
         createdAt: true,
+        whiteLabelEnabled: true,
+        whiteLabelBrandingEnabled: true,
+        stripePriceId: true,
+        subscriptionStatus: true,
       },
     });
   }

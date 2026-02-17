@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { normalizeHostname } from '../domains/domain.util';
 import { PublicLocationByHostResponseDto } from './dto/public-location-by-host.dto';
 
@@ -29,16 +30,23 @@ type PublicLocationContext = {
 
 @Injectable()
 export class PublicService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly subscriptionGatingService: SubscriptionGatingService,
+  ) {}
 
   private toTenantBranding(
-    tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean } | null,
+    tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean; stripePriceId?: string | null; subscriptionStatus?: string | null } | null,
     fallbackTenantId: string,
   ) {
     return {
       id: tenant?.id ?? fallbackTenantId,
       name: tenant?.name ?? '',
-      whiteLabelEnabled: Boolean(tenant?.whiteLabelEnabled || tenant?.whiteLabelBrandingEnabled),
+      whiteLabelEnabled: tenant ? this.subscriptionGatingService.getEffectiveWhiteLabel({
+        whiteLabelEnabled: Boolean(tenant.whiteLabelEnabled || tenant.whiteLabelBrandingEnabled),
+        stripePriceId: tenant.stripePriceId ?? null,
+        subscriptionStatus: tenant.subscriptionStatus ?? null,
+      }) : false,
     };
   }
 
@@ -88,6 +96,8 @@ export class PublicService {
             id: true,
             whiteLabelEnabled: true,
             whiteLabelBrandingEnabled: true,
+            stripePriceId: true,
+            subscriptionStatus: true,
           },
         },
       },
@@ -107,9 +117,11 @@ export class PublicService {
         },
         tenant: {
           id: byCustomDomain.org.id,
-          whiteLabelEnabled: Boolean(
-            byCustomDomain.org.whiteLabelEnabled || byCustomDomain.org.whiteLabelBrandingEnabled,
-          ),
+          whiteLabelEnabled: this.subscriptionGatingService.getEffectiveWhiteLabel({
+            whiteLabelEnabled: Boolean(byCustomDomain.org.whiteLabelEnabled || byCustomDomain.org.whiteLabelBrandingEnabled),
+            stripePriceId: byCustomDomain.org.stripePriceId,
+            subscriptionStatus: byCustomDomain.org.subscriptionStatus,
+          }),
         },
       };
     }
@@ -137,6 +149,8 @@ export class PublicService {
             id: true,
             whiteLabelEnabled: true,
             whiteLabelBrandingEnabled: true,
+            stripePriceId: true,
+            subscriptionStatus: true,
           },
         },
       },
@@ -159,7 +173,11 @@ export class PublicService {
       },
       tenant: {
         id: bySlug.org.id,
-        whiteLabelEnabled: Boolean(bySlug.org.whiteLabelEnabled || bySlug.org.whiteLabelBrandingEnabled),
+        whiteLabelEnabled: this.subscriptionGatingService.getEffectiveWhiteLabel({
+          whiteLabelEnabled: Boolean(bySlug.org.whiteLabelEnabled || bySlug.org.whiteLabelBrandingEnabled),
+          stripePriceId: bySlug.org.stripePriceId,
+          subscriptionStatus: bySlug.org.subscriptionStatus,
+        }),
       },
     };
   }
@@ -188,7 +206,7 @@ export class PublicService {
 
     const tenant = await this.prisma.organization.findUnique({
       where: { id: location.orgId },
-      select: { id: true, name: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+      select: { id: true, name: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true, stripePriceId: true, subscriptionStatus: true },
     });
 
     return {

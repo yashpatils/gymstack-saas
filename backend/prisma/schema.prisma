@@ -273,6 +273,11 @@ model Organization {
   name        String
   whiteLabelBrandingEnabled Boolean @default(false)
   whiteLabelEnabled Boolean @default(false)
+  stripeCustomerId String? @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId String?
+  subscriptionStatus String?
+  currentPeriodEnd DateTime?
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
