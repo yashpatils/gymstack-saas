@@ -66,6 +66,18 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+
+enum TenantActivationStep {
+  TENANT_CREATED
+  LOCATION_CREATED
+  FIRST_STAFF_INVITED
+  FIRST_CLIENT_ADDED
+  FIRST_MEMBERSHIP_PLAN_CREATED
+  FIRST_MEMBERSHIP_ASSIGNED
+  FIRST_CLASS_CREATED
+  FIRST_BOOKING
+}
+
 enum UserStatus {
   ACTIVE
   DELETED
@@ -342,6 +354,8 @@ model Organization {
   stripePriceId String?
   subscriptionStatus String?
   currentPeriodEnd DateTime?
+  trialEndsAt DateTime?
+  isTrialUsed Boolean @default(false)
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
@@ -353,6 +367,7 @@ model Organization {
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
   adminEvents AdminEvent[]
+  tenantActivationProgress TenantActivationProgress[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -475,4 +490,16 @@ model ClientMembership {
   @@index([locationId, status])
   @@index([planId])
   @@index([createdByUserId])
+}
+
+
+model TenantActivationProgress {
+  id          String               @id @default(cuid())
+  tenantId    String
+  step        TenantActivationStep
+  completedAt DateTime             @default(now())
+  tenant      Organization         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, step])
+  @@index([tenantId])
 }

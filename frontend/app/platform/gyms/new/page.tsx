@@ -15,6 +15,8 @@ import { useAuth } from "../../../../src/providers/AuthProvider";
 import { apiFetch } from "@/src/lib/apiFetch";
 import { useToast } from "../../../../src/components/toast/ToastProvider";
 import type { Gym } from "../../../../src/types/gym";
+import { listGyms } from "../../../../src/lib/gyms";
+import { UpgradeModal } from "../../../../src/components/common/UpgradeModal";
 
 type GymForm = {
   name: string;
@@ -30,6 +32,8 @@ export default function NewGymPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [existingGymCount, setExistingGymCount] = useState(0);
+  const [showUpgradeNudge, setShowUpgradeNudge] = useState(false);
 
   useEffect(() => {
     if (!user?.id) {
@@ -40,6 +44,15 @@ export default function NewGymPage() {
     getBillingStatus(user.id)
       .then((status) => setSubscriptionStatus(status.subscriptionStatus ?? null))
       .catch(() => setSubscriptionStatus(null));
+
+    listGyms()
+      .then((gyms) => {
+        setExistingGymCount(gyms.length);
+        if (gyms.length >= 1) {
+          setShowUpgradeNudge(true);
+        }
+      })
+      .catch(() => setExistingGymCount(0));
   }, [user?.id]);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -122,6 +135,12 @@ export default function NewGymPage() {
           </div>
         </form>
       </Card>
+      <UpgradeModal
+        open={showUpgradeNudge && existingGymCount >= 1}
+        title="Planning to expand to more locations?"
+        description="Pro gives you expansion controls and white-label options for multi-location growth."
+        onClose={() => setShowUpgradeNudge(false)}
+      />
     </PageShell>
   );
 }

@@ -102,6 +102,36 @@ export class AdminService {
     };
   }
 
+  async getGrowthMetrics(): Promise<{
+    activationRate: number;
+    trialToPaidConversion: number;
+    averageLocationsPerTenant: number;
+    mrrGrowthRate: number;
+    churnRate: number;
+  }> {
+    const [tenantCount, activatedTenantCount, paidTenantCount, locationCount, canceledTenantCount, overview] = await Promise.all([
+      this.prisma.organization.count(),
+      this.prisma.organization.count({ where: { gyms: { some: {} } } }),
+      this.prisma.organization.count({ where: { subscriptionStatus: { in: ['active', 'ACTIVE'] } } }),
+      this.prisma.gym.count(),
+      this.prisma.organization.count({ where: { subscriptionStatus: { in: ['canceled', 'CANCELED'] } } }),
+      this.getOverview(),
+    ]);
+
+    const activationRate = tenantCount > 0 ? activatedTenantCount / tenantCount : 0;
+    const trialToPaidConversion = tenantCount > 0 ? paidTenantCount / tenantCount : 0;
+    const averageLocationsPerTenant = tenantCount > 0 ? locationCount / tenantCount : 0;
+    const churnRate = tenantCount > 0 ? canceledTenantCount / tenantCount : 0;
+
+    return {
+      activationRate,
+      trialToPaidConversion,
+      averageLocationsPerTenant,
+      mrrGrowthRate: overview.trends.newTenants30d > 0 ? overview.trends.newTenants7d / overview.trends.newTenants30d : 0,
+      churnRate,
+    };
+  }
+
   async listTenants(page: number, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
     const pageSize = 20;

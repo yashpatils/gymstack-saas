@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
@@ -30,13 +30,18 @@ export class AdminController {
     };
   }
 
+  @Get('growth')
+  growth() {
+    return this.adminService.getGrowthMetrics();
+  }
+
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('query') query?: string,
     @Query('status') status?: string,
   ) {
-    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
+    return this.adminService.listTenants(page ?? 1, query, status);
   }
 
 
@@ -69,7 +74,7 @@ export class AdminController {
   }
 
   @Post('users/:id/revoke-sessions')
-  revokeSessions(@Param('id') id: string, @Req() req: { user: RequestUser }) {
+  revokeSessions(@Param('id') id: string, @Req() req: { user: { id: string } }) {
     return this.adminService.revokeUserSessions(id, req.user.id);
   }
 
@@ -81,7 +86,7 @@ export class AdminController {
   async setTenantFeatures(
     @Param('tenantId') tenantId: string,
     @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
-    @Req() req: { user: RequestUser },
+    @Req() req: { user: { id: string } },
   ) {
     return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id);
   }
