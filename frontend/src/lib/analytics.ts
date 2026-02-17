@@ -43,9 +43,12 @@ export async function track(eventName: string, properties: AnalyticsProps = {}):
     occurredAt: new Date().toISOString(),
   };
 
-  if (typeof window !== 'undefined' && (window as { posthog?: { capture: (name: string, props: Record<string, unknown>) => void } }).posthog) {
-    (window as { posthog: { capture: (name: string, props: Record<string, unknown>) => void } }).posthog.capture(payload.eventName, payload.properties);
-    return;
+  if (typeof window !== 'undefined') {
+    const ph = (window as { posthog?: { capture?: (name: string, props: Record<string, unknown>) => void } }).posthog;
+    if (ph?.capture) {
+      ph.capture(payload.eventName, payload.properties);
+      return;
+    }
   }
 
   console.debug('[analytics]', payload);
