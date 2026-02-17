@@ -967,6 +967,7 @@ enum InsightSeverity {
   critical
 }
 
+
 model DailyLocationMetrics {
   id                    String   @id @default(uuid())
   tenantId              String
@@ -1007,4 +1008,17 @@ model InsightLog {
 
   @@index([tenantId, createdAt])
   @@index([locationId, createdAt])
+}
+
+model AiInsight {
+  id          String       @id @default(cuid())
+  tenantId    String
+  range       String
+  content     Json
+  generatedAt DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, range, generatedAt])
 }

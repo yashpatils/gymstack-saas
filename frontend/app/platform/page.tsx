@@ -7,6 +7,7 @@ import { DataTable, EmptyState, ErrorState, LoadingState, StatCard, type DataTab
 import { listGyms, type Gym } from "../../src/lib/gyms";
 import { listUsers, type User } from "../../src/lib/users";
 import { apiFetch } from "../../src/lib/apiFetch";
+import { WeeklyAiBriefCard } from "../../src/components/dashboard/WeeklyAiBrief";
 
 type DashboardSummary = {
   locations: number;
@@ -76,6 +77,11 @@ export default function PlatformPage() {
         <StatCard label="MRR" value={summary?.mrr ? `$${summary.mrr.toFixed(2)}` : "—"} />
         <StatCard label="Invites" value={String(summary?.invites ?? 0)} />
       </PageGrid>
+
+
+      <PageSection>
+        <WeeklyAiBriefCard />
+      </PageSection>
 
       <PageSection>
         <PageCard title="Locations">

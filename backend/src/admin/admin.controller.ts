@@ -42,6 +42,11 @@ export class AdminController {
     return this.adminService.getAnalyticsUsage();
   }
 
+  @Get('ai/usage')
+  aiUsage() {
+    return this.adminService.getAiUsage();
+  }
+
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,

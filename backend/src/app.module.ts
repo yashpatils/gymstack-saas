@@ -28,6 +28,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { DeveloperModule } from './developer/developer.module';
 import { DevelopersModule } from './developers/developers.module';
 import { PublicApiModule } from './public-api/public-api.module';
+import { AiInsightsModule } from './ai-insights/ai-insights.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PublicApiModule } from './public-api/public-api.module';
     PublicApiModule,
     DeveloperModule,
     DevelopersModule,
+    AiInsightsModule,
   ],
   controllers: [AppController],
   providers: [
