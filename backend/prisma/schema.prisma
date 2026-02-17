@@ -545,6 +545,7 @@ model Organization {
   feedbackItems Feedback[]
   dataExportJobs DataExportJob[]
   platformBackups PlatformBackup[]
+  aiInsights  AiInsight[]
   campaigns   Campaign[]
   planOverride TenantPlanOverride?
   createdAt   DateTime     @default(now())
