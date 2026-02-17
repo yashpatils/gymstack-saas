@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -21,6 +21,8 @@ const RESEND_VERIFICATION_RESPONSE = {
   ok: true as const,
   message: 'If an account exists and is not already verified, we sent a verification email.',
 };
+
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
 
 
 function generateVerificationToken(): { rawToken: string; tokenHash: string; expiresAt: Date } {
@@ -243,13 +245,17 @@ export class AuthService implements OnModuleInit {
     const email = input.email?.trim().toLowerCase();
     const { password } = input;
     if (!email || !password) {
-      throw new BadRequestException('Email and password are required');
+      throw new BadRequestException({ code: 'AUTH_MISSING_CREDENTIALS', message: 'Email and password are required.' });
     }
 
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || user.status !== UserStatus.ACTIVE) {
+    if (!user) {
       this.auditService.log({ action: 'LOGIN_FAILED', targetType: 'user', metadata: { email }, ip: context?.ip, userAgent: context?.userAgent });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: 'AUTH_INVALID_CREDENTIALS', message: INVALID_CREDENTIALS_MESSAGE });
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException({ code: 'AUTH_USER_DISABLED', message: 'Your account is disabled. Please contact support.' });
     }
 
     if (user.deletionRequestedAt) {
@@ -261,7 +267,7 @@ export class AuthService implements OnModuleInit {
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
       this.auditService.log({ actor: { userId: user.id, type: AuditActorType.USER, email: user.email, role: user.role }, tenantId: user.orgId ?? null, action: 'LOGIN_FAILED', targetType: 'user', targetId: user.id, ip: context?.ip, userAgent: context?.userAgent });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: 'AUTH_INVALID_CREDENTIALS', message: INVALID_CREDENTIALS_MESSAGE });
     }
 
     await this.ensureTenantForLegacyOwner(user.id);
@@ -271,7 +277,28 @@ export class AuthService implements OnModuleInit {
       orderBy: { createdAt: 'asc' },
     });
 
-    const activeContext = await this.getDefaultContext(memberships);
+    if (memberships.length === 0) {
+      throw new ForbiddenException({ code: 'AUTH_USER_NOT_ALLOWED_IN_TENANT', message: 'You are not allowed to access this tenant.' });
+    }
+
+    const membershipTenantIds = [...new Set(memberships.map((membership) => membership.orgId))];
+    const tenantStates = await this.prisma.organization.findMany({
+      where: { id: { in: membershipTenantIds } },
+      select: { id: true, isDisabled: true },
+    });
+    const disabledTenantIds = new Set(tenantStates.filter((tenant) => tenant.isDisabled).map((tenant) => tenant.id));
+    const enabledMemberships = memberships.filter((membership) => !disabledTenantIds.has(membership.orgId));
+
+    if (enabledMemberships.length === 0) {
+      throw new ForbiddenException({ code: 'AUTH_TENANT_DISABLED', message: 'Tenant access is disabled. Please contact support.' });
+    }
+
+    const enabledTenantIds = [...new Set(enabledMemberships.map((membership) => membership.orgId))];
+    if (enabledTenantIds.length > 1) {
+      throw new ConflictException({ code: 'AUTH_MULTIPLE_TENANTS', message: 'Multiple tenant memberships found. Please choose a tenant to continue.' });
+    }
+
+    const activeContext = await this.getDefaultContext(enabledMemberships);
     const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
@@ -299,7 +326,7 @@ export class AuthService implements OnModuleInit {
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
       },
-      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
+      memberships: enabledMemberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
     };
   }
