@@ -35,18 +35,6 @@ enum DomainStatus {
   DELETING
 }
 
-
-enum AuditActorType {
-  SYSTEM
-  USER
-  ADMIN
-}
-
-enum FeatureFlagScope {
-  GLOBAL
-  TENANT
-  LOCATION
-}
 enum InviteStatus {
   PENDING
   ACCEPTED
@@ -78,18 +66,6 @@ enum SubscriptionStatus {
   CANCELED
 }
 
-
-enum TenantActivationStep {
-  TENANT_CREATED
-  LOCATION_CREATED
-  FIRST_STAFF_INVITED
-  FIRST_CLIENT_ADDED
-  FIRST_MEMBERSHIP_PLAN_CREATED
-  FIRST_MEMBERSHIP_ASSIGNED
-  FIRST_CLASS_CREATED
-  FIRST_BOOKING
-}
-
 enum UserStatus {
   ACTIVE
   DELETED
@@ -107,34 +83,11 @@ enum OAuthProvider {
   apple
 }
 
-enum AuditActorType {
-  SYSTEM
-  USER
-  ADMIN
-}
-
-enum FeatureFlagScope {
-  GLOBAL
-  TENANT
-  LOCATION
-}
-
 enum ActiveMode {
   OWNER
   MANAGER
 }
 
-
-enum AuditActorType {
-  SYSTEM
-  USER
-}
-
-enum FeatureFlagScope {
-  GLOBAL
-  TENANT
-  LOCATION
-}
 enum ClassSessionStatus {
   SCHEDULED
   CANCELED
@@ -144,6 +97,42 @@ enum ClassBookingStatus {
   BOOKED
   CANCELED
   CHECKED_IN
+}
+
+enum SupportTicketStatus {
+  OPEN
+  CLOSED
+}
+
+enum FeedbackPriority {
+  low
+  medium
+  high
+}
+
+enum FeedbackStatus {
+  open
+  planned
+  shipped
+}
+
+enum FeedbackCategory {
+  bug
+  improvement
+  feature
+}
+
+enum ChangelogAudience {
+  admin
+  tenant
+  staff
+  client
+}
+
+enum ReleaseBuildStatus {
+  passing
+  failing
+  unknown
 }
 
 enum AuditActorType {
@@ -185,8 +174,6 @@ model User {
   updatedAt            DateTime             @updatedAt
   invites              Invite[]             @relation("InviteCreator")
   customDomains        CustomDomain[]
-  updatedFeatureFlags   FeatureFlag[]         @relation("FeatureFlagUpdatedBy")
-  adminEvents           AdminEvent[]
   locationInvites      LocationInvite[]
   consumedLocationInvites LocationInvite[] @relation("InviteConsumer")
   auditLogs            AuditLog[]            @relation("LegacyAuditUser")
@@ -202,8 +189,10 @@ model User {
   classBookings          ClassBooking[]
   pushSubscriptions      PushSubscription[]
   notificationMarkers    NotificationMarker[]
-  updatedFeatureFlags    FeatureFlag[]       @relation("FeatureFlagUpdatedBy")
+  featureFlagsUpdated    FeatureFlag[] @relation("FeatureFlagUpdatedBy")
   adminEvents            AdminEvent[]
+  feedbackItems          Feedback[]
+  supportTickets         SupportTicket[]
 
   @@index([orgId])
   @@index([deletedAt])
@@ -394,18 +383,16 @@ model Gym {
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   memberships  Membership[]
   customDomains CustomDomain[]
-  auditLogs     AuditLog[]       @relation("GymAuditLogs")
-  featureFlags  FeatureFlag[]    @relation("GymFeatureFlags")
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]
-  classes        Class[]
-  classSessions  ClassSession[]
-  classBookings  ClassBooking[]
+  classes       Class[]
+  classSessions ClassSession[]
+  classBookings ClassBooking[]
   pushSubscriptions PushSubscription[]
   notificationMarkers NotificationMarker[]
-  auditLogs      AuditLog[]
-  featureFlags   FeatureFlag[]
+  auditLogs     AuditLog[]      @relation("GymAuditLogs")
+  featureFlags  FeatureFlag[]   @relation("GymFeatureFlags")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -424,8 +411,14 @@ model Organization {
   stripePriceId String?
   subscriptionStatus String?
   currentPeriodEnd DateTime?
-  trialEndsAt DateTime?
   isTrialUsed Boolean @default(false)
+  isDemo      Boolean      @default(false)
+  demoLastResetAt DateTime?
+  referralCode String? @unique
+  referredByTenantId String?
+  trialStartedAt DateTime?
+  trialEndsAt DateTime?
+  upgradedAt DateTime?
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
@@ -436,10 +429,14 @@ model Organization {
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
-  supportTickets      SupportTicket[] @relation("SupportTicketTenant")
   adminEvents AdminEvent[]
+  supportTickets SupportTicket[] @relation("SupportTicketTenant")
   pushSubscriptions PushSubscription[]
   notificationMarkers NotificationMarker[]
+  referredTenants Organization[] @relation("TenantReferrals")
+  referredByTenant Organization? @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
+  trialEvents TrialEvent[]
+  feedbackItems Feedback[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -466,89 +463,6 @@ model TrialEvent {
 
   @@index([tenantId, createdAt])
   @@index([eventType])
-}
-
-model ApiKey {
-  id         String       @id @default(uuid())
-  tenantId   String
-  name       String
-  keyHash    String       @unique
-  lastUsedAt DateTime?
-  revokedAt  DateTime?
-  createdAt  DateTime     @default(now())
-  tenant     Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, createdAt])
-  @@index([tenantId, revokedAt])
-}
-
-model WebhookEndpoint {
-  id         String            @id @default(uuid())
-  tenantId   String
-  url        String
-  secret     String
-  events     String[]
-  active     Boolean           @default(true)
-  createdAt  DateTime          @default(now())
-  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  deliveries WebhookDelivery[]
-
-  @@index([tenantId, active])
-}
-
-model WebhookDelivery {
-  id                String          @id @default(uuid())
-  webhookEndpointId String
-  eventType         String
-  payload           Json
-  responseStatus    Int?
-  responseBody      String?
-  attemptCount      Int             @default(0)
-  nextRetryAt       DateTime?
-  createdAt         DateTime        @default(now())
-  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
-
-  @@index([webhookEndpointId, createdAt])
-  @@index([nextRetryAt])
-}
-
-model Feedback {
-  id         String            @id @default(cuid())
-  tenantId   String
-  userId     String
-  message    String
-  page       String
-  priority   FeedbackPriority
-  status     FeedbackStatus    @default(open)
-  category   FeedbackCategory?
-  taskId     String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, createdAt])
-  @@index([status, priority])
-  @@index([taskId])
-}
-
-model ChangelogEntry {
-  id          String            @id @default(cuid())
-  title       String
-  description String
-  audience    ChangelogAudience
-  createdAt   DateTime          @default(now())
-
-  @@index([audience, createdAt])
-}
-
-model ReleaseStatus {
-  id           String             @id @default(cuid())
-  version      String
-  lastDeployAt DateTime
-  buildStatus  ReleaseBuildStatus @default(unknown)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
 }
 
 model AdminEvent {
@@ -671,6 +585,154 @@ model ClientMembership {
   @@index([createdByUserId])
 }
 
+model Class {
+  id          String   @id @default(uuid())
+  locationId  String
+  title       String
+  description String?
+  coachUserId String?
+  capacity    Int
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  location    Gym      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  coach       User?    @relation("ClassCoach", fields: [coachUserId], references: [id], onDelete: SetNull)
+  sessions    ClassSession[]
+
+  @@index([locationId])
+  @@index([coachUserId])
+}
+
+model ClassSession {
+  id               String @id @default(uuid())
+  classId          String
+  locationId       String
+  startsAt         DateTime
+  endsAt           DateTime
+  capacityOverride Int?
+  status           ClassSessionStatus @default(SCHEDULED)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  classTemplate    Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  location         Gym   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  bookings         ClassBooking[]
+  notificationMarkers NotificationMarker[]
+
+  @@index([classId])
+  @@index([locationId, startsAt])
+}
+
+model ClassBooking {
+  id         String @id @default(uuid())
+  sessionId  String
+  locationId String
+  userId     String
+  status     ClassBookingStatus @default(BOOKED)
+  canceledAt  DateTime?
+  bookedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  session    ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  location   Gym @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([locationId, status])
+  @@index([userId, status])
+}
+
+model PushSubscription {
+  id         String    @id @default(uuid())
+  userId     String
+  tenantId   String?
+  locationId String?
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant     Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  location   Gym?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, revokedAt])
+  @@index([tenantId, locationId, revokedAt])
+}
+
+model NotificationMarker {
+  id          String   @id @default(uuid())
+  userId      String
+  tenantId    String?
+  locationId  String?
+  sessionId   String?
+  markerType  String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant      Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  location    Gym?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  session     ClassSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@unique([markerType, userId, sessionId])
+  @@index([markerType, createdAt])
+}
+
+model SupportTicket {
+  id        String              @id @default(uuid())
+  tenantId  String?
+  userId    String?
+  email     String
+  subject   String
+  message   String
+  status    SupportTicketStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant    Organization?       @relation("SupportTicketTenant", fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model Feedback {
+  id         String            @id @default(cuid())
+  tenantId   String
+  userId     String
+  message    String
+  page       String
+  priority   FeedbackPriority
+  status     FeedbackStatus    @default(open)
+  category   FeedbackCategory?
+  taskId     String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([status, priority])
+  @@index([taskId])
+}
+
+model ChangelogEntry {
+  id          String            @id @default(cuid())
+  title       String
+  description String
+  audience    ChangelogAudience
+  createdAt   DateTime          @default(now())
+
+  @@index([audience, createdAt])
+}
+
+model ReleaseStatus {
+  id           String             @id @default(cuid())
+  version      String
+  lastDeployAt DateTime
+  buildStatus  ReleaseBuildStatus @default(unknown)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
 enum InsightSeverity {
   info
   warning
@@ -718,3 +780,4 @@ model InsightLog {
   @@index([tenantId, createdAt])
   @@index([locationId, createdAt])
 }
+
