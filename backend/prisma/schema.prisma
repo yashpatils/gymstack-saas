@@ -311,7 +311,7 @@ model FeatureFlag {
   enabled         Boolean          @default(false)
   scope           FeatureFlagScope @default(GLOBAL)
   tenantId        String?
-  locationId      String??
+  locationId      String?
   updatedByUserId String?
   updatedAt       DateTime         @updatedAt
   createdAt       DateTime         @default(now())
@@ -586,7 +586,7 @@ model MembershipPlan {
 model ClientMembership {
   id              String                 @id @default(uuid())
   userId          String
-  locationId      String?
+  locationId      String
   planId          String?
   status          ClientMembershipStatus
   startAt         DateTime

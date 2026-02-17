@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/client';
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 type AdminTenantListItem = {
   tenantId: string;
@@ -25,6 +26,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobLogService: JobLogService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
@@ -287,5 +289,23 @@ export class AdminService {
       migrations: rows.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), finishedAt: row.finished_at ? row.finished_at.toISOString() : null, rolledBackAt: row.rolled_back_at ? row.rolled_back_at.toISOString() : null })),
       guidance: ['Take an immediate backup/snapshot before manual intervention.', 'Inspect the failed migration SQL and deployment logs.', 'Use prisma migrate resolve --rolled-back or --applied after validation.', 'Re-run prisma migrate deploy once the state is consistent.'],
     };
+  }
+
+  listApiKeys(page: number, pageSize: number) {
+    return this.prisma.apiKey.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+  }
+
+  async revokeApiKey(id: string) {
+    await this.prisma.apiKey.updateMany({ where: { id, revokedAt: null }, data: { revokedAt: new Date() } });
+    return { ok: true as const };
+  }
+
+  listWebhookFailures(page: number, pageSize: number) {
+    return this.webhooksService.getFailureLogs(page, pageSize);
   }
 }

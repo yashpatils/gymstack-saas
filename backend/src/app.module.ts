@@ -25,6 +25,9 @@ import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { TenantModule } from './tenant/tenant.module';
+import { DeveloperModule } from './developer/developer.module';
+import { DevelopersModule } from './developers/developers.module';
+import { PublicApiModule } from './public-api/public-api.module';
 
 @Module({
   imports: [
@@ -51,6 +54,9 @@ import { TenantModule } from './tenant/tenant.module';
     FeatureFlagsModule,
     AnalyticsModule,
     TenantModule,
+    PublicApiModule,
+    DeveloperModule,
+    DevelopersModule,
   ],
   controllers: [AppController],
   providers: [

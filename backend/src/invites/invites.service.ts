@@ -201,7 +201,7 @@ export class InvitesService {
     }
 
     const tenantId = requester.activeTenantId ?? requester.orgId;
-    if (!tenantId || (tenantId !== invite.tenantId && !hasSupportModeContext(requester, invite.tenantId, invite.locationId))) {
+    if (!tenantId || (tenantId !== invite.tenantId && !hasSupportModeContext(requester, invite.tenantId, invite.locationId ?? undefined))) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -216,7 +216,7 @@ export class InvitesService {
       select: { id: true },
     });
 
-    if (!isCreator && !requesterIsOwner && !hasSupportModeContext(requester, invite.tenantId, invite.locationId)) {
+    if (!isCreator && !requesterIsOwner && !hasSupportModeContext(requester, invite.tenantId, invite.locationId ?? undefined)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
