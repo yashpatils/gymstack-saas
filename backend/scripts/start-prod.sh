@@ -29,25 +29,20 @@ resolve_failed_migrations() {
     return 1
   fi
 
-  echo "[start-prod] Found failed Prisma migrations:" >&2
-  while IFS= read -r migration_name; do
-    [[ -z "$migration_name" ]] && continue
-    echo "  - $migration_name" >&2
-  done <<< "$failed_migrations"
-
-  echo "[start-prod] Migrations are in a failed state. Resolve each migration before deployment." >&2
-  echo "Run: npx prisma migrate resolve --rolled-back <migration> OR --applied <migration>" >&2
-  exit 1
+  echo "[start-prod] No failed Prisma migrations detected"
 }
 
 echo "[start-prod] Running DB connectivity check"
 node scripts/db-check.js
 
 echo "[start-prod] Checking migration status"
-migration_startup_guard
+resolve_failed_migrations
 
 echo "[start-prod] Applying migrations"
-npx prisma migrate deploy
+if ! npx prisma migrate deploy; then
+  echo "[start-prod] ERROR: prisma migrate deploy failed. Startup halted." >&2
+  exit 1
+fi
 
 echo "[start-prod] Starting server"
 node dist/main.js
