@@ -1,13 +1,15 @@
-import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { BillingProvider, InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
+import { PlanService } from '../billing/plan.service';
 
 @Injectable()
 export class OrganizationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
+    private readonly planService: PlanService,
   ) {}
 
   async getOrg(orgId: string) {
@@ -170,10 +172,7 @@ export class OrganizationsService {
     }
 
     if (enabled) {
-      const eligible = await this.subscriptionGatingService.getWhiteLabelEligibility(orgId);
-      if (!eligible) {
-        throw new HttpException({ code: 'UPGRADE_REQUIRED', message: 'Upgrade to Pro to enable white-label.' }, HttpStatus.PAYMENT_REQUIRED);
-      }
+      await this.planService.assertWithinLimits(orgId, 'enableWhiteLabel');
     }
 
     const updated = await this.prisma.organization.update({

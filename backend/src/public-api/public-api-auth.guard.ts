@@ -61,6 +61,22 @@ export class PublicApiAuthGuard implements CanActivate {
       data: { lastUsedAt: new Date() },
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'SYSTEM',
+        actorUserId: null,
+        tenantId: storedKey.tenantId,
+        locationId: null,
+        action: 'public_api.request',
+        targetType: 'api_key',
+        targetId: storedKey.id,
+        entityType: 'api_key',
+        entityId: storedKey.id,
+        orgId: storedKey.tenantId,
+        metadata: { keyName: storedKey.name },
+      },
+    });
+
     return true;
   }
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminService } from './admin.service';
@@ -20,6 +20,26 @@ export class AdminController {
   @Get('growth')
   growth() {
     return this.adminService.getGrowthMetrics();
+  }
+
+  @Get('analytics/overview')
+  analyticsOverview() {
+    return this.adminService.getAnalyticsOverview();
+  }
+
+  @Get('analytics/growth')
+  analyticsGrowth(@Query('range') range?: string) {
+    return this.adminService.getAnalyticsGrowth(range);
+  }
+
+  @Get('analytics/health')
+  analyticsHealth() {
+    return this.adminService.getAnalyticsHealth();
+  }
+
+  @Get('analytics/usage')
+  analyticsUsage() {
+    return this.adminService.getAnalyticsUsage();
   }
 
   @Get('tenants')
@@ -81,6 +101,21 @@ export class AdminController {
     @Req() req: { user: RequestUser },
   ) {
     return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
+  }
+
+
+  @Get('tenants/:tenantId/plan')
+  tenantPlan(@Param('tenantId') tenantId: string) {
+    return this.adminService.getTenantPlan(tenantId);
+  }
+
+  @Patch('tenants/:tenantId/plan')
+  updateTenantPlan(
+    @Param('tenantId') tenantId: string,
+    @Body() body: { maxLocationsOverride?: number | null; maxStaffSeatsOverride?: number | null; whiteLabelOverride?: boolean | null },
+    @Req() req: { user: RequestUser },
+  ) {
+    return this.adminService.updateTenantPlanOverrides(tenantId, body, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
   }
 
   @Get('tenants/:tenantId')

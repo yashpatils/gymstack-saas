@@ -130,7 +130,8 @@ export class AuthService implements OnModuleInit {
 
     await this.notificationsService.createForUser({
       userId: created.user.id,
-      type: 'signup.success',
+      tenantId: created.membership.orgId,
+      type: 'SYSTEM',
       title: 'Welcome to GymStack',
       body: 'Your account was created successfully.',
     });

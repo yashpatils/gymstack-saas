@@ -5,6 +5,7 @@ import { PlatformAppShell } from "../../src/components/platform/layout/PlatformA
 import { platformNavConfig } from "../../src/config/nav.config";
 import { useAuth } from "../../src/providers/AuthProvider";
 import type { NavRole } from "../../src/config/nav.config";
+import { NotificationBell } from "../../src/components/notifications/NotificationBell";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, permissionKeys, permissions, activeContext, platformRole, activeTenant } = useAuth();
@@ -25,7 +26,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       <PlatformAppShell
         navItems={navItems}
         header={{
-          leftSlot: <button type="button" className="button ghost" aria-label="notifications">🔔</button>,
+          leftSlot: <NotificationBell />,
           centerSlot: <p className="text-sm font-semibold">{activeTenant?.name ?? "Platform"}</p>,
           rightSlot: <button type="button" className="button secondary" onClick={logout}>{user?.email ?? "Account"}</button>,
         }}

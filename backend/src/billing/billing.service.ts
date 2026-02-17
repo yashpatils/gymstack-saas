@@ -7,6 +7,7 @@ import {
 import { BillingProvider } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from './subscription-gating.service';
+import { PlanService } from './plan.service';
 import { BillingProviderRegistry } from './billing-provider.registry';
 import { TenantBillingStatus } from './billing.types';
 
@@ -24,6 +25,7 @@ export class BillingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
+    private readonly planService: PlanService,
     private readonly billingProviderRegistry: BillingProviderRegistry,
   ) {}
 
@@ -81,19 +83,25 @@ export class BillingService {
     }
 
     const effectivePriceId = tenant.billingPriceId ?? tenant.stripePriceId;
-    const whiteLabelEligible = this.subscriptionGatingService.isWhiteLabelEligible({
-      stripePriceId: effectivePriceId,
-      subscriptionStatus: tenant.subscriptionStatus,
-    });
+    const effectivePlan = await this.planService.getEffectivePlan(tenantId);
+    const whiteLabelEligible = effectivePlan.whiteLabelIncluded && (effectivePlan.subscriptionStatus === 'ACTIVE' || effectivePlan.subscriptionStatus === 'TRIAL');
 
     return {
       provider: tenant.billingProvider,
       billingCountry: tenant.billingCountry,
+      planKey: effectivePlan.key,
+      planName: effectivePlan.displayName,
       subscriptionStatus: tenant.subscriptionStatus,
       currentPeriodEnd: tenant.currentPeriodEnd ? tenant.currentPeriodEnd.toISOString() : null,
       priceId: effectivePriceId,
       whiteLabelEligible,
       whiteLabelEnabled: tenant.whiteLabelEnabled,
+      usage: {
+        locationsUsed: effectivePlan.usage.locationsUsed,
+        maxLocations: effectivePlan.maxLocations,
+        staffSeatsUsed: effectivePlan.usage.staffSeatsUsed,
+        maxStaffSeats: effectivePlan.maxStaffSeats,
+      },
     };
   }
 

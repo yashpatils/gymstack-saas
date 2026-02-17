@@ -5,14 +5,12 @@ import { PageCard, PageContainer, PageGrid, PageHeader } from "../../../src/comp
 import { ErrorState, LoadingState, StatCard } from "../../../src/components/platform/data";
 import { FormActions } from "../../../src/components/platform/form";
 import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
-import { LoadingState } from "../../../src/components/common/LoadingState";
-import { PageHeader } from "../../../src/components/common/PageHeader";
-import { PrimaryButton } from "../../../src/components/common/PrimaryButton";
-import { SectionCard } from "../../../src/components/common/SectionCard";
 
 const PLAN_NAMES: Record<string, string> = { starter: "Starter", pro: "Pro" };
 
 type BillingStatus = {
+  planKey: string;
+  planName: string;
   provider: "STRIPE" | "RAZORPAY";
   billingCountry: string | null;
   subscriptionStatus: string | null;
@@ -20,6 +18,12 @@ type BillingStatus = {
   priceId: string | null;
   whiteLabelEligible: boolean;
   whiteLabelEnabled: boolean;
+  usage: {
+    locationsUsed: number;
+    maxLocations: number;
+    staffSeatsUsed: number;
+    maxStaffSeats: number;
+  };
 };
 
 export default function BillingPage() {
@@ -30,11 +34,9 @@ export default function BillingPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const currentPlanName = useMemo(() => {
-    if (!status?.priceId) return "No active plan";
-    if (status.priceId === starterPriceId) return PLAN_NAMES.starter;
-    if (status.priceId === proPriceId) return PLAN_NAMES.pro;
-    return "Custom";
-  }, [proPriceId, starterPriceId, status?.priceId]);
+    if (!status) return "No active plan";
+    return status.planName;
+  }, [status]);
 
   async function loadStatus() {
     setLoading(true);
@@ -57,15 +59,15 @@ export default function BillingPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Billing" description="Manage your subscription and white-label readiness." actions={<button className="button" onClick={() => void loadStatus()} type="button">Refresh</button>} />
+      <PageHeader title="Billing" description="Manage your subscription and plan limits." actions={<button className="button" onClick={() => void loadStatus()} type="button">Refresh</button>} />
       {message ? <ErrorState message={message} /> : null}
       {loading ? <LoadingState message="Loading billing status..." /> : null}
 
       <PageGrid columns={4}>
         <StatCard label="Current plan" value={currentPlanName} />
         <StatCard label="Status" value={status?.subscriptionStatus ?? "Not subscribed"} />
-        <StatCard label="Renews" value={status?.currentPeriodEnd ? new Date(status.currentPeriodEnd).toLocaleDateString() : "—"} />
-        <StatCard label="White-label" value={status?.whiteLabelEligible ? "Eligible" : "Upgrade required"} />
+        <StatCard label="Locations" value={status ? `${status.usage.locationsUsed}/${status.usage.maxLocations}` : "—"} />
+        <StatCard label="Staff seats" value={status ? `${status.usage.staffSeatsUsed}/${status.usage.maxStaffSeats}` : "—"} />
       </PageGrid>
 
       <PageCard title="Plan options">
@@ -73,6 +75,7 @@ export default function BillingPage() {
           <button type="button" className="button secondary" disabled={!starterPriceId}>Starter</button>
           <button type="button" className="button" disabled={!proPriceId}>Pro</button>
         </FormActions>
+        <p className="mt-3 text-xs text-slate-400">White-label enabled: {status?.whiteLabelEnabled ? "Yes" : "No"}</p>
       </PageCard>
     </PageContainer>
   );

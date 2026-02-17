@@ -46,7 +46,7 @@ export class InviteAdmissionService {
     }
 
     if (!invite.locationId) {
-      throw new BadRequestException('Invite is missing location scope.');
+      throw new BadRequestException('Invite required to join this gym.');
     }
 
     await this.prisma.membership.upsert({

@@ -12,7 +12,7 @@ import {
 import { getBillingStatus } from "../../../../src/lib/billing";
 import { formatSubscriptionStatus, isActiveSubscription } from "../../../../src/lib/subscription";
 import { useAuth } from "../../../../src/providers/AuthProvider";
-import { apiFetch } from "@/src/lib/apiFetch";
+import { ApiFetchError, apiFetch } from "@/src/lib/apiFetch";
 import { useToast } from "../../../../src/components/toast/ToastProvider";
 import type { Gym } from "../../../../src/types/gym";
 import { listGyms } from "../../../../src/lib/gyms";
@@ -34,6 +34,7 @@ export default function NewGymPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [existingGymCount, setExistingGymCount] = useState(0);
   const [showUpgradeNudge, setShowUpgradeNudge] = useState(false);
+  const [upgradeErrorCode, setUpgradeErrorCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) {
@@ -68,6 +69,13 @@ export default function NewGymPage() {
       toast.success("Gym created", "Entering your new gym workspace.");
       router.push(`/platform/gyms/${createdGym.id}`);
     } catch (err) {
+      if (err instanceof ApiFetchError) {
+        const code = err.details && typeof err.details === "object" && "code" in err.details && typeof err.details.code === "string" ? err.details.code : null;
+        if (code === "LIMIT_LOCATIONS_REACHED" || code === "UPGRADE_REQUIRED" || code === "SUBSCRIPTION_INACTIVE") {
+          setUpgradeErrorCode(code);
+          setShowUpgradeNudge(true);
+        }
+      }
       const errorMessage = err instanceof Error ? err.message : "Unable to create gym.";
       setError(errorMessage);
       toast.error("Create gym failed", errorMessage);
@@ -89,6 +97,12 @@ export default function NewGymPage() {
       />
 
       {error ? <p className="text-sm text-rose-300" role="alert" aria-live="polite">{error}</p> : null}
+
+      {subscriptionStatus ? (
+        <p className="text-xs text-slate-400">
+          Usage is enforced by plan limits. You can view exact limits from Billing.
+        </p>
+      ) : null}
 
       {!isActiveSubscription(subscriptionStatus) ? (
         <Card
@@ -136,10 +150,11 @@ export default function NewGymPage() {
         </form>
       </Card>
       <UpgradeModal
-        open={showUpgradeNudge && existingGymCount >= 1}
+        open={showUpgradeNudge && (existingGymCount >= 1 || Boolean(upgradeErrorCode))}
         title="Planning to expand to more locations?"
         description="Pro gives you expansion controls and white-label options for multi-location growth."
-        onClose={() => setShowUpgradeNudge(false)}
+        errorCode={upgradeErrorCode}
+        onClose={() => { setShowUpgradeNudge(false); setUpgradeErrorCode(null); }}
       />
     </PageShell>
   );

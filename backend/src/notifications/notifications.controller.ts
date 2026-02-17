@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { User } from '../users/user.model';
 import { NotificationsService } from './notifications.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
@@ -9,13 +9,23 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  listNotifications(@Req() req: { user?: User }) {
+  listNotifications(@Req() req: { user?: User }, @Query('page') page?: string, @Query('pageSize') pageSize?: string) {
     const user = req.user;
     if (!user) {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.notificationsService.listForUser(user.id, 20);
+    const tenantId = user.supportMode?.tenantId ?? user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('No tenant context selected');
+    }
+
+    return this.notificationsService.listForUser(
+      user.id,
+      tenantId,
+      Number(page ?? '1'),
+      Number(pageSize ?? '20'),
+    );
   }
 
   @Post(':id/read')
@@ -25,6 +35,11 @@ export class NotificationsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.notificationsService.markAsRead(user.id, id);
+    const tenantId = user.supportMode?.tenantId ?? user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('No tenant context selected');
+    }
+
+    return this.notificationsService.markAsRead(user.id, tenantId, id);
   }
 }

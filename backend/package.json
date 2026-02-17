@@ -5,17 +5,17 @@
   "scripts": {
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "build": "prisma generate && nest build",
+    "build": "prisma generate --schema=./prisma/schema.prisma && nest build",
     "predeploy": "npm run lint && npm run typecheck && npm run build",
     "start": "npm run start:prod",
     "start:prod": "bash scripts/start-prod.sh",
-    "postinstall": "prisma generate",
-    "migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate --schema=./prisma/schema.prisma",
+    "migrate:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
     "db:tables": "node scripts/db-check.js",
     "test": "jest",
-    "db:seed": "prisma db seed",
-    "db:setup": "prisma migrate deploy",
-    "prisma:validate": "prisma validate"
+    "db:seed": "prisma db seed --schema=./prisma/schema.prisma",
+    "db:setup": "prisma migrate deploy --schema=./prisma/schema.prisma",
+    "prisma:validate": "prisma validate --schema=./prisma/schema.prisma"
   },
   "engines": {
     "node": ">=18"
