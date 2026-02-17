@@ -17,6 +17,23 @@ type AdminOverviewResponse = {
   };
 };
 
+type AdminTenantListItem = {
+  tenantId: string;
+  tenantName: string;
+  createdAt: string;
+  subscriptionStatus: SubscriptionStatus | 'FREE';
+  priceId: string | null;
+  mrrCents: number;
+  whiteLabelEligible: boolean;
+  whiteLabelEnabledEffective: boolean;
+  locationsCount: number;
+  usersCount: number;
+  ownersCount: number;
+  managersCount: number;
+  customDomainsCount: number;
+  isDisabled: boolean;
+};
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -31,79 +48,127 @@ export class AdminService {
     const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-    const [activeTenants, newTenants7d, newTenants30d] = await Promise.all([
-      this.prisma.organization.count({ where: { isDisabled: false } }),
+    const [tenants, newTenants7d, newTenants30d] = await Promise.all([
+      this.prisma.organization.findMany({
+        select: {
+          isDisabled: true,
+          users: {
+            select: { subscriptionStatus: true },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      }),
       this.prisma.organization.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
       this.prisma.organization.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     ]);
 
-    return {
-      totals: {
-        mrrCents: activeTenants * this.resolveMrrCents(SubscriptionStatus.ACTIVE),
-        activeTenants,
-        activeSubscriptions: activeTenants,
-        trials: 0,
-        pastDue: 0,
-        canceled: 0,
-      },
-      trends: { newTenants7d, newTenants30d },
-    };
+    let activeSubscriptions = 0;
+    let trials = 0;
+    let pastDue = 0;
+    let canceled = 0;
+    let mrrCents = 0;
+    let activeTenants = 0;
+
+    for (const tenant of tenants) {
+      if (tenant.isDisabled) {
+        continue;
+      }
+      activeTenants += 1;
+      const status = tenant.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
+      if (status === SubscriptionStatus.ACTIVE) activeSubscriptions += 1;
+      if (status === SubscriptionStatus.TRIAL) trials += 1;
+      if (status === SubscriptionStatus.PAST_DUE) pastDue += 1;
+      if (status === SubscriptionStatus.CANCELED) canceled += 1;
+      mrrCents += this.resolveMrrCents(status);
+    }
+
+    return { totals: { mrrCents, activeTenants, activeSubscriptions, trials, pastDue, canceled }, trends: { newTenants7d, newTenants30d } };
   }
 
-  async listTenants(page: number, pageSize: number, query?: string) {
-    const safePage = Math.max(1, page);
-    const safePageSize = Math.min(100, Math.max(1, pageSize));
+  async listTenants(page: number, pageSize: number, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
+    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.min(Math.floor(pageSize), 100) : 20;
+    const normalizedQuery = query?.trim();
+    const normalizedStatus = status?.trim().toUpperCase();
 
-    const where = query?.trim()
-      ? { name: { contains: query.trim(), mode: 'insensitive' as const } }
+    const where = normalizedQuery
+      ? {
+          name: {
+            contains: normalizedQuery,
+            mode: 'insensitive' as const,
+          },
+        }
       : undefined;
 
-    const [items, total] = await Promise.all([
+    const [total, organizations] = await Promise.all([
+      this.prisma.organization.count({ where }),
       this.prisma.organization.findMany({
         where,
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
         orderBy: { createdAt: 'desc' },
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
         include: {
-          _count: { select: { gyms: true, customDomains: true, users: true } },
-          memberships: {
-            where: { status: MembershipStatus.ACTIVE },
-            select: { role: true },
-          },
+          _count: { select: { gyms: true, users: true, customDomains: true } },
+          memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
+          users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'desc' }, take: 1 },
         },
       }),
       this.prisma.organization.count({ where }),
     ]);
 
-    return {
-      items: items.map((org) => ({
-        tenantId: org.id,
-        tenantName: org.name,
-        createdAt: org.createdAt.toISOString(),
-        locationsCount: org._count.gyms,
-        ownersCount: org.memberships.filter((m) => m.role === MembershipRole.TENANT_OWNER).length,
-        managersCount: org.memberships.filter((m) => m.role === MembershipRole.TENANT_LOCATION_ADMIN).length,
-        customDomainsCount: org._count.customDomains,
-        subscriptionStatus: org.subscriptionStatus ?? null,
-        whiteLabelBranding: org.whiteLabelEnabled || org.whiteLabelBrandingEnabled,
-      })),
-      page: safePage,
-      total,
-    };
+    const items = organizations
+      .map((organization) => {
+        const latestUser = organization.users[0];
+        const subscriptionStatus = latestUser?.subscriptionStatus ?? SubscriptionStatus.FREE;
+        return {
+          tenantId: organization.id,
+          tenantName: organization.name,
+          createdAt: organization.createdAt.toISOString(),
+          subscriptionStatus,
+          priceId: latestUser?.stripeSubscriptionId ?? null,
+          mrrCents: this.resolveMrrCents(subscriptionStatus),
+          whiteLabelEligible: organization._count.gyms > 0,
+          whiteLabelEnabledEffective: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
+          locationsCount: organization._count.gyms,
+          usersCount: organization._count.users,
+          ownersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length,
+          managersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN).length,
+          customDomainsCount: organization._count.customDomains,
+          isDisabled: organization.isDisabled,
+        };
+      })
+      .filter((item) => (normalizedStatus ? item.subscriptionStatus === normalizedStatus : true));
+
+    return { items, page: safePage, total };
+  }
+
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const updated = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: { whiteLabelEnabled: input.whiteLabelBranding, whiteLabelBrandingEnabled: input.whiteLabelBranding },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: { adminUserId, tenantId, type: 'TENANT_FEATURES_UPDATED', metadata: { whiteLabelBranding: input.whiteLabelBranding } },
+    });
+
+    return { tenantId: updated.id, whiteLabelBranding: updated.whiteLabelEnabled || updated.whiteLabelBrandingEnabled };
   }
 
   async getTenant(tenantId: string) {
     const organization = await this.prisma.organization.findUnique({
       where: { id: tenantId },
       include: {
-        gyms: { select: { id: true, name: true, slug: true, createdAt: true } },
-        users: { select: { id: true, email: true, role: true, status: true } },
-        adminEvents: { orderBy: { createdAt: 'desc' }, take: 50 },
+        gyms: { orderBy: { createdAt: 'asc' }, select: { id: true, name: true, slug: true, createdAt: true } },
+        users: { select: { id: true, email: true, role: true, createdAt: true }, orderBy: { createdAt: 'asc' }, take: 10 },
+        adminEvents: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     });
-    if (!organization) {
-      return null;
-    }
+    if (!organization) return null;
 
     return {
       tenant: {
@@ -113,7 +178,7 @@ export class AdminService {
         subscriptionStatus: organization.subscriptionStatus ?? null,
         whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
-      locations: organization.gyms.map((gym) => ({ ...gym, createdAt: gym.createdAt.toISOString() })),
+      locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
       billing: {
         subscriptionStatus: SubscriptionStatus.FREE,
@@ -126,39 +191,40 @@ export class AdminService {
 
   async toggleTenantActive(tenantId: string, adminUserId: string): Promise<{ tenantId: string; isDisabled: boolean }> {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true, isDisabled: true } });
-    if (!org) {
-      throw new NotFoundException('Tenant not found');
-    }
-
+    if (!org) throw new NotFoundException('Tenant not found');
     const isDisabled = !org.isDisabled;
     await this.prisma.organization.update({ where: { id: tenantId }, data: { isDisabled, disabledAt: isDisabled ? new Date() : null } });
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED' } });
     return { tenantId, isDisabled };
   }
 
-  async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined): Promise<{ tenantId: string; supportMode: { tenantId: string } }> {
-    const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
-    if (!org) {
-      throw new NotFoundException('Tenant not found');
-    }
-
-    await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'IMPERSONATE_START', metadata: { tenantId }, ip: ip ?? null } });
-    return { tenantId, supportMode: { tenantId } };
-  }
-
   async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
-    const updated = await this.prisma.organization.update({
+    const tenant = await this.prisma.organization.update({
       where: { id: tenantId },
       data: {
-        whiteLabelEnabled: input.whiteLabelBranding,
         whiteLabelBrandingEnabled: input.whiteLabelBranding,
+        whiteLabelEnabled: input.whiteLabelBranding,
       },
       select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
     });
 
-    await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'TENANT_FEATURES_UPDATED', metadata: input } });
+    await this.prisma.adminEvent.create({
+      data: {
+        adminUserId,
+        tenantId,
+        type: 'TENANT_FEATURES_UPDATED',
+        metadata: { whiteLabelBranding: input.whiteLabelBranding },
+      },
+    });
 
-    return { tenantId: updated.id, whiteLabelBranding: updated.whiteLabelEnabled || updated.whiteLabelBrandingEnabled };
+    return tenant;
+  }
+
+  async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined): Promise<{ tenantId: string; supportMode: { tenantId: string } }> {
+    const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
+    if (!org) throw new NotFoundException('Tenant not found');
+    await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'IMPERSONATE_START', metadata: { tenantId }, ip: ip ?? null } });
+    return { tenantId, supportMode: { tenantId } };
   }
 
   async searchUsers(query?: string) {
@@ -183,15 +249,22 @@ export class AdminService {
         status: true,
         createdAt: true,
         memberships: { select: { id: true, orgId: true, gymId: true, role: true, status: true, createdAt: true } },
-        refreshTokens: { orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, createdAt: true, revokedAt: true, expiresAt: true } },
+        refreshTokens: { where: { revokedAt: null }, select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
+    if (!user) return null;
+    return { ...user, lastLoginAt: user.refreshTokens[0]?.createdAt ?? null, activeSessions: user.refreshTokens.length };
   }
 
   async revokeUserSessions(userId: string, actorUserId: string) {
     const now = new Date();
     const result = await this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
-    await this.prisma.auditLog.create({ data: { actorType: 'ADMIN', actorUserId, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId, metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId } });
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'ADMIN', actorUserId, tenantId: null, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId,
+        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId,
+      },
+    });
     return { ok: true as const, revoked: result.count };
   }
 
@@ -209,12 +282,15 @@ export class AdminService {
       where: {
         tenantId: filters.tenantId || undefined,
         action: filters.action || undefined,
-        actorUser: filters.actor ? { email: { contains: filters.actor, mode: 'insensitive' as const } } : undefined,
+        actorUser: filters.actor ? { email: { contains: filters.actor, mode: 'insensitive' } } : undefined,
         createdAt: { gte: filters.from ? new Date(filters.from) : undefined, lte: filters.to ? new Date(filters.to) : undefined },
       },
       orderBy: { createdAt: 'desc' },
       take: 200,
-      select: { id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true, metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } } },
+      select: {
+        id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true,
+        metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } },
+      },
     });
   }
 

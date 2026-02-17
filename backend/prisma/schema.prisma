@@ -111,6 +111,18 @@ enum ClassBookingStatus {
   CHECKED_IN
 }
 
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -151,6 +163,12 @@ model User {
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
   createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
+  coachedClasses         Class[]            @relation("ClassCoach")
+  classBookings          ClassBooking[]
+  pushSubscriptions      PushSubscription[]
+  notificationMarkers    NotificationMarker[]
+  updatedFeatureFlags    FeatureFlag[]       @relation("FeatureFlagUpdatedBy")
+  adminEvents            AdminEvent[]
 
   @@index([orgId])
   @@index([deletedAt])
@@ -346,6 +364,13 @@ model Gym {
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]
+  classes        Class[]
+  classSessions  ClassSession[]
+  classBookings  ClassBooking[]
+  pushSubscriptions PushSubscription[]
+  notificationMarkers NotificationMarker[]
+  auditLogs      AuditLog[]
+  featureFlags   FeatureFlag[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -374,7 +399,10 @@ model Organization {
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
+  supportTickets      SupportTicket[] @relation("SupportTicketTenant")
   adminEvents AdminEvent[]
+  pushSubscriptions PushSubscription[]
+  notificationMarkers NotificationMarker[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -497,4 +525,52 @@ model ClientMembership {
   @@index([locationId, status])
   @@index([planId])
   @@index([createdByUserId])
+}
+
+enum InsightSeverity {
+  info
+  warning
+  critical
+}
+
+model DailyLocationMetrics {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  locationId            String
+  date                  DateTime @db.Date
+  checkinsCount         Int
+  bookingsCount         Int
+  uniqueClientsCount    Int
+  newClientsCount       Int
+  canceledBookingsCount Int
+  createdAt             DateTime @default(now())
+
+  @@unique([locationId, date])
+  @@index([tenantId, date])
+}
+
+model DailyMembershipMetrics {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  locationId          String
+  date                DateTime @db.Date
+  activeMemberships   Int
+  canceledMemberships Int
+  newMemberships      Int
+  createdAt           DateTime @default(now())
+
+  @@unique([locationId, date])
+  @@index([tenantId, date])
+}
+
+model InsightLog {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String?
+  insightType String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([locationId, createdAt])
 }

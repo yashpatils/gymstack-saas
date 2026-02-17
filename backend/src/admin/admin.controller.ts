@@ -4,7 +4,7 @@ import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
-type RequestUser = { id?: string; userId?: string; sub?: string };
+type RequestUser = { userId?: string; id?: string; sub?: string };
 
 @Controller('admin')
 @VerifiedEmailRequired()
@@ -38,7 +38,7 @@ export class AdminController {
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('query') query?: string,
   ) {
-    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
+    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query, status);
   }
 
   @Get('audit')
@@ -60,9 +60,7 @@ export class AdminController {
   @Get('users/:id')
   async userDetail(@Param('id') id: string) {
     const user = await this.adminService.getUserDetail(id);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
@@ -88,9 +86,7 @@ export class AdminController {
   @Get('tenants/:tenantId')
   async tenantDetail(@Param('tenantId') tenantId: string) {
     const tenant = await this.adminService.getTenant(tenantId);
-    if (!tenant) {
-      throw new NotFoundException('Tenant not found');
-    }
+    if (!tenant) throw new NotFoundException('Tenant not found');
     return tenant;
   }
 
@@ -101,25 +97,11 @@ export class AdminController {
 
   @Post('impersonate')
   impersonate(@Body() body: { tenantId: string }, @Req() req: { user: RequestUser; ip?: string }) {
-    return this.adminService.impersonateTenant(body.tenantId, req.user.userId ?? req.user.id ?? req.user.sub ?? '', req.ip);
-  }
-
-  @Get('ops/migration-status')
-  migrationStatus() {
-    return this.adminService.getMigrationStatus();
-  }
-
-  @Get('ops/backups')
-  backupStatus() {
-    return {
-      provider: 'Railway',
-      backupsEnabled: process.env.RAILWAY_BACKUPS_ENABLED === 'true',
-      lastBackupAt: process.env.LAST_BACKUP_AT ?? null,
-      checklist: [
-        'Enable Railway Postgres daily backup/snapshot retention.',
-        'Store and test restore steps at least monthly.',
-        'Log the last successful backup timestamp via LAST_BACKUP_AT env or cron updater.',
-      ],
-    };
+    const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
+    return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }
 }
+
+type RequestUser = {
+  id: string;
+};

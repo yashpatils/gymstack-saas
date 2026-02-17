@@ -19,6 +19,7 @@ const baseNavItems = [
   { label: "Billing", href: "/platform/billing" },
   { label: "Coach", href: "/platform/coach" },
   { label: "Client", href: "/platform/client" },
+  { label: "Insights", href: "/platform/insights" },
   { label: "Settings", href: "/platform/settings" },
   { label: "Location settings", href: "/platform/locations/settings" },
 ];
