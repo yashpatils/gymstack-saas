@@ -504,94 +504,50 @@ model ClientMembership {
   @@index([createdByUserId])
 }
 
-model Class {
-  id          String         @id @default(uuid())
-  locationId  String
-  title       String
-  description String?
-  coachUserId String?
-  capacity    Int            @default(20)
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  location    Gym            @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  coach       User?          @relation("ClassCoach", fields: [coachUserId], references: [id], onDelete: SetNull)
-  sessions    ClassSession[]
-
-  @@index([locationId])
-  @@index([coachUserId])
+enum InsightSeverity {
+  info
+  warning
+  critical
 }
 
-model ClassSession {
-  id               String             @id @default(uuid())
-  classId          String
-  locationId       String
-  startsAt         DateTime
-  endsAt           DateTime
-  capacityOverride Int?
-  status           ClassSessionStatus @default(SCHEDULED)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  classTemplate    Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
-  location         Gym                @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  bookings         ClassBooking[]
-  notificationMarkers NotificationMarker[]
+model DailyLocationMetrics {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  locationId            String
+  date                  DateTime @db.Date
+  checkinsCount         Int
+  bookingsCount         Int
+  uniqueClientsCount    Int
+  newClientsCount       Int
+  canceledBookingsCount Int
+  createdAt             DateTime @default(now())
 
-  @@index([classId])
-  @@index([locationId, startsAt])
+  @@unique([locationId, date])
+  @@index([tenantId, date])
 }
 
-model ClassBooking {
-  id         String             @id @default(uuid())
-  sessionId  String
-  locationId String
-  userId     String
-  status     ClassBookingStatus @default(BOOKED)
-  bookedAt   DateTime           @default(now())
-  canceledAt DateTime?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  session    ClassSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  location   Gym                @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+model DailyMembershipMetrics {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  locationId          String
+  date                DateTime @db.Date
+  activeMemberships   Int
+  canceledMemberships Int
+  newMemberships      Int
+  createdAt           DateTime @default(now())
 
-  @@unique([sessionId, userId])
-  @@index([locationId, status])
-  @@index([userId, status])
+  @@unique([locationId, date])
+  @@index([tenantId, date])
 }
 
-model PushSubscription {
-  id         String    @id @default(uuid())
-  userId     String
-  tenantId   String?
-  locationId String?
-  endpoint   String    @unique
-  p256dh     String
-  auth       String
-  userAgent  String?
-  createdAt  DateTime  @default(now())
-  revokedAt  DateTime?
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant     Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  location   Gym?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
-
-  @@index([userId, revokedAt])
-  @@index([tenantId, locationId, revokedAt])
-}
-
-model NotificationMarker {
+model InsightLog {
   id          String   @id @default(uuid())
-  userId      String
-  tenantId    String?
+  tenantId    String
   locationId  String?
-  sessionId   String?
-  markerType  String
+  insightType String
+  payload     Json
   createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant      Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  location    Gym?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  session     ClassSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
-  @@unique([markerType, userId, sessionId])
-  @@index([markerType, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([locationId, createdAt])
 }
