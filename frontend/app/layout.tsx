@@ -6,6 +6,8 @@ import { AuthProvider } from "../src/providers/AuthProvider";
 import { ToastProvider } from "../src/components/toast/ToastProvider";
 import { AuthDebugPanel } from "../src/components/auth/AuthDebugPanel";
 import { PwaClient } from "./components/pwa-client";
+import { ThemeProvider } from "../src/providers/ThemeProvider";
+import { getTokenCssVariables } from "../src/styles/tokens";
 
 const geist = Inter({
   subsets: ["latin"],
@@ -40,13 +42,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={geist.variable}>
+      <body className={geist.variable} style={getTokenCssVariables()}>
         <AuthProvider>
+          <ThemeProvider>
           <ToastProvider>
             <SessionProvider>{children}</SessionProvider>
             <AuthDebugPanel />
             <PwaClient />
           </ToastProvider>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

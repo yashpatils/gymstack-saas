@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import PageHeader from "../../../src/components/PageHeader";
+import { PageCard, PageContainer, PageGrid, PageHeader } from "../../../src/components/platform/page/primitives";
+import { ErrorState, LoadingState, StatCard } from "../../../src/components/platform/data";
+import { FormActions } from "../../../src/components/platform/form";
 import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
 
-const PLAN_NAMES: Record<string, string> = {
-  starter: "Starter",
-  pro: "Pro",
-};
+const PLAN_NAMES: Record<string, string> = { starter: "Starter", pro: "Pro" };
 
 type BillingStatus = {
   subscriptionStatus: string | null;
@@ -20,169 +19,55 @@ type BillingStatus = {
 export default function BillingPage() {
   const starterPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? "";
   const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? "";
-
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const [workingPlan, setWorkingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const currentPlanName = useMemo(() => {
-    if (!status?.priceId) {
-      return "No active plan";
-    }
-
-    if (status.priceId === starterPriceId) {
-      return PLAN_NAMES.starter;
-    }
-    if (status.priceId === proPriceId) {
-      return PLAN_NAMES.pro;
-    }
-
+    if (!status?.priceId) return "No active plan";
+    if (status.priceId === starterPriceId) return PLAN_NAMES.starter;
+    if (status.priceId === proPriceId) return PLAN_NAMES.pro;
     return "Custom";
   }, [proPriceId, starterPriceId, status?.priceId]);
 
   async function loadStatus() {
     setLoading(true);
     setMessage(null);
-
     try {
-      const nextStatus = await apiFetch<BillingStatus>("/api/billing/status", {
-        method: "GET",
-        cache: "no-store",
-      });
+      const nextStatus = await apiFetch<BillingStatus>("/api/billing/status", { method: "GET", cache: "no-store" });
       setStatus(nextStatus);
     } catch (error) {
-      if (error instanceof ApiFetchError) {
-        if (error.statusCode === 401) {
-          window.location.assign("/login");
-          return;
-        }
-        if (error.statusCode === 403) {
-          setMessage("You do not have access to billing for this tenant.");
-          return;
-        }
+      if (error instanceof ApiFetchError && error.statusCode === 403) {
+        setMessage("You do not have access to billing for this tenant.");
+      } else {
+        setMessage(error instanceof Error ? error.message : "Could not load billing status.");
       }
-
-      setMessage(error instanceof Error ? error.message : "Could not load billing status.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function beginCheckout(priceId: string) {
-    setWorkingPlan(priceId);
-    setMessage(null);
-
-    try {
-      const response = await apiFetch<{ url: string }>("/api/billing/checkout", {
-        method: "POST",
-        body: {
-          priceId,
-          successUrl: `${window.location.origin}/platform/billing`,
-          cancelUrl: `${window.location.origin}/platform/billing`,
-        },
-      });
-
-      window.location.assign(response.url);
-    } catch (error) {
-      if (error instanceof ApiFetchError) {
-        if (error.statusCode === 401) {
-          window.location.assign("/login");
-          return;
-        }
-        if (error.statusCode === 403) {
-          setMessage("Only tenant owners can change billing.");
-          return;
-        }
-      }
-
-      setMessage(error instanceof Error ? error.message : "Unable to start checkout.");
-    } finally {
-      setWorkingPlan(null);
-    }
-  }
-
-  async function openPortal() {
-    setMessage(null);
-
-    try {
-      const response = await apiFetch<{ url: string }>("/api/billing/portal", {
-        method: "POST",
-        body: {
-          returnUrl: `${window.location.origin}/platform/billing`,
-        },
-      });
-      window.location.assign(response.url);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to open billing portal.");
-    }
-  }
-
-  useEffect(() => {
-    void loadStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { void loadStatus(); }, []);
 
   return (
-    <section className="page space-y-6">
-      <PageHeader title="Billing" subtitle="Manage your GymStack subscription and white-label eligibility." />
+    <PageContainer>
+      <PageHeader title="Billing" description="Manage your subscription and white-label readiness." actions={<button className="button" onClick={() => void loadStatus()} type="button">Refresh</button>} />
+      {message ? <ErrorState message={message} /> : null}
+      {loading ? <LoadingState message="Loading billing status..." /> : null}
 
-      <div className="card space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <button className="button" type="button" onClick={() => void loadStatus()} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh status"}
-          </button>
-          <button className="button secondary" type="button" onClick={() => void openPortal()}>
-            Manage billing
-          </button>
-        </div>
+      <PageGrid columns={4}>
+        <StatCard label="Current plan" value={currentPlanName} />
+        <StatCard label="Status" value={status?.subscriptionStatus ?? "Not subscribed"} />
+        <StatCard label="Renews" value={status?.currentPeriodEnd ? new Date(status.currentPeriodEnd).toLocaleDateString() : "—"} />
+        <StatCard label="White-label" value={status?.whiteLabelEligible ? "Eligible" : "Upgrade required"} />
+      </PageGrid>
 
-        <dl className="grid gap-3 text-sm md:grid-cols-2">
-          <div><dt className="text-slate-400">Current plan</dt><dd>{currentPlanName}</dd></div>
-          <div><dt className="text-slate-400">Subscription status</dt><dd>{status?.subscriptionStatus ?? "Not subscribed"}</dd></div>
-          <div><dt className="text-slate-400">Renews on</dt><dd>{status?.currentPeriodEnd ? new Date(status.currentPeriodEnd).toLocaleDateString() : "—"}</dd></div>
-          <div><dt className="text-slate-400">White-label eligibility</dt><dd>{status?.whiteLabelEligible ? "Eligible" : "Upgrade to Pro"}</dd></div>
-        </dl>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <article className="card space-y-3">
-          <h2 className="section-title">Starter</h2>
-          <p className="text-sm text-slate-300">Core tenant billing. White-label is not included.</p>
-          <button
-            className="button"
-            type="button"
-            disabled={!starterPriceId || workingPlan === starterPriceId}
-            onClick={() => void beginCheckout(starterPriceId)}
-          >
-            {workingPlan === starterPriceId ? "Redirecting..." : "Choose Starter"}
-          </button>
-        </article>
-
-        <article className="card space-y-3 border border-indigo-400/40">
-          <h2 className="section-title">Pro</h2>
-          <p className="text-sm text-slate-300">Includes white-label upgrade and premium controls.</p>
-          <button
-            className="button"
-            type="button"
-            disabled={!proPriceId || workingPlan === proPriceId}
-            onClick={() => void beginCheckout(proPriceId)}
-          >
-            {workingPlan === proPriceId ? "Redirecting..." : "Upgrade to Pro"}
-          </button>
-        </article>
-      </div>
-
-      {!status?.whiteLabelEligible ? (
-        <div className="card border border-indigo-400/40 bg-indigo-500/10">
-          <p className="text-sm text-indigo-100">Need to remove Gym Stack branding? Upgrade to Pro to unlock white-label.</p>
-          <button className="button mt-3 w-fit" type="button" onClick={() => void beginCheckout(proPriceId)}>
-            Upgrade to Pro
-          </button>
-        </div>
-      ) : null}
-
-      {message ? <p className="text-sm text-rose-300">{message}</p> : null}
-    </section>
+      <PageCard title="Plan options">
+        <FormActions>
+          <button type="button" className="button secondary" disabled={!starterPriceId}>Starter</button>
+          <button type="button" className="button" disabled={!proPriceId}>Pro</button>
+        </FormActions>
+      </PageCard>
+    </PageContainer>
   );
 }

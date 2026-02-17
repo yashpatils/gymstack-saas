@@ -1,0 +1,77 @@
+export const designTokens = {
+  spacing: {
+    xs: "0.25rem",
+    sm: "0.5rem",
+    md: "0.75rem",
+    lg: "1rem",
+    xl: "1.5rem",
+    "2xl": "2rem",
+    "3xl": "3rem",
+  },
+  radius: {
+    sm: "0.5rem",
+    md: "0.75rem",
+    lg: "1rem",
+    xl: "1.5rem",
+    full: "9999px",
+  },
+  zIndex: {
+    base: 1,
+    header: 40,
+    sidebar: 45,
+    overlay: 50,
+    modal: 60,
+  },
+  duration: {
+    fast: "120ms",
+    normal: "200ms",
+    slow: "320ms",
+  },
+  layout: {
+    contentMaxWidth: "80rem",
+    contentPadding: "1.25rem",
+  },
+  sidebar: {
+    expanded: "16rem",
+    collapsed: "4.5rem",
+    mobileNavHeight: "4.5rem",
+  },
+  header: {
+    platform: "4rem",
+    admin: "4rem",
+    location: "3.5rem",
+  },
+} as const;
+
+export function getTokenCssVariables(): Record<string, string> {
+  return {
+    "--space-xs": designTokens.spacing.xs,
+    "--space-sm": designTokens.spacing.sm,
+    "--space-md": designTokens.spacing.md,
+    "--space-lg": designTokens.spacing.lg,
+    "--space-xl": designTokens.spacing.xl,
+    "--space-2xl": designTokens.spacing["2xl"],
+    "--space-3xl": designTokens.spacing["3xl"],
+    "--radius-sm": designTokens.radius.sm,
+    "--radius-md": designTokens.radius.md,
+    "--radius-lg": designTokens.radius.lg,
+    "--radius-xl": designTokens.radius.xl,
+    "--radius-full": designTokens.radius.full,
+    "--z-base": String(designTokens.zIndex.base),
+    "--z-header": String(designTokens.zIndex.header),
+    "--z-sidebar": String(designTokens.zIndex.sidebar),
+    "--z-overlay": String(designTokens.zIndex.overlay),
+    "--z-modal": String(designTokens.zIndex.modal),
+    "--duration-fast": designTokens.duration.fast,
+    "--duration-normal": designTokens.duration.normal,
+    "--duration-slow": designTokens.duration.slow,
+    "--layout-content-max-width": designTokens.layout.contentMaxWidth,
+    "--layout-content-padding": designTokens.layout.contentPadding,
+    "--layout-sidebar-expanded": designTokens.sidebar.expanded,
+    "--layout-sidebar-collapsed": designTokens.sidebar.collapsed,
+    "--layout-mobile-nav-height": designTokens.sidebar.mobileNavHeight,
+    "--layout-header-platform": designTokens.header.platform,
+    "--layout-header-admin": designTokens.header.admin,
+    "--layout-header-location": designTokens.header.location,
+  };
+}
