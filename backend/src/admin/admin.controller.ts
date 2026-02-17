@@ -22,6 +22,26 @@ export class AdminController {
     return this.adminService.getGrowthMetrics();
   }
 
+  @Get('analytics/overview')
+  analyticsOverview() {
+    return this.adminService.getAnalyticsOverview();
+  }
+
+  @Get('analytics/growth')
+  analyticsGrowth(@Query('range') range?: string) {
+    return this.adminService.getAnalyticsGrowth(range);
+  }
+
+  @Get('analytics/health')
+  analyticsHealth() {
+    return this.adminService.getAnalyticsHealth();
+  }
+
+  @Get('analytics/usage')
+  analyticsUsage() {
+    return this.adminService.getAnalyticsUsage();
+  }
+
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,

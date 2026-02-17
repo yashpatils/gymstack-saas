@@ -1,7 +1,9 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { buildApiUrl } from '../../../src/lib/apiFetch';
 import type { AuthMeResponse } from '../../../src/types/auth';
+
+const ADMIN_HOST = 'admin.gymstack.club';
 
 type AdminSessionState = {
   isAuthenticated: boolean;
@@ -9,7 +11,15 @@ type AdminSessionState = {
   session: AuthMeResponse | null;
 };
 
+function assertAdminHost(): void {
+  const host = headers().get('host')?.toLowerCase() ?? '';
+  if (host && !host.startsWith(ADMIN_HOST)) {
+    redirect('/admin/access-restricted');
+  }
+}
+
 export async function getAdminSession(): Promise<AdminSessionState> {
+  assertAdminHost();
   const token = cookies().get('gymstack_token')?.value;
   if (!token) {
     return {
@@ -55,26 +65,27 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   }
 
   if (!session.isPlatformAdmin || !session.session) {
-    redirect('/admin');
+    redirect('/admin/access-restricted');
   }
 
   return session.session;
 }
 
 export async function adminApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  assertAdminHost();
   const token = cookies().get('gymstack_token')?.value;
   if (!token) {
     redirect('/login?next=/admin');
   }
 
-  const headers = new Headers(init?.headers ?? {});
-  headers.set('Authorization', `Bearer ${token}`);
+  const headersInit = new Headers(init?.headers ?? {});
+  headersInit.set('Authorization', `Bearer ${token}`);
 
   const response = await fetch(buildApiUrl(path), {
     method: init?.method ?? 'GET',
     cache: init?.cache ?? 'no-store',
     ...init,
-    headers,
+    headers: headersInit,
   });
 
   if (response.status === 401) {
@@ -82,7 +93,7 @@ export async function adminApiFetch<T>(path: string, init?: RequestInit): Promis
   }
 
   if (response.status === 403) {
-    redirect('/admin');
+    redirect('/admin/access-restricted');
   }
 
   if (!response.ok) {

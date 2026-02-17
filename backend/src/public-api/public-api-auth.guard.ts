@@ -39,7 +39,7 @@ export class PublicApiAuthGuard implements CanActivate {
     }
 
     const keyHash = createHash('sha256').update(apiKey).digest('hex');
-    const storedKey = await (this.prisma as any).apiKey.findUnique({
+    const storedKey = await this.prisma.apiKey.findUnique({
       where: { keyHash },
       select: { id: true, tenantId: true, name: true, revokedAt: true },
     });
@@ -56,9 +56,25 @@ export class PublicApiAuthGuard implements CanActivate {
       keyName: storedKey.name,
     };
 
-    await (this.prisma as any).apiKey.update({
+    await this.prisma.apiKey.update({
       where: { id: storedKey.id },
       data: { lastUsedAt: new Date() },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'SYSTEM',
+        actorUserId: null,
+        tenantId: storedKey.tenantId,
+        locationId: null,
+        action: 'public_api.request',
+        targetType: 'api_key',
+        targetId: storedKey.id,
+        entityType: 'api_key',
+        entityId: storedKey.id,
+        orgId: storedKey.tenantId,
+        metadata: { keyName: storedKey.name },
+      },
     });
 
     return true;
