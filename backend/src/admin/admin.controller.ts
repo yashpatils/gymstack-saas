@@ -22,9 +22,24 @@ export class AdminController {
     return this.adminService.getGrowthMetrics();
   }
 
-  @Get('billing-watchlist')
-  billingWatchlist() {
-    return this.adminService.getBillingWatchlist();
+  @Get('analytics/overview')
+  analyticsOverview() {
+    return this.adminService.getAnalyticsOverview();
+  }
+
+  @Get('analytics/growth')
+  analyticsGrowth(@Query('range') range?: string) {
+    return this.adminService.getAnalyticsGrowth(range);
+  }
+
+  @Get('analytics/health')
+  analyticsHealth() {
+    return this.adminService.getAnalyticsHealth();
+  }
+
+  @Get('analytics/usage')
+  analyticsUsage() {
+    return this.adminService.getAnalyticsUsage();
   }
 
   @Get('tenants')
@@ -62,6 +77,21 @@ export class AdminController {
   @Get('impersonations')
   impersonations() {
     return this.adminService.listImpersonationHistory();
+  }
+
+  @Get('integrations/api-keys')
+  apiKeys(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number) {
+    return this.adminService.listApiKeys(page ?? 1, pageSize ?? 20);
+  }
+
+  @Post('integrations/api-keys/:id/revoke')
+  revokeIntegrationApiKey(@Param('id') id: string) {
+    return this.adminService.revokeApiKey(id);
+  }
+
+  @Get('integrations/webhook-failures')
+  webhookFailures(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number) {
+    return this.adminService.listWebhookFailures(page ?? 1, pageSize ?? 20);
   }
 
   @Post('tenants/:tenantId/features')

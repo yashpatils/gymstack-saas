@@ -8,7 +8,12 @@ export function parsePlatformAdminEmails(rawValue: string | null | undefined): s
 }
 
 export function getPlatformAdminEmails(config: ConfigService): string[] {
-  return parsePlatformAdminEmails(config.get<string>('PLATFORM_ADMIN_EMAILS'));
+  const multi = parsePlatformAdminEmails(config.get<string>('PLATFORM_ADMIN_EMAILS'));
+  if (multi.length > 0) {
+    return multi;
+  }
+
+  return parsePlatformAdminEmails(config.get<string>('PLATFORM_ADMIN_EMAIL'));
 }
 
 export function isPlatformAdmin(userEmail: string | null | undefined, allowlistedEmails: string[]): boolean {

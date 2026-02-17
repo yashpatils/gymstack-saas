@@ -22,6 +22,7 @@ export const platformNavItems: AppNavItem[] = [
   { label: "Analytics", href: "/platform/analytics", icon: "🩺", section: "operations" },
   { label: "Notifications", href: "/platform/notifications", icon: "🔔", section: "operations" },
   { label: "Settings", href: "/platform/settings", icon: "⚙", section: "settings" },
+  { label: "Developer", href: "/platform/developer", icon: "🧩", section: "settings" },
   { label: "Location settings", href: "/platform/locations/settings", icon: "📍", section: "settings" },
   {
     label: "Admin",

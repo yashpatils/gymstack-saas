@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, SubscriptionStatus, TenantBillingStatus } from '@prisma/client';
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 type AdminTenantListItem = {
   tenantId: string;
@@ -25,6 +26,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobLogService: JobLogService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
@@ -32,22 +34,147 @@ export class AdminService {
     return status === SubscriptionStatus.ACTIVE ? (Number.isFinite(planCents) ? planCents : 9900) : 0;
   }
 
+  private parseRangeInDays(range: string | undefined): number {
+    if (!range) return 30;
+    const match = /^(\d+)d$/.exec(range.trim().toLowerCase());
+    if (!match) return 30;
+    const days = Number.parseInt(match[1], 10);
+    if (!Number.isFinite(days) || days <= 0) return 30;
+    return Math.min(days, 365);
+  }
 
-  async getBillingWatchlist() {
-    const tenants = await this.prisma.organization.findMany({
-      where: {
-        billingStatus: { in: [TenantBillingStatus.PAST_DUE, TenantBillingStatus.GRACE_PERIOD, TenantBillingStatus.FROZEN] },
-      },
-      select: { id: true, name: true, billingStatus: true, gracePeriodEndsAt: true, updatedAt: true },
-      orderBy: { updatedAt: 'desc' },
-    });
+  async getAnalyticsOverview() {
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+
+    const [tenants, newTenantsThisMonth, churnedThisMonth, groupedPlans] = await Promise.all([
+      this.prisma.organization.findMany({
+        where: { isDemo: false },
+        select: { id: true, isDisabled: true, subscriptionStatus: true },
+      }),
+      this.prisma.organization.count({ where: { isDemo: false, createdAt: { gte: monthStart } } }),
+      this.prisma.organization.count({ where: { isDemo: false, subscriptionStatus: SubscriptionStatus.CANCELED, updatedAt: { gte: monthStart } } }),
+      this.prisma.organization.groupBy({ by: ['planKey'], where: { isDemo: false }, _count: { _all: true } }),
+    ]);
+
+    const totalTenants = tenants.length;
+    const activeTenants = tenants.filter((tenant) => !tenant.isDisabled).length;
+    const trialTenants = tenants.filter((tenant) => tenant.subscriptionStatus === SubscriptionStatus.TRIAL).length;
+    const mrrCents = tenants.reduce((sum, tenant) => sum + this.resolveMrrCents(tenant.subscriptionStatus), 0);
 
     return {
-      items: tenants.map((tenant) => ({
+      totalTenants,
+      activeTenants,
+      trialTenants,
+      mrrCents,
+      arrCents: mrrCents * 12,
+      churnedThisMonth,
+      newTenantsThisMonth,
+      planDistribution: groupedPlans.map((item) => ({ planKey: item.planKey, count: item._count._all })),
+    };
+  }
+
+  async getAnalyticsGrowth(range: string | undefined) {
+    const rangeDays = this.parseRangeInDays(range);
+    const startDate = new Date(Date.now() - (rangeDays - 1) * 24 * 60 * 60 * 1000);
+    startDate.setUTCHours(0, 0, 0, 0);
+
+    const tenants = await this.prisma.organization.findMany({
+      where: { isDemo: false, createdAt: { gte: startDate } },
+      select: { createdAt: true, subscriptionStatus: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const points: Array<{ date: string; tenants: number; mrrCents: number }> = [];
+    for (let index = 0; index < rangeDays; index += 1) {
+      const current = new Date(startDate.getTime() + index * 24 * 60 * 60 * 1000);
+      const currentDate = current.toISOString().slice(0, 10);
+      const dayTenants = tenants.filter((tenant) => tenant.createdAt.toISOString().slice(0, 10) <= currentDate);
+      const mrrCents = dayTenants.reduce((sum, tenant) => sum + this.resolveMrrCents(tenant.subscriptionStatus), 0);
+      points.push({ date: currentDate, tenants: dayTenants.length, mrrCents });
+    }
+
+    return { range: `${rangeDays}d`, points };
+  }
+
+  async getAnalyticsHealth() {
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const [tenants, activeAuditByTenant] = await Promise.all([
+      this.prisma.organization.findMany({
+        where: { isDemo: false },
+        select: {
+          id: true,
+          name: true,
+          planKey: true,
+          subscriptionStatus: true,
+          _count: { select: { gyms: true } },
+          memberships: {
+            where: { status: MembershipStatus.ACTIVE, role: { in: [MembershipRole.TENANT_OWNER, MembershipRole.TENANT_LOCATION_ADMIN, MembershipRole.GYM_STAFF_COACH] } },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      }),
+      this.prisma.auditLog.groupBy({ by: ['tenantId'], where: { tenantId: { not: null }, createdAt: { gte: fourteenDaysAgo } }, _count: { _all: true } }),
+    ]);
+
+    const activityMap = new Map(activeAuditByTenant.map((row) => [row.tenantId, row._count._all]));
+    const rows = tenants.map((tenant) => {
+      const hasRecentActivity = (activityMap.get(tenant.id) ?? 0) > 0;
+      const failedPayments = tenant.subscriptionStatus === SubscriptionStatus.PAST_DUE;
+      const noLocations = tenant._count.gyms === 0;
+      const noStaffAdded = tenant.memberships.length === 0;
+      const issues = [!hasRecentActivity, failedPayments, noLocations, noStaffAdded].filter(Boolean).length;
+      return {
         tenantId: tenant.id,
         tenantName: tenant.name,
-        billingStatus: tenant.billingStatus,
-        gracePeriodEndsAt: tenant.gracePeriodEndsAt ? tenant.gracePeriodEndsAt.toISOString() : null,
+        planKey: tenant.planKey,
+        status: tenant.subscriptionStatus,
+        healthScore: Math.max(0, 100 - issues * 25),
+        lowActivity: !hasRecentActivity,
+        failedPayments,
+        noLocations,
+        noStaffAdded,
+      };
+    });
+
+    return { tenants: rows };
+  }
+
+  async getAnalyticsUsage() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [apiCallsByTenant, webhookFailuresByTenant] = await Promise.all([
+      this.prisma.auditLog.groupBy({
+        by: ['tenantId'],
+        where: { tenantId: { not: null }, action: 'public_api.request', createdAt: { gte: thirtyDaysAgo } },
+        _count: { _all: true },
+      }),
+      this.prisma.webhookDelivery.groupBy({
+        by: ['webhookEndpointId'],
+        where: { createdAt: { gte: thirtyDaysAgo }, OR: [{ responseStatus: null }, { responseStatus: { gte: 400 } }] },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const endpoints = await this.prisma.webhookEndpoint.findMany({ select: { id: true, tenantId: true } });
+    const endpointTenantMap = new Map(endpoints.map((endpoint) => [endpoint.id, endpoint.tenantId]));
+
+    const webhookFailureMap = new Map<string, number>();
+    for (const row of webhookFailuresByTenant) {
+      const tenantId = endpointTenantMap.get(row.webhookEndpointId);
+      if (!tenantId) continue;
+      webhookFailureMap.set(tenantId, (webhookFailureMap.get(tenantId) ?? 0) + row._count._all);
+    }
+
+    const tenants = await this.prisma.organization.findMany({ where: { isDemo: false }, select: { id: true, name: true } });
+    return {
+      range: '30d',
+      tenants: tenants.map((tenant) => ({
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        apiCalls: apiCallsByTenant.find((row) => row.tenantId === tenant.id)?._count._all ?? 0,
+        webhookFailures: webhookFailureMap.get(tenant.id) ?? 0,
       })),
     };
   }
@@ -373,5 +500,23 @@ export class AdminService {
       migrations: rows.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), finishedAt: row.finished_at ? row.finished_at.toISOString() : null, rolledBackAt: row.rolled_back_at ? row.rolled_back_at.toISOString() : null })),
       guidance: ['Take an immediate backup/snapshot before manual intervention.', 'Inspect the failed migration SQL and deployment logs.', 'Use prisma migrate resolve --rolled-back or --applied after validation.', 'Re-run prisma migrate deploy once the state is consistent.'],
     };
+  }
+
+  listApiKeys(page: number, pageSize: number) {
+    return this.prisma.apiKey.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+  }
+
+  async revokeApiKey(id: string) {
+    await this.prisma.apiKey.updateMany({ where: { id, revokedAt: null }, data: { revokedAt: new Date() } });
+    return { ok: true as const };
+  }
+
+  listWebhookFailures(page: number, pageSize: number) {
+    return this.webhooksService.getFailureLogs(page, pageSize);
   }
 }

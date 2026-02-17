@@ -24,6 +24,50 @@ export type AdminOverview = {
   };
 };
 
+export type AdminAnalyticsOverview = {
+  totalTenants: number;
+  activeTenants: number;
+  trialTenants: number;
+  mrrCents: number;
+  arrCents: number;
+  churnedThisMonth: number;
+  newTenantsThisMonth: number;
+  planDistribution: Array<{ planKey: string; count: number }>;
+};
+
+export type AdminAnalyticsGrowth = {
+  range: string;
+  points: Array<{
+    date: string;
+    tenants: number;
+    mrrCents: number;
+  }>;
+};
+
+export type AdminAnalyticsHealth = {
+  tenants: Array<{
+    tenantId: string;
+    tenantName: string;
+    planKey: string;
+    status: string;
+    healthScore: number;
+    lowActivity: boolean;
+    failedPayments: boolean;
+    noLocations: boolean;
+    noStaffAdded: boolean;
+  }>;
+};
+
+export type AdminAnalyticsUsage = {
+  range: string;
+  tenants: Array<{
+    tenantId: string;
+    tenantName: string;
+    apiCalls: number;
+    webhookFailures: number;
+  }>;
+};
+
 export type AdminTenant = {
   tenantId: string;
   tenantName: string;

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { CheckInDto, CreateSessionDto, DateRangeQueryDto } from './dto/session.dto';
 import { PushService } from '../push/push.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 type RequestUser = {
   id: string;
@@ -18,6 +19,7 @@ export class ScheduleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pushService: PushService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   private getTenantId(user: RequestUser): string {
@@ -176,7 +178,7 @@ export class ScheduleService {
       throw new NotFoundException('Class not found');
     }
 
-    return this.prisma.classSession.create({
+    const session = await this.prisma.classSession.create({
       data: {
         classId: body.classId,
         locationId,
@@ -184,7 +186,12 @@ export class ScheduleService {
         endsAt,
         capacityOverride: body.capacityOverride,
       },
+      select: { id: true, classId: true, startsAt: true, endsAt: true },
     });
+
+    await this.webhooksService.emitEvent(tenantId, 'classSession.created', session);
+
+    return session;
   }
 
   async cancelSession(user: RequestUser, sessionId: string) {
@@ -361,9 +368,14 @@ export class ScheduleService {
       throw new NotFoundException('Booking not found');
     }
 
-    return this.prisma.classBooking.update({
+    const canceled = await this.prisma.classBooking.update({
       where: { id: booking.id },
       data: { status: ClassBookingStatus.CANCELED, canceledAt: new Date() },
+      select: { id: true, sessionId: true, userId: true, status: true },
     });
+
+    await this.webhooksService.emitEvent(this.getTenantId(user), 'booking.canceled', canceled);
+
+    return canceled;
   }
 }
