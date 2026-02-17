@@ -152,6 +152,25 @@ enum FeatureFlagScope {
   LOCATION
 }
 
+enum NotificationType {
+  ATTENDANCE_DROP
+  BOOKING_DROP
+  CANCELLATION_SPIKE
+  WEEKLY_DIGEST
+  SYSTEM
+}
+
+enum NotificationSeverity {
+  info
+  warning
+  critical
+}
+
+enum JobRunStatus {
+  success
+  failed
+}
+
 enum JobStatus {
   QUEUED
   PROCESSING
@@ -343,15 +362,22 @@ model Invite {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  title     String
-  body      String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String               @id @default(uuid())
+  tenantId   String
+  locationId String?
+  userId     String
+  type       NotificationType
+  severity   NotificationSeverity @default(info)
+  title      String
+  body       String
+  metadata   Json?
+  readAt     DateTime?
+  createdAt  DateTime             @default(now())
+  tenant     Organization         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location   Gym?                 @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId, createdAt])
   @@index([userId, createdAt])
   @@index([userId, readAt])
 }
@@ -402,6 +428,7 @@ model Gym {
   classSessions ClassSession[]
   classBookings ClassBooking[]
   pushSubscriptions PushSubscription[]
+  notifications Notification[]
   notificationMarkers NotificationMarker[]
   auditLogs     AuditLog[]      @relation("GymAuditLogs")
   featureFlags  FeatureFlag[]   @relation("GymFeatureFlags")
@@ -451,6 +478,8 @@ model Organization {
   adminEvents AdminEvent[]
   supportTickets SupportTicket[] @relation("SupportTicketTenant")
   pushSubscriptions PushSubscription[]
+  notifications Notification[]
+  jobRuns      JobRun[]
   notificationMarkers NotificationMarker[]
   apiKeys      ApiKey[]
   webhookEndpoints WebhookEndpoint[]
@@ -713,6 +742,18 @@ model SupportTicket {
   @@index([tenantId])
   @@index([userId])
   @@index([status, createdAt])
+}
+
+model JobRun {
+  id        String       @id @default(uuid())
+  tenantId  String
+  jobKey    String       @unique
+  ranAt     DateTime     @default(now())
+  status    JobRunStatus
+  error     String?
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ranAt])
 }
 
 model JobLog {

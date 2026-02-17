@@ -18,6 +18,8 @@ export const platformNavItems: AppNavItem[] = [
   { label: "Coach", href: "/platform/coach", icon: "🏋️", section: "operations" },
   { label: "Client", href: "/platform/client", icon: "🧍", section: "operations" },
   { label: "Insights", href: "/platform/insights", icon: "📈", section: "operations" },
+  { label: "Analytics", href: "/platform/analytics", icon: "🩺", section: "operations" },
+  { label: "Notifications", href: "/platform/notifications", icon: "🔔", section: "operations" },
   { label: "Settings", href: "/platform/settings", icon: "⚙", section: "settings" },
   { label: "Location settings", href: "/platform/locations/settings", icon: "📍", section: "settings" },
   {
