@@ -19,8 +19,9 @@ import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
 import { AccountModule } from './account/account.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
-import { ScheduleModule } from './schedule/schedule.module';
+import { LocationMembershipsModule } from './location-memberships/location-memberships.module';
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
+import { LocationAppModule } from './location-app/location-app.module';
 
 @Module({
   imports: [
@@ -51,7 +52,7 @@ import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service
     AdminModule,
     AccountModule,
     OnboardingModule,
-    ScheduleModule,
+    LocationAppModule,
   ],
   controllers: [AppController],
   providers: [

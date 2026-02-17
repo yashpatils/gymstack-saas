@@ -42,6 +42,22 @@ enum InviteStatus {
   EXPIRED
 }
 
+enum MembershipPlanInterval {
+  month
+  year
+  week
+  day
+  one_time
+}
+
+enum ClientMembershipStatus {
+  active
+  paused
+  canceled
+  trialing
+  past_due
+}
+
 enum SubscriptionStatus {
   FREE
   TRIAL
@@ -114,8 +130,8 @@ model User {
   authIdentities       AuthIdentity[]
   ownerOperatorSettings OwnerOperatorSetting[]
   refreshTokens         RefreshToken[]
-  classTemplates        Class[]               @relation("ClassCoach")
-  classBookings         ClassBooking[]
+  clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
+  createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
 
   @@index([orgId])
 }
@@ -275,9 +291,8 @@ model Gym {
   memberships  Membership[]
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
-  classes       Class[]
-  classSessions ClassSession[]
-  classBookings ClassBooking[]
+  membershipPlans MembershipPlan[]
+  clientMemberships ClientMembership[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -366,57 +381,41 @@ model LocationInvite {
   @@index([tokenPrefix])
 }
 
-model Class {
-  id          String   @id @default(uuid())
+model MembershipPlan {
+  id          String                 @id @default(uuid())
   locationId  String
-  title       String
+  name        String
   description String?
-  coachUserId String?
-  capacity    Int      @default(20)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  location    Gym      @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  coach       User?    @relation("ClassCoach", fields: [coachUserId], references: [id], onDelete: SetNull)
-  sessions    ClassSession[]
+  priceCents  Int?
+  interval    MembershipPlanInterval
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  location    Gym                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  memberships ClientMembership[]
 
-  @@index([locationId])
-  @@index([coachUserId])
+  @@index([locationId, isActive])
 }
 
-model ClassSession {
-  id               String             @id @default(uuid())
-  classId          String
-  locationId       String
-  startsAt         DateTime
-  endsAt           DateTime
-  capacityOverride Int?
-  status           ClassSessionStatus @default(SCHEDULED)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  classTemplate    Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
-  location         Gym                @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  bookings         ClassBooking[]
+model ClientMembership {
+  id              String                 @id @default(uuid())
+  userId          String
+  locationId      String
+  planId          String?
+  status          ClientMembershipStatus
+  startAt         DateTime
+  endAt           DateTime?
+  canceledAt      DateTime?
+  createdByUserId String
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  user            User                   @relation("ClientMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  location        Gym                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  plan            MembershipPlan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
+  createdBy       User                   @relation("ClientMembershipCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
-  @@index([classId])
-  @@index([locationId, startsAt])
-}
-
-model ClassBooking {
-  id         String             @id @default(uuid())
-  sessionId   String
-  locationId  String
-  userId      String
-  status      ClassBookingStatus @default(BOOKED)
-  bookedAt    DateTime           @default(now())
-  canceledAt  DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  session     ClassSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  location    Gym                @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, userId])
+  @@index([locationId, userId])
   @@index([locationId, status])
-  @@index([userId, status])
+  @@index([planId])
+  @@index([createdByUserId])
 }
