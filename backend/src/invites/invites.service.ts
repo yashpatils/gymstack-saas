@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { DomainStatus, InviteStatus, MembershipRole, MembershipStatus, type LocationInvite } from '@prisma/client';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -16,7 +16,7 @@ export class InvitesService {
   ) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
-    if (input.role !== MembershipRole.GYM_STAFF_COACH && input.role !== MembershipRole.CLIENT) {
+    if (![MembershipRole.TENANT_LOCATION_ADMIN, MembershipRole.GYM_STAFF_COACH, MembershipRole.CLIENT].includes(input.role)) {
       throw new ForbiddenException('Unsupported invite role');
     }
 
@@ -30,8 +30,14 @@ export class InvitesService {
       throw new ForbiddenException('Insufficient permissions for tenant');
     }
 
-    const location = await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId: tenantId } });
-    if (!location) throw new BadRequestException('Invalid locationId');
+    if ((input.role === MembershipRole.GYM_STAFF_COACH || input.role === MembershipRole.CLIENT) && !input.locationId) {
+      throw new BadRequestException('locationId is required for staff and client invites');
+    }
+
+    const location = input.locationId
+      ? await this.prisma.gym.findFirst({ where: { id: input.locationId, orgId: tenantId } })
+      : null;
+    if (input.locationId && !location) throw new BadRequestException('Invalid locationId');
 
     await this.assertCanCreateInvite(requester, tenantId, input.locationId, input.role);
 
@@ -42,7 +48,7 @@ export class InvitesService {
     const invite = await this.prisma.locationInvite.create({
       data: {
         tenantId,
-        locationId: location.id,
+        locationId: location?.id ?? undefined,
         role: input.role,
         email: input.email?.toLowerCase() ?? null,
         tokenHash,
@@ -53,7 +59,7 @@ export class InvitesService {
       },
     });
 
-    const inviteUrl = await this.buildInviteLink(token, location.id, location.slug);
+    const inviteUrl = await this.buildInviteLink(token, location?.id ?? null, location?.slug ?? null);
     if (invite.email) {
       await this.jobsService.enqueue('email', { action: 'location-invite', to: invite.email, inviteUrl });
     }
@@ -65,7 +71,7 @@ export class InvitesService {
       expiresAt: expiresAt.toISOString(),
       role: input.role,
       tenantId,
-      locationId: location.id,
+      locationId: location?.id ?? undefined,
     };
   }
 
@@ -74,7 +80,7 @@ export class InvitesService {
       ok: true;
       valid: true;
       role: MembershipRole;
-      locationId: string;
+      locationId: string | null;
       tenantId: string;
       locationName?: string;
       locationSlug?: string;
@@ -101,7 +107,7 @@ export class InvitesService {
       return { ok: false, valid: false, reason: 'EXPIRED', errorCode: 'invite_expired' };
     }
 
-    const location = await this.prisma.gym.findUnique({ where: { id: invite.locationId }, select: { name: true, slug: true } });
+    const location = invite.locationId ? await this.prisma.gym.findUnique({ where: { id: invite.locationId }, select: { name: true, slug: true } }) : null;
 
     return {
       ok: true,
@@ -157,7 +163,7 @@ export class InvitesService {
     }
 
     await this.consumeInvite(invite.id, consumedByUserId);
-    return { ok: true, inviteId: invite.id, role: invite.role, tenantId: invite.tenantId, locationId: invite.locationId };
+    return { ok: true, inviteId: invite.id, role: invite.role, tenantId: invite.tenantId, locationId: invite.locationId ?? '' };
   }
 
   async listInvites(requester: User, locationId?: string): Promise<Array<{ id: string; role: MembershipRole; email: string | null; status: InviteStatus; tokenPrefix: string; expiresAt: string; consumedAt: string | null; consumedByUserId: string | null; revokedAt: string | null; createdAt: string }>> {
@@ -222,22 +228,37 @@ export class InvitesService {
   }
 
   async findByToken(token: string): Promise<LocationInvite | null> {
-    return this.prisma.locationInvite.findUnique({ where: { tokenHash: this.hashToken(token) } });
+    const tokenHash = this.hashToken(token);
+    const candidates = await this.prisma.locationInvite.findMany({
+      where: { tokenPrefix: token.slice(0, 8) },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return candidates.find((candidate) => {
+      const expected = Buffer.from(candidate.tokenHash);
+      const actual = Buffer.from(tokenHash);
+      return expected.length === actual.length && timingSafeEqual(expected, actual);
+    }) ?? null;
   }
 
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private async buildInviteLink(token: string, locationId: string, locationSlug: string): Promise<string> {
+  private async buildInviteLink(token: string, locationId: string | null, locationSlug: string | null): Promise<string> {
     const fallbackBase = process.env.BASE_DOMAIN ?? process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'gymstack.club';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${fallbackBase}`;
 
-    const domain = await this.prisma.customDomain.findFirst({
+    const domain = locationId ? await this.prisma.customDomain.findFirst({
       where: { locationId, status: DomainStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
       select: { hostname: true },
-    });
+    }) : null;
+
+    if (!locationId || !locationSlug) {
+      return `${appUrl.replace(/\/$/, '')}/signup?inviteToken=${encodeURIComponent(token)}`;
+    }
 
     const host = domain?.hostname ?? `${locationSlug}.${fallbackBase}`;
     const protocol = host.includes('localhost') ? 'http' : 'https';
@@ -245,7 +266,7 @@ export class InvitesService {
     return `${protocol}://${host}/join?token=${token}`.replace('https://undefined', appUrl.replace(/\/$/, ''));
   }
 
-  private async assertCanCreateInvite(requester: User, tenantId: string, locationId: string, inviteRole: MembershipRole): Promise<void> {
+  private async assertCanCreateInvite(requester: User, tenantId: string, locationId: string | undefined, inviteRole: MembershipRole): Promise<void> {
     const isPlatformOperator = [UserRole.Admin, UserRole.Owner].includes(requester.role);
     if (isPlatformOperator) {
       return;
@@ -261,10 +282,10 @@ export class InvitesService {
 
     const ownerMembership = memberships.find((membership) => membership.role === MembershipRole.TENANT_OWNER) ?? null;
     const locationAdminMembership = memberships.find(
-      (membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN && membership.gymId === locationId,
+      (membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN && (!locationId || membership.gymId === locationId),
     ) ?? null;
     const staffMembership = memberships.find(
-      (membership) => membership.role === MembershipRole.GYM_STAFF_COACH && membership.gymId === locationId,
+      (membership) => membership.role === MembershipRole.GYM_STAFF_COACH && Boolean(locationId) && membership.gymId === locationId,
     ) ?? null;
 
     const requesterRole = ownerMembership?.role ?? locationAdminMembership?.role ?? staffMembership?.role;

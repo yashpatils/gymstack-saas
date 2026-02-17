@@ -24,7 +24,7 @@ import { TenantRateLimitGuard } from './common/tenant-rate-limit.guard';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
-import { RetentionModule } from './retention/retention.module';
+import { TenantModule } from './tenant/tenant.module';
 
 @Module({
   imports: [
@@ -50,7 +50,7 @@ import { RetentionModule } from './retention/retention.module';
     LocationAppModule,
     FeatureFlagsModule,
     AnalyticsModule,
-    RetentionModule,
+    TenantModule,
   ],
   controllers: [AppController],
   providers: [

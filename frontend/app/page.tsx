@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Card } from "./components/ui";
 import { MarketingFooter, MarketingNavbar } from "./components/marketing-chrome";
+import { LandingCta } from "./components/landing-cta";
 import { toAbsoluteUrl } from "./lib/site";
 
 export const metadata: Metadata = {
@@ -105,12 +106,7 @@ export default function LandingPage() {
               GymStack unifies member billing, trainer workflows, and growth analytics so your team can scale faster with less overhead.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/signup?role=tenant_owner" className="button lg">
-                Start free trial
-              </Link>
-              <Link href="mailto:sales@gymstack.club" className="button secondary lg">
-                Book a demo
-              </Link>
+              <LandingCta />
             </div>
           </div>
 
@@ -186,7 +182,7 @@ export default function LandingPage() {
             <h2 className="text-3xl font-semibold text-white md:text-4xl">Ready to modernize your gym operations?</h2>
             <p className="text-slate-300">Start your free trial today and see how GymStack helps your team move faster with less admin work.</p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/signup?role=tenant_owner" className="button lg">
+              <Link href="/signup" className="button lg">
                 Start free trial
               </Link>
               <Link href="/pricing" className="button secondary lg">

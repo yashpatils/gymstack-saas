@@ -7,7 +7,7 @@ import { SectionCard } from "@/src/components/common/SectionCard";
 import { useAuth } from "@/src/providers/AuthProvider";
 
 export default function PlatformAccountPage() {
-  const { user, memberships, activeContext, platformRole, tenantFeatures } = useAuth();
+  const { user, memberships, activeContext, platformRole, tenantFeatures, logout } = useAuth();
 
   const membershipSummary = useMemo(() => {
     const byRole = memberships.reduce<Record<string, number>>((accumulator, membership) => {
@@ -48,6 +48,13 @@ export default function PlatformAccountPage() {
       </SectionCard>
 
 
+      <SectionCard title="Sessions & security">
+        <p className="text-sm text-slate-300">Manage active sessions from this account center.</p>
+        <div className="mt-3 flex gap-2">
+          <Link href="/platform/settings" className="button secondary button-sm">Open settings</Link>
+          <button type="button" className="button button-sm" onClick={logout}>Logout</button>
+        </div>
+      </SectionCard>
 
       <SectionCard title="Add-ons">
         <p className="text-sm text-slate-200">White Label Branding: <span className="font-semibold text-white">{tenantFeatures?.whiteLabelBranding ? "Enabled" : "Disabled"}</span></p>

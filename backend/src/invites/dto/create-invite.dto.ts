@@ -4,11 +4,12 @@ export class CreateInviteDto {
   @IsString()
   tenantId!: string;
 
+  @IsOptional()
   @IsString()
-  locationId!: string;
+  locationId?: string;
 
-  @IsIn(['GYM_STAFF_COACH', 'CLIENT'])
-  role!: 'GYM_STAFF_COACH' | 'CLIENT';
+  @IsIn(['TENANT_LOCATION_ADMIN', 'GYM_STAFF_COACH', 'CLIENT'])
+  role!: 'TENANT_LOCATION_ADMIN' | 'GYM_STAFF_COACH' | 'CLIENT';
 
   @IsOptional()
   @IsEmail()
