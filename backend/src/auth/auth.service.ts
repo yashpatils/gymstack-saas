@@ -258,8 +258,12 @@ export class AuthService implements OnModuleInit {
       throw new ForbiddenException({ code: 'AUTH_USER_DISABLED', message: 'Your account is disabled. Please contact support.' });
     }
 
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('Account is unavailable');
+    }
+
     if (user.deletionRequestedAt) {
-      throw new UnauthorizedException('Account deletion is pending. Cancel deletion to sign in again.');
+      throw new ForbiddenException('Account deletion is pending. Cancel deletion to sign in again.');
     }
 
     await this.ensureTenantForOwnerWithoutTenant(user.id);
@@ -329,6 +333,41 @@ export class AuthService implements OnModuleInit {
       memberships: enabledMemberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
     };
+  }
+
+  private isElevatedLoginRole(role: Role): boolean {
+    return role === Role.ADMIN || role === Role.PLATFORM_ADMIN;
+  }
+
+  private async getLoginContext(
+    user: { role: Role; orgId: string | null },
+    memberships: Membership[],
+  ): Promise<{ tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } | undefined> {
+    // Admin/developer-style accounts can authenticate without an active tenant membership in /api/auth/login for local/dev testing.
+    if (this.isElevatedLoginRole(user.role)) {
+      const preferredMembership = memberships.find((membership) => membership.orgId === user.orgId) ?? memberships[0];
+      if (preferredMembership) {
+        return this.getDefaultContext([preferredMembership]);
+      }
+
+      const fallbackTenant = await this.prisma.organization.findFirst({
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+
+      if (!fallbackTenant) {
+        return undefined;
+      }
+
+      return {
+        tenantId: fallbackTenant.id,
+        gymId: null,
+        locationId: null,
+        role: MembershipRole.TENANT_OWNER,
+      };
+    }
+
+    return this.getDefaultContext(memberships);
   }
 
   async adminLogin(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
