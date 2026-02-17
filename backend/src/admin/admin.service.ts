@@ -39,9 +39,8 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
-    const defaultPlanCents = Number.parseInt(process.env.DEFAULT_TENANT_MRR_CENTS ?? '9900', 10);
-    const planCents = Number.isFinite(defaultPlanCents) ? defaultPlanCents : 9900;
-    return status === SubscriptionStatus.ACTIVE ? planCents : 0;
+    const planCents = Number.parseInt(process.env.DEFAULT_TENANT_MRR_CENTS ?? '9900', 10);
+    return status === SubscriptionStatus.ACTIVE ? (Number.isFinite(planCents) ? planCents : 9900) : 0;
   }
 
   async getOverview(): Promise<AdminOverviewResponse> {
@@ -109,12 +108,15 @@ export class AdminService {
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
         orderBy: { createdAt: 'desc' },
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
         include: {
           _count: { select: { gyms: true, users: true, customDomains: true } },
           memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
           users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'desc' }, take: 1 },
         },
       }),
+      this.prisma.organization.count({ where }),
     ]);
 
     const items = organizations
@@ -179,9 +181,9 @@ export class AdminService {
       locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
       billing: {
-        subscriptionStatus: organization.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE,
-        priceId: organization.users[0]?.stripeSubscriptionId ?? null,
-        mrrCents: this.resolveMrrCents(organization.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE),
+        subscriptionStatus: SubscriptionStatus.FREE,
+        priceId: null,
+        mrrCents: 0,
       },
       events: organization.adminEvents.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
     };
@@ -238,7 +240,7 @@ export class AdminService {
   }
 
   async getUserDetail(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    return this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -290,5 +292,24 @@ export class AdminService {
         metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } },
       },
     });
+  }
+
+  async getMigrationStatus() {
+    type MigrationRow = { migration_name: string; started_at: Date; finished_at: Date | null; rolled_back_at: Date | null; logs: string | null };
+    const rows = await this.prisma.$queryRaw<MigrationRow[]>`
+      SELECT migration_name, started_at, finished_at, rolled_back_at, logs
+      FROM _prisma_migrations
+      ORDER BY started_at DESC
+      LIMIT 100
+    `;
+    const failed = rows.filter((row) => row.finished_at === null && row.rolled_back_at === null);
+    return {
+      checkedAt: new Date().toISOString(),
+      total: rows.length,
+      failedCount: failed.length,
+      failedMigrations: failed.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), logs: row.logs })),
+      migrations: rows.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), finishedAt: row.finished_at ? row.finished_at.toISOString() : null, rolledBackAt: row.rolled_back_at ? row.rolled_back_at.toISOString() : null })),
+      guidance: ['Take an immediate backup/snapshot before manual intervention.', 'Inspect the failed migration SQL and deployment logs.', 'Use prisma migrate resolve --rolled-back or --applied after validation.', 'Re-run prisma migrate deploy once the state is consistent.'],
+    };
   }
 }

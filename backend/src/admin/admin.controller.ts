@@ -37,7 +37,6 @@ export class AdminController {
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('query') query?: string,
-    @Query('status') status?: string,
   ) {
     return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query, status);
   }
@@ -76,7 +75,7 @@ export class AdminController {
   }
 
   @Post('tenants/:tenantId/features')
-  async setTenantFeatures(
+  setTenantFeatures(
     @Param('tenantId') tenantId: string,
     @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
     @Req() req: { user: RequestUser },

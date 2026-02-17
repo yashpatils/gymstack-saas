@@ -83,6 +83,18 @@ enum OAuthProvider {
   apple
 }
 
+enum AuditActorType {
+  SYSTEM
+  USER
+  ADMIN
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
+}
+
 enum ActiveMode {
   OWNER
   MANAGER
@@ -126,6 +138,10 @@ model User {
   emailVerificationLastSentAt DateTime?
   emailVerificationSendCount Int @default(0)
   status               UserStatus           @default(ACTIVE)
+  deletedAt            DateTime?
+  deletionRequestedAt  DateTime?
+  deletionTokenHash    String?
+  deletionTokenExpiresAt DateTime?
   organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
   memberships          Membership[]
   gyms                 Gym[]
@@ -134,6 +150,8 @@ model User {
   updatedAt            DateTime             @updatedAt
   invites              Invite[]             @relation("InviteCreator")
   customDomains        CustomDomain[]
+  updatedFeatureFlags   FeatureFlag[]         @relation("FeatureFlagUpdatedBy")
+  adminEvents           AdminEvent[]
   locationInvites      LocationInvite[]
   consumedLocationInvites LocationInvite[] @relation("InviteConsumer")
   auditLogs            AuditLog[]            @relation("LegacyAuditUser")
@@ -153,6 +171,8 @@ model User {
   adminEvents            AdminEvent[]
 
   @@index([orgId])
+  @@index([deletedAt])
+  @@index([deletionRequestedAt])
 }
 
 model RefreshToken {
@@ -238,7 +258,7 @@ model AuditLog {
   user         User?         @relation("LegacyAuditUser", fields: [userId], references: [id], onDelete: SetNull)
   actorUser    User?         @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
   tenant       Organization? @relation("TenantAuditLogs", fields: [tenantId], references: [id], onDelete: SetNull)
-  location     Gym?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  location     Gym?          @relation("GymAuditLogs", fields: [locationId], references: [id], onDelete: SetNull)
 
   @@index([orgId])
   @@index([userId])
@@ -260,7 +280,7 @@ model FeatureFlag {
   updatedAt       DateTime         @updatedAt
   createdAt       DateTime         @default(now())
   tenant          Organization?    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location        Gym?             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location        Gym?             @relation("GymFeatureFlags", fields: [locationId], references: [id], onDelete: Cascade)
   updatedByUser   User?            @relation("FeatureFlagUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([key, scope, tenantId, locationId])
@@ -339,6 +359,8 @@ model Gym {
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   memberships  Membership[]
   customDomains CustomDomain[]
+  auditLogs     AuditLog[]       @relation("GymAuditLogs")
+  featureFlags  FeatureFlag[]    @relation("GymFeatureFlags")
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]

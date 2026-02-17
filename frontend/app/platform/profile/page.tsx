@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/src/lib/apiFetch";
 import { useToast } from "../../../src/components/toast/ToastProvider";
-import { requestDeleteAccount } from "../../../src/lib/auth";
+import { cancelAccountDeletion, getAccountDeletionStatus, requestDeleteAccount } from "../../../src/lib/auth";
 
 type AccountProfile = {
   email?: string;
@@ -75,6 +75,7 @@ export default function PlatformProfilePage() {
 
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deletionStatus, setDeletionStatus] = useState<{ pendingDeletion: boolean; deletionRequestedAt: string | null; deletedAt: string | null } | null>(null);
 
   const isBusy = loadingProfile || submitting;
 
@@ -110,7 +111,21 @@ export default function PlatformProfilePage() {
       }
     }
 
+    async function loadDeletionStatus() {
+      try {
+        const status = await getAccountDeletionStatus();
+        if (isMounted) {
+          setDeletionStatus(status);
+        }
+      } catch {
+        if (isMounted) {
+          setDeletionStatus(null);
+        }
+      }
+    }
+
     void loadProfile();
+    void loadDeletionStatus();
 
     return () => {
       isMounted = false;
@@ -132,6 +147,7 @@ export default function PlatformProfilePage() {
       await requestDeleteAccount(deletePassword);
       setDeletePassword("");
       toast.success("Deletion email sent", "Check your inbox to confirm account deletion.");
+      setDeletionStatus(await getAccountDeletionStatus());
     } catch (error) {
       toast.error("Delete request failed", error instanceof Error ? error.message : "Unable to request account deletion.");
     } finally {
@@ -293,6 +309,22 @@ export default function PlatformProfilePage() {
       <div className="card space-y-4 border-rose-500/40">
         <h2 className="section-title text-rose-200">Delete account</h2>
         <p className="text-sm text-slate-300">Request account deletion. You will receive an email confirmation link before anything is removed.</p>
+        {deletionStatus?.pendingDeletion ? (
+          <div className="rounded-md border border-amber-300/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+            <p>Deletion pending since {formatDate(deletionStatus.deletionRequestedAt ?? undefined)}. Scheduled finalization: {formatDate(deletionStatus.deletedAt ?? undefined)}.</p>
+            <button
+              type="button"
+              className="button secondary mt-2"
+              onClick={async () => {
+                await cancelAccountDeletion();
+                setDeletionStatus(await getAccountDeletionStatus());
+                toast.success("Deletion canceled", "Your account deletion request has been canceled.");
+              }}
+            >
+              Cancel pending deletion
+            </button>
+          </div>
+        ) : null}
         <form className="space-y-3" onSubmit={handleDeleteRequest}>
           <div className="space-y-1">
             <label className="text-sm text-slate-200" htmlFor="deletePassword">Confirm password</label>
