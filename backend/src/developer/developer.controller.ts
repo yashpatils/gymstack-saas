@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DeveloperService } from './developer.service';
 
@@ -23,8 +23,12 @@ export class DeveloperController {
   }
 
   @Get('webhooks')
-  webhooks(@Req() req: { user: { activeTenantId?: string | null } }) {
-    return this.developerService.listWebhookEndpoints(req.user);
+  webhooks(
+    @Req() req: { user: { activeTenantId?: string | null } },
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '20',
+  ) {
+    return this.developerService.listWebhookEndpoints(req.user, Number(page), Number(pageSize));
   }
 
   @Post('webhooks')

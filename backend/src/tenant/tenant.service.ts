@@ -63,17 +63,18 @@ export class TenantService {
 
     if (body.remove) {
       await this.prisma.membership.delete({ where: { id: member.id } });
+      this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole }, tenantId, locationId: member.gymId, action: 'MEMBER_REMOVED', targetType: 'membership', targetId: member.id, metadata: { removedUserId: member.userId, removedRole: member.role } });
       return { ok: true };
     }
 
     const updated = await this.prisma.membership.update({ where: { id: member.id }, data: { role: body.role ?? undefined, gymId: body.locationId ?? undefined } });
 
     if (body.role && body.role !== member.role) {
-      await this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER }, tenantId, locationId: updated.gymId, action: 'ROLE_CHANGED', targetType: 'membership', targetId: updated.id, metadata: { previousRole: member.role, nextRole: body.role } });
+      this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole }, tenantId, locationId: updated.gymId, action: 'ROLE_CHANGED', targetType: 'membership', targetId: updated.id, metadata: { previousRole: member.role, nextRole: body.role } });
     }
 
     if (typeof body.locationId !== 'undefined' && body.locationId !== member.gymId) {
-      await this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER }, tenantId, locationId: body.locationId, action: 'LOCATION_SCOPE_CHANGED', targetType: 'membership', targetId: updated.id, metadata: { previousLocationId: member.gymId, nextLocationId: body.locationId ?? null } });
+      this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole }, tenantId, locationId: body.locationId, action: 'LOCATION_SCOPE_CHANGED', targetType: 'membership', targetId: updated.id, metadata: { previousLocationId: member.gymId, nextLocationId: body.locationId ?? null } });
     }
 
     return { ok: true };
@@ -85,7 +86,7 @@ export class TenantService {
 
   async createInvite(requester: User, payload: CreateInviteDto) {
     const result = await this.invitesService.createInvite(requester, payload);
-    await this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER }, tenantId: payload.tenantId, locationId: payload.locationId ?? null, action: 'INVITE_CREATED', targetType: 'invite', targetId: result.inviteId, metadata: { role: payload.role, email: payload.email ?? null } });
+    this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requester.activeRole }, tenantId: payload.tenantId, locationId: payload.locationId ?? null, action: 'INVITE_CREATED', targetType: 'invite', targetId: result.inviteId, metadata: { role: payload.role, email: payload.email ?? null } });
     return { inviteLink: result.inviteUrl };
   }
 
@@ -93,7 +94,7 @@ export class TenantService {
     const invite = await this.prisma.locationInvite.findUnique({ where: { id: inviteId } });
     if (!invite) throw new BadRequestException('Invite not found');
     const result = await this.invitesService.revokeInvite(requester, inviteId);
-    await this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER }, tenantId: invite.tenantId, locationId: invite.locationId, action: 'INVITE_REVOKED', targetType: 'invite', targetId: inviteId, metadata: { role: invite.role } });
+    this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requester.activeRole }, tenantId: invite.tenantId, locationId: invite.locationId, action: 'INVITE_REVOKED', targetType: 'invite', targetId: inviteId, metadata: { role: invite.role } });
     return result;
   }
 
@@ -101,7 +102,7 @@ export class TenantService {
     const result = await this.invitesService.consumeByToken(token, email, userId);
     const invite = await this.prisma.locationInvite.findUnique({ where: { id: result.inviteId } });
     if (invite) {
-      await this.auditService.log({ actor: { userId: userId ?? null, type: userId ? AuditActorType.USER : AuditActorType.SYSTEM }, tenantId: invite.tenantId, locationId: invite.locationId, action: 'INVITE_CONSUMED', targetType: 'invite', targetId: invite.id, metadata: { role: invite.role, consumedByUserId: userId ?? null } });
+      this.auditService.log({ actor: { userId: userId ?? null, type: userId ? AuditActorType.USER : AuditActorType.SYSTEM, email: email ?? null }, tenantId: invite.tenantId, locationId: invite.locationId, action: 'INVITE_CONSUMED', targetType: 'invite', targetId: invite.id, metadata: { role: invite.role, consumedByUserId: userId ?? null } });
     }
     return { ok: true, role: result.role, tenantId: result.tenantId, locationId: result.locationId || null };
   }

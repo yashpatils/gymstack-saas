@@ -24,9 +24,15 @@ export class PublicApiController {
     return this.publicApiService.classes(ctx.tenantId, Number(page), Number(pageSize));
   }
 
-  @Get('schedule')
-  schedule(@PublicApiCtx() ctx: PublicApiContext, @Query('page') page = '1', @Query('pageSize') pageSize = '20') {
-    return this.publicApiService.schedule(ctx.tenantId, Number(page), Number(pageSize));
+  @Get('sessions')
+  sessions(
+    @PublicApiCtx() ctx: PublicApiContext,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '20',
+  ) {
+    return this.publicApiService.sessions(ctx.tenantId, { from, to, page: Number(page), pageSize: Number(pageSize) });
   }
 
   @Post('bookings')

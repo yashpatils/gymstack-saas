@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/client';
+import { MembershipRole, MembershipStatus, SubscriptionStatus, TenantBillingStatus } from '@prisma/client';
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 type AdminTenantListItem = {
   tenantId: string;
@@ -25,6 +26,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobLogService: JobLogService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
@@ -338,6 +340,7 @@ export class AdminService {
     const isDisabled = !org.isDisabled;
     await this.prisma.organization.update({ where: { id: tenantId }, data: { isDisabled, disabledAt: isDisabled ? new Date() : null } });
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED' } });
+    await this.prisma.auditLog.create({ data: { actorType: 'ADMIN', actorUserId: adminUserId, actorRole: 'PLATFORM_ADMIN', tenantId, action: 'TENANT_SUSPENSION_TOGGLED', targetType: 'tenant', targetId: tenantId, entityType: 'tenant', entityId: tenantId, metadata: { isDisabled } } });
     return { tenantId, isDisabled };
   }
 
@@ -345,6 +348,7 @@ export class AdminService {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!org) throw new NotFoundException('Tenant not found');
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'IMPERSONATE_START', metadata: { tenantId }, ip: ip ?? null } });
+    await this.prisma.auditLog.create({ data: { actorType: 'ADMIN', actorUserId: adminUserId, actorRole: 'PLATFORM_ADMIN', tenantId, action: 'IMPERSONATION_START', targetType: 'tenant', targetId: tenantId, entityType: 'tenant', entityId: tenantId, ipAddress: ip ?? null, ip: ip ?? null } });
     return { tenantId, supportMode: { tenantId } };
   }
 
@@ -383,7 +387,7 @@ export class AdminService {
     await this.prisma.auditLog.create({
       data: {
         actorType: 'ADMIN', actorUserId, tenantId: null, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId,
-        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId,
+        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId, actorRole: 'PLATFORM_ADMIN',
       },
     });
     return { ok: true as const, revoked: result.count };
@@ -398,8 +402,9 @@ export class AdminService {
     });
   }
 
-  async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string }) {
-    return this.prisma.auditLog.findMany({
+  async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string; limit?: number; cursor?: string }) {
+    const safeLimit = Number.isFinite(filters.limit) ? Math.min(Math.max(filters.limit ?? 50, 1), 200) : 50;
+    const rows = await this.prisma.auditLog.findMany({
       where: {
         tenantId: filters.tenantId || undefined,
         action: filters.action || undefined,
@@ -407,12 +412,17 @@ export class AdminService {
         createdAt: { gte: filters.from ? new Date(filters.from) : undefined, lte: filters.to ? new Date(filters.to) : undefined },
       },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      cursor: filters.cursor ? { id: filters.cursor } : undefined,
+      skip: filters.cursor ? 1 : 0,
+      take: safeLimit + 1,
       select: {
         id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true,
-        metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } },
+        metadata: true, ipAddress: true, actorEmail: true, actorRole: true, createdAt: true, actorUser: { select: { id: true, email: true } },
       },
     });
+    const hasNext = rows.length > safeLimit;
+    const items = hasNext ? rows.slice(0, safeLimit) : rows;
+    return { items, nextCursor: hasNext ? items[items.length - 1]?.id ?? null : null };
   }
 
 
@@ -479,6 +489,21 @@ export class AdminService {
       },
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'ADMIN',
+        actorUserId: adminUserId,
+        actorRole: 'PLATFORM_ADMIN',
+        tenantId,
+        action: 'PLAN_OVERRIDE',
+        targetType: 'tenant',
+        targetId: tenantId,
+        entityType: 'tenant',
+        entityId: tenantId,
+        metadata: { maxLocationsOverride: override.maxLocationsOverride, maxStaffSeatsOverride: override.maxStaffSeatsOverride, whiteLabelOverride: override.whiteLabelOverride },
+      },
+    });
+
     return { tenantId, override };
   }
   async getMigrationStatus() {
@@ -498,5 +523,23 @@ export class AdminService {
       migrations: rows.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), finishedAt: row.finished_at ? row.finished_at.toISOString() : null, rolledBackAt: row.rolled_back_at ? row.rolled_back_at.toISOString() : null })),
       guidance: ['Take an immediate backup/snapshot before manual intervention.', 'Inspect the failed migration SQL and deployment logs.', 'Use prisma migrate resolve --rolled-back or --applied after validation.', 'Re-run prisma migrate deploy once the state is consistent.'],
     };
+  }
+
+  listApiKeys(page: number, pageSize: number) {
+    return this.prisma.apiKey.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+  }
+
+  async revokeApiKey(id: string) {
+    await this.prisma.apiKey.updateMany({ where: { id, revokedAt: null }, data: { revokedAt: new Date() } });
+    return { ok: true as const };
+  }
+
+  listWebhookFailures(page: number, pageSize: number) {
+    return this.webhooksService.getFailureLogs(page, pageSize);
   }
 }

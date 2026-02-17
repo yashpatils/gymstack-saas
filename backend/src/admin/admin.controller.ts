@@ -53,8 +53,8 @@ export class AdminController {
   }
 
   @Get('audit')
-  audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.adminService.listAudit({ tenantId, action, actor, from, to });
+  audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+    return this.adminService.listAudit({ tenantId, action, actor, from, to, limit: limit ? Number.parseInt(limit, 10) : undefined, cursor });
   }
 
   @Get('users')
@@ -77,6 +77,21 @@ export class AdminController {
   @Get('impersonations')
   impersonations() {
     return this.adminService.listImpersonationHistory();
+  }
+
+  @Get('integrations/api-keys')
+  apiKeys(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number) {
+    return this.adminService.listApiKeys(page ?? 1, pageSize ?? 20);
+  }
+
+  @Post('integrations/api-keys/:id/revoke')
+  revokeIntegrationApiKey(@Param('id') id: string) {
+    return this.adminService.revokeApiKey(id);
+  }
+
+  @Get('integrations/webhook-failures')
+  webhookFailures(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number) {
+    return this.adminService.listWebhookFailures(page ?? 1, pageSize ?? 20);
   }
 
   @Post('tenants/:tenantId/features')

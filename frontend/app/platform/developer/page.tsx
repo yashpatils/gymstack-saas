@@ -1,15 +1,81 @@
 "use client";
-import { useEffect, useState } from "react";
-import PageHeader from "@/src/components/PageHeader";
-import { apiFetch } from "@/src/lib/apiFetch";
 
-type ApiKey = { id: string; name: string; createdAt: string; lastUsedAt?: string | null; revokedAt?: string | null };
-type Delivery = { id: string; eventType: string; responseStatus?: number | null; attemptCount: number; createdAt: string };
-type Webhook = { id: string; url: string; events: string[]; active: boolean; deliveries: Delivery[] };
-const EVENTS = ["booking.created", "booking.canceled", "membership.created", "membership.canceled", "client.created", "classSession.created"];
+import { useEffect, useState } from 'react';
+import { createApiKey, createWebhook, listApiKeys, listWebhooks, retryWebhookDelivery, revokeApiKey, type DeveloperApiKey, type WebhookEndpoint } from '@/src/lib/developer';
 
-export default function DeveloperPage() { const [keys, setKeys] = useState<ApiKey[]>([]); const [webhooks, setWebhooks] = useState<Webhook[]>([]); const [createdKey, setCreatedKey] = useState<string | null>(null); const [name, setName] = useState("Integration key"); const [url, setUrl] = useState(""); const [events, setEvents] = useState<string[]>([EVENTS[0]]);
-  async function load() { const [apiKeys, endpoints] = await Promise.all([apiFetch<ApiKey[]>("/api/developer/api-keys", { method: "GET" }), apiFetch<Webhook[]>("/api/developer/webhooks", { method: "GET" })]); setKeys(apiKeys); setWebhooks(endpoints); }
+const EVENT_OPTIONS = ['booking.created', 'booking.canceled', 'membership.created', 'membership.canceled', 'client.created', 'classSession.created'];
+
+export default function DeveloperPage() {
+  const [keys, setKeys] = useState<DeveloperApiKey[]>([]);
+  const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [events, setEvents] = useState<string[]>(['booking.created']);
+  const [newKey, setNewKey] = useState<string | null>(null);
+
+  async function load() {
+    const [apiKeys, webhookRes] = await Promise.all([listApiKeys(), listWebhooks()]);
+    setKeys(apiKeys);
+    setWebhooks(webhookRes.data);
+  }
+
   useEffect(() => { void load(); }, []);
-  return <section className="page space-y-6"><PageHeader title="Developer Platform" subtitle="Manage API keys and webhooks." /><div className="card space-y-3"><h2 className="section-title">API Keys</h2><div className="flex gap-2"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /><button className="button" onClick={async () => { const data = await apiFetch<{ key: string }>("/api/developer/api-keys", { method: "POST", body: { name } }); setCreatedKey(data.key); await load(); }}>Create key</button></div>{createdKey ? <p className="text-xs">Copy once: <code>{createdKey}</code></p> : null}<ul className="space-y-2 text-sm">{keys.map((key) => <li key={key.id} className="border border-white/10 rounded p-2 flex justify-between"><span>{key.name} · last used: {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : "never"}</span><button className="button-secondary" disabled={Boolean(key.revokedAt)} onClick={async () => { await apiFetch(`/api/developer/api-keys/${key.id}/revoke`, { method: "POST" }); await load(); }}>{key.revokedAt ? "Revoked" : "Revoke"}</button></li>)}</ul></div><div className="card space-y-3"><h2 className="section-title">Webhooks</h2><input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/webhooks/gymstack" /><div className="flex flex-wrap gap-2 text-xs">{EVENTS.map((eventName) => <label key={eventName} className="border border-white/15 rounded px-2 py-1"><input type="checkbox" checked={events.includes(eventName)} onChange={() => setEvents((prev) => prev.includes(eventName) ? prev.filter((entry) => entry !== eventName) : [...prev, eventName])} /> {eventName}</label>)}</div><button className="button" onClick={async () => { await apiFetch("/api/developer/webhooks", { method: "POST", body: { url, events } }); setUrl(""); await load(); }}>Create endpoint</button>{webhooks.map((hook) => <div key={hook.id} className="border border-white/10 rounded p-3 space-y-2"><p className="text-sm">{hook.url}</p><ul className="space-y-1 text-xs">{hook.deliveries.map((delivery) => <li key={delivery.id} className="flex justify-between"><span>{delivery.eventType} · status {delivery.responseStatus ?? "pending"}</span><button className="button-secondary" onClick={async () => { await apiFetch(`/api/developer/webhooks/deliveries/${delivery.id}/retry`, { method: "POST" }); await load(); }}>Retry</button></li>)}</ul></div>)}</div></section>;
+
+  return (
+    <div className="space-y-6 p-6">
+      <h1 className="text-2xl font-semibold">Developer</h1>
+
+      <section className="rounded-xl border border-white/10 p-4">
+        <h2 className="text-lg font-medium">API Keys</h2>
+        <div className="mt-3 flex gap-2">
+          <input className="rounded border px-3 py-2 text-black" value={name} onChange={(e) => setName(e.target.value)} placeholder="Key name" />
+          <button className="button" onClick={async () => { const created = await createApiKey(name); setNewKey(created.key); setName(''); await load(); }} type="button">Create</button>
+        </div>
+        {newKey ? <p className="mt-2 text-sm text-amber-300">Copy now (shown once): <code>{newKey}</code></p> : null}
+        <ul className="mt-3 space-y-2">
+          {keys.map((key) => (
+            <li key={key.id} className="flex items-center justify-between rounded border border-white/10 p-2 text-sm">
+              <span>{key.name} · last used: {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : 'never'} · {key.revokedAt ? 'revoked' : 'active'}</span>
+              {!key.revokedAt ? <button className="button secondary" onClick={async () => { await revokeApiKey(key.id); await load(); }} type="button">Revoke</button> : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-xl border border-white/10 p-4">
+        <h2 className="text-lg font-medium">Webhooks</h2>
+        <div className="mt-3 space-y-2">
+          <input className="w-full rounded border px-3 py-2 text-black" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/webhooks" />
+          <div className="flex flex-wrap gap-2">
+            {EVENT_OPTIONS.map((eventType) => (
+              <label key={eventType} className="text-sm">
+                <input
+                  type="checkbox"
+                  checked={events.includes(eventType)}
+                  onChange={(e) => setEvents((prev) => e.target.checked ? [...prev, eventType] : prev.filter((item) => item !== eventType))}
+                /> {eventType}
+              </label>
+            ))}
+          </div>
+          <button className="button" type="button" onClick={async () => { await createWebhook(url, events); setUrl(''); await load(); }}>Create endpoint</button>
+        </div>
+        <div className="mt-4 space-y-4">
+          {webhooks.map((endpoint) => (
+            <div key={endpoint.id} className="rounded border border-white/10 p-3">
+              <p className="font-medium">{endpoint.url}</p>
+              <p className="text-xs text-slate-300">{endpoint.events.join(', ')}</p>
+              <ul className="mt-2 space-y-1">
+                {endpoint.deliveries.map((delivery) => (
+                  <li key={delivery.id} className="flex items-center justify-between text-xs">
+                    <span>{delivery.eventType} · status {delivery.responseStatus ?? 'pending'} · attempts {delivery.attemptCount}</span>
+                    <button className="button secondary" type="button" onClick={async () => { await retryWebhookDelivery(delivery.id); await load(); }}>Retry</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }

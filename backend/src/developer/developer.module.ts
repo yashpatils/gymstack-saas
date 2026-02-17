@@ -3,9 +3,10 @@ import { DeveloperController } from './developer.controller';
 import { DeveloperService } from './developer.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [PrismaModule, WebhooksModule],
+  imports: [PrismaModule, WebhooksModule, AuditModule],
   controllers: [DeveloperController],
   providers: [DeveloperService],
 })
