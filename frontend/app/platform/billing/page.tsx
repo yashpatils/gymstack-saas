@@ -5,7 +5,8 @@ import { PageCard, PageContainer, PageGrid, PageHeader } from "../../../src/comp
 import { ErrorState, StatCard } from "../../../src/components/platform/data";
 import { FormActions } from "../../../src/components/platform/form";
 import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
-import { LoadingState } from "../../../src/components/common/LoadingState";
+
+const PLAN_NAMES: Record<string, string> = { starter: "Starter", pro: "Pro" };
 
 type BillingStatus = {
   planKey: string;
