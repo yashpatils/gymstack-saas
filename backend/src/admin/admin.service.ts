@@ -102,9 +102,9 @@ export class AdminService {
     };
   }
 
-  async listTenants(page: number, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
+  async listTenants(page: number, pageSizeInput = 20, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-    const pageSize = 20;
+    const pageSize = Number.isFinite(pageSizeInput) && pageSizeInput > 0 ? Math.min(100, Math.floor(pageSizeInput)) : 20;
     const normalizedQuery = query?.trim();
     const normalizedStatus = status?.trim().toUpperCase();
 
@@ -126,7 +126,6 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           _count: { select: { gyms: true, users: true, customDomains: true } },
-          memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
           users: {
             select: {
               subscriptionStatus: true,
@@ -166,18 +165,8 @@ export class AdminService {
       };
     });
 
-        return {
-          tenantId: organization.id,
-          tenantName: organization.name,
-          createdAt: organization.createdAt.toISOString(),
-          locationsCount: organization._count.gyms,
-          ownersCount,
-          managersCount,
-          customDomainsCount: organization._count.customDomains,
-          subscriptionStatus: organization.subscriptionStatus ?? null,
-          whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
-        };
-      }),
+    return {
+      items: mapped,
       page: safePage,
       total,
     };
@@ -190,6 +179,15 @@ export class AdminService {
         gyms: {
           orderBy: { createdAt: 'asc' },
           select: { id: true, name: true, slug: true, createdAt: true },
+        },
+        users: {
+          select: { id: true, email: true, subscriptionStatus: true, stripeSubscriptionId: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        adminEvents: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
         },
       },
     });
@@ -249,6 +247,28 @@ export class AdminService {
     });
 
     return { tenantId, isDisabled };
+  }
+
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const tenant = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: {
+        whiteLabelBrandingEnabled: input.whiteLabelBranding,
+        whiteLabelEnabled: input.whiteLabelBranding,
+      },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: {
+        adminUserId,
+        tenantId,
+        type: 'TENANT_FEATURES_UPDATED',
+        metadata: { whiteLabelBranding: input.whiteLabelBranding },
+      },
+    });
+
+    return tenant;
   }
 
   async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined): Promise<{ tenantId: string; supportMode: { tenantId: string } }> {
