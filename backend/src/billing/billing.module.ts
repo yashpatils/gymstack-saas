@@ -12,9 +12,12 @@ import { PlanService } from './plan.service';
 import { StripeBillingProvider } from './providers/stripe-billing.provider';
 import { RazorpayBillingProvider } from './providers/razorpay-billing.provider';
 import { BillingProviderRegistry } from './billing-provider.registry';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { EmailModule } from '../email/email.module';
+import { BillingLifecycleService } from './billing-lifecycle.service';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuditModule],
+  imports: [ConfigModule, PrismaModule, AuditModule, NotificationsModule, EmailModule],
   controllers: [BillingController, StripeWebhookController],
   providers: [
     RequireVerifiedEmailGuard,
@@ -25,7 +28,8 @@ import { BillingProviderRegistry } from './billing-provider.registry';
     StripeBillingProvider,
     RazorpayBillingProvider,
     BillingProviderRegistry,
+    BillingLifecycleService,
   ],
-  exports: [SubscriptionGatingService, PlanService],
+  exports: [SubscriptionGatingService, PlanService, BillingLifecycleService],
 })
 export class BillingModule {}

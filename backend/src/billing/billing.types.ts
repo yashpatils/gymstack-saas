@@ -1,4 +1,4 @@
-import { BillingProvider, PlanKey, SubscriptionStatus } from '@prisma/client';
+import { BillingProvider, PlanKey, SubscriptionStatus, TenantBillingStatus as TenantBillingLifecycleStatus } from '@prisma/client';
 
 export type BillingCheckoutInput = {
   tenantId: string;
@@ -18,12 +18,14 @@ export type BillingWebhookEvent = {
   payload: unknown;
 };
 
-export type TenantBillingStatus = {
+export type TenantBillingStatusResponse = {
   planKey: PlanKey;
   planName: string;
   provider: BillingProvider;
   billingCountry: string | null;
   subscriptionStatus: SubscriptionStatus;
+  billingStatus: TenantBillingLifecycleStatus;
+  gracePeriodEndsAt: string | null;
   currentPeriodEnd: string | null;
   priceId: string | null;
   whiteLabelEligible: boolean;

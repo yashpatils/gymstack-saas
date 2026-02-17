@@ -9,6 +9,8 @@ import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
 const PLAN_NAMES: Record<string, string> = { starter: "Starter", pro: "Pro" };
 
 type BillingStatus = {
+  billingStatus: "ACTIVE" | "TRIALING" | "PAST_DUE" | "GRACE_PERIOD" | "FROZEN" | "CANCELED";
+  gracePeriodEndsAt: string | null;
   planKey: string;
   planName: string;
   provider: "STRIPE" | "RAZORPAY";
@@ -57,6 +59,18 @@ export default function BillingPage() {
 
   useEffect(() => { void loadStatus(); }, []);
 
+  async function openPortal() {
+    try {
+      const response = await apiFetch<{ url: string }>("/api/billing/portal", {
+        method: "POST",
+        body: JSON.stringify({ returnUrl: window.location.href }),
+      });
+      window.location.href = response.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not open billing portal.");
+    }
+  }
+
   return (
     <PageContainer>
       <PageHeader title="Billing" description="Manage your subscription and plan limits." actions={<button className="button" onClick={() => void loadStatus()} type="button">Refresh</button>} />
@@ -65,7 +79,7 @@ export default function BillingPage() {
 
       <PageGrid columns={4}>
         <StatCard label="Current plan" value={currentPlanName} />
-        <StatCard label="Status" value={status?.subscriptionStatus ?? "Not subscribed"} />
+        <StatCard label="Status" value={status?.billingStatus ?? status?.subscriptionStatus ?? "Not subscribed"} />
         <StatCard label="Locations" value={status ? `${status.usage.locationsUsed}/${status.usage.maxLocations}` : "—"} />
         <StatCard label="Staff seats" value={status ? `${status.usage.staffSeatsUsed}/${status.usage.maxStaffSeats}` : "—"} />
       </PageGrid>
@@ -74,8 +88,11 @@ export default function BillingPage() {
         <FormActions>
           <button type="button" className="button secondary" disabled={!starterPriceId}>Starter</button>
           <button type="button" className="button" disabled={!proPriceId}>Pro</button>
+          <button type="button" className="button secondary" onClick={() => void openPortal()}>Update card</button>
+          <button type="button" className="button" onClick={() => void openPortal()}>Retry payment</button>
         </FormActions>
         <p className="mt-3 text-xs text-slate-400">White-label enabled: {status?.whiteLabelEnabled ? "Yes" : "No"}</p>
+        <p className="mt-2 inline-flex rounded-full border border-white/20 px-2 py-1 text-xs">Current status: {status?.billingStatus ?? "ACTIVE"}</p>
       </PageCard>
     </PageContainer>
   );

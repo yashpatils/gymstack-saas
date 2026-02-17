@@ -22,6 +22,11 @@ export class AdminController {
     return this.adminService.getGrowthMetrics();
   }
 
+  @Get('billing-watchlist')
+  billingWatchlist() {
+    return this.adminService.getBillingWatchlist();
+  }
+
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,

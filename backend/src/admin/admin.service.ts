@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/client';
+import { MembershipRole, MembershipStatus, SubscriptionStatus, TenantBillingStatus } from '@prisma/client';
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -30,6 +30,26 @@ export class AdminService {
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
     const planCents = Number.parseInt(process.env.DEFAULT_TENANT_MRR_CENTS ?? '9900', 10);
     return status === SubscriptionStatus.ACTIVE ? (Number.isFinite(planCents) ? planCents : 9900) : 0;
+  }
+
+
+  async getBillingWatchlist() {
+    const tenants = await this.prisma.organization.findMany({
+      where: {
+        billingStatus: { in: [TenantBillingStatus.PAST_DUE, TenantBillingStatus.GRACE_PERIOD, TenantBillingStatus.FROZEN] },
+      },
+      select: { id: true, name: true, billingStatus: true, gracePeriodEndsAt: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return {
+      items: tenants.map((tenant) => ({
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        billingStatus: tenant.billingStatus,
+        gracePeriodEndsAt: tenant.gracePeriodEndsAt ? tenant.gracePeriodEndsAt.toISOString() : null,
+      })),
+    };
   }
 
   async getOverview() {
