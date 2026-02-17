@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
+import { createHash } from 'crypto';
 import { MembershipRole } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -28,6 +29,18 @@ function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
     ip,
     userAgent: typeof userAgent === 'string' ? userAgent : undefined,
   };
+}
+
+
+function hashIdentifier(value: string): string {
+  return createHash('sha256').update(value).digest('hex').slice(0, 16);
+}
+
+function requireRequestedWithHeader(req: Request): void {
+  const requestedWith = req.header('X-Requested-With');
+  if (requestedWith !== 'XMLHttpRequest') {
+    throw new HttpException('Invalid request.', 400);
+  }
 }
 
 type RequestUser = MeDto & {
@@ -68,8 +81,13 @@ export class AuthController {
     @Body() body: SignupDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+    requireRequestedWithHeader(req);
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    const emailKey = hashIdentifier(body.email.trim().toLowerCase());
+    this.sensitiveRateLimitService.check(`signup:${ipKey}:${emailKey}`, 10, 60 * 60_000);
     try {
-      return await this.authService.signup(body, getRequestContext(req));
+      return await this.authService.signup(body, context);
     } catch (error) {
       this.logAuthFailure('POST /api/auth/signup', req, error);
       throw error;
@@ -82,8 +100,13 @@ export class AuthController {
     @Body() body: SignupDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+    requireRequestedWithHeader(req);
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    const emailKey = hashIdentifier(body.email.trim().toLowerCase());
+    this.sensitiveRateLimitService.check(`signup:${ipKey}:${emailKey}`, 10, 60 * 60_000);
     try {
-      return await this.authService.signup(body, getRequestContext(req));
+      return await this.authService.signup(body, context);
     } catch (error) {
       this.logAuthFailure('POST /api/auth/register', req, error);
       throw error;
@@ -96,8 +119,13 @@ export class AuthController {
     @Body() body: LoginDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+    requireRequestedWithHeader(req);
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    const emailKey = hashIdentifier(body.email.trim().toLowerCase());
+    this.sensitiveRateLimitService.check(`login:${ipKey}:${emailKey}`, 12, 15 * 60_000);
     try {
-      return await this.authService.login(body, getRequestContext(req));
+      return await this.authService.login(body, context);
     } catch (error) {
       this.logAuthFailure('POST /api/auth/login', req, error);
       throw error;
@@ -110,8 +138,13 @@ export class AuthController {
     @Body() body: LoginDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+    requireRequestedWithHeader(req);
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    const emailKey = hashIdentifier(body.email.trim().toLowerCase());
+    this.sensitiveRateLimitService.check(`admin-login:${ipKey}:${emailKey}`, 8, 15 * 60_000);
     try {
-      return await this.authService.adminLogin(body, getRequestContext(req));
+      return await this.authService.adminLogin(body, context);
     } catch (error) {
       this.logAuthFailure('POST /api/auth/admin/login', req, error);
       throw error;
@@ -121,6 +154,7 @@ export class AuthController {
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
   @Post('register-with-invite')
   registerWithInvite(@Body() body: RegisterWithInviteDto, @Req() req: Request) {
+    requireRequestedWithHeader(req);
     return this.authService.registerWithInvite(body, getRequestContext(req));
   }
 
@@ -146,8 +180,9 @@ export class AuthController {
   @Post('resend-verification')
   @HttpCode(200)
   resendVerification(@Body() body: ResendVerificationDto, @Req() req: Request): Promise<{ ok: true; message: string }> {
+    requireRequestedWithHeader(req);
     const context = getRequestContext(req);
-    const emailKey = body.email?.trim().toLowerCase() ?? 'unknown';
+    const emailKey = body.email ? hashIdentifier(body.email.trim().toLowerCase()) : 'unknown';
     const ipKey = context.ip ?? 'unknown';
     this.sensitiveRateLimitService.check(`resend:${ipKey}:${emailKey}`, 20, 60 * 60_000);
 
@@ -196,13 +231,22 @@ export class AuthController {
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('forgot-password')
-  forgotPassword(@Body() body: ForgotPasswordDto): Promise<{ ok: true }> {
+  forgotPassword(@Body() body: ForgotPasswordDto, @Req() req: Request): Promise<{ ok: true }> {
+    requireRequestedWithHeader(req);
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    const emailKey = hashIdentifier(body.email.trim().toLowerCase());
+    this.sensitiveRateLimitService.check(`forgot:${ipKey}:${emailKey}`, 8, 60 * 60_000);
     return this.authService.forgotPassword(body.email);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('reset-password')
-  resetPassword(@Body() body: ResetPasswordDto): Promise<{ ok: true }> {
+  resetPassword(@Body() body: ResetPasswordDto, @Req() req: Request): Promise<{ ok: true }> {
+    requireRequestedWithHeader(req);
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    this.sensitiveRateLimitService.check(`reset:${ipKey}`, 8, 60 * 60_000);
     return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

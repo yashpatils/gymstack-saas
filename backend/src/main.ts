@@ -13,18 +13,20 @@ import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 import { normalizeOrigin } from './common/origin.util';
 import { parsePlatformAdminEmails } from './auth/platform-admin.util';
+import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://gymstack.club',
   'https://www.gymstack.club',
+  'https://admin.gymstack.club',
   'https://gymstack-saas.vercel.app',
   'http://localhost:3000',
 ];
 
 const DEFAULT_ALLOWED_ORIGIN_REGEXES = [
-  '^https:\\/\\/[a-z0-9-]+\\.gymstack\\.club$',
-  '^https:\\/\\/[a-z0-9-]+\\.vercel\\.app$',
-  '^http:\\/\\/[a-z0-9-]+\\.localhost:3000$',
+  '^https:\\/\\/[a-z0-9-]+\.gymstack\.club$',
+  '^https:\\/\\/[a-z0-9-]+\.vercel\.app$',
+  '^http:\\/\\/localhost(?::\\d+)?$',
 ];
 
 function isProductionEnvironment(configService: ConfigService): boolean {
@@ -65,11 +67,12 @@ function getAllowedOriginRegexes(configService: ConfigService): RegExp[] {
     .filter((regex): regex is RegExp => Boolean(regex));
 }
 
+
 function hasAllowedHostname(hostname: string): boolean {
   return (
     hostname.endsWith('.gymstack.club') ||
     hostname.endsWith('.vercel.app') ||
-    hostname.endsWith('.localhost')
+    hostname === 'localhost'
   );
 }
 
@@ -239,6 +242,7 @@ async function bootstrap() {
   app.use(requestIdMiddleware);
 
   app.useGlobalFilters(new HttpExceptionWithRequestIdFilter());
+  app.useGlobalInterceptors(new RequestLoggingInterceptor());
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Query, Req, Res, UnauthorizedException, Body } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { MembershipRole, OAuthProvider } from '@prisma/client';
 import type { Request, Response } from 'express';
@@ -25,6 +26,7 @@ export class OauthController {
     private readonly inviteAdmissionService: InviteAdmissionService,
   ) {}
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Get('google/start')
   async googleStart(
     @Query('returnTo') returnToInput: string | undefined,
@@ -53,6 +55,7 @@ export class OauthController {
     res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Get('google/callback')
   async googleCallback(@Query('code') code: string, @Query('state') state: string, @Req() req: Request & { user?: RequestUser }, @Res() res: Response): Promise<void> {
     const parsedState = this.stateService.verify(state, this.oauthStateSecret(), 10 * 60_000);
@@ -124,6 +127,7 @@ export class OauthController {
     res.redirect(redirectUrl.toString());
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Get('apple/start')
   async appleStart(
     @Query('returnTo') returnToInput: string | undefined,
@@ -150,6 +154,7 @@ export class OauthController {
     res.redirect(`https://appleid.apple.com/auth/authorize?${params.toString()}`);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('apple/callback')
   async appleCallback(@Body('id_token') idToken: string, @Body('state') state: string, @Req() req: Request & { user?: RequestUser }, @Res() res: Response): Promise<void> {
     const parsedState = this.stateService.verify(state, this.oauthStateSecret(), 10 * 60_000);

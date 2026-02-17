@@ -39,6 +39,7 @@ function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [supportRequestId, setSupportRequestId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<OAuthPersona>('OWNER');
   const returnTo = typeof window === 'undefined' ? pathname : window.location.href;
@@ -88,6 +89,7 @@ function LoginPageContent() {
         onSubmit={async (event) => {
           event.preventDefault();
           setError(null);
+          setSupportRequestId(null);
           setSubmitting(true);
           try {
             const result = await login(email, password, { adminOnly: isAdminHost });
@@ -117,6 +119,9 @@ function LoginPageContent() {
             }
             router.push(result.memberships.length > 1 ? '/select-workspace' : '/platform');
           } catch (submitError) {
+            if (submitError instanceof ApiFetchError && submitError.requestId) {
+              setSupportRequestId(submitError.requestId);
+            }
             if (isAdminHost && submitError instanceof ApiFetchError && submitError.statusCode === 403) {
               setError(ADMIN_RESTRICTED_MESSAGE);
             } else {
@@ -150,6 +155,14 @@ function LoginPageContent() {
         {sessionMessage ? <Alert tone="info">{sessionMessage}</Alert> : null}
         {adminBlocked ? <Alert tone="error">{ADMIN_RESTRICTED_MESSAGE}</Alert> : null}
         {error ? <Alert tone="error">{error}</Alert> : null}
+
+        {isAdminHost && supportRequestId ? (
+          <details className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs text-slate-300">
+            <summary className="cursor-pointer text-slate-200">Support info</summary>
+            <p className="mt-2">Request ID: <span className="font-mono">{supportRequestId}</span></p>
+          </details>
+        ) : null}
+
         <Input label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         <Input label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />
         <Button type="submit" disabled={submitting || loading}>{submitting ? "Signing in..." : "Sign in"}</Button>
