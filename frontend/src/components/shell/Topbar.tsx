@@ -23,6 +23,7 @@ export function Topbar({
   locations = [],
   activeLocationId,
   onSelectLocation,
+  showFeedbackLink = false,
 }: {
   initials: string;
   displayName: string;
@@ -38,6 +39,7 @@ export function Topbar({
   locations?: LocationOption[];
   activeLocationId?: string | null;
   onSelectLocation: (locationId: string | null) => Promise<void>;
+  showFeedbackLink?: boolean;
 }) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -76,6 +78,9 @@ export function Topbar({
               <button type="button" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Toggle menu">☰</button>
             ) : null}
             <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
+            {showFeedbackLink ? (
+              <Link href="/platform/feedback" className="button secondary hidden sm:inline-flex">Send feedback</Link>
+            ) : null}
             {canShowLocationSwitcher ? (
               <div className="hidden md:block">
                 <LocationSwitcher locations={locations} activeLocationId={activeLocationId} activeMode={activeMode} onSelect={onSelectLocation} canCreate />

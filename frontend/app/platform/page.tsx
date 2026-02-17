@@ -244,6 +244,20 @@ export default function PlatformPage() {
               <p>Memberships: {memberships.length}</p>
             </div>
           </SectionCard>
+          <SectionCard title="What's new">
+            {whatsNew.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No changelog updates yet.</p>
+            ) : (
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {whatsNew.slice(0, 5).map((entry) => (
+                  <li key={entry.id}>
+                    <p className="font-medium text-foreground">{entry.title}</p>
+                    <p>{entry.description}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
           <SectionCard title="Support">
             <p className="text-sm text-muted-foreground">Need help with onboarding or billing setup?</p>
             <Link href="/platform/support" className="button secondary mt-3 inline-flex">Contact support</Link>
