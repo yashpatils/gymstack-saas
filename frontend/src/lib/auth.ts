@@ -95,6 +95,23 @@ export async function verifyEmail(token: string): Promise<{ ok: true }> { return
 export async function requestDeleteAccount(password: string): Promise<{ ok: true }> { return apiFetch<{ ok: true }>('/api/account/request-delete', { method: 'POST', body: JSON.stringify({ password }), headers: { 'Content-Type': 'application/json' } }); }
 export async function confirmDeleteAccount(token: string): Promise<{ ok: true }> { return apiFetch<{ ok: true }>('/api/account/confirm-delete', { method: 'POST', body: JSON.stringify({ token }), headers: { 'Content-Type': 'application/json' } }); }
 
+
+export async function getAccountDeletionStatus(): Promise<{ pendingDeletion: boolean; deletionRequestedAt: string | null; deletedAt: string | null }> {
+  return apiFetch<{ pendingDeletion: boolean; deletionRequestedAt: string | null; deletedAt: string | null }>('/api/account/deletion-status', { method: 'GET' });
+}
+
+export async function cancelAccountDeletion(): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>('/api/account/cancel-deletion', { method: 'POST' });
+}
+
+export async function exportTenantData(): Promise<unknown> {
+  return apiFetch<unknown>('/api/export/tenant', { method: 'GET' });
+}
+
+export async function exportLocationData(locationId: string): Promise<unknown> {
+  return apiFetch<unknown>(`/api/export/location/${locationId}`, { method: 'GET' });
+}
+
 export async function acceptInvite(params: { token: string; password?: string; email?: string; name?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/register-with-invite', { method: 'POST', body: JSON.stringify({ token: params.token, email: params.email, password: params.password, name: params.name }), headers: { 'Content-Type': 'application/json' } });
   setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });

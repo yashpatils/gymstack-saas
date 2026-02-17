@@ -250,6 +250,10 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.deletionRequestedAt) {
+      throw new UnauthorizedException('Account deletion is pending. Cancel deletion to sign in again.');
+    }
+
     await this.ensureTenantForOwnerWithoutTenant(user.id);
 
     const passwordMatches = await bcrypt.compare(password, user.password);

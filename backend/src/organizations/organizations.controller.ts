@@ -37,6 +37,21 @@ export class OrganizationsController {
     return this.organizationsService.getDashboardSummary(user.id, tenantId);
   }
 
+  @Get('growth-status')
+  getGrowthStatus(@Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return this.organizationsService.getGrowthStatus(user.id, tenantId);
+  }
+
 
   @Patch('white-label')
   updateWhiteLabel(@Req() req: { user?: User }, @Body() body: UpdateWhiteLabelDto) {

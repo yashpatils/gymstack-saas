@@ -3,6 +3,8 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../../../src/lib/apiFetch';
+import { EmptyState, Skeleton } from '../../components/ui';
+import { SupportHelpButton } from '../../../src/components/SupportHelpButton';
 
 type RosterBooking = {
   id: string;
@@ -21,10 +23,15 @@ type RosterResponse = {
 export default function SessionRosterPage() {
   const params = useParams<{ id: string }>();
   const [roster, setRoster] = useState<RosterResponse | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = async () => {
-    const data = await apiFetch<RosterResponse>(`/api/location/sessions/${params.id}/roster`);
-    setRoster(data);
+    try {
+      const data = await apiFetch<RosterResponse>(`/api/location/sessions/${params.id}/roster`);
+      setRoster(data);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Failed to load roster.');
+    }
   };
 
   useEffect(() => {
@@ -32,21 +39,47 @@ export default function SessionRosterPage() {
   }, [params.id]);
 
   const checkIn = async (userId: string) => {
-    await apiFetch(`/api/location/sessions/${params.id}/check-in`, { method: 'POST', body: { userId } });
-    await load();
+    if (!roster) {
+      return;
+    }
+
+    const previous = roster;
+    setRoster({
+      ...roster,
+      bookings: roster.bookings.map((booking) =>
+        booking.user.id === userId ? { ...booking, status: 'CHECKED_IN' } : booking,
+      ),
+    });
+
+    try {
+      await apiFetch(`/api/location/sessions/${params.id}/check-in`, { method: 'POST', body: { userId } });
+      setNotice('Client checked in.');
+    } catch (error) {
+      setRoster(previous);
+      setNotice(error instanceof Error ? error.message : 'Check-in failed.');
+    }
   };
 
   if (!roster) {
-    return <main className="p-6 text-sm text-slate-600">Loading roster…</main>;
+    return <main className="p-6"><Skeleton className="h-24 rounded-xl" /></main>;
   }
 
   return (
     <main className="mx-auto max-w-3xl space-y-5 p-6">
       <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-semibold">{roster.classTemplate.title} Roster</h1>
-        <p className="text-sm text-slate-600">Capacity {roster.bookedCount}/{roster.capacity}</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">{roster.classTemplate.title} Roster</h1>
+            <p className="text-sm text-slate-600">Capacity {roster.bookedCount}/{roster.capacity}</p>
+          </div>
+          <SupportHelpButton />
+        </div>
+        {notice ? <p className="mt-2 text-sm text-amber-600">{notice}</p> : null}
       </section>
       <section className="space-y-2">
+        {roster.bookings.length === 0 ? (
+          <EmptyState title="No bookings for this session" description="Invite members to book this class from the schedule." />
+        ) : null}
         {roster.bookings.map((booking) => (
           <article key={booking.id} className="flex items-center justify-between rounded-lg border bg-white px-4 py-3">
             <div>
