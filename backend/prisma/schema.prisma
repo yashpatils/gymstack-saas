@@ -602,6 +602,8 @@ model ClientMembership {
 
   @@index([locationId, userId])
   @@index([locationId, status])
+  @@index([locationId, createdAt])
+  @@index([locationId, canceledAt])
   @@index([planId])
   @@index([createdByUserId])
 }
@@ -641,6 +643,7 @@ model ClassSession {
 
   @@index([classId])
   @@index([locationId, startsAt])
+  @@index([locationId, status, startsAt])
 }
 
 model ClassBooking {
@@ -659,6 +662,8 @@ model ClassBooking {
 
   @@unique([sessionId, userId])
   @@index([locationId, status])
+  @@index([locationId, createdAt])
+  @@index([locationId, updatedAt])
   @@index([userId, status])
 }
 

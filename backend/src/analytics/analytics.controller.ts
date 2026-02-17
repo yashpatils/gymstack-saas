@@ -5,6 +5,12 @@ import { RequirePlatformAdminGuard } from '../admin/require-platform-admin.guard
 import { AnalyticsService } from './analytics.service';
 import { AskAiDto } from './dto/ask-ai.dto';
 import { User } from '../users/user.model';
+import {
+  AnalyticsLocationsQueryDto,
+  AnalyticsRangeQueryDto,
+  AnalyticsTopClassesQueryDto,
+  AnalyticsTrendsQueryDto,
+} from './dto/analytics-query.dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -31,5 +37,36 @@ export class AnalyticsController {
   @Post('ai/ask')
   ask(@Req() req: { user: User }, @Body() body: AskAiDto) {
     return this.analyticsService.ask(req.user, body);
+  }
+
+  @Get('analytics/overview')
+  getOverview(@Req() req: { user: User }, @Query() query: AnalyticsRangeQueryDto) {
+    return this.analyticsService.getOverview(req.user, query.range ?? '7d');
+  }
+
+  @Get('analytics/locations')
+  getLocations(@Req() req: { user: User }, @Query() query: AnalyticsLocationsQueryDto) {
+    return this.analyticsService.getLocations(req.user, {
+      range: query.range ?? '7d',
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+  }
+
+  @Get('analytics/trends')
+  getTrends(@Req() req: { user: User }, @Query() query: AnalyticsTrendsQueryDto) {
+    return this.analyticsService.getTrends(req.user, {
+      metric: query.metric,
+      range: query.range ?? '30d',
+    });
+  }
+
+  @Get('analytics/top-classes')
+  getTopClasses(@Req() req: { user: User }, @Query() query: AnalyticsTopClassesQueryDto) {
+    return this.analyticsService.getTopClassesAnalytics(req.user, {
+      range: query.range ?? '30d',
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
   }
 }
