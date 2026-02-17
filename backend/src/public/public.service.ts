@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { normalizeHostname } from '../domains/domain.util';
@@ -37,7 +38,7 @@ export class PublicService {
   ) {}
 
   private toTenantBranding(
-    tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean; stripePriceId?: string | null; subscriptionStatus?: string | null } | null,
+    tenant: { id: string; name: string; whiteLabelEnabled: boolean; whiteLabelBrandingEnabled: boolean; stripePriceId?: string | null; subscriptionStatus?: SubscriptionStatus | null } | null,
     fallbackTenantId: string,
   ) {
     return {
