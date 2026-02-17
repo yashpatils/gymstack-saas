@@ -32,6 +32,7 @@
   --shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
   --glow: 0 0 0 1px rgba(148, 163, 184, 0.12),
     0 24px 60px rgba(2, 6, 23, 0.6);
+  --platform-header-height: 6.5rem;
 }
 
 body {
@@ -1495,7 +1496,10 @@ body {
 
   .platform-sidebar-modern {
     position: fixed;
-    inset: 0 auto 0 0;
+    top: var(--platform-header-height);
+    left: 0;
+    height: calc(100dvh - var(--platform-header-height));
+    overflow-y: auto;
     z-index: 40;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
