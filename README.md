@@ -91,6 +91,12 @@ Required environment variables:
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 - `MONITORING_WEBHOOK_URL` — Optional backend error webhook endpoint (captures unhandled 5xx metadata + request IDs). If omitted, monitoring is disabled with no startup impact.
 
+### Production migration troubleshooting
+
+- `backend/scripts/start-prod.sh` now runs `npx prisma migrate status` before `migrate deploy`.
+- If Prisma reports failed migrations (for example, `Following migration(s) have failed:`), startup is stopped and the script prints the exact failed migration name(s).
+- The script does **not** auto-resolve production migrations. Resolve manually (for example with `prisma migrate resolve --applied/--rolled-back` after investigation), then redeploy.
+
 
 ### CORS allowlist defaults
 
