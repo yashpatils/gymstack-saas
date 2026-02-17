@@ -38,7 +38,7 @@ export class InvitesController {
     return this.invitesService.validateInvite(body.token);
   }
 
-  @Post('consume')
+  @Post('consume-auth')
   @VerifiedEmailRequired()
   consumeInvite(@Req() req: { user: User }, @Body() body: ValidateInviteDto) {
     return this.invitesService.consumeByToken(body.token, req.user.email, req.user.id);

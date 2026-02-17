@@ -14,6 +14,7 @@ export const platformNavItems: AppNavItem[] = [
   { label: "Overview", href: "/platform", icon: "⌂", section: "core" },
   { label: "Gyms", href: "/platform/gyms", icon: "🏢", section: "core" },
   { label: "Team", href: "/platform/team", icon: "👥", section: "core" },
+  { label: "Invites", href: "/platform/invites", icon: "✉️", section: "core" },
   { label: "Billing", href: "/platform/billing", icon: "💳", section: "operations" },
   { label: "Coach", href: "/platform/coach", icon: "🏋️", section: "operations" },
   { label: "Client", href: "/platform/client", icon: "🧍", section: "operations" },

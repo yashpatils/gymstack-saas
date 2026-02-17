@@ -7,18 +7,25 @@ export function assertCanCreateLocationInvite(
   membershipInLocation: Membership | null,
 ): void {
   const requesterIsOwner = requesterRole === MembershipRole.TENANT_OWNER;
-  const requesterIsLocationAdmin = requesterRole === MembershipRole.TENANT_LOCATION_ADMIN;
+  const requesterIsManager = requesterRole === MembershipRole.TENANT_LOCATION_ADMIN;
   const requesterIsStaff = requesterRole === MembershipRole.GYM_STAFF_COACH;
 
+  if (inviteRole === MembershipRole.TENANT_LOCATION_ADMIN) {
+    if (!requesterIsOwner) {
+      throw new ForbiddenException('Only owner can invite managers');
+    }
+    return;
+  }
+
   if (inviteRole === MembershipRole.GYM_STAFF_COACH) {
-    if (!requesterIsOwner && !requesterIsLocationAdmin) {
+    if (!requesterIsOwner && !requesterIsManager) {
       throw new ForbiddenException('Insufficient permissions');
     }
     return;
   }
 
   if (inviteRole === MembershipRole.CLIENT) {
-    if (requesterIsOwner || requesterIsLocationAdmin) {
+    if (requesterIsOwner || requesterIsManager) {
       return;
     }
 
