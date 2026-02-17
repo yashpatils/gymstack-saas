@@ -11,7 +11,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "preflight": "npm run lint && npm run typecheck && npm run build",
-    "predeploy": "npm run lint && npm run typecheck && npm run build"
+    "predeploy": "npm run lint && npm run typecheck && npm run build",
+    "smoke": "playwright test tests/smoke.spec.ts",
+    "smoke:headed": "playwright test tests/smoke.spec.ts --headed"
   },
   "dependencies": {
     "next": "14.2.5",

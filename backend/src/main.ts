@@ -13,18 +13,20 @@ import { getRegisteredRoutes } from './debug/route-list.util';
 import { PrismaService } from './prisma/prisma.service';
 import { normalizeOrigin } from './common/origin.util';
 import { parsePlatformAdminEmails } from './auth/platform-admin.util';
+import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://gymstack.club',
   'https://www.gymstack.club',
+  'https://admin.gymstack.club',
   'https://gymstack-saas.vercel.app',
   'http://localhost:3000',
 ];
 
 const DEFAULT_ALLOWED_ORIGIN_REGEXES = [
-  '^https:\\/\\/[a-z0-9-]+\\.gymstack\\.club$',
-  '^https:\\/\\/[a-z0-9-]+\\.vercel\\.app$',
-  '^http:\\/\\/[a-z0-9-]+\\.localhost:3000$',
+  '^https:\\/\\/[a-z0-9-]+\.gymstack\.club$',
+  '^https:\\/\\/[a-z0-9-]+\.vercel\.app$',
+  '^http:\\/\\/localhost(?::\\d+)?$',
 ];
 
 function isProductionEnvironment(configService: ConfigService): boolean {
@@ -65,11 +67,12 @@ function getAllowedOriginRegexes(configService: ConfigService): RegExp[] {
     .filter((regex): regex is RegExp => Boolean(regex));
 }
 
+
 function hasAllowedHostname(hostname: string): boolean {
   return (
     hostname.endsWith('.gymstack.club') ||
     hostname.endsWith('.vercel.app') ||
-    hostname.endsWith('.localhost')
+    hostname === 'localhost'
   );
 }
 
@@ -178,7 +181,7 @@ async function logIntegrationStatus(
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
-  app.use('/billing/webhook', express.raw({ type: 'application/json' }));
+  app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -233,12 +236,13 @@ async function bootstrap() {
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
   app.setGlobalPrefix(apiPrefix, {
-    exclude: ['', '/', 'billing/webhook', 'health', 'api/health', 'debug/routes'],
+    exclude: ['', '/', 'health', 'api/health', 'debug/routes'],
   });
 
   app.use(requestIdMiddleware);
 
   app.useGlobalFilters(new HttpExceptionWithRequestIdFilter());
+  app.useGlobalInterceptors(new RequestLoggingInterceptor());
 
   app.useGlobalPipes(
     new ValidationPipe({

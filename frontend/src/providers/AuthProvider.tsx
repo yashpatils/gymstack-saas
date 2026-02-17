@@ -28,6 +28,7 @@ import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, Onboardi
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
+import { initFrontendMonitoring, setMonitoringUserContext } from '../lib/monitoring';
 
 export type AuthIssue = 'SESSION_EXPIRED' | 'INSUFFICIENT_PERMISSIONS' | null;
 
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authIssue, setAuthIssue] = useState<AuthIssue>(null);
 
   const clearAuthState = useCallback(() => {
+    setMonitoringUserContext(null);
     setUser(null);
     setToken(null);
     setMemberships([]);
@@ -160,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applyMeResponse = useCallback((meResponse: AuthMeResponse) => {
+    setMonitoringUserContext(meResponse.user.id);
     setMeStatus(200);
     setAuthIssue(null);
     setUser(meResponse.user);
@@ -201,6 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, [applyMeResponse]);
+
+  useEffect(() => {
+    initFrontendMonitoring();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;

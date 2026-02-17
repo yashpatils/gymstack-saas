@@ -1,67 +1,188 @@
 "use client";
 
-import Link from "next/link";
-import { PageHeader } from "../../../src/components/common/PageHeader";
-import { SectionCard } from "../../../src/components/common/SectionCard";
-import { useAuth } from "../../../src/providers/AuthProvider";
+import { useEffect, useMemo, useState } from "react";
+import PageHeader from "../../../src/components/PageHeader";
+import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
 
-const plans = [
-  { name: "Starter", price: "$49", description: "Single location", featured: false },
-  { name: "Scale", price: "$149", description: "Multi-location operations", featured: true },
-  { name: "Enterprise", price: "Custom", description: "Advanced controls + support", featured: false },
-];
+const PLAN_NAMES: Record<string, string> = {
+  starter: "Starter",
+  pro: "Pro",
+};
+
+type BillingStatus = {
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  priceId: string | null;
+  whiteLabelEligible: boolean;
+  whiteLabelEnabled: boolean;
+};
 
 export default function BillingPage() {
-  const stripeConfigured = Boolean(process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "");
-  const { activeContext, tenantFeatures } = useAuth();
-  const isOwner = activeContext?.role === "TENANT_OWNER";
+  const starterPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? "";
+  const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? "";
+
+  const [status, setStatus] = useState<BillingStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [workingPlan, setWorkingPlan] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const currentPlanName = useMemo(() => {
+    if (!status?.priceId) {
+      return "No active plan";
+    }
+
+    if (status.priceId === starterPriceId) {
+      return PLAN_NAMES.starter;
+    }
+    if (status.priceId === proPriceId) {
+      return PLAN_NAMES.pro;
+    }
+
+    return "Custom";
+  }, [proPriceId, starterPriceId, status?.priceId]);
+
+  async function loadStatus() {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const nextStatus = await apiFetch<BillingStatus>("/api/billing/status", {
+        method: "GET",
+        cache: "no-store",
+      });
+      setStatus(nextStatus);
+    } catch (error) {
+      if (error instanceof ApiFetchError) {
+        if (error.statusCode === 401) {
+          window.location.assign("/login");
+          return;
+        }
+        if (error.statusCode === 403) {
+          setMessage("You do not have access to billing for this tenant.");
+          return;
+        }
+      }
+
+      setMessage(error instanceof Error ? error.message : "Could not load billing status.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function beginCheckout(priceId: string) {
+    setWorkingPlan(priceId);
+    setMessage(null);
+
+    try {
+      const response = await apiFetch<{ url: string }>("/api/billing/checkout", {
+        method: "POST",
+        body: {
+          priceId,
+          successUrl: `${window.location.origin}/platform/billing`,
+          cancelUrl: `${window.location.origin}/platform/billing`,
+        },
+      });
+
+      window.location.assign(response.url);
+    } catch (error) {
+      if (error instanceof ApiFetchError) {
+        if (error.statusCode === 401) {
+          window.location.assign("/login");
+          return;
+        }
+        if (error.statusCode === 403) {
+          setMessage("Only tenant owners can change billing.");
+          return;
+        }
+      }
+
+      setMessage(error instanceof Error ? error.message : "Unable to start checkout.");
+    } finally {
+      setWorkingPlan(null);
+    }
+  }
+
+  async function openPortal() {
+    setMessage(null);
+
+    try {
+      const response = await apiFetch<{ url: string }>("/api/billing/portal", {
+        method: "POST",
+        body: {
+          returnUrl: `${window.location.origin}/platform/billing`,
+        },
+      });
+      window.location.assign(response.url);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to open billing portal.");
+    }
+  }
+
+  useEffect(() => {
+    void loadStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <section className="space-y-6">
-      <PageHeader title="Billing" subtitle="Manage plan, payment status, and Stripe setup." />
+    <section className="page space-y-6">
+      <PageHeader title="Billing" subtitle="Manage your GymStack subscription and white-label eligibility." />
 
-      <SectionCard title="Billing health">
-        {!stripeConfigured ? (
-          <div className="rounded-2xl border border-amber-300/40 bg-amber-400/10 p-4 text-sm text-amber-100">
-            Stripe is not configured yet. Add Stripe keys in environment variables to enable upgrades.
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-emerald-300/40 bg-emerald-400/10 p-4 text-sm text-emerald-100">Stripe configuration detected.</div>
-        )}
-      </SectionCard>
+      <div className="card space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="button" type="button" onClick={() => void loadStatus()} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh status"}
+          </button>
+          <button className="button secondary" type="button" onClick={() => void openPortal()}>
+            Manage billing
+          </button>
+        </div>
 
-      {isOwner ? (
-        <SectionCard title="Add-ons">
-          <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-sm text-slate-200">
-            <p className="font-medium text-white">White Label Branding</p>
-            <p className="mt-1">Status: <span className="font-semibold">{tenantFeatures?.whiteLabelBranding ? "Enabled" : "Disabled"}</span></p>
-            <p className="mt-2 text-xs text-slate-400">Remove Gym Stack branding on custom domains for staff/client experiences.</p>
-            <button type="button" className="button secondary mt-3">Upgrade to enable</button>
-          </div>
-        </SectionCard>
-      ) : null}
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {plans.map((plan) => (
-          <article key={plan.name} className={`section-card ${plan.featured ? "section-card-featured" : ""}`}>
-            <p className="text-sm text-muted-foreground">{plan.name}</p>
-            <p className="mt-2 text-3xl font-semibold">{plan.price}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-            <button type="button" className="button mt-4 w-full">{plan.featured ? "Current plan" : "Choose plan"}</button>
-          </article>
-        ))}
+        <dl className="grid gap-3 text-sm md:grid-cols-2">
+          <div><dt className="text-slate-400">Current plan</dt><dd>{currentPlanName}</dd></div>
+          <div><dt className="text-slate-400">Subscription status</dt><dd>{status?.subscriptionStatus ?? "Not subscribed"}</dd></div>
+          <div><dt className="text-slate-400">Renews on</dt><dd>{status?.currentPeriodEnd ? new Date(status.currentPeriodEnd).toLocaleDateString() : "—"}</dd></div>
+          <div><dt className="text-slate-400">White-label eligibility</dt><dd>{status?.whiteLabelEligible ? "Eligible" : "Upgrade to Pro"}</dd></div>
+        </dl>
       </div>
 
-      <SectionCard title="Plan comparison" actions={<Link href="/platform/support" className="button secondary">Need help choosing?</Link>}>
-        <table className="table data-table">
-          <thead><tr><th>Feature</th><th>Starter</th><th>Scale</th><th>Enterprise</th></tr></thead>
-          <tbody>
-            <tr><td>Locations</td><td>1</td><td>Up to 10</td><td>Unlimited</td></tr>
-            <tr><td>Staff seats</td><td>5</td><td>50</td><td>Custom</td></tr>
-            <tr><td>White-label domains</td><td>—</td><td>✓</td><td>✓</td></tr>
-          </tbody>
-        </table>
-      </SectionCard>
+      <div className="grid gap-4 md:grid-cols-2">
+        <article className="card space-y-3">
+          <h2 className="section-title">Starter</h2>
+          <p className="text-sm text-slate-300">Core tenant billing. White-label is not included.</p>
+          <button
+            className="button"
+            type="button"
+            disabled={!starterPriceId || workingPlan === starterPriceId}
+            onClick={() => void beginCheckout(starterPriceId)}
+          >
+            {workingPlan === starterPriceId ? "Redirecting..." : "Choose Starter"}
+          </button>
+        </article>
+
+        <article className="card space-y-3 border border-indigo-400/40">
+          <h2 className="section-title">Pro</h2>
+          <p className="text-sm text-slate-300">Includes white-label upgrade and premium controls.</p>
+          <button
+            className="button"
+            type="button"
+            disabled={!proPriceId || workingPlan === proPriceId}
+            onClick={() => void beginCheckout(proPriceId)}
+          >
+            {workingPlan === proPriceId ? "Redirecting..." : "Upgrade to Pro"}
+          </button>
+        </article>
+      </div>
+
+      {!status?.whiteLabelEligible ? (
+        <div className="card border border-indigo-400/40 bg-indigo-500/10">
+          <p className="text-sm text-indigo-100">Need to remove Gym Stack branding? Upgrade to Pro to unlock white-label.</p>
+          <button className="button mt-3 w-fit" type="button" onClick={() => void beginCheckout(proPriceId)}>
+            Upgrade to Pro
+          </button>
+        </div>
+      ) : null}
+
+      {message ? <p className="text-sm text-rose-300">{message}</p> : null}
     </section>
   );
 }

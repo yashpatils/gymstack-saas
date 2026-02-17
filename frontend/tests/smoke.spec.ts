@@ -44,3 +44,17 @@ test('login redirects to platform when E2E credentials are provided', async ({ p
   await page.waitForURL('**/platform', { timeout: 20_000 });
   await expect(page).toHaveURL(/\/platform$/);
 });
+
+
+test('location microsite route renders by slug', async ({ page }) => {
+  const slug = process.env.E2E_LOCATION_SLUG ?? 'demo-location';
+  await page.goto(`/_sites/${slug}`);
+  await expect(page.locator('main')).toBeVisible();
+});
+
+test('admin login page renders', async ({ page }) => {
+  const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL;
+  test.skip(!adminBaseUrl, 'Set E2E_ADMIN_BASE_URL to run admin smoke step.');
+  await page.goto(`${adminBaseUrl}/login`);
+  await expect(page.getByText('Gym Stack Admin')).toBeVisible();
+});

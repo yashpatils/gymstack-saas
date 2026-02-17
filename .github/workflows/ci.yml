@@ -59,5 +59,11 @@ jobs:
       - name: Prisma validate
         run: npx prisma validate
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build

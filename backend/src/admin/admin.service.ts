@@ -105,11 +105,6 @@ export class AdminService {
             where: { status: MembershipStatus.ACTIVE },
             select: { role: true },
           },
-          users: {
-            select: { subscriptionStatus: true },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
         },
       }),
     ]);
@@ -127,7 +122,7 @@ export class AdminService {
           ownersCount,
           managersCount,
           customDomainsCount: organization._count.customDomains,
-          subscriptionStatus: organization.users[0]?.subscriptionStatus ?? null,
+          subscriptionStatus: organization.subscriptionStatus ?? null,
           whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
         };
       }),
@@ -154,13 +149,6 @@ export class AdminService {
             },
           },
           orderBy: { createdAt: 'asc' },
-        },
-        users: {
-          select: {
-            subscriptionStatus: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
         },
       },
     });
@@ -244,7 +232,7 @@ export class AdminService {
         id: organization.id,
         name: organization.name,
         createdAt: organization.createdAt.toISOString(),
-        subscriptionStatus: organization.users[0]?.subscriptionStatus ?? null,
+        subscriptionStatus: organization.subscriptionStatus ?? null,
         whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
       locations: organization.gyms.map((gym) => ({
