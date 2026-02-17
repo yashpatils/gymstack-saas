@@ -99,6 +99,11 @@ enum ClassBookingStatus {
   CHECKED_IN
 }
 
+enum SupportTicketStatus {
+  OPEN
+  CLOSED
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -133,6 +138,7 @@ model User {
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
   createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
+  supportTickets        SupportTicket[]
 
   @@index([orgId])
 }
@@ -352,6 +358,7 @@ model Organization {
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
+  supportTickets      SupportTicket[] @relation("SupportTicketTenant")
   adminEvents AdminEvent[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -475,4 +482,21 @@ model ClientMembership {
   @@index([locationId, status])
   @@index([planId])
   @@index([createdByUserId])
+}
+
+model SupportTicket {
+  id        String              @id @default(uuid())
+  tenantId  String?
+  userId    String?
+  email     String
+  subject   String
+  message   String
+  status    SupportTicketStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant    Organization?       @relation("SupportTicketTenant", fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([status, createdAt])
 }
