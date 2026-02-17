@@ -5,7 +5,7 @@ import { SessionProvider } from "./components/session-provider";
 import { AuthProvider } from "../src/providers/AuthProvider";
 import { ToastProvider } from "../src/components/toast/ToastProvider";
 import { AuthDebugPanel } from "../src/components/auth/AuthDebugPanel";
-import { defaultOgImage, SITE_URL } from "./lib/site";
+import { PwaClient } from "./components/pwa-client";
 
 const geist = Inter({
   subsets: ["latin"],
@@ -18,22 +18,15 @@ export const metadata: Metadata = {
   title: "GymStack SaaS | Multi-Location Gym Management Platform",
   description:
     "GymStack helps gym operators run billing, members, trainers, and analytics across every location from one dashboard.",
-  alternates: {
-    canonical: "/",
+  manifest: '/manifest.webmanifest',
+  themeColor: '#0f172a',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Gym Stack',
   },
-  openGraph: {
-    title: "GymStack SaaS",
-    description: "Launch and scale gym operations across locations with one operating platform.",
-    url: SITE_URL,
-    siteName: "GymStack",
-    images: [{ url: defaultOgImage, width: 1200, height: 630, alt: "GymStack" }],
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "GymStack SaaS",
-    description: "Launch and scale gym operations across locations with one operating platform.",
-    images: [defaultOgImage],
+  icons: {
+    apple: '/apple-touch-icon.svg',
   },
 };
 
@@ -49,6 +42,7 @@ export default function RootLayout({
           <ToastProvider>
             <SessionProvider>{children}</SessionProvider>
             <AuthDebugPanel />
+            <PwaClient />
           </ToastProvider>
         </AuthProvider>
       </body>

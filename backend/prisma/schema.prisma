@@ -99,9 +99,16 @@ enum ClassBookingStatus {
   CHECKED_IN
 }
 
-enum SupportTicketStatus {
-  OPEN
-  CLOSED
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
 }
 
 model User {
@@ -138,7 +145,12 @@ model User {
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
   createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
-  supportTickets        SupportTicket[]
+  coachedClasses         Class[]            @relation("ClassCoach")
+  classBookings          ClassBooking[]
+  pushSubscriptions      PushSubscription[]
+  notificationMarkers    NotificationMarker[]
+  updatedFeatureFlags    FeatureFlag[]       @relation("FeatureFlagUpdatedBy")
+  adminEvents            AdminEvent[]
 
   @@index([orgId])
 }
@@ -330,6 +342,13 @@ model Gym {
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]
+  classes        Class[]
+  classSessions  ClassSession[]
+  classBookings  ClassBooking[]
+  pushSubscriptions PushSubscription[]
+  notificationMarkers NotificationMarker[]
+  auditLogs      AuditLog[]
+  featureFlags   FeatureFlag[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -360,6 +379,8 @@ model Organization {
   ownerOperatorSettings OwnerOperatorSetting[]
   supportTickets      SupportTicket[] @relation("SupportTicketTenant")
   adminEvents AdminEvent[]
+  pushSubscriptions PushSubscription[]
+  notificationMarkers NotificationMarker[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -484,19 +505,50 @@ model ClientMembership {
   @@index([createdByUserId])
 }
 
-model SupportTicket {
-  id        String              @id @default(uuid())
-  tenantId  String?
-  userId    String?
-  email     String
-  subject   String
-  message   String
-  status    SupportTicketStatus @default(OPEN)
-  createdAt DateTime            @default(now())
-  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
-  tenant    Organization?       @relation("SupportTicketTenant", fields: [tenantId], references: [id], onDelete: SetNull)
+enum InsightSeverity {
+  info
+  warning
+  critical
+}
 
-  @@index([tenantId])
-  @@index([userId])
-  @@index([status, createdAt])
+model DailyLocationMetrics {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  locationId            String
+  date                  DateTime @db.Date
+  checkinsCount         Int
+  bookingsCount         Int
+  uniqueClientsCount    Int
+  newClientsCount       Int
+  canceledBookingsCount Int
+  createdAt             DateTime @default(now())
+
+  @@unique([locationId, date])
+  @@index([tenantId, date])
+}
+
+model DailyMembershipMetrics {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  locationId          String
+  date                DateTime @db.Date
+  activeMemberships   Int
+  canceledMemberships Int
+  newMemberships      Int
+  createdAt           DateTime @default(now())
+
+  @@unique([locationId, date])
+  @@index([tenantId, date])
+}
+
+model InsightLog {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locationId  String?
+  insightType String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([locationId, createdAt])
 }

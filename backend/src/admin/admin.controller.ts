@@ -1,8 +1,10 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
+
+type RequestUser = { userId?: string; id?: string; sub?: string };
 
 @Controller('admin')
 @VerifiedEmailRequired()
@@ -33,15 +35,12 @@ export class AdminController {
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('query') query?: string,
     @Query('status') status?: string,
   ) {
-    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
+    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query, status);
   }
-
-
-
-
 
   @Get('audit')
   audit(
@@ -53,6 +52,7 @@ export class AdminController {
   ) {
     return this.adminService.listAudit({ tenantId, action, actor, from, to });
   }
+
   @Get('users')
   users(@Query('query') query?: string) {
     return this.adminService.searchUsers(query);
@@ -61,56 +61,48 @@ export class AdminController {
   @Get('users/:id')
   async userDetail(@Param('id') id: string) {
     const user = await this.adminService.getUserDetail(id);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
   @Post('users/:id/revoke-sessions')
   revokeSessions(@Param('id') id: string, @Req() req: { user: RequestUser }) {
-    return this.adminService.revokeUserSessions(id, req.user.id);
+    return this.adminService.revokeUserSessions(id, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
   }
 
   @Get('impersonations')
   impersonations() {
     return this.adminService.listImpersonationHistory();
   }
+
   @Post('tenants/:tenantId/features')
   async setTenantFeatures(
     @Param('tenantId') tenantId: string,
     @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
     @Req() req: { user: RequestUser },
   ) {
-    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id);
+    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
   }
 
   @Get('tenants/:tenantId')
   async tenantDetail(@Param('tenantId') tenantId: string) {
     const tenant = await this.adminService.getTenant(tenantId);
-    if (!tenant) {
-      throw new NotFoundException('Tenant not found');
-    }
-
+    if (!tenant) throw new NotFoundException('Tenant not found');
     return tenant;
   }
 
   @Post('tenants/:tenantId/toggle-active')
-  toggleTenantActive(
-    @Param('tenantId') tenantId: string,
-    @Req() req: { user: { userId?: string; id?: string; sub?: string } },
-  ) {
-    const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
-    return this.adminService.toggleTenantActive(tenantId, adminId);
+  toggleTenantActive(@Param('tenantId') tenantId: string, @Req() req: { user: RequestUser }) {
+    return this.adminService.toggleTenantActive(tenantId, req.user.userId ?? req.user.id ?? req.user.sub ?? '');
   }
 
   @Post('impersonate')
-  impersonate(
-    @Body() body: { tenantId: string },
-    @Req() req: { user: { userId?: string; id?: string; sub?: string }; ip?: string },
-  ) {
+  impersonate(@Body() body: { tenantId: string }, @Req() req: { user: RequestUser; ip?: string }) {
     const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
     return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }
 }
+
+type RequestUser = {
+  id: string;
+};
