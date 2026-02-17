@@ -21,6 +21,7 @@ import { AccountModule } from './account/account.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 import { LocationAppModule } from './location-app/location-app.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { LocationAppModule } from './location-app/location-app.module';
     AccountModule,
     OnboardingModule,
     LocationAppModule,
+    FeatureFlagsModule,
   ],
   controllers: [AppController],
   providers: [

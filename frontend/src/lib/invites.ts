@@ -1,4 +1,5 @@
 import { apiFetch } from './apiFetch';
+import { track } from './analytics';
 
 export type CreateInvitePayload = {
   tenantId: string;
@@ -9,8 +10,10 @@ export type CreateInvitePayload = {
 };
 
 export async function createInvite(payload: CreateInvitePayload): Promise<{ inviteId: string; token: string; tokenPrefix: string; inviteUrl: string; role: 'GYM_STAFF_COACH' | 'CLIENT'; tenantId: string; locationId: string; expiresAt: string }> {
-  return apiFetch('/api/invites', {
+  const result = await apiFetch<{ inviteId: string; token: string; tokenPrefix: string; inviteUrl: string; role: 'GYM_STAFF_COACH' | 'CLIENT'; tenantId: string; locationId: string; expiresAt: string }>('/api/invites', {
     method: 'POST',
     body: payload,
   });
+  await track('invite_created', { role: payload.role });
+  return result;
 }
