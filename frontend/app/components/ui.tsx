@@ -211,6 +211,7 @@ export function AccessDenied({
   return (
     <div className="card access-denied">
       <h3 className="access-denied-title">{title}</h3>
+      <p>Your role doesn't allow this action.</p>
       <p>{message}</p>
       {details?.length ? (
         <ul className="access-denied-list">

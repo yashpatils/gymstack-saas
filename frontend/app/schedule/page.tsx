@@ -1,8 +1,11 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { ApiFetchError, apiFetch } from '../../src/lib/apiFetch';
 import { useAuth } from '../../src/providers/AuthProvider';
+import { EmptyState, Skeleton } from '../components/ui';
+import { SupportHelpButton } from '../../src/components/SupportHelpButton';
 
 type ScheduleItem = {
   sessionId: string;
@@ -25,6 +28,8 @@ export default function SchedulePage() {
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const range = useMemo(() => {
     const now = new Date();
@@ -34,11 +39,18 @@ export default function SchedulePage() {
   }, []);
 
   const load = async () => {
-    const data = await apiFetch<ScheduleItem[]>(`/api/location/schedule?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`);
-    setSessions(data);
-    if (isStaff) {
-      const templates = await apiFetch<ClassTemplate[]>('/api/location/classes');
-      setClasses(templates.filter((entry) => entry.isActive !== false));
+    setLoading(true);
+    try {
+      const data = await apiFetch<ScheduleItem[]>(`/api/location/schedule?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`);
+      setSessions(data);
+      if (isStaff) {
+        const templates = await apiFetch<ClassTemplate[]>('/api/location/classes');
+        setClasses(templates.filter((entry) => entry.isActive !== false));
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not load schedule.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,43 +59,71 @@ export default function SchedulePage() {
   }, [isStaff]);
 
   const bookOrCancel = async (sessionId: string, isBooked: boolean) => {
+    const previous = sessions;
+    setNotice(null);
+    setSessions((current) =>
+      current.map((item) =>
+        item.sessionId === sessionId
+          ? {
+              ...item,
+              isBookedByMe: !isBooked,
+              bookedCount: Math.max(0, item.bookedCount + (isBooked ? -1 : 1)),
+            }
+          : item,
+      ),
+    );
+
     try {
       await apiFetch(`/api/location/sessions/${sessionId}/${isBooked ? 'cancel-booking' : 'book'}`, { method: 'POST' });
-      setNotice(null);
-      await load();
+      setNotice(isBooked ? 'Booking canceled.' : 'Booking confirmed.');
     } catch (error) {
+      setSessions(previous);
       if (error instanceof ApiFetchError && error.message.includes('SESSION_FULL')) {
-        setNotice('This class is full.');
+        setNotice('This class is full. Try another time slot.');
         return;
       }
       if (error instanceof ApiFetchError && error.statusCode === 403) {
         setNotice('Membership required to book. Please activate membership first.');
         return;
       }
-      throw error;
+      setNotice(error instanceof Error ? error.message : 'Booking request failed.');
     }
   };
 
   const createSession = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await apiFetch('/api/location/sessions', {
-      method: 'POST',
-      body: {
-        classId,
-        startsAt: new Date(startsAt).toISOString(),
-        endsAt: new Date(endsAt).toISOString(),
-      },
-    });
-    setStartsAt('');
-    setEndsAt('');
-    await load();
+    setSubmitting(true);
+    setNotice(null);
+    try {
+      await apiFetch('/api/location/sessions', {
+        method: 'POST',
+        body: {
+          classId,
+          startsAt: new Date(startsAt).toISOString(),
+          endsAt: new Date(endsAt).toISOString(),
+        },
+      });
+      setStartsAt('');
+      setEndsAt('');
+      setNotice('Session created successfully.');
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not create session.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-6">
       <header className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Schedule</h1>
-        <p className="text-sm text-slate-600">Upcoming classes for the next 7 days.</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Schedule</h1>
+            <p className="text-sm text-slate-600">Upcoming classes for the next 7 days.</p>
+          </div>
+          <SupportHelpButton />
+        </div>
         {notice ? <p className="mt-2 text-sm text-amber-600">{notice}</p> : null}
       </header>
 
@@ -97,12 +137,20 @@ export default function SchedulePage() {
             </select>
             <input className="rounded-lg border px-3 py-2" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} required />
             <input className="rounded-lg border px-3 py-2" type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} required />
-            <button className="rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit">Create</button>
+            <button className="rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create'}</button>
           </form>
         </section>
       ) : null}
 
       <section className="grid gap-3">
+        {loading ? Array.from({ length: 3 }).map((_, index) => <Skeleton key={`schedule-loading-${index}`} className="h-24 rounded-xl" />) : null}
+        {!loading && sessions.length === 0 ? (
+          <EmptyState
+            title="No classes scheduled yet"
+            description="Once classes are published, they will show up here for booking."
+            actions={<Link href="/classes" className="button">Create class templates</Link>}
+          />
+        ) : null}
         {sessions.map((item) => {
           const full = item.bookedCount >= item.capacity;
           return (
