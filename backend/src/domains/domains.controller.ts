@@ -5,9 +5,13 @@ import { DomainsService } from './domains.service';
 import { RequestLocationDomainVerificationDto } from './dto/request-location-domain-verification.dto';
 import { VerifyLocationDomainDto } from './dto/verify-location-domain.dto';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
+import { RequirePlan } from '../billing/require-plan.decorator';
+import { PlanGatingGuard } from '../billing/plan-gating.guard';
 
 @Controller('domains')
 @VerifiedEmailRequired()
+@UseGuards(PlanGatingGuard)
+@RequirePlan('pro')
 export class DomainsController {
   constructor(private readonly domainsService: DomainsService) {}
 

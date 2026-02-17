@@ -8,6 +8,8 @@ type TenantSubscriptionSnapshot = {
   stripePriceId: string | null;
   subscriptionStatus: SubscriptionStatus | null;
   whiteLabelEnabled: boolean;
+  trialEndsAt?: Date | null;
+  planKey?: string | null;
 };
 
 @Injectable()
@@ -32,14 +34,41 @@ export class SubscriptionGatingService {
   }
 
   async getTenantBillingSnapshot(tenantId: string): Promise<TenantSubscriptionSnapshot | null> {
-    return this.prisma.organization.findUnique({
+    const tenant = await this.prisma.organization.findUnique({
       where: { id: tenantId },
       select: {
+        id: true,
         stripePriceId: true,
         subscriptionStatus: true,
         whiteLabelEnabled: true,
+        trialEndsAt: true,
+        planKey: true,
       },
     });
+
+    if (!tenant) {
+      return null;
+    }
+
+    if (tenant.subscriptionStatus === SubscriptionStatus.TRIAL && tenant.trialEndsAt && tenant.trialEndsAt.getTime() < Date.now()) {
+      const updated = await this.prisma.organization.update({
+        where: { id: tenantId },
+        data: {
+          subscriptionStatus: SubscriptionStatus.FREE,
+          planKey: 'starter',
+        },
+        select: {
+          stripePriceId: true,
+          subscriptionStatus: true,
+          whiteLabelEnabled: true,
+          trialEndsAt: true,
+          planKey: true,
+        },
+      });
+      return updated;
+    }
+
+    return tenant;
   }
 
   async getWhiteLabelEligibility(tenantId: string): Promise<boolean> {

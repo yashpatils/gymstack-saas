@@ -11,9 +11,11 @@ import {
   AnalyticsTopClassesQueryDto,
   AnalyticsTrendsQueryDto,
 } from './dto/analytics-query.dto';
+import { PlanGatingGuard } from '../billing/plan-gating.guard';
+import { RequirePlan } from '../billing/require-plan.decorator';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanGatingGuard)
 @VerifiedEmailRequired()
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
@@ -40,11 +42,13 @@ export class AnalyticsController {
   }
 
   @Get('analytics/overview')
+  @RequirePlan('pro')
   getOverview(@Req() req: { user: User }, @Query() query: AnalyticsRangeQueryDto) {
     return this.analyticsService.getOverview(req.user, query.range ?? '7d');
   }
 
   @Get('analytics/locations')
+  @RequirePlan('pro')
   getLocations(@Req() req: { user: User }, @Query() query: AnalyticsLocationsQueryDto) {
     return this.analyticsService.getLocations(req.user, {
       range: query.range ?? '7d',
@@ -54,6 +58,7 @@ export class AnalyticsController {
   }
 
   @Get('analytics/trends')
+  @RequirePlan('pro')
   getTrends(@Req() req: { user: User }, @Query() query: AnalyticsTrendsQueryDto) {
     return this.analyticsService.getTrends(req.user, {
       metric: query.metric,
@@ -62,6 +67,7 @@ export class AnalyticsController {
   }
 
   @Get('analytics/top-classes')
+  @RequirePlan('pro')
   getTopClasses(@Req() req: { user: User }, @Query() query: AnalyticsTopClassesQueryDto) {
     return this.analyticsService.getTopClassesAnalytics(req.user, {
       range: query.range ?? '30d',

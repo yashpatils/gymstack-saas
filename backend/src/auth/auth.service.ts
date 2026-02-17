@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { ActiveMode, AuditActorType, Membership, MembershipRole, MembershipStatus, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
+import { ActiveMode, AuditActorType, Membership, MembershipRole, MembershipStatus, Organization, PlanKey, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -98,14 +98,14 @@ export class AuthService implements OnModuleInit {
       const referredBy = input.referralCode
         ? await tx.organization.findFirst({ where: { referralCode: input.referralCode } })
         : null;
-      const trialStartedAt = new Date();
-      const trialEndsAt = new Date(trialStartedAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const { trialStartedAt, trialEndsAt } = this.getTrialWindow();
       const organization = await tx.organization.create({
         data: {
           name: `${email.split('@')[0]}'s Tenant`,
           referralCode: buildReferralCode(email.split('@')[0]),
           referredByTenantId: referredBy?.id,
           subscriptionStatus: SubscriptionStatus.TRIAL,
+          planKey: this.getTrialPlanKey(),
           trialStartedAt,
           trialEndsAt,
           trialEvents: {
@@ -281,28 +281,29 @@ export class AuthService implements OnModuleInit {
       orderBy: { createdAt: 'asc' },
     });
 
-    if (memberships.length === 0) {
-      throw new ForbiddenException({ code: 'AUTH_USER_NOT_ALLOWED_IN_TENANT', message: 'You are not allowed to access this tenant.' });
-    }
+    const isElevatedLogin = this.isElevatedLoginRole(user.role);
 
     const membershipTenantIds = [...new Set(memberships.map((membership) => membership.orgId))];
-    const tenantStates = await this.prisma.organization.findMany({
-      where: { id: { in: membershipTenantIds } },
-      select: { id: true, isDisabled: true },
-    });
+    const tenantStates = membershipTenantIds.length === 0
+      ? []
+      : await this.prisma.organization.findMany({
+        where: { id: { in: membershipTenantIds } },
+        select: { id: true, name: true, isDisabled: true, createdAt: true },
+      });
     const disabledTenantIds = new Set(tenantStates.filter((tenant) => tenant.isDisabled).map((tenant) => tenant.id));
     const enabledMemberships = memberships.filter((membership) => !disabledTenantIds.has(membership.orgId));
 
-    if (enabledMemberships.length === 0) {
-      throw new ForbiddenException({ code: 'AUTH_TENANT_DISABLED', message: 'Tenant access is disabled. Please contact support.' });
+    if (!isElevatedLogin && memberships.length > 0 && enabledMemberships.length === 0) {
+      throw new ForbiddenException({ code: 'TENANT_DISABLED', message: 'Workspace access is disabled. Please contact support.' });
     }
 
-    const enabledTenantIds = [...new Set(enabledMemberships.map((membership) => membership.orgId))];
-    if (enabledTenantIds.length > 1) {
-      throw new ConflictException({ code: 'AUTH_MULTIPLE_TENANTS', message: 'Multiple tenant memberships found. Please choose a tenant to continue.' });
-    }
-
-    const activeContext = await this.getDefaultContext(enabledMemberships);
+    const activeContext = await this.resolveLoginContext({
+      user,
+      memberships: enabledMemberships,
+      tenantIdOverride: input.tenantId,
+      tenantSlugOverride: input.tenantSlug,
+      membershipTenants: tenantStates,
+    });
     const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
@@ -337,6 +338,87 @@ export class AuthService implements OnModuleInit {
 
   private isElevatedLoginRole(role: Role): boolean {
     return role === Role.ADMIN || role === Role.PLATFORM_ADMIN;
+  }
+
+  private isTruthyConfig(key: string, fallback: boolean): boolean {
+    const raw = this.configService.get<string>(key);
+    if (typeof raw !== 'string') {
+      return fallback;
+    }
+    return raw.toLowerCase() === 'true';
+  }
+
+  private async resolveLoginContext(params: {
+    user: { id: string; role: Role; orgId: string | null };
+    memberships: Membership[];
+    tenantIdOverride?: string;
+    tenantSlugOverride?: string;
+    membershipTenants: Array<Pick<Organization, 'id' | 'name' | 'isDisabled' | 'createdAt'>>;
+  }): Promise<{ tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } | undefined> {
+    const { memberships, user, tenantIdOverride, tenantSlugOverride, membershipTenants } = params;
+    const isElevated = this.isElevatedLoginRole(user.role);
+    const allowOverride = this.isTruthyConfig('AUTH_ALLOW_ADMIN_TENANT_OVERRIDE', true);
+
+    if (tenantIdOverride || tenantSlugOverride) {
+      const overrideTenant = await this.prisma.organization.findFirst({
+        where: {
+          ...(tenantIdOverride ? { id: tenantIdOverride } : {}),
+          ...(tenantSlugOverride ? { OR: [{ id: tenantSlugOverride }, { name: tenantSlugOverride }] } : {}),
+        },
+        select: { id: true, isDisabled: true },
+      });
+
+      if (!overrideTenant || overrideTenant.isDisabled) {
+        throw new ForbiddenException({ code: 'TENANT_DISABLED', message: 'Workspace access is disabled. Please contact support.' });
+      }
+
+      if (isElevated && allowOverride) {
+        return { tenantId: overrideTenant.id, gymId: null, locationId: null, role: MembershipRole.TENANT_OWNER };
+      }
+
+      const membership = memberships.find((item) => item.orgId === overrideTenant.id);
+      if (!membership) {
+        throw new ForbiddenException({ code: 'AUTH_FORBIDDEN', message: 'You are not allowed to access this workspace.' });
+      }
+
+      return this.getDefaultContext([membership]);
+    }
+
+    if (memberships.length === 0) {
+      if (isElevated) {
+        if (!this.isTruthyConfig('ADMIN_BYPASS_DEFAULT_TENANT', false)) {
+          return undefined;
+        }
+        const fallbackTenant = await this.prisma.organization.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
+        return fallbackTenant ? { tenantId: fallbackTenant.id, gymId: null, locationId: null, role: MembershipRole.TENANT_OWNER } : undefined;
+      }
+
+      throw new ConflictException({
+        code: 'NO_WORKSPACE',
+        message: 'Create a workspace to continue.',
+        nextStepUrl: '/onboarding',
+      });
+    }
+
+    const enabledTenantIds = [...new Set(memberships.map((membership) => membership.orgId))];
+    if (!isElevated && enabledTenantIds.length > 1) {
+      throw new ConflictException({
+        code: 'TENANT_SELECTION_REQUIRED',
+        message: 'Select a workspace to continue.',
+        tenants: membershipTenants
+          .filter((tenant) => enabledTenantIds.includes(tenant.id) && !tenant.isDisabled)
+          .map((tenant) => ({ id: tenant.id, name: tenant.name })),
+      });
+    }
+
+    if (isElevated) {
+      const preferredMembership = memberships.find((membership) => membership.orgId === user.orgId) ?? memberships[0];
+      if (preferredMembership) {
+        return this.getDefaultContext([preferredMembership]);
+      }
+    }
+
+    return this.getDefaultContext(memberships);
   }
 
   private async getLoginContext(
@@ -1008,7 +1090,12 @@ export class AuthService implements OnModuleInit {
 
     await this.prisma.$transaction(async (tx) => {
       const organization = await tx.organization.create({
-        data: { name: `${user.email.split('@')[0]}'s Tenant` },
+        data: {
+          name: `${user.email.split('@')[0]}'s Tenant`,
+          subscriptionStatus: SubscriptionStatus.TRIAL,
+          planKey: this.getTrialPlanKey(),
+          ...this.getTrialWindow(),
+        },
       });
 
       await tx.membership.create({
@@ -1104,6 +1191,22 @@ export class AuthService implements OnModuleInit {
         data: { orgId: organization.id },
       });
     });
+  }
+
+  private getTrialPlanKey(): PlanKey {
+    const configured = this.configService.get<string>('TRIAL_PLAN_KEY')?.toLowerCase();
+    if (configured === PlanKey.pro || configured === PlanKey.enterprise || configured === PlanKey.starter) {
+      return configured;
+    }
+    return PlanKey.pro;
+  }
+
+  private getTrialWindow(): { trialStartedAt: Date; trialEndsAt: Date } {
+    const configured = Number.parseInt(this.configService.get<string>('TRIAL_DAYS') ?? '14', 10);
+    const trialDays = Number.isFinite(configured) && configured > 0 ? configured : 14;
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt.getTime() + trialDays * 24 * 60 * 60 * 1000);
+    return { trialStartedAt, trialEndsAt };
   }
 }
 

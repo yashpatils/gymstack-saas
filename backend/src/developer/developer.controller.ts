@@ -1,8 +1,11 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DeveloperService } from './developer.service';
+import { PlanGatingGuard } from '../billing/plan-gating.guard';
+import { RequirePlan } from '../billing/require-plan.decorator';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanGatingGuard)
+@RequirePlan('starter')
 @Controller('developer')
 export class DeveloperController {
   constructor(private readonly developerService: DeveloperService) {}
