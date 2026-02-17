@@ -13,8 +13,11 @@ const geist = Inter({
   variable: "--font-geist",
 });
 
+const siteUrlEnv = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = /^https?:\/\//i.test(siteUrlEnv) ? siteUrlEnv : `https://${siteUrlEnv}`;
+
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(siteUrl),
   title: "GymStack SaaS | Multi-Location Gym Management Platform",
   description:
     "GymStack helps gym operators run billing, members, trainers, and analytics across every location from one dashboard.",
