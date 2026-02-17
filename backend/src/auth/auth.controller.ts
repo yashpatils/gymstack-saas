@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { createHash } from 'crypto';
@@ -39,7 +39,10 @@ function hashIdentifier(value: string): string {
 function requireRequestedWithHeader(req: Request): void {
   const requestedWith = req.header('X-Requested-With');
   if (requestedWith !== 'XMLHttpRequest') {
-    throw new HttpException('Invalid request.', 400);
+    throw new BadRequestException({
+      code: 'AUTH_INVALID_REQUEST',
+      message: 'Invalid request headers.',
+    });
   }
 }
 

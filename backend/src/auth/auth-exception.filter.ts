@@ -23,7 +23,23 @@ export class AuthExceptionFilter implements ExceptionFilter {
 
     const statusCode = exception.getStatus();
     const exceptionResponse = exception.getResponse();
-    const message = extractExceptionMessage(exceptionResponse, 'Request failed');
+    const rawMessage = extractExceptionMessage(exceptionResponse, 'Request failed');
+    const responseReasonCode =
+      typeof exceptionResponse === 'object' &&
+      exceptionResponse !== null &&
+      'code' in exceptionResponse &&
+      typeof (exceptionResponse as { code?: unknown }).code === 'string'
+        ? (exceptionResponse as { code: string }).code
+        : undefined;
+
+    const isValidationError =
+      typeof exceptionResponse === 'object' &&
+      exceptionResponse !== null &&
+      'message' in exceptionResponse &&
+      Array.isArray((exceptionResponse as { message?: unknown }).message);
+
+    const message = isValidationError ? 'Invalid request data.' : rawMessage;
+    const reasonCode = responseReasonCode ?? (isValidationError ? 'AUTH_VALIDATION_FAILED' : 'AUTH_UNKNOWN');
 
     this.logger.warn(
       JSON.stringify({
@@ -31,7 +47,8 @@ export class AuthExceptionFilter implements ExceptionFilter {
         requestId: request.requestId ?? 'unknown',
         route: request.originalUrl,
         statusCode,
-        message,
+        safeMessage: message,
+        reasonCode,
         validationErrors:
           typeof exceptionResponse === 'object' &&
           exceptionResponse !== null &&
