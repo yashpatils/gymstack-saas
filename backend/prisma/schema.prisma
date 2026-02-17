@@ -66,6 +66,11 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum BillingProvider {
+  STRIPE
+  RAZORPAY
+}
+
 enum UserStatus {
   ACTIVE
   DELETED
@@ -416,8 +421,15 @@ model Organization {
   stripeCustomerId String? @unique
   stripeSubscriptionId String? @unique
   stripePriceId String?
-  subscriptionStatus String?
+  billingProvider BillingProvider @default(STRIPE)
+  billingCountry String?
+  billingCurrency String?
+  billingCustomerId String?
+  billingSubscriptionId String?
+  billingPriceId String?
+  subscriptionStatus SubscriptionStatus @default(FREE)
   currentPeriodEnd DateTime?
+  providerMetadata Json?
   isTrialUsed Boolean @default(false)
   isDemo      Boolean      @default(false)
   demoLastResetAt DateTime?

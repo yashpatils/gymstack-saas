@@ -1,5 +1,5 @@
 import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
+import { BillingProvider, InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 
@@ -20,6 +20,7 @@ export class OrganizationsService {
         whiteLabelEnabled: true,
         whiteLabelBrandingEnabled: true,
         stripePriceId: true,
+        billingProvider: true,
         subscriptionStatus: true,
         trialEndsAt: true,
         isTrialUsed: true,
@@ -48,6 +49,7 @@ export class OrganizationsService {
       whiteLabelEligible,
       trialEndsAt: organization.trialEndsAt,
       isTrialUsed: organization.isTrialUsed,
+      billingProvider: organization.billingProvider,
     };
   }
 
@@ -217,6 +219,43 @@ export class OrganizationsService {
         whiteLabelBrandingEnabled: true,
         stripePriceId: true,
         subscriptionStatus: true,
+        billingProvider: true,
+      },
+    });
+  }
+
+  async updateBillingProvider(
+    orgId: string | undefined,
+    userId: string,
+    billingProvider: BillingProvider,
+    billingCountry?: string,
+    billingCurrency?: string,
+  ) {
+    if (!orgId) {
+      throw new ForbiddenException('Organization access denied');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, orgId, status: MembershipStatus.ACTIVE },
+      select: { role: true },
+    });
+
+    if (!membership || membership.role !== MembershipRole.TENANT_OWNER) {
+      throw new ForbiddenException('Only tenant owners can change billing provider.');
+    }
+
+    return this.prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        billingProvider,
+        billingCountry: billingCountry?.toUpperCase(),
+        billingCurrency: billingCurrency?.toUpperCase(),
+      },
+      select: {
+        id: true,
+        billingProvider: true,
+        billingCountry: true,
+        billingCurrency: true,
       },
     });
   }
