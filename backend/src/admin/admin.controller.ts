@@ -1,8 +1,9 @@
 import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
-import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
+import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
+
+type RequestUser = { userId?: string; id?: string; sub?: string };
 
 type RequestUser = { userId?: string; id?: string; sub?: string };
 
@@ -36,13 +37,7 @@ export class AdminController {
   }
 
   @Get('audit')
-  audit(
-    @Query('tenantId') tenantId?: string,
-    @Query('action') action?: string,
-    @Query('actor') actor?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string) {
     return this.adminService.listAudit({ tenantId, action, actor, from, to });
   }
 

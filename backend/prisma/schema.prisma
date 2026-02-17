@@ -35,6 +35,18 @@ enum DomainStatus {
   DELETING
 }
 
+
+enum AuditActorType {
+  SYSTEM
+  USER
+  ADMIN
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
+}
 enum InviteStatus {
   PENDING
   ACCEPTED

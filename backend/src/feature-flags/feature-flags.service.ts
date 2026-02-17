@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FeatureFlag, FeatureFlagScope } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 
 type UpsertFeatureFlagInput = {
   key: string;
@@ -13,9 +14,14 @@ type UpsertFeatureFlagInput = {
 
 @Injectable()
 export class FeatureFlagsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly cacheService: CacheService) {}
 
   async getEffectiveFlags(tenantId?: string, locationId?: string): Promise<Record<string, boolean>> {
+    const cacheKey = `${tenantId ?? 'global'}:${locationId ?? 'all'}`;
+    const cached = this.cacheService.get<Record<string, boolean>>('feature-flags', tenantId ?? null, cacheKey);
+    if (cached) {
+      return cached;
+    }
     const [globalFlags, tenantFlags, locationFlags] = await Promise.all([
       this.prisma.featureFlag.findMany({ where: { scope: FeatureFlagScope.GLOBAL } }),
       tenantId
@@ -37,7 +43,9 @@ export class FeatureFlagsService {
       merged.set(entry.key, entry.enabled);
     }
 
-    return Object.fromEntries(merged.entries());
+    const resolved = Object.fromEntries(merged.entries());
+    this.cacheService.set('feature-flags', tenantId ?? null, cacheKey, resolved, 30);
+    return resolved;
   }
 
   listAll(): Promise<FeatureFlag[]> {
@@ -45,7 +53,7 @@ export class FeatureFlagsService {
   }
 
   async create(input: UpsertFeatureFlagInput): Promise<FeatureFlag> {
-    return this.prisma.featureFlag.create({
+    const created = await this.prisma.featureFlag.create({
       data: {
         key: input.key,
         enabled: input.enabled,
@@ -55,10 +63,12 @@ export class FeatureFlagsService {
         updatedByUserId: input.updatedByUserId ?? null,
       },
     });
+    this.cacheService.bust('feature-flags', input.tenantId ?? null, `${input.tenantId ?? 'global'}:${input.locationId ?? 'all'}`);
+    return created;
   }
 
   async update(id: string, input: Partial<UpsertFeatureFlagInput>): Promise<FeatureFlag> {
-    return this.prisma.featureFlag.update({
+    const updated = await this.prisma.featureFlag.update({
       where: { id },
       data: {
         key: input.key,
@@ -69,5 +79,7 @@ export class FeatureFlagsService {
         updatedByUserId: input.updatedByUserId,
       },
     });
+    this.cacheService.bust('feature-flags', input.tenantId ?? null, `${input.tenantId ?? 'global'}:${input.locationId ?? 'all'}`);
+    return updated;
   }
 }

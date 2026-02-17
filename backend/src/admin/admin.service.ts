@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/client';
+import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 type AdminOverviewResponse = {
@@ -36,14 +37,17 @@ type AdminTenantListItem = {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jobLogService: JobLogService,
+  ) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
     const planCents = Number.parseInt(process.env.DEFAULT_TENANT_MRR_CENTS ?? '9900', 10);
     return status === SubscriptionStatus.ACTIVE ? (Number.isFinite(planCents) ? planCents : 9900) : 0;
   }
 
-  async getOverview(): Promise<AdminOverviewResponse> {
+  async getOverview() {
     const now = Date.now();
     const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
@@ -221,7 +225,7 @@ export class AdminService {
     return tenant;
   }
 
-  async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined): Promise<{ tenantId: string; supportMode: { tenantId: string } }> {
+  async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined) {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!org) throw new NotFoundException('Tenant not found');
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'IMPERSONATE_START', metadata: { tenantId }, ip: ip ?? null } });
@@ -269,7 +273,7 @@ export class AdminService {
     return { ok: true as const, revoked: result.count };
   }
 
-  async listImpersonationHistory() {
+  listImpersonationHistory() {
     return this.prisma.auditLog.findMany({
       where: { OR: [{ action: 'support_mode_assume_context' }, { action: 'ADMIN_IMPERSONATE' }] },
       orderBy: { createdAt: 'desc' },
