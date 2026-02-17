@@ -17,4 +17,5 @@ export type PublicHostTenant = {
 export type PublicLocationByHostResponse = {
   location: PublicHostLocation | null;
   tenant: PublicHostTenant | null;
+  tenantDisabled: boolean;
 };

@@ -20,6 +20,7 @@ type PublicLocation = {
 type PublicTenant = {
   id: string;
   whiteLabelEnabled: boolean;
+  isDisabled: boolean;
 };
 
 type PublicLocationContext = {
@@ -88,6 +89,7 @@ export class PublicService {
             id: true,
             whiteLabelEnabled: true,
             whiteLabelBrandingEnabled: true,
+            isDisabled: true,
           },
         },
       },
@@ -110,6 +112,7 @@ export class PublicService {
           whiteLabelEnabled: Boolean(
             byCustomDomain.org.whiteLabelEnabled || byCustomDomain.org.whiteLabelBrandingEnabled,
           ),
+          isDisabled: byCustomDomain.org.isDisabled,
         },
       };
     }
@@ -137,6 +140,7 @@ export class PublicService {
             id: true,
             whiteLabelEnabled: true,
             whiteLabelBrandingEnabled: true,
+            isDisabled: true,
           },
         },
       },
@@ -160,6 +164,7 @@ export class PublicService {
       tenant: {
         id: bySlug.org.id,
         whiteLabelEnabled: Boolean(bySlug.org.whiteLabelEnabled || bySlug.org.whiteLabelBrandingEnabled),
+        isDisabled: bySlug.org.isDisabled,
       },
     };
   }
@@ -220,12 +225,25 @@ export class PublicService {
       return {
         location: null,
         tenant: null,
+        tenantDisabled: false,
+      };
+    }
+
+    if (resolved.tenant.isDisabled) {
+      return {
+        location: null,
+        tenant: null,
+        tenantDisabled: true,
       };
     }
 
     return {
       location: resolved.location,
-      tenant: resolved.tenant,
+      tenant: {
+        id: resolved.tenant.id,
+        whiteLabelEnabled: resolved.tenant.whiteLabelEnabled,
+      },
+      tenantDisabled: false,
     };
   }
 

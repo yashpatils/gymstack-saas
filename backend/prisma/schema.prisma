@@ -103,6 +103,7 @@ model User {
   authIdentities       AuthIdentity[]
   ownerOperatorSettings OwnerOperatorSetting[]
   refreshTokens         RefreshToken[]
+  adminEvents           AdminEvent[]
 
   @@index([orgId])
 }
@@ -271,6 +272,8 @@ model Gym {
 model Organization {
   id          String       @id @default(cuid())
   name        String
+  isDisabled  Boolean      @default(false)
+  disabledAt  DateTime?
   whiteLabelBrandingEnabled Boolean @default(false)
   whiteLabelEnabled Boolean @default(false)
   users       User[]
@@ -281,8 +284,25 @@ model Organization {
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
+  adminEvents AdminEvent[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model AdminEvent {
+  id          String       @id @default(cuid())
+  adminUserId String
+  type        String
+  tenantId    String?
+  metadata    Json?
+  ip          String?
+  createdAt   DateTime     @default(now())
+  adminUser   User         @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tenant      Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([type])
 }
 
 model Membership {

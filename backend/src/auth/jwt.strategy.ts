@@ -61,6 +61,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const tenantId = supportMode?.tenantId ?? payload.activeTenantId;
     const locationId = supportMode?.locationId ?? payload.activeGymId;
 
+    if (tenantId) {
+      const tenant = await this.prisma.organization.findUnique({
+        where: { id: tenantId },
+        select: { isDisabled: true },
+      });
+      if (tenant?.isDisabled) {
+        throw new ForbiddenException({ code: 'TENANT_DISABLED', message: 'Tenant is disabled' });
+      }
+    }
+
     const permissions = tenantId
       ? await resolveEffectivePermissions(this.prisma, payload.sub, tenantId, locationId)
       : [];

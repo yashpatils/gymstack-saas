@@ -84,6 +84,8 @@ Required environment variables:
 - `REFRESH_TOKEN_TTL_DAYS` — rotating refresh token TTL in days (default: `30`).
 - `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
 - `PLATFORM_ADMIN_EMAILS` — Comma-separated owner allowlist for platform admin access (case-insensitive), used by `/api/auth/me` and `/api/admin/*`.
+- `DEFAULT_TENANT_MRR_CENTS` — Optional admin dashboard fallback value (in cents) to estimate tenant MRR when Stripe item amounts are not available (default: `9900`).
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_ID` — Stripe billing keys used by subscription sync and admin revenue reporting.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 
 ## Notes

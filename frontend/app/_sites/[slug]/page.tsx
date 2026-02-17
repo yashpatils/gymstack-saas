@@ -6,6 +6,19 @@ import { getLocationByHost } from '@/src/lib/publicApi';
 export default async function SiteLandingPage() {
   const data = await getLocationByHost();
 
+  if (data.tenantDisabled) {
+    return (
+      <LocationShell
+        title="Temporarily unavailable"
+        subtitle="This tenant is temporarily unavailable. Please contact support."
+        logoUrl={null}
+        primaryColor={null}
+        accentGradient={null}
+        whiteLabelEnabled={false}
+      />
+    );
+  }
+
   if (!data.location || !data.tenant) {
     return (
       <LocationShell
