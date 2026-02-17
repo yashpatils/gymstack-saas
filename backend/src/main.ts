@@ -182,6 +182,8 @@ async function logIntegrationStatus(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+  app.use('/api/billing/webhook/stripe', express.raw({ type: 'application/json' }));
+  app.use('/api/billing/webhook/razorpay', express.raw({ type: 'application/json' }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

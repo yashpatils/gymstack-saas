@@ -8,11 +8,22 @@ import { BillingController } from './billing.controller';
 import { StripeWebhookController } from './stripe-webhook.controller';
 import { BillingService } from './billing.service';
 import { SubscriptionGatingService } from './subscription-gating.service';
+import { StripeBillingProvider } from './providers/stripe-billing.provider';
+import { RazorpayBillingProvider } from './providers/razorpay-billing.provider';
+import { BillingProviderRegistry } from './billing-provider.registry';
 
 @Module({
   imports: [ConfigModule, PrismaModule, AuditModule],
   controllers: [BillingController, StripeWebhookController],
-  providers: [RequireVerifiedEmailGuard, BillingService, SubscriptionGatingService, RolesGuard],
+  providers: [
+    RequireVerifiedEmailGuard,
+    BillingService,
+    SubscriptionGatingService,
+    RolesGuard,
+    StripeBillingProvider,
+    RazorpayBillingProvider,
+    BillingProviderRegistry,
+  ],
   exports: [SubscriptionGatingService],
 })
 export class BillingModule {}

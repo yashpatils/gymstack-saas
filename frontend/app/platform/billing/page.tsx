@@ -9,6 +9,8 @@ import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
 const PLAN_NAMES: Record<string, string> = { starter: "Starter", pro: "Pro" };
 
 type BillingStatus = {
+  provider: "STRIPE" | "RAZORPAY";
+  billingCountry: string | null;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   priceId: string | null;

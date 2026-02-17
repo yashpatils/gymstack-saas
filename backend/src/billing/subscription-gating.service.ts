@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { SubscriptionStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-
-const BILLING_ACTIVE_STATUSES = new Set(['active', 'trialing']);
+import { isActiveSubscriptionStatus, normalizeSubscriptionStatus } from './subscription-status.util';
 
 type TenantSubscriptionSnapshot = {
   stripePriceId: string | null;
-  subscriptionStatus: string | null;
+  subscriptionStatus: SubscriptionStatus | null;
   whiteLabelEnabled: boolean;
 };
 
@@ -23,7 +23,8 @@ export class SubscriptionGatingService {
       return false;
     }
 
-    return tenant.stripePriceId === proPriceId && BILLING_ACTIVE_STATUSES.has((tenant.subscriptionStatus ?? '').toLowerCase());
+    return tenant.stripePriceId === proPriceId
+      && isActiveSubscriptionStatus(normalizeSubscriptionStatus(tenant.subscriptionStatus));
   }
 
   getEffectiveWhiteLabel(tenant: TenantSubscriptionSnapshot): boolean {
