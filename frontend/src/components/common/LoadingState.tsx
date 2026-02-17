@@ -1,3 +1,7 @@
+export function LoadingState({ label = "Loading..." }: { label?: string }) {
+  return <p className="text-sm text-muted-foreground">{label}</p>;
+}
+
 export function KpiSkeletonGrid() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
