@@ -49,7 +49,7 @@ if [[ $migrate_exit_code -ne 0 ]]; then
   echo "[start-prod] ERROR: prisma migrate deploy failed. Startup halted." >&2
 
   if [[ "$migrate_output" == *"P3009"* ]]; then
-    failed_migration=$(printf '%s\n' "$migrate_output" | awk -F'`' 'NF >= 3 { print $2; exit }')
+    failed_migration=$(printf '%s\n' "$migrate_output" | sed -n 's/.*The `\([^`]*\)` migration.*/\1/p' | head -n 1)
 
     if [[ -n "$failed_migration" ]]; then
       echo "[start-prod] Detected failed migration: $failed_migration" >&2
