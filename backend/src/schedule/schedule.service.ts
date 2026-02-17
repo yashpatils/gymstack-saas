@@ -3,6 +3,7 @@ import { ClassBookingStatus, ClassSessionStatus, MembershipRole, MembershipStatu
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { CheckInDto, CreateSessionDto, DateRangeQueryDto } from './dto/session.dto';
+import { PushService } from '../push/push.service';
 
 type RequestUser = {
   id: string;
@@ -14,7 +15,10 @@ type RequestUser = {
 
 @Injectable()
 export class ScheduleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pushService: PushService,
+  ) {}
 
   private getTenantId(user: RequestUser): string {
     return user.activeTenantId ?? user.orgId ?? '';
@@ -290,10 +294,10 @@ export class ScheduleService {
     const { tenantId, locationId } = await this.requireLocationContext(user);
     await this.requireClientEligibleToBook(user, tenantId, locationId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const booking = await this.prisma.$transaction(async (tx) => {
       const session = await tx.classSession.findFirst({
         where: { id: sessionId, locationId, status: ClassSessionStatus.SCHEDULED },
-        include: { classTemplate: { select: { capacity: true } } },
+        include: { classTemplate: { select: { capacity: true, title: true } } },
       });
 
       if (!session) {
@@ -330,6 +334,23 @@ export class ScheduleService {
         },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const sessionDetail = await this.prisma.classSession.findUnique({
+      where: { id: booking.sessionId },
+      include: { classTemplate: { select: { title: true } } },
+    });
+
+    if (sessionDetail) {
+      await this.pushService.sendBookingConfirmation({
+        userId: user.id,
+        tenantId,
+        locationId,
+        classTitle: sessionDetail.classTemplate.title,
+        startsAt: sessionDetail.startsAt,
+      });
+    }
+
+    return booking;
   }
 
   async cancelMyBooking(user: RequestUser, sessionId: string) {

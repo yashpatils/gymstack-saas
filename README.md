@@ -246,3 +246,96 @@ OAuth email auto-linking is only allowed when the provider email is verified **a
 - user already has another verified OAuth identity.
 
 If an email/password account is not yet trusted, OAuth login returns `ACCOUNT_LINK_REQUIRES_PASSWORD_LOGIN`. The user must first log in with password and then link from Settings.
+
+## Launch readiness additions
+
+### Marketing and routing
+
+- Root domain `gymstack.club` serves marketing pages (`/`, `/features`, `/pricing`, `/contact`, `/terms`, `/privacy`, `/cookies`, `/status`).
+- `/platform` remains the authenticated product app.
+- `/admin` remains the admin app.
+- Subdomains/custom domains continue to resolve to microsites via middleware rewrites (`/_sites/[slug]` and `/_custom/[host]`).
+
+### SEO and social
+
+- Added per-page metadata and canonical URLs for launch pages.
+- Added `frontend/app/sitemap.ts` and `frontend/app/robots.ts`.
+- Added default OpenGraph social image at `frontend/public/og-default.svg`.
+
+### Email templates + queue
+
+Backend transactional templates now include:
+- `verify_email`
+- `reset_password`
+- `welcome_tenant_owner`
+- `invite_staff`
+- `invite_client`
+- `booking_confirmation`
+- `booking_reminder`
+
+Email dispatch supports async queueing via `EmailQueueService` so request handlers can enqueue non-blocking sends.
+
+### Support + health
+
+- Health endpoints (`/health`, `/api/health`) now return uptime, app version, timestamp, and database connectivity.
+- Support endpoint added: `POST /api/support/ticket`.
+- `SupportTicket` Prisma model introduced for ticket persistence.
+
+### Railway deployment steps
+
+1. Push backend changes and run migrations (`npm run prisma:migrate deploy` or equivalent deploy migration command).
+2. Set required Railway env vars from this README.
+3. Deploy backend service and verify `/health` and `/api/health` respond successfully.
+4. Validate `POST /api/support/ticket` creates records and queues support email notifications.
+
+### Database migration strategy
+
+- Create schema changes locally with Prisma migration files committed to git.
+- Apply migrations in staging first.
+- Apply the same migration set in production during low-traffic windows.
+- Never rely on `prisma db push` in production.
+
+### Domain + DNS checklist
+
+- Apex/root: `gymstack.club` -> Vercel frontend.
+- Admin: `admin.gymstack.club` -> Vercel frontend.
+- Wildcard: `*.gymstack.club` -> Vercel frontend for microsites.
+- API domain (optional): point to Railway backend if using custom API domain.
+- Custom domain verification: confirm DNS TXT/CNAME values from GymStack domain verification flow before enabling traffic.
+
+## Runbooks
+
+### Reset admin access
+
+1. Confirm the target email is listed in `PLATFORM_ADMIN_EMAILS`.
+2. Confirm account exists and can log in successfully.
+3. Re-authenticate and verify `/api/auth/me` returns `platformRole: PLATFORM_ADMIN`.
+
+### CORS issue checklist
+
+1. Confirm exact origin is present in `ALLOWED_ORIGINS` or matches `ALLOWED_ORIGIN_REGEXES`.
+2. Confirm browser request sends credentials settings expected by frontend.
+3. Check backend logs for blocked origin warnings.
+4. Verify preflight (`OPTIONS`) response headers include expected allow headers.
+
+### Email deliverability checklist
+
+1. Verify `EMAIL_FROM` domain is authenticated in Resend.
+2. Verify SPF, DKIM, and any required DMARC records.
+3. Ensure `RESEND_API_KEY` is set in production.
+4. Check backend logs for `email_send_failure` events.
+5. Validate template links point to `APP_URL`/base domain.
+
+### Stripe webhook troubleshooting
+
+1. Confirm `STRIPE_WEBHOOK_SECRET` matches the endpoint in Stripe dashboard.
+2. Inspect Railway logs for webhook signature failures.
+3. Replay failed webhook events from Stripe dashboard.
+4. Confirm subscription status sync updates expected tenant records.
+
+### Domain verification troubleshooting
+
+1. Re-check hostname and TXT/CNAME values for typos.
+2. Confirm DNS propagation completed (can take minutes to hours).
+3. Retry verification endpoint after propagation.
+4. Ensure wildcard records do not conflict with explicit verification records.

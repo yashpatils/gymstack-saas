@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { AuditModule } from './audit/audit.module';
@@ -23,19 +22,12 @@ import { LocationMembershipsModule } from './location-memberships/location-membe
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-    }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60_000,
-          limit: 120,
-        },
-      ],
     }),
     AuthModule,
     AuditModule,
@@ -55,13 +47,15 @@ import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
     OnboardingModule,
     LocationAppModule,
     FeatureFlagsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
     SensitiveRateLimitService,
+    TenantRateLimitGuard,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: TenantRateLimitGuard,
     },
   ],
 })

@@ -6,13 +6,13 @@ import { User, UserRole } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { assertCanCreateLocationInvite } from './invite-permissions';
 import { hasSupportModeContext } from '../auth/support-mode.util';
-import { EmailService } from '../email/email.service';
+import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
 export class InvitesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly emailService: EmailService,
+    private readonly jobsService: JobsService,
   ) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
@@ -55,7 +55,7 @@ export class InvitesService {
 
     const inviteUrl = await this.buildInviteLink(token, location.id, location.slug);
     if (invite.email) {
-      await this.emailService.sendLocationInvite(invite.email, inviteUrl);
+      await this.jobsService.enqueue('email', { action: 'location-invite', to: invite.email, inviteUrl });
     }
 
     return {
