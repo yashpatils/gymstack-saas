@@ -2,9 +2,10 @@ import Link from "next/link";
 import { AuthNav } from "./auth-nav";
 
 const navLinks = [
-  { label: "Features", href: "/#features" },
+  { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "FAQ", href: "/faq" },
+  { label: "Contact", href: "/contact" },
+  { label: "Status", href: "/status" },
 ];
 
 export function MarketingNavbar() {
@@ -16,9 +17,7 @@ export function MarketingNavbar() {
             GS
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
-              GymStack
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">GymStack</p>
             <p className="text-xs text-slate-500">All-in-one gym operating system</p>
           </div>
         </Link>
@@ -47,26 +46,15 @@ export function MarketingFooter() {
         </div>
 
         <div className="flex flex-wrap items-center gap-5">
-          <Link href="/" className="transition hover:text-white">
-            Features
-          </Link>
-          <Link href="/pricing" className="transition hover:text-white">
-            Pricing
-          </Link>
-          <Link href="/faq" className="transition hover:text-white">
-            FAQ
-          </Link>
-          <Link href="/login" className="transition hover:text-white">
-            Login
-          </Link>
-          <Link href="/signup" className="transition hover:text-white">
-            Sign up
-          </Link>
+          <Link href="/features" className="transition hover:text-white">Features</Link>
+          <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
+          <Link href="/contact" className="transition hover:text-white">Contact</Link>
+          <Link href="/terms" className="transition hover:text-white">Terms</Link>
+          <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
+          <Link href="/cookies" className="transition hover:text-white">Cookies</Link>
         </div>
       </div>
-      <p className="border-t border-white/10 py-5 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} GymStack. All rights reserved.
-      </p>
+      <p className="border-t border-white/10 py-5 text-center text-xs text-slate-500">© {new Date().getFullYear()} GymStack. All rights reserved.</p>
     </footer>
   );
 }

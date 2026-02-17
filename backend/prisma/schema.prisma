@@ -377,6 +377,7 @@ model Organization {
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
+  supportTickets      SupportTicket[] @relation("SupportTicketTenant")
   adminEvents AdminEvent[]
   pushSubscriptions PushSubscription[]
   notificationMarkers NotificationMarker[]

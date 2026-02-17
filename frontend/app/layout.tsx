@@ -14,6 +14,7 @@ const geist = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "GymStack SaaS | Multi-Location Gym Management Platform",
   description:
     "GymStack helps gym operators run billing, members, trainers, and analytics across every location from one dashboard.",
