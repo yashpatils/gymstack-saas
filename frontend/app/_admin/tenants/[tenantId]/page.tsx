@@ -13,10 +13,10 @@ export default async function AdminTenantDetailPage({ params }: { params: { tena
 
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
-          <h2 className="mb-3 text-lg font-semibold text-white">Owners</h2>
+          <h2 className="mb-3 text-lg font-semibold text-white">Key users</h2>
           <ul className="space-y-2 text-sm text-slate-200">
-            {tenant.owners.map((owner) => (
-              <li key={owner.id} className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2">{owner.email}</li>
+            {tenant.keyUsers.map((user) => (
+              <li key={user.id} className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2">{user.email} • {user.role}</li>
             ))}
           </ul>
         </article>
@@ -40,8 +40,6 @@ export default async function AdminTenantDetailPage({ params }: { params: { tena
           {tenant.locations.map((location) => (
             <div key={location.id} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
               <p className="font-medium text-white">{location.name} <span className="text-slate-400">({location.slug})</span></p>
-              <p className="mt-1 text-sm text-slate-300">Members: {location.membersCount} • Managers: {location.managersCount}</p>
-              <p className="mt-1 text-xs text-slate-400">Custom domains: {location.customDomains.length > 0 ? location.customDomains.join(', ') : 'None'}</p>
             </div>
           ))}
         </div>
