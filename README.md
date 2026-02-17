@@ -91,6 +91,73 @@ Required environment variables:
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 - `MONITORING_WEBHOOK_URL` — Optional backend error webhook endpoint (captures unhandled 5xx metadata + request IDs). If omitted, monitoring is disabled with no startup impact.
 
+## Prisma failed migration recovery runbook (P3009)
+
+If `npx prisma migrate deploy` fails with `P3009` ("failed migration recorded in the database"), use this runbook before re-running deploy.
+
+### 1) Inspect migration state and failure logs
+
+From `backend/`:
+
+```bash
+npx prisma migrate status --schema=./prisma/schema.prisma
+```
+
+Inspect `_prisma_migrations` for details (replace migration name as needed):
+
+```sql
+SELECT
+  migration_name,
+  started_at,
+  finished_at,
+  rolled_back_at,
+  applied_steps_count,
+  logs
+FROM "_prisma_migrations"
+WHERE migration_name = '20260308110000_audit_log_security_center'
+ORDER BY started_at DESC;
+```
+
+### 2) Decide `migrate resolve` mode safely
+
+Use `--rolled-back` when the migration **did not complete successfully** and must be attempted again after fixing SQL (for example, partial DDL, lock timeout, or duplicate object creation that can be made idempotent).
+
+```bash
+npx prisma migrate resolve --rolled-back 20260308110000_audit_log_security_center --schema=./prisma/schema.prisma
+```
+
+Use `--applied` only when the migration’s intended schema changes are **already present** in production (for example, someone ran the equivalent SQL manually) and you need Prisma history to match reality without re-running SQL.
+
+```bash
+npx prisma migrate resolve --applied 20260308110000_audit_log_security_center --schema=./prisma/schema.prisma
+```
+
+### 3) Validate target schema for this migration
+
+For `20260308110000_audit_log_security_center`, verify all expected objects exist before using `--applied`:
+
+```sql
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'AuditLog'
+  AND column_name IN ('actorEmail', 'actorRole', 'ipAddress');
+
+SELECT indexname
+FROM pg_indexes
+WHERE tablename = 'AuditLog'
+  AND indexname = 'AuditLog_tenantId_createdAt_idx';
+```
+
+If any object is missing, resolve as `--rolled-back` and re-run deploy so Prisma executes the migration.
+
+### 4) Re-run migrations
+
+```bash
+npx prisma migrate deploy --schema=./prisma/schema.prisma
+```
+
+Expected result: the previously failed migration is either retried safely (rolled back path) or skipped as already applied (applied path), and remaining migrations continue.
+
 
 ### CORS allowlist defaults
 
