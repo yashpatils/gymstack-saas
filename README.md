@@ -246,3 +246,39 @@ OAuth email auto-linking is only allowed when the provider email is verified **a
 - user already has another verified OAuth identity.
 
 If an email/password account is not yet trusted, OAuth login returns `ACCOUNT_LINK_REQUIRES_PASSWORD_LOGIN`. The user must first log in with password and then link from Settings.
+
+## Post-launch operations kit
+
+### Backups (Railway)
+
+- Enable Railway Postgres backups/snapshots and retention in production.
+- Expose backup state in admin UI (`/admin/ops/backups`) via:
+  - `RAILWAY_BACKUPS_ENABLED=true|false`
+  - `LAST_BACKUP_AT=<ISO timestamp>`
+- Run restore drills monthly into a non-production environment.
+
+### Data exports (portability)
+
+- Tenant owner export: `GET /api/export/tenant`
+- Location-scoped admin export: `GET /api/export/location/:locationId`
+- Platform admin export: `GET /api/admin/export/tenant/:tenantId`
+- Export payload is tenant/location scoped and excludes password hashes/tokens.
+- Export actions are written to audit logs for compliance traceability.
+
+### Account deletion policy
+
+- Request endpoint: `POST /api/account/request-deletion` (password + verified email required).
+- Confirm endpoint: `POST /api/account/confirm-deletion` (email token required).
+- Cancel endpoint: `POST /api/account/cancel-deletion`.
+- Deletions use a soft-delete grace window (`ACCOUNT_DELETION_GRACE_DAYS`, default 7 days).
+- Sole tenant owners must transfer ownership before deletion is allowed.
+
+### Migration failure recovery
+
+- Health endpoint: `GET /api/admin/ops/migration-status`
+- UI: `/admin/ops/migrations`
+- Recovery steps:
+  1. Create a backup/snapshot first.
+  2. Inspect `_prisma_migrations` and deploy logs.
+  3. Resolve state with `prisma migrate resolve --rolled-back <name>` or `--applied <name>`.
+  4. Re-run `prisma migrate deploy`.

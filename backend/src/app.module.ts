@@ -23,6 +23,7 @@ import { LocationMembershipsModule } from './location-memberships/location-membe
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { DataExportModule } from './data-export/data-export.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
     OnboardingModule,
     LocationAppModule,
     FeatureFlagsModule,
+    DataExportModule,
   ],
   controllers: [AppController],
   providers: [
