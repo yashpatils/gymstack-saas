@@ -111,10 +111,11 @@ export class AdminService {
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
         include: {
-          _count: { select: { gyms: true, users: true, customDomains: true } },
+          _count: { select: { gyms: true, users: true } },
           memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
           users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'desc' }, take: 1 },
         },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.organization.count({ where }),
     ]);

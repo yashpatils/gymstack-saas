@@ -407,6 +407,50 @@ model Organization {
   updatedAt   DateTime     @updatedAt
 }
 
+model ApiKey {
+  id         String       @id @default(uuid())
+  tenantId   String
+  name       String
+  keyHash    String       @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime     @default(now())
+  tenant     Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, revokedAt])
+}
+
+model WebhookEndpoint {
+  id         String            @id @default(uuid())
+  tenantId   String
+  url        String
+  secret     String
+  events     String[]
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId, active])
+}
+
+model WebhookDelivery {
+  id                String          @id @default(uuid())
+  webhookEndpointId String
+  eventType         String
+  payload           Json
+  responseStatus    Int?
+  responseBody      String?
+  attemptCount      Int             @default(0)
+  nextRetryAt       DateTime?
+  createdAt         DateTime        @default(now())
+  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+
+  @@index([webhookEndpointId, createdAt])
+  @@index([nextRetryAt])
+}
+
 model AdminEvent {
   id          String       @id @default(cuid())
   adminUserId String

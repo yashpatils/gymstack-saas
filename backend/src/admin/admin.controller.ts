@@ -9,27 +9,16 @@ type RequestUser = { userId?: string; id?: string; sub?: string };
 @Controller('admin')
 @VerifiedEmailRequired()
 @UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
+@Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('overview')
-  overview() {
-    return this.adminService.getOverview();
-  }
+  overview() { return this.adminService.getOverview(); }
 
-  @Get('metrics')
-  async metrics() {
-    const overview = await this.adminService.getOverview();
-    return {
-      tenantsTotal: overview.totals.activeTenants,
-      locationsTotal: 0,
-      usersTotal: 0,
-      signups7d: overview.trends.newTenants7d,
-      signups30d: overview.trends.newTenants30d,
-      activeMembershipsTotal: 0,
-      mrr: overview.totals.mrrCents / 100,
-      activeSubscriptions: overview.totals.activeSubscriptions,
-    };
+  @Get('tenants')
+  tenants(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('query') query?: string) {
+    return this.adminService.listTenants(page ?? 1, query);
   }
 
   @Get('tenants')
@@ -53,9 +42,7 @@ export class AdminController {
   }
 
   @Get('users')
-  users(@Query('query') query?: string) {
-    return this.adminService.searchUsers(query);
-  }
+  users(@Query('query') query?: string) { return this.adminService.searchUsers(query); }
 
   @Get('users/:id')
   async userDetail(@Param('id') id: string) {
