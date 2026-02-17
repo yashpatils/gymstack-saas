@@ -178,7 +178,7 @@ async function logIntegrationStatus(
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
-  app.use('/billing/webhook', express.raw({ type: 'application/json' }));
+  app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -233,7 +233,7 @@ async function bootstrap() {
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
   app.setGlobalPrefix(apiPrefix, {
-    exclude: ['', '/', 'billing/webhook', 'health', 'api/health', 'debug/routes'],
+    exclude: ['', '/', 'health', 'api/health', 'debug/routes'],
   });
 
   app.use(requestIdMiddleware);

@@ -132,8 +132,10 @@ export class AdminService {
               subscriptionStatus: true,
               stripeSubscriptionId: true,
             },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
+          },
+          memberships: {
+            where: { status: MembershipStatus.ACTIVE },
+            select: { role: true },
           },
         },
       }),
@@ -164,12 +166,18 @@ export class AdminService {
       };
     });
 
-    const filtered = normalizedStatus
-      ? mapped.filter((item) => item.subscriptionStatus === normalizedStatus)
-      : mapped;
-
-    return {
-      items: filtered,
+        return {
+          tenantId: organization.id,
+          tenantName: organization.name,
+          createdAt: organization.createdAt.toISOString(),
+          locationsCount: organization._count.gyms,
+          ownersCount,
+          managersCount,
+          customDomainsCount: organization._count.customDomains,
+          subscriptionStatus: organization.subscriptionStatus ?? null,
+          whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
+        };
+      }),
       page: safePage,
       total,
     };
@@ -183,16 +191,6 @@ export class AdminService {
           orderBy: { createdAt: 'asc' },
           select: { id: true, name: true, slug: true, createdAt: true },
         },
-        users: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          select: { id: true, email: true, role: true, subscriptionStatus: true, stripeSubscriptionId: true },
-        },
-        adminEvents: {
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-          select: { id: true, type: true, metadata: true, createdAt: true, adminUserId: true },
-        },
       },
     });
 
@@ -205,8 +203,8 @@ export class AdminService {
         id: organization.id,
         name: organization.name,
         createdAt: organization.createdAt.toISOString(),
-        isDisabled: organization.isDisabled,
-        disabledAt: organization.disabledAt?.toISOString() ?? null,
+        subscriptionStatus: organization.subscriptionStatus ?? null,
+        whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
       locations: organization.gyms.map((gym) => ({
         id: gym.id,

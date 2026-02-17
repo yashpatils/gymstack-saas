@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, Prisma, Role } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
-import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
@@ -259,6 +259,8 @@ export class GymsService {
             id: true,
             whiteLabelEnabled: true,
             whiteLabelBrandingEnabled: true,
+            stripePriceId: true,
+            subscriptionStatus: true,
           },
         },
       },
@@ -286,7 +288,11 @@ export class GymsService {
       domainVerifiedAt: location.domainVerifiedAt,
       tenant: {
         id: location.org.id,
-        whiteLabelEnabled: Boolean(location.org.whiteLabelEnabled || location.org.whiteLabelBrandingEnabled),
+        whiteLabelEnabled: this.subscriptionGatingService.getEffectiveWhiteLabel({
+          whiteLabelEnabled: Boolean(location.org.whiteLabelEnabled || location.org.whiteLabelBrandingEnabled),
+          stripePriceId: location.org.stripePriceId,
+          subscriptionStatus: location.org.subscriptionStatus,
+        }),
       },
     };
   }

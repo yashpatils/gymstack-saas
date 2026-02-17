@@ -42,6 +42,22 @@ enum InviteStatus {
   EXPIRED
 }
 
+enum MembershipPlanInterval {
+  month
+  year
+  week
+  day
+  one_time
+}
+
+enum ClientMembershipStatus {
+  active
+  paused
+  canceled
+  trialing
+  past_due
+}
+
 enum SubscriptionStatus {
   FREE
   TRIAL
@@ -70,6 +86,17 @@ enum OAuthProvider {
 enum ActiveMode {
   OWNER
   MANAGER
+}
+
+enum ClassSessionStatus {
+  SCHEDULED
+  CANCELED
+}
+
+enum ClassBookingStatus {
+  BOOKED
+  CANCELED
+  CHECKED_IN
 }
 
 model User {
@@ -103,7 +130,8 @@ model User {
   authIdentities       AuthIdentity[]
   ownerOperatorSettings OwnerOperatorSetting[]
   refreshTokens         RefreshToken[]
-  adminEvents           AdminEvent[]
+  clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
+  createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
 
   @@index([orgId])
 }
@@ -263,6 +291,8 @@ model Gym {
   memberships  Membership[]
   customDomains CustomDomain[]
   locationInvites LocationInvite[]
+  membershipPlans MembershipPlan[]
+  clientMemberships ClientMembership[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -276,6 +306,11 @@ model Organization {
   disabledAt  DateTime?
   whiteLabelBrandingEnabled Boolean @default(false)
   whiteLabelEnabled Boolean @default(false)
+  stripeCustomerId String? @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId String?
+  subscriptionStatus String?
+  currentPeriodEnd DateTime?
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
@@ -368,4 +403,43 @@ model LocationInvite {
   @@index([tenantId, locationId])
   @@index([role, consumedAt])
   @@index([tokenPrefix])
+}
+
+model MembershipPlan {
+  id          String                 @id @default(uuid())
+  locationId  String
+  name        String
+  description String?
+  priceCents  Int?
+  interval    MembershipPlanInterval
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  location    Gym                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  memberships ClientMembership[]
+
+  @@index([locationId, isActive])
+}
+
+model ClientMembership {
+  id              String                 @id @default(uuid())
+  userId          String
+  locationId      String
+  planId          String?
+  status          ClientMembershipStatus
+  startAt         DateTime
+  endAt           DateTime?
+  canceledAt      DateTime?
+  createdByUserId String
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  user            User                   @relation("ClientMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  location        Gym                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  plan            MembershipPlan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
+  createdBy       User                   @relation("ClientMembershipCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([locationId, userId])
+  @@index([locationId, status])
+  @@index([planId])
+  @@index([createdByUserId])
 }
