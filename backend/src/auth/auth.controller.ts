@@ -122,7 +122,7 @@ export class AuthController {
     @Body() body: LoginDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
-    requireRequestedWithHeader(req);
+    // Keep /api/auth/login usable for CLI/Postman-based admin/dev testing flows that do not set X-Requested-With.
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
     const emailKey = hashIdentifier(body.email.trim().toLowerCase());
