@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import DataTable, { type DataTableColumn } from "../../../src/components/DataTable";
 import { EmptyState } from "../../../src/components/common/EmptyState";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { PageHeader } from "../../../src/components/common/PageHeader";
 import { SectionCard } from "../../../src/components/common/SectionCard";
 import { StatCard } from "../../../src/components/common/StatCard";
@@ -74,7 +75,7 @@ export default function GymsPage() {
 
       <SectionCard title="Location directory">
         {error ? <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-        {loading ? <p className="text-sm text-muted-foreground">Loading locations...</p> : null}
+        {loading ? <LoadingState label="Loading locations..." /> : null}
         {!loading ? (
           <DataTable
             rows={gyms}

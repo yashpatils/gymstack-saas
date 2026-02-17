@@ -1,34 +1,39 @@
-import Link from 'next/link';
-import { SupportModePanel } from '../support-mode-panel';
+"use client";
 
-const adminNavItems = [
-  { href: '/admin', label: 'Dashboard' },
-  { href: '/admin/tenants', label: 'Tenants' },
-  { href: '/admin/users', label: 'Users' },
-  { href: '/admin/audit', label: 'Audit' },
-  { href: '/admin/growth', label: 'Growth' },
-];
+import type { ReactNode } from "react";
+import { AppHeader } from "../../../src/components/shell/AppHeader";
+import { AppShell } from "../../../src/components/shell/AppShell";
+import { adminNavItems } from "../../../src/components/shell/nav-config";
+import { SupportModePanel } from "../support-mode-panel";
+import { useAuth } from "../../../src/providers/AuthProvider";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  const { user, logout } = useAuth();
+  const displayName = user?.name?.trim() || user?.email || "Admin";
+  const initials = displayName.slice(0, 2).toUpperCase();
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#312e81_0%,_#020617_48%,_#020617_100%)] text-slate-100">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="h-fit rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
-          <p className="text-xs uppercase tracking-[0.3em] text-indigo-300">Platform Admin</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Company Console</h2>
-          <nav className="mt-6 space-y-2">
-            {adminNavItems.map((item) => (
-              <Link key={item.href} href={item.href} className="block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </aside>
-        <main className="space-y-6">
-          <SupportModePanel />
-          {children}
-        </main>
+    <AppShell
+      variant="admin"
+      navItems={adminNavItems}
+      sidebarTitle="Platform Admin"
+      sidebarSubtitle="Company Console"
+      header={({ onToggleMenu, showMenuToggle }) => (
+        <AppHeader
+          onToggleMenu={onToggleMenu}
+          showMenuToggle={showMenuToggle}
+          accountName={displayName}
+          accountInitials={initials}
+          onLogout={logout}
+          accountLinks={[{ href: "/platform/account", label: "Account info" }]}
+          centerContent={<p className="text-sm text-muted-foreground">Admin Console</p>}
+        />
+      )}
+    >
+      <div className="space-y-6">
+        <SupportModePanel />
+        {children}
       </div>
-    </div>
+    </AppShell>
   );
 }

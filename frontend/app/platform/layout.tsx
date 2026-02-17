@@ -5,24 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { AuthGate } from "../../src/components/AuthGate";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { AppShell } from "../../src/components/shell/AppShell";
-import { Topbar } from "../../src/components/shell/Topbar";
+import { AppHeader } from "../../src/components/shell/AppHeader";
 import { AppFooter } from "../../src/components/shell/AppFooter";
 import { EmailVerificationBanner } from "../components/email-verification-banner";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
 import { listGyms } from "../../src/lib/gyms";
 import type { LocationOption } from "../../src/types/auth";
-
-const baseNavItems = [
-  { label: "Overview", href: "/platform" },
-  { label: "Gyms", href: "/platform/gyms" },
-  { label: "Team", href: "/platform/team" },
-  { label: "Billing", href: "/platform/billing" },
-  { label: "Coach", href: "/platform/coach" },
-  { label: "Client", href: "/platform/client" },
-  { label: "Insights", href: "/platform/insights" },
-  { label: "Settings", href: "/platform/settings" },
-  { label: "Location settings", href: "/platform/locations/settings" },
-];
+import { ModeToggle } from "../../src/components/shell/ModeToggle";
+import { LocationSwitcher } from "../../src/components/shell/LocationSwitcher";
+import { platformNavItems } from "../../src/components/shell/nav-config";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -99,10 +90,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     return <main className="p-8 text-muted-foreground">Loading workspace...</main>;
   }
 
-  const navItems = platformRole === "PLATFORM_ADMIN"
-    ? [...baseNavItems, { label: "Admin", href: ADMIN_PORTAL_FRESH_LOGIN_URL }]
-    : baseNavItems;
-
   const canManageTenantSettings = permissions.canManageTenant
     || permissionKeys.includes("tenant:manage")
     || user?.role === "OWNER"
@@ -115,23 +102,22 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     || activeContext?.role === "TENANT_LOCATION_ADMIN"
     || activeContext?.role === "GYM_STAFF_COACH";
 
-  const filteredItems = navItems.filter((item) => {
+  const filteredItems = platformNavItems.filter((item) => {
+    if (item.requiresRole === "PLATFORM_ADMIN" && platformRole !== "PLATFORM_ADMIN") {
+      return false;
+    }
     if (item.href === "/platform/billing") {
       return permissions.canManageBilling || permissionKeys.includes("billing:manage") || user?.role === "OWNER" || user?.role === "ADMIN";
     }
-
     if (item.href === "/platform/team") {
       return permissions.canManageUsers || permissions.canManageTenant || permissionKeys.some((permission) => ["users:crud", "staff:crud", "tenant:manage"].includes(permission));
     }
-
     if (item.href === "/platform/settings") {
       return canManageTenantSettings;
     }
-
     if (item.href === "/platform/locations/settings") {
       return canManageLocationSettings;
     }
-
     return true;
   });
 
@@ -140,24 +126,36 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   return (
     <AuthGate>
       <AppShell
-        items={filteredItems}
-        topbar={({ onToggleMenu }) => (
-          <Topbar
-            initials={initials}
-            displayName={user?.name?.trim() || email}
-            onLogout={logout}
-            canSwitchMode={canSwitchMode}
-            activeMode={activeMode ?? "OWNER"}
-            onSwitchMode={(mode) => {
-              void handleSwitchMode(mode);
-            }}
+        variant="platform"
+        navItems={filteredItems}
+        sidebarTitle="Platform"
+        sidebarSubtitle="Operations Console"
+        footer={<AppFooter />}
+        header={({ onToggleMenu, showMenuToggle }) => (
+          <AppHeader
             onToggleMenu={onToggleMenu}
-            showAdminPortalLink={platformRole === "PLATFORM_ADMIN"}
-            canShowLocationSwitcher={canShowLocationSwitcher}
-            locations={locations}
-            activeLocationId={activeContext?.locationId}
-            onSelectLocation={handleSelectLocation}
-            showFeedbackLink={Boolean(canSendFeedback)}
+            showMenuToggle={showMenuToggle}
+            accountInitials={initials}
+            accountName={user?.name?.trim() || email}
+            onLogout={logout}
+            accountLinks={[
+              { href: "/platform/account", label: "Account info" },
+              { href: "/platform/settings", label: "Settings" },
+              ...(platformRole === "PLATFORM_ADMIN" ? [{ href: ADMIN_PORTAL_FRESH_LOGIN_URL, label: "Admin portal" }] : []),
+            ]}
+            leftExtra={canShowLocationSwitcher ? (
+              <div className="hidden md:block">
+                <LocationSwitcher locations={locations} activeLocationId={activeContext?.locationId} activeMode={activeMode ?? "OWNER"} onSelect={handleSelectLocation} canCreate />
+              </div>
+            ) : undefined}
+            centerContent={canSwitchMode ? (
+              <ModeToggle
+                activeMode={activeMode ?? "OWNER"}
+                onSwitchMode={(mode) => {
+                  void handleSwitchMode(mode);
+                }}
+              />
+            ) : <p className="text-sm text-muted-foreground">Workspace</p>}
           />
         )}
       >
@@ -165,9 +163,11 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           <div className="container-app pt-4"><EmailVerificationBanner /></div>
           {activeTenant?.isDemo ? <div className="container-app"><div className="rounded border border-amber-300/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">Demo mode — data resets daily</div></div> : null}
           {children}
-          <div className="container-app pb-6">
-            <AppFooter />
-          </div>
+          {canSendFeedback ? (
+            <div className="container-app pb-2 text-right">
+              <a href="/platform/feedback" className="button secondary">Send feedback</a>
+            </div>
+          ) : null}
         </>
       </AppShell>
     </AuthGate>

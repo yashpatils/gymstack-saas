@@ -2,88 +2,69 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../lib/adminPortal";
+import type { AppNavItem } from "./nav-config";
 
-export type ShellNavItem = { label: string; href: string; disabled?: boolean; debugOnly?: boolean };
-
-type SidebarProps = {
-  items: ShellNavItem[];
+type SidebarNavProps = {
+  items: AppNavItem[];
   mobileOpen?: boolean;
   onClose?: () => void;
+  title: string;
+  subtitle: string;
 };
 
-const sections = [
-  {
-    title: "Core",
-    routes: ["/platform", "/platform/gyms", "/platform/team"],
-  },
-  {
-    title: "Operations",
-    routes: ["/platform/billing", "/platform/coach", "/platform/client"],
-  },
-  {
-    title: "Settings",
-    routes: ["/platform/settings", ADMIN_PORTAL_FRESH_LOGIN_URL],
-  },
-] as const;
+const sectionLabels: Record<AppNavItem["section"], string> = {
+  core: "Core",
+  operations: "Operations",
+  settings: "Settings",
+};
 
-function normalizePath(s: string): string {
-  if (s.length <= 1) {
-    return s;
+function normalizePath(path: string): string {
+  if (path.length <= 1) {
+    return path;
   }
-
-  return s.replace(/\/+$/, "");
+  return path.replace(/\/+$/, "");
 }
 
 function isActivePath(pathname: string, href: string): boolean {
-  const p = normalizePath(pathname);
-  const h = normalizePath(href);
-
-  if (h === "/platform") {
-    return p === "/platform";
-  }
-
-  return p === h || p.startsWith(`${h}/`);
+  const currentPath = normalizePath(pathname);
+  const itemPath = normalizePath(href);
+  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
-export function Sidebar({ items, mobileOpen = false, onClose }: SidebarProps) {
+export function SidebarNav({ items, mobileOpen = false, onClose, title, subtitle }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
     <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""}`}>
-      <div className="rounded-2xl border border-border/80 bg-black/20 p-4">
+      <div className="rounded-2xl border border-border/80 bg-black/20 p-4 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Gym Stack</p>
-        <p className="mt-2 text-lg font-semibold text-foreground">Platform</p>
+        <p className="mt-2 text-lg font-semibold text-foreground">{title}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
       </div>
-      <nav className="platform-sidebar-nav" aria-label="Platform navigation">
-        {sections.map((section) => {
-          const sectionItems = items.filter((item) => section.routes.some((route) => route === item.href));
-          if (!sectionItems.length) {
+      <nav className="platform-sidebar-nav" aria-label={`${title} navigation`}>
+        {Object.entries(sectionLabels).map(([section, label]) => {
+          const scopedItems = items.filter((item) => item.section === section);
+          if (!scopedItems.length) {
             return null;
           }
 
           return (
-            <div key={section.title} className="space-y-2">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{section.title}</p>
+            <div key={section} className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
               <ul className="space-y-1">
-                {sectionItems.map((item) => {
+                {scopedItems.map((item) => {
                   const isActive = isActivePath(pathname, item.href);
-                  const className = `platform-nav-item ${isActive ? "platform-nav-item-active" : ""} ${item.disabled ? "pointer-events-none opacity-40" : ""}`;
-
                   return (
                     <li key={item.href}>
-                      {item.disabled ? (
-                        <span className={className}>{item.label}</span>
-                      ) : (
-                        <Link
-                          href={item.href}
-                          className={className}
-                          onClick={onClose}
-                          aria-current={isActive ? "page" : undefined}
-                        >
-                          {item.label}
-                        </Link>
-                      )}
+                      <Link
+                        href={item.href}
+                        className={`platform-nav-item ${isActive ? "platform-nav-item-active" : ""}`}
+                        onClick={onClose}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        <span aria-hidden="true" className="mr-2 inline-block w-4 text-center">{item.icon}</span>
+                        {item.label}
+                      </Link>
                     </li>
                   );
                 })}
