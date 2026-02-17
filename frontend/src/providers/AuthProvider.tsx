@@ -28,6 +28,7 @@ import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, Onboardi
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
+import { initFrontendMonitoring, setMonitoringUserContext } from '../lib/monitoring';
 
 export type AuthIssue = 'SESSION_EXPIRED' | 'INSUFFICIENT_PERMISSIONS' | null;
 
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authIssue, setAuthIssue] = useState<AuthIssue>(null);
 
   const clearAuthState = useCallback(() => {
+    setMonitoringUserContext(null);
     setUser(null);
     setToken(null);
     setMemberships([]);
@@ -160,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applyMeResponse = useCallback((meResponse: AuthMeResponse) => {
+    setMonitoringUserContext(meResponse.user.id);
     setMeStatus(200);
     setAuthIssue(null);
     setUser(meResponse.user);
@@ -201,6 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, [applyMeResponse]);
+
+  useEffect(() => {
+    initFrontendMonitoring();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -250,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password);
     setToken(authToken);
     await hydrateFromMe();
+    await track('login_success', { role: loggedInUser.role });
     return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [hydrateFromMe, normalizeMemberships]);
 
@@ -257,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role, inviteToken);
     setToken(authToken);
     await hydrateFromMe();
+    await track('signup_success', { role: signedUpUser.role });
     return { user: signedUpUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext, emailDeliveryWarning };
   }, [hydrateFromMe, normalizeMemberships]);
 
@@ -264,6 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext } = await acceptInviteRequest(input);
     setToken(authToken);
     await hydrateFromMe();
+    await track('invite_consumed', { role: invitedUser.role });
     return { user: invitedUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [hydrateFromMe, normalizeMemberships]);
 

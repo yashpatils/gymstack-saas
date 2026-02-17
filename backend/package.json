@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "build": "prisma generate && nest build",
+    "predeploy": "npm run lint && npm run typecheck && npm run build",
     "start": "npm run start:prod",
     "start:prod": "bash scripts/start-prod.sh",
     "postinstall": "prisma generate",

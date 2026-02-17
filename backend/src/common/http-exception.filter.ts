@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { captureBackendError } from './error-monitoring';
 
 @Catch()
 export class HttpExceptionWithRequestIdFilter implements ExceptionFilter {
@@ -34,6 +35,20 @@ export class HttpExceptionWithRequestIdFilter implements ExceptionFilter {
         `Request failed with status ${status} [requestId=${requestId ?? 'unknown'}]: ${message}`,
         stack,
       );
+      captureBackendError({
+        event: 'backend_unhandled_error',
+        requestId: String(requestId ?? 'unknown'),
+        route: request.originalUrl,
+        status,
+        message,
+        userId:
+          request.user &&
+          typeof request.user === 'object' &&
+          'id' in request.user &&
+          typeof request.user.id === 'string'
+            ? request.user.id
+            : undefined,
+      });
     }
 
     if (response.headersSent) {

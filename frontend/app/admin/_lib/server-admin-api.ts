@@ -61,18 +61,20 @@ export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   return session.session;
 }
 
-export async function adminApiFetch<T>(path: string): Promise<T> {
+export async function adminApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = cookies().get('gymstack_token')?.value;
   if (!token) {
     redirect('/login?next=/admin');
   }
 
+  const headers = new Headers(init?.headers ?? {});
+  headers.set('Authorization', `Bearer ${token}`);
+
   const response = await fetch(buildApiUrl(path), {
-    method: 'GET',
-    cache: 'no-store',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    method: init?.method ?? 'GET',
+    cache: init?.cache ?? 'no-store',
+    ...init,
+    headers,
   });
 
   if (response.status === 401) {

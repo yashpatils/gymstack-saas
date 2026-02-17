@@ -55,6 +55,7 @@ Required environment variables:
 
 - `NEXT_PUBLIC_BASE_DOMAIN` — Platform base domain used for subdomain routing (example: `gymstack.club`).
 - `NEXT_PUBLIC_APP_URL` — Canonical root app URL used as fallback for invite links (example: `https://gymstack.club`).
+- `NEXT_PUBLIC_MONITORING_ENDPOINT` — Optional client-side error/breadcrumb webhook endpoint for launch monitoring. If omitted, monitoring calls are skipped safely.
 
 ## Railway configuration (backend)
 
@@ -65,12 +66,13 @@ Required environment variables:
 - `ALLOWED_ORIGINS` — comma-separated exact origins for CORS allowlisting. Defaults include:
   - `https://gymstack.club`
   - `https://www.gymstack.club`
+  - `https://admin.gymstack.club`
   - `https://gymstack-saas.vercel.app`
   - `http://localhost:3000`
 - `ALLOWED_ORIGIN_REGEXES` — comma-separated regex patterns for dynamic origins/subdomains. Defaults include wildcard-safe patterns for:
   - `https://*.gymstack.club`
   - `https://*.vercel.app`
-  - `http://*.localhost:3000`
+  - `http://localhost:*`
 - `FRONTEND_URL` (legacy optional support, comma-separated exact origins)
 - `API_PREFIX` (optional, defaults to `api`)
 - `APP_URL` — Canonical frontend app URL used in verification/delete links (example: `https://gymstack.club`).
@@ -87,9 +89,26 @@ Required environment variables:
 - `DEFAULT_TENANT_MRR_CENTS` — Optional admin dashboard fallback value (in cents) to estimate tenant MRR when Stripe item amounts are not available (default: `9900`).
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_ID` — Stripe billing keys used by subscription sync and admin revenue reporting.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
+- `MONITORING_WEBHOOK_URL` — Optional backend error webhook endpoint (captures unhandled 5xx metadata + request IDs). If omitted, monitoring is disabled with no startup impact.
+
+
+### CORS allowlist defaults
+
+The backend uses strict allowlisting with credentials enabled (no `*` wildcard):
+
+- `https://gymstack.club`
+- `https://www.gymstack.club`
+- `https://admin.gymstack.club`
+- `https://*.gymstack.club` (regex)
+- `https://*.vercel.app` (preview regex)
+- `http://localhost:*` (development regex)
+
+Additional origins/patterns can be appended via `ALLOWED_ORIGINS` and `ALLOWED_ORIGIN_REGEXES`.
 
 ## Notes
 
+- Sensitive auth endpoints enforce `X-Requested-With: XMLHttpRequest` and layered rate limits (IP + hashed email where applicable).
+- `GET /api/public/location-by-host` ships CDN-friendly cache headers (`s-maxage=60, stale-while-revalidate=300`), while authenticated API traffic is forced to `Cache-Control: no-store`.
 - Playwright tests are dev-only and excluded from production type checks.
 - Frontend routes:
   - `/platform`

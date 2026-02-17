@@ -36,7 +36,54 @@ export class AdminController {
     @Query('query') query?: string,
     @Query('status') status?: string,
   ) {
-    return this.adminService.listTenants(page ?? 1, query, status);
+    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
+  }
+
+
+
+
+
+  @Get('audit')
+  audit(
+    @Query('tenantId') tenantId?: string,
+    @Query('action') action?: string,
+    @Query('actor') actor?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.adminService.listAudit({ tenantId, action, actor, from, to });
+  }
+  @Get('users')
+  users(@Query('query') query?: string) {
+    return this.adminService.searchUsers(query);
+  }
+
+  @Get('users/:id')
+  async userDetail(@Param('id') id: string) {
+    const user = await this.adminService.getUserDetail(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  @Post('users/:id/revoke-sessions')
+  revokeSessions(@Param('id') id: string, @Req() req: { user: RequestUser }) {
+    return this.adminService.revokeUserSessions(id, req.user.id);
+  }
+
+  @Get('impersonations')
+  impersonations() {
+    return this.adminService.listImpersonationHistory();
+  }
+  @Post('tenants/:tenantId/features')
+  async setTenantFeatures(
+    @Param('tenantId') tenantId: string,
+    @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
+    @Req() req: { user: RequestUser },
+  ) {
+    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id);
   }
 
   @Get('tenants/:tenantId')

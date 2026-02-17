@@ -1,4 +1,5 @@
-import { Controller, Get, Headers, Param, Query } from '@nestjs/common';
+import { Controller, Get, Headers, Param, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { PublicService } from './public.service';
 import { PublicLocationByHostResponseDto } from './dto/public-location-by-host.dto';
 
@@ -18,9 +19,11 @@ export class PublicController {
 
   @Get('location-by-host')
   locationByHost(
-    @Headers('host') hostHeader?: string,
-    @Query('host') hostQuery?: string,
+    @Headers('host') hostHeader: string | undefined,
+    @Query('host') hostQuery: string | undefined,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<PublicLocationByHostResponseDto> {
+    response.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return this.publicService.getLocationByHost(hostQuery?.trim() || hostHeader || '');
   }
 }

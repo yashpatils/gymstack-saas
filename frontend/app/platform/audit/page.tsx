@@ -15,14 +15,15 @@ export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionFilter, setActionFilter] = useState<string>("all");
+  const [action, setAction] = useState<string>("");
+  const [actor, setActor] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await listAuditLogs(50);
+        const data = await listAuditLogs({ limit: 100, action: action || undefined, actor: actor || undefined });
         setLogs(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load audit logs.");
@@ -32,100 +33,44 @@ export default function AuditPage() {
     };
 
     void load();
-  }, []);
+  }, [action, actor]);
 
-  const actions = useMemo(() => {
-    const distinctActions = Array.from(new Set(logs.map((entry) => entry.action)));
-    return distinctActions.sort((a, b) => a.localeCompare(b));
-  }, [logs]);
-
-  const filteredLogs = useMemo(() => {
-    if (actionFilter === "all") {
-      return logs;
-    }
-
-    return logs.filter((entry) => entry.action === actionFilter);
-  }, [actionFilter, logs]);
+  const actions = useMemo(() => Array.from(new Set(logs.map((entry) => entry.action))).sort(), [logs]);
 
   const columns = useMemo<DataTableColumn<AuditLog>[]>(() => [
-    {
-      id: "time",
-      header: "Time",
-      cell: (entry) => formatDate(entry.createdAt),
-      sortable: true,
-      sortValue: (entry) => entry.createdAt,
-      searchValue: (entry) => formatDate(entry.createdAt),
-    },
-    {
-      id: "user",
-      header: "User",
-      cell: (entry) => entry.user?.email ?? "System",
-      sortable: true,
-      sortValue: (entry) => entry.user?.email ?? "",
-      searchValue: (entry) => entry.user?.email ?? "",
-    },
-    {
-      id: "action",
-      header: "Action",
-      cell: (entry) => entry.action,
-      sortable: true,
-      sortValue: (entry) => entry.action,
-      searchValue: (entry) => entry.action,
-    },
-    {
-      id: "entity",
-      header: "Entity",
-      cell: (entry) => `${entry.entityType}${entry.entityId ? ` • ${entry.entityId}` : ""}`,
-      sortable: true,
-      sortValue: (entry) => `${entry.entityType}:${entry.entityId ?? ""}`,
-      searchValue: (entry) => `${entry.entityType} ${entry.entityId ?? ""}`,
-    },
+    { id: "time", header: "Time", cell: (entry) => formatDate(entry.createdAt), sortable: true, sortValue: (entry) => entry.createdAt },
+    { id: "actor", header: "Actor", cell: (entry) => entry.actorUser?.email ?? entry.actorType ?? "System", sortable: true, sortValue: (entry) => entry.actorUser?.email ?? entry.actorType ?? "" },
+    { id: "action", header: "Action", cell: (entry) => entry.action, sortable: true, sortValue: (entry) => entry.action },
+    { id: "target", header: "Target", cell: (entry) => `${entry.targetType ?? "-"}${entry.targetId ? ` • ${entry.targetId}` : ""}` },
   ], []);
 
   return (
     <PageShell>
-      <PageHeader
-        title="Audit Log"
-        subtitle="Track important platform actions across auth, gyms, users, and billing."
-        breadcrumbs={[
-          { label: "Platform", href: "/platform" },
-          { label: "Audit" },
-        ]}
-      />
+      <PageHeader title="Audit Log" subtitle="Immutable activity trail for your tenant." breadcrumbs={[{ label: "Platform", href: "/platform" }, { label: "Audit" }]} />
 
-      <div className="card space-y-3">
-        <label className="text-sm text-slate-300" htmlFor="audit-action-filter">
-          Filter by action
-        </label>
-        <select
-          id="audit-action-filter"
-          className="input"
-          value={actionFilter}
-          onChange={(event) => setActionFilter(event.target.value)}
-        >
-          <option value="all">All actions</option>
-          {actions.map((action) => (
-            <option key={action} value={action}>
-              {action}
-            </option>
-          ))}
-        </select>
+      <div className="card grid gap-3 md:grid-cols-2">
+        <div>
+          <label className="text-sm text-slate-300" htmlFor="audit-action-filter">Filter by action</label>
+          <select id="audit-action-filter" className="input" value={action} onChange={(event) => setAction(event.target.value)}>
+            <option value="">All actions</option>
+            {actions.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm text-slate-300" htmlFor="audit-actor-filter">Actor email</label>
+          <input id="audit-actor-filter" className="input" placeholder="owner@gym.com" value={actor} onChange={(event) => setActor(event.target.value)} />
+        </div>
       </div>
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       <DataTable
-        rows={filteredLogs}
+        rows={logs}
         columns={columns}
         getRowKey={(entry) => entry.id}
         loading={loading}
         searchPlaceholder="Search audit logs..."
-        emptyState={
-          <EmptyState
-            title="No audit logs yet"
-            description="Important activity will appear here once actions are performed."
-          />
-        }
+        emptyState={<EmptyState title="No audit logs yet" description="Important activity will appear here once actions are performed." />}
       />
     </PageShell>
   );

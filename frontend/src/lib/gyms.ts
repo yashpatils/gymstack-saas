@@ -1,4 +1,5 @@
 import { apiFetch } from './apiFetch';
+import { track } from './analytics';
 import type { CreateGymRequest, CreateGymResponse, Gym } from '../types/gym';
 
 export type { Gym, CreateGymRequest as GymInput };
@@ -12,10 +13,12 @@ export async function getGym(id: string): Promise<Gym> {
 }
 
 export async function createGym(payload: CreateGymRequest): Promise<CreateGymResponse> {
-  return apiFetch<CreateGymResponse>('/api/gyms', {
+  const result = await apiFetch<CreateGymResponse>('/api/gyms', {
     method: 'POST',
     body: payload,
   });
+  await track('create_location', { pageName: 'locations' });
+  return result;
 }
 
 export async function updateGym(id: string, payload: CreateGymRequest): Promise<Gym> {

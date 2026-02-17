@@ -272,4 +272,149 @@ export class AdminService {
       supportMode: { tenantId },
     };
   }
+
+
+  async searchUsers(query?: string) {
+    const normalizedQuery = query?.trim();
+    return this.prisma.user.findMany({
+      where: normalizedQuery
+        ? {
+            OR: [
+              { email: { contains: normalizedQuery, mode: 'insensitive' } },
+              { id: { contains: normalizedQuery, mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        role: true,
+        createdAt: true,
+        orgId: true,
+      },
+    });
+  }
+
+  async getUserDetail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        memberships: {
+          select: {
+            id: true,
+            orgId: true,
+            gymId: true,
+            role: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        refreshTokens: {
+          where: { revokedAt: null },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      ...user,
+      lastLoginAt: user.refreshTokens[0]?.createdAt ?? null,
+      activeSessions: user.refreshTokens.length,
+    };
+  }
+
+  async revokeUserSessions(userId: string, actorUserId: string) {
+    const now = new Date();
+    const result = await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: now },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'ADMIN',
+        actorUserId,
+        tenantId: null,
+        action: 'ADMIN_REVOKE_SESSIONS',
+        targetType: 'USER',
+        targetId: userId,
+        metadata: { revokedCount: result.count },
+        entityType: 'USER',
+        entityId: userId,
+      },
+    });
+
+    return { ok: true as const, revoked: result.count };
+  }
+
+  async listImpersonationHistory() {
+    return this.prisma.auditLog.findMany({
+      where: {
+        OR: [
+          { action: 'support_mode_assume_context' },
+          { action: 'ADMIN_IMPERSONATE' },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        action: true,
+        metadata: true,
+        createdAt: true,
+        actorUser: { select: { id: true, email: true } },
+      },
+    });
+  }
+
+  async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string }) {
+    const where = {
+      tenantId: filters.tenantId || undefined,
+      action: filters.action || undefined,
+      actorUser: filters.actor
+        ? {
+            email: {
+              contains: filters.actor,
+              mode: 'insensitive' as const,
+            },
+          }
+        : undefined,
+      createdAt: {
+        gte: filters.from ? new Date(filters.from) : undefined,
+        lte: filters.to ? new Date(filters.to) : undefined,
+      },
+    };
+
+    return this.prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        actorType: true,
+        action: true,
+        targetType: true,
+        targetId: true,
+        tenantId: true,
+        locationId: true,
+        metadata: true,
+        createdAt: true,
+        actorUser: { select: { id: true, email: true } },
+      },
+    });
+  }
 }

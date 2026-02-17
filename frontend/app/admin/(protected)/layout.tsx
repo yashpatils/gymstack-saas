@@ -4,6 +4,8 @@ import { SupportModePanel } from '../support-mode-panel';
 const adminNavItems = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/tenants', label: 'Tenants' },
+  { href: '/admin/users', label: 'Users' },
+  { href: '/admin/audit', label: 'Audit' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

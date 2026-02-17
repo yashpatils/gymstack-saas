@@ -14,7 +14,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const response = await fetch(backendUrl.toString(), {
-    cache: 'no-store',
+    cache: 'force-cache',
     headers: {
       host: incomingHost,
       'x-forwarded-host': incomingHost,
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     status: response.status,
     headers: {
       'content-type': response.headers.get('content-type') ?? 'application/json',
+      'cache-control': 'public, s-maxage=60, stale-while-revalidate=300',
     },
   });
 }
