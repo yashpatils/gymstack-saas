@@ -5,7 +5,7 @@ import {
   Logger,
   NestInterceptor,
 } from '@nestjs/common';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize } from 'rxjs';
 import { Request, Response } from 'express';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -21,15 +21,24 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
     const startedAt = Date.now();
+    let hasLogged = false;
+
+    const logIfNeeded = (): void => {
+      if (hasLogged) {
+        return;
+      }
+      hasLogged = true;
+      this.logRequest(request, response, startedAt);
+    };
+
+    response.once('finish', logIfNeeded);
+    response.once('close', logIfNeeded);
 
     return next.handle().pipe(
-      tap({
-        next: () => {
-          this.logRequest(request, response, startedAt);
-        },
-        error: () => {
-          this.logRequest(request, response, startedAt);
-        },
+      finalize(() => {
+        if (response.writableEnded || response.headersSent) {
+          logIfNeeded();
+        }
       }),
     );
   }
