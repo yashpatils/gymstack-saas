@@ -22,8 +22,14 @@ export type ApiRateLimitSnapshot = {
   observedAtIso: string;
 };
 
+let lastRequestId: string | null = null;
+
 export function getLastApiRateLimitSnapshot(): ApiRateLimitSnapshot | null {
   return null;
+}
+
+export function getLastApiRequestId(): string | null {
+  return lastRequestId;
 }
 
 export class ApiFetchError extends Error {
@@ -229,6 +235,7 @@ export async function apiFetch<T>(
   const contentType = response.headers.get('content-type') ?? '';
   const isJson = contentType.includes('application/json');
   const requestId = response.headers.get('x-request-id') ?? undefined;
+  lastRequestId = requestId ?? null;
 
   if (!response.ok) {
     const details = isJson ? await response.json() : await response.text();
