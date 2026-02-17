@@ -13,6 +13,7 @@ export type NavItemConfig = {
 export const platformNavConfig: NavItemConfig[] = [
   { label: "Overview", href: "/platform", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "GYM_STAFF_COACH", "PLATFORM_ADMIN"] },
   { label: "Gyms", href: "/platform/gyms", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "PLATFORM_ADMIN"] },
+  { label: "Analytics", href: "/platform/analytics", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "PLATFORM_ADMIN"] },
   { label: "Billing", href: "/platform/billing", rolesAllowed: ["TENANT_OWNER", "PLATFORM_ADMIN"], featureFlag: "billing" },
   { label: "Team", href: "/platform/team", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "PLATFORM_ADMIN"] },
   { label: "Invites", href: "/platform/invites", rolesAllowed: ["TENANT_OWNER", "TENANT_LOCATION_ADMIN", "GYM_STAFF_COACH", "PLATFORM_ADMIN"] },

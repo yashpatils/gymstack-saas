@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { MembershipRole } from '@prisma/client';
+import { ClassBookingStatus, ClientMembershipStatus, MembershipRole, MembershipStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
 import { AskAiDto, AskScope } from './dto/ask-ai.dto';
+import { AnalyticsRange, AnalyticsTrendMetric } from './dto/analytics-query.dto';
 
 type InsightSeverity = 'info' | 'warning' | 'critical';
 
@@ -24,6 +25,8 @@ type AskResponse = {
 };
 
 type DbRow = Record<string, unknown>;
+
+type DateRange = { start: Date; end: Date; days: number };
 
 @Injectable()
 export class AnalyticsService {
@@ -54,6 +57,236 @@ export class AnalyticsService {
     if (!ownerMembership) {
       throw new ForbiddenException('Only tenant owners can access AI analytics');
     }
+  }
+
+  private async assertOwnerOrManager(user: User, tenantId: string): Promise<void> {
+    if (user.isPlatformAdmin) {
+      return;
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        orgId: tenantId,
+        userId: user.id,
+        role: { in: [MembershipRole.TENANT_OWNER, MembershipRole.TENANT_LOCATION_ADMIN] },
+        status: MembershipStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Only tenant owners and managers can access analytics');
+    }
+  }
+
+  private getDateRange(range: AnalyticsRange): DateRange {
+    const days = range === '30d' ? 30 : 7;
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - (days - 1));
+    start.setHours(0, 0, 0, 0);
+    return { start, end, days };
+  }
+
+  private toDateKey(value: Date): string {
+    return value.toISOString().slice(0, 10);
+  }
+
+  async getOverview(user: User, range: AnalyticsRange): Promise<{
+    mrrCents: number;
+    activeMemberships: number;
+    newMemberships: number;
+    canceledMemberships: number;
+    bookings: number;
+    cancellations: number;
+    checkins: number;
+    uniqueActiveClients: number;
+  }> {
+    const tenantId = this.resolveTenantId(user);
+    await this.assertOwnerOrManager(user, tenantId);
+    const { start, end } = this.getDateRange(range);
+
+    const [activeMemberships, newMemberships, canceledMemberships, bookings, cancellations, checkins, uniqueClients, activeMembershipRows] =
+      await Promise.all([
+        this.prisma.clientMembership.count({ where: { location: { orgId: tenantId }, status: ClientMembershipStatus.active } }),
+        this.prisma.clientMembership.count({ where: { location: { orgId: tenantId }, createdAt: { gte: start, lte: end } } }),
+        this.prisma.clientMembership.count({ where: { location: { orgId: tenantId }, canceledAt: { gte: start, lte: end } } }),
+        this.prisma.classBooking.count({ where: { location: { orgId: tenantId }, createdAt: { gte: start, lte: end } } }),
+        this.prisma.classBooking.count({ where: { location: { orgId: tenantId }, status: ClassBookingStatus.CANCELED, updatedAt: { gte: start, lte: end } } }),
+        this.prisma.classBooking.count({ where: { location: { orgId: tenantId }, status: ClassBookingStatus.CHECKED_IN, updatedAt: { gte: start, lte: end } } }),
+        this.prisma.classBooking.findMany({
+          where: { location: { orgId: tenantId }, createdAt: { gte: start, lte: end } },
+          distinct: ['userId'],
+          select: { userId: true },
+        }),
+        this.prisma.clientMembership.findMany({
+          where: { location: { orgId: tenantId }, status: ClientMembershipStatus.active },
+          select: { plan: { select: { priceCents: true } } },
+        }),
+      ]);
+
+    const mrrCents = activeMembershipRows.reduce((sum, row) => sum + (row.plan?.priceCents ?? 0), 0);
+
+    return {
+      mrrCents,
+      activeMemberships,
+      newMemberships,
+      canceledMemberships,
+      bookings,
+      cancellations,
+      checkins,
+      uniqueActiveClients: uniqueClients.length,
+    };
+  }
+
+  async getLocations(user: User, input: { range: AnalyticsRange; page: number; pageSize: number }): Promise<{ items: Array<{ locationId: string; name: string; bookings: number; checkins: number; activeMemberships: number; utilizationPct: number }>; page: number; pageSize: number; total: number }> {
+    const tenantId = this.resolveTenantId(user);
+    await this.assertOwnerOrManager(user, tenantId);
+    const { start, end } = this.getDateRange(input.range);
+    const skip = (input.page - 1) * input.pageSize;
+
+    const [total, locations] = await Promise.all([
+      this.prisma.gym.count({ where: { orgId: tenantId } }),
+      this.prisma.gym.findMany({ where: { orgId: tenantId }, select: { id: true, name: true }, orderBy: { createdAt: 'asc' }, skip, take: input.pageSize }),
+    ]);
+
+    const items = await Promise.all(locations.map(async (location) => {
+      const [bookings, checkins, activeMemberships, sessions] = await Promise.all([
+        this.prisma.classBooking.count({ where: { locationId: location.id, createdAt: { gte: start, lte: end } } }),
+        this.prisma.classBooking.count({ where: { locationId: location.id, status: ClassBookingStatus.CHECKED_IN, updatedAt: { gte: start, lte: end } } }),
+        this.prisma.clientMembership.count({ where: { locationId: location.id, status: ClientMembershipStatus.active } }),
+        this.prisma.classSession.findMany({
+          where: { locationId: location.id, startsAt: { gte: start, lte: end }, status: 'SCHEDULED' },
+          select: {
+            capacityOverride: true,
+            classTemplate: { select: { capacity: true } },
+            _count: { select: { bookings: { where: { status: { in: [ClassBookingStatus.BOOKED, ClassBookingStatus.CHECKED_IN] } } } } },
+          },
+        }),
+      ]);
+
+      const totals = sessions.reduce(
+        (acc, session) => {
+          const capacity = session.capacityOverride ?? session.classTemplate.capacity;
+          return {
+            booked: acc.booked + session._count.bookings,
+            capacity: acc.capacity + Math.max(capacity, 0),
+          };
+        },
+        { booked: 0, capacity: 0 },
+      );
+
+      return {
+        locationId: location.id,
+        name: location.name,
+        bookings,
+        checkins,
+        activeMemberships,
+        utilizationPct: totals.capacity > 0 ? Math.round((totals.booked / totals.capacity) * 100) : 0,
+      };
+    }));
+
+    return { items, page: input.page, pageSize: input.pageSize, total };
+  }
+
+  async getTrends(user: User, input: { metric: AnalyticsTrendMetric; range: '30d' }): Promise<Array<{ date: string; value: number }>> {
+    const tenantId = this.resolveTenantId(user);
+    await this.assertOwnerOrManager(user, tenantId);
+    const { start, days } = this.getDateRange(input.range);
+    const points = new Map<string, number>();
+
+    if (input.metric === 'bookings') {
+      const grouped = await this.prisma.classBooking.groupBy({
+        by: ['createdAt'],
+        where: { location: { orgId: tenantId }, createdAt: { gte: start } },
+        _count: { _all: true },
+      });
+      for (const row of grouped) {
+        const key = this.toDateKey(row.createdAt);
+        points.set(key, (points.get(key) ?? 0) + row._count._all);
+      }
+    } else if (input.metric === 'checkins') {
+      const grouped = await this.prisma.classBooking.groupBy({
+        by: ['updatedAt'],
+        where: { location: { orgId: tenantId }, status: ClassBookingStatus.CHECKED_IN, updatedAt: { gte: start } },
+        _count: { _all: true },
+      });
+      for (const row of grouped) {
+        const key = this.toDateKey(row.updatedAt);
+        points.set(key, (points.get(key) ?? 0) + row._count._all);
+      }
+    } else {
+      const grouped = await this.prisma.clientMembership.groupBy({
+        by: ['createdAt'],
+        where: { location: { orgId: tenantId }, createdAt: { gte: start } },
+        _count: { _all: true },
+      });
+      for (const row of grouped) {
+        const key = this.toDateKey(row.createdAt);
+        points.set(key, (points.get(key) ?? 0) + row._count._all);
+      }
+    }
+
+    const series: Array<{ date: string; value: number }> = [];
+    for (let offset = days - 1; offset >= 0; offset -= 1) {
+      const date = new Date();
+      date.setDate(date.getDate() - offset);
+      date.setHours(0, 0, 0, 0);
+      const key = this.toDateKey(date);
+      series.push({ date: key, value: points.get(key) ?? 0 });
+    }
+
+    return series;
+  }
+
+  async getTopClassesAnalytics(user: User, input: { range: AnalyticsRange; page: number; pageSize: number }): Promise<{ items: Array<{ classId: string; title: string; sessionsCount: number; bookingsCount: number; avgUtilizationPct: number }>; page: number; pageSize: number; total: number }> {
+    const tenantId = this.resolveTenantId(user);
+    await this.assertOwnerOrManager(user, tenantId);
+    const { start, end } = this.getDateRange(input.range);
+
+    const sessions = await this.prisma.classSession.findMany({
+      where: { location: { orgId: tenantId }, startsAt: { gte: start, lte: end }, status: 'SCHEDULED' },
+      select: {
+        classId: true,
+        capacityOverride: true,
+        classTemplate: { select: { id: true, title: true, capacity: true } },
+        _count: { select: { bookings: { where: { status: { in: [ClassBookingStatus.BOOKED, ClassBookingStatus.CHECKED_IN] } } } } },
+      },
+    });
+
+    const aggregation = new Map<string, { classId: string; title: string; sessionsCount: number; bookingsCount: number; utilizationTotal: number }>();
+    for (const session of sessions) {
+      const existing = aggregation.get(session.classId) ?? {
+        classId: session.classTemplate.id,
+        title: session.classTemplate.title,
+        sessionsCount: 0,
+        bookingsCount: 0,
+        utilizationTotal: 0,
+      };
+      const capacity = session.capacityOverride ?? session.classTemplate.capacity;
+      const utilization = capacity > 0 ? session._count.bookings / capacity : 0;
+
+      existing.sessionsCount += 1;
+      existing.bookingsCount += session._count.bookings;
+      existing.utilizationTotal += utilization;
+      aggregation.set(session.classId, existing);
+    }
+
+    const sorted = [...aggregation.values()].sort((a, b) => b.bookingsCount - a.bookingsCount);
+    const paged = sorted.slice((input.page - 1) * input.pageSize, input.page * input.pageSize);
+
+    return {
+      items: paged.map((item) => ({
+        classId: item.classId,
+        title: item.title,
+        sessionsCount: item.sessionsCount,
+        bookingsCount: item.bookingsCount,
+        avgUtilizationPct: item.sessionsCount > 0 ? Math.round((item.utilizationTotal / item.sessionsCount) * 100) : 0,
+      })),
+      page: input.page,
+      pageSize: input.pageSize,
+      total: sorted.length,
+    };
   }
 
   private aiEnabled(): boolean {
