@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { apiFetch, ApiFetchError } from "../../../src/lib/apiFetch";
-import { EmptyState } from "../../../src/components/EmptyState";
+import { EmptyState } from "../../../src/components/common/EmptyState";
 
 type Insight = {
   id: string;

@@ -1,4 +1,4 @@
-import { adminApiFetch, getAdminSessionOrRedirect } from '../../../_lib/server-admin-api';
+import { adminApiFetch, getAdminSessionOrRedirect } from '../../_lib/server-admin-api';
 
 type Lead = { id: string; name: string; email: string; gymName: string; size: string };
 
