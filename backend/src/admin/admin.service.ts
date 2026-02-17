@@ -90,12 +90,12 @@ export class AdminService {
         where,
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
+        orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { gyms: true, users: true } },
+          _count: { select: { gyms: true, users: true, customDomains: true } },
           memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
           users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'desc' }, take: 1 },
         },
-        orderBy: { createdAt: 'desc' },
       }),
     ]);
 
@@ -137,6 +137,28 @@ export class AdminService {
     });
 
     return { tenantId: updated.id, whiteLabelBranding: updated.whiteLabelEnabled || updated.whiteLabelBrandingEnabled };
+  }
+
+  async getGrowthMetrics() {
+    const [totalTenants, activeTenants, trialTenants, paidTenants, locationAggregate] = await Promise.all([
+      this.prisma.organization.count({ where: { isDemo: false } }),
+      this.prisma.organization.count({ where: { isDemo: false, isDisabled: false } }),
+      this.prisma.organization.count({ where: { isDemo: false, subscriptionStatus: SubscriptionStatus.TRIAL } }),
+      this.prisma.organization.count({ where: { isDemo: false, subscriptionStatus: SubscriptionStatus.ACTIVE } }),
+      this.prisma.gym.aggregate({ _count: { id: true } }),
+    ]);
+
+    const safeTotal = totalTenants || 1;
+    const safeTrials = trialTenants || 1;
+    const averageLocationsPerTenant = (locationAggregate._count.id ?? 0) / safeTotal;
+
+    return {
+      activationRate: activeTenants / safeTotal,
+      trialToPaidConversion: paidTenants / safeTrials,
+      averageLocationsPerTenant,
+      mrrGrowthRate: paidTenants / safeTotal,
+      churnRate: Math.max(0, 1 - activeTenants / safeTotal),
+    };
   }
 
   async getTenant(tenantId: string) {

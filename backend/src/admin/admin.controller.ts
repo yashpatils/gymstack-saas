@@ -17,6 +17,11 @@ export class AdminController {
     return this.adminService.getOverview();
   }
 
+  @Get('growth')
+  growth() {
+    return this.adminService.getGrowthMetrics();
+  }
+
   @Get('tenants')
   tenants(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,

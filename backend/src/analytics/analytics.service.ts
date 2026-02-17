@@ -324,33 +324,38 @@ export class AnalyticsService {
   }
 
   private async getTopClasses(tenantId: string, locationId?: string): Promise<Array<{ classTitle: string; bookings: number }>> {
-    const rows = await this.prisma.classBooking.groupBy({
+    const sessionRows = await this.prisma.classBooking.groupBy({
       by: ['sessionId'],
       where: {
         location: { orgId: tenantId },
         locationId,
         createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
       },
-      _count: { _all: true },
+      _count: { sessionId: true },
       orderBy: { _count: { sessionId: 'desc' } },
-      take: 20,
     });
 
     const sessions = await this.prisma.classSession.findMany({
-      where: { id: { in: rows.map((row) => row.sessionId) } },
-      select: { id: true, classTemplate: { select: { title: true } } },
+      where: { id: { in: sessionRows.map((row) => row.sessionId) } },
+      select: { id: true, classId: true },
     });
-    const titleBySessionId = new Map(sessions.map((session) => [session.id, session.classTemplate.title]));
-    const countsByTitle = new Map<string, number>();
-    for (const row of rows) {
-      const title = titleBySessionId.get(row.sessionId) ?? 'Unknown class';
-      countsByTitle.set(title, (countsByTitle.get(title) ?? 0) + (row._count?._all ?? 0));
+    const sessionToClassId = new Map(sessions.map((session) => [session.id, session.classId]));
+
+    const bookingsByClass = new Map<string, number>();
+    for (const row of sessionRows) {
+      const classId = sessionToClassId.get(row.sessionId);
+      if (!classId) continue;
+      bookingsByClass.set(classId, (bookingsByClass.get(classId) ?? 0) + row._count.sessionId);
     }
 
-    return [...countsByTitle.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([classTitle, bookings]) => ({ classTitle, bookings }));
+    const topClasses = [...bookingsByClass.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const classes = await this.prisma.class.findMany({
+      where: { id: { in: topClasses.map(([classId]) => classId) } },
+      select: { id: true, title: true },
+    });
+    const classTitles = new Map(classes.map((cls) => [cls.id, cls.title]));
+
+    return topClasses.map(([classId, bookings]) => ({ classTitle: classTitles.get(classId) ?? 'Unknown class', bookings }));
   }
 
   private async getMembershipChanges(tenantId: string, locationId?: string): Promise<{ newMemberships: number; canceledMemberships: number }> {
