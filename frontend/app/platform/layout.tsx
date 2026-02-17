@@ -6,6 +6,7 @@ import { platformNavConfig } from "../../src/config/nav.config";
 import { useAuth } from "../../src/providers/AuthProvider";
 import type { NavRole } from "../../src/config/nav.config";
 import { NotificationBell } from "../../src/components/notifications/NotificationBell";
+import { BillingBanner } from "../../src/components/billing/BillingBanner";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, permissionKeys, permissions, activeContext, platformRole, activeTenant } = useAuth();
@@ -32,6 +33,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         }}
         footer={activeContext?.role === "TENANT_OWNER" ? "Tenant owner controls enabled" : undefined}
       >
+        <BillingBanner />
         {children}
       </PlatformAppShell>
     </AuthGate>

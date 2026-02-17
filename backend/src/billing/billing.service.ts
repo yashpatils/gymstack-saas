@@ -9,7 +9,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from './subscription-gating.service';
 import { PlanService } from './plan.service';
 import { BillingProviderRegistry } from './billing-provider.registry';
-import { TenantBillingStatus } from './billing.types';
+import { TenantBillingStatusResponse } from './billing.types';
+import { BillingLifecycleService } from './billing-lifecycle.service';
 
 type CheckoutPayload = {
   tenantId: string;
@@ -27,6 +28,7 @@ export class BillingService {
     private readonly subscriptionGatingService: SubscriptionGatingService,
     private readonly planService: PlanService,
     private readonly billingProviderRegistry: BillingProviderRegistry,
+    private readonly billingLifecycleService: BillingLifecycleService,
   ) {}
 
   private async getTenantProvider(tenantId: string) {
@@ -60,7 +62,7 @@ export class BillingService {
     return provider.createPortal({ tenantId, returnUrl });
   }
 
-  async getTenantBillingStatus(tenantId: string): Promise<TenantBillingStatus> {
+  async getTenantBillingStatus(tenantId: string): Promise<TenantBillingStatusResponse> {
     const tenant = await this.prisma.organization.findUnique({
       where: { id: tenantId },
       select: {
@@ -69,6 +71,8 @@ export class BillingService {
         billingPriceId: true,
         stripePriceId: true,
         subscriptionStatus: true,
+        billingStatus: true,
+        gracePeriodEndsAt: true,
         currentPeriodEnd: true,
         whiteLabelEnabled: true,
         isDemo: true,
@@ -82,6 +86,7 @@ export class BillingService {
       throw new BadRequestException('Billing is disabled in demo mode.');
     }
 
+    const billingStatus = await this.billingLifecycleService.refreshBillingState(tenantId);
     const effectivePriceId = tenant.billingPriceId ?? tenant.stripePriceId;
     const effectivePlan = await this.planService.getEffectivePlan(tenantId);
     const whiteLabelEligible = effectivePlan.whiteLabelIncluded && (effectivePlan.subscriptionStatus === 'ACTIVE' || effectivePlan.subscriptionStatus === 'TRIAL');
@@ -92,6 +97,8 @@ export class BillingService {
       planKey: effectivePlan.key,
       planName: effectivePlan.displayName,
       subscriptionStatus: tenant.subscriptionStatus,
+      billingStatus: billingStatus ?? tenant.billingStatus,
+      gracePeriodEndsAt: tenant.gracePeriodEndsAt ? tenant.gracePeriodEndsAt.toISOString() : null,
       currentPeriodEnd: tenant.currentPeriodEnd ? tenant.currentPeriodEnd.toISOString() : null,
       priceId: effectivePriceId,
       whiteLabelEligible,

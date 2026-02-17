@@ -3,6 +3,7 @@ import { BillingProvider, InviteStatus, MembershipRole, MembershipStatus } from 
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PlanService } from '../billing/plan.service';
+import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
 
 @Injectable()
 export class OrganizationsService {
@@ -10,6 +11,7 @@ export class OrganizationsService {
     private readonly prisma: PrismaService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
     private readonly planService: PlanService,
+    private readonly billingLifecycleService: BillingLifecycleService,
   ) {}
 
   async getOrg(orgId: string) {
@@ -171,6 +173,8 @@ export class OrganizationsService {
       throw new ForbiddenException('Only tenant owners can update white-label settings');
     }
 
+    await this.billingLifecycleService.assertCanToggleWhiteLabel(orgId);
+
     if (enabled) {
       await this.planService.assertWithinLimits(orgId, 'enableWhiteLabel');
     }
@@ -188,6 +192,9 @@ export class OrganizationsService {
   }
 
   async renameOrg(orgId: string | undefined, userId: string, name: string) {
+    if (orgId) {
+      await this.billingLifecycleService.assertMutableAccess(orgId);
+    }
     if (!orgId) {
       throw new ForbiddenException('Organization access denied');
     }

@@ -12,6 +12,7 @@ import { hasSupportModeContext } from '../auth/support-mode.util';
 import { createHash, randomBytes } from 'crypto';
 import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
 import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
+import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
 
 function toGymSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
@@ -24,6 +25,7 @@ export class GymsService {
     private readonly subscriptionGatingService: SubscriptionGatingService,
     private readonly planService: PlanService,
     private readonly auditService: AuditService,
+    private readonly billingLifecycleService: BillingLifecycleService,
   ) {}
 
   listGyms(orgId: string) {
@@ -33,6 +35,7 @@ export class GymsService {
   }
 
   async createGym(orgId: string, ownerId: string, name: string) {
+    await this.billingLifecycleService.assertCanCreateLocation(orgId);
     await this.planService.assertWithinLimits(orgId, 'createLocation');
 
     const gym = await this.prisma.gym.create({
@@ -144,6 +147,7 @@ export class GymsService {
   }
 
   async updateGym(id: string, orgId: string, data: UpdateGymDto) {
+    await this.billingLifecycleService.assertMutableAccess(orgId);
     const gym = await this.prisma.gym.findFirst({ where: { id, orgId } });
     if (!gym) {
       throw new NotFoundException('Gym not found');
@@ -166,6 +170,7 @@ export class GymsService {
   }
 
   async deleteGym(id: string, orgId: string) {
+    await this.billingLifecycleService.assertMutableAccess(orgId);
     const gym = await this.prisma.gym.findFirst({ where: { id, orgId } });
     if (!gym) {
       throw new NotFoundException('Gym not found');

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/client';
+import { MembershipRole, MembershipStatus, SubscriptionStatus, TenantBillingStatus } from '@prisma/client';
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
