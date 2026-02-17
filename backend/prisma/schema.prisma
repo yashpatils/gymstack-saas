@@ -193,6 +193,18 @@ enum JobStatus {
   FAILED
 }
 
+enum CampaignSegmentType {
+  INACTIVE_MEMBERS
+  EXPIRING_MEMBERSHIPS
+  LOW_ATTENDANCE_MEMBERS
+}
+
+enum CampaignRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 enum DataExportType {
   members
   bookings
@@ -260,6 +272,7 @@ model User {
   adminEvents            AdminEvent[]
   feedbackItems          Feedback[]
   supportTickets         SupportTicket[]
+  createdCampaigns       Campaign[] @relation("CampaignCreatedBy")
 
   @@index([orgId])
   @@index([deletedAt])
@@ -532,6 +545,7 @@ model Organization {
   feedbackItems Feedback[]
   dataExportJobs DataExportJob[]
   platformBackups PlatformBackup[]
+  campaigns   Campaign[]
   planOverride TenantPlanOverride?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -765,6 +779,43 @@ model ClassBooking {
   @@index([locationId, createdAt])
   @@index([locationId, updatedAt])
   @@index([userId, status])
+}
+
+model Campaign {
+  id              String              @id @default(uuid())
+  tenantId        String
+  segmentType     CampaignSegmentType
+  subject         String
+  body            String
+  recipientCount  Int                 @default(0)
+  sentAt          DateTime?
+  createdByUserId String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  tenant          Organization        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy       User                @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  recipients      CampaignRecipient[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, segmentType, sentAt])
+}
+
+model CampaignRecipient {
+  id         String                  @id @default(uuid())
+  campaignId String
+  memberId   String
+  email      String
+  firstName  String?
+  status     CampaignRecipientStatus @default(PENDING)
+  attempts   Int                     @default(0)
+  lastError  String?
+  sentAt     DateTime?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  campaign   Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, memberId])
+  @@index([campaignId, status])
 }
 
 model PushSubscription {
