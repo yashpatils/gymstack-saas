@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { apiFetch } from '../../src/lib/apiFetch';
+import { EmptyState, Skeleton } from '../components/ui';
+import { SupportHelpButton } from '../../src/components/SupportHelpButton';
 
 type Booking = {
   sessionId: string;
@@ -14,6 +17,8 @@ type Booking = {
 
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const range = useMemo(() => {
     const from = new Date();
@@ -23,8 +28,15 @@ export default function MyBookingsPage() {
   }, []);
 
   const load = async () => {
-    const data = await apiFetch<Booking[]>(`/api/location/my-bookings?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`);
-    setBookings(data);
+    setLoading(true);
+    try {
+      const data = await apiFetch<Booking[]>(`/api/location/my-bookings?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`);
+      setBookings(data);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not load bookings.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -32,18 +44,39 @@ export default function MyBookingsPage() {
   }, []);
 
   const cancel = async (sessionId: string) => {
-    await apiFetch(`/api/location/sessions/${sessionId}/cancel-booking`, { method: 'POST' });
-    await load();
+    const previous = bookings;
+    setBookings((current) => current.filter((entry) => entry.sessionId !== sessionId));
+    setNotice(null);
+    try {
+      await apiFetch(`/api/location/sessions/${sessionId}/cancel-booking`, { method: 'POST' });
+      setNotice('Booking canceled.');
+    } catch (error) {
+      setBookings(previous);
+      setNotice(error instanceof Error ? error.message : 'Could not cancel booking.');
+    }
   };
 
   return (
     <main className="mx-auto max-w-4xl space-y-5 p-6">
       <header className="rounded-xl border bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-semibold">My Bookings</h1>
-        <p className="text-sm text-slate-600">Upcoming classes for your active location.</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">My Bookings</h1>
+            <p className="text-sm text-slate-600">Upcoming classes for your active location.</p>
+          </div>
+          <SupportHelpButton />
+        </div>
+        {notice ? <p className="mt-2 text-sm text-amber-600">{notice}</p> : null}
       </header>
       <section className="space-y-3">
-        {bookings.length === 0 ? <div className="rounded-xl border border-dashed p-8 text-center text-slate-500">No upcoming bookings.</div> : null}
+        {loading ? Array.from({ length: 3 }).map((_, index) => <Skeleton key={`bookings-loading-${index}`} className="h-16 rounded-lg" />) : null}
+        {!loading && bookings.length === 0 ? (
+          <EmptyState
+            title="No bookings yet"
+            description="Book your first class to start building your workout streak."
+            actions={<Link href="/schedule" className="button">Browse classes</Link>}
+          />
+        ) : null}
         {bookings.map((booking) => (
           <article key={booking.sessionId} className="flex items-center justify-between rounded-lg border bg-white px-4 py-3">
             <div>

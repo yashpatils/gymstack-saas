@@ -6,7 +6,7 @@ import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import { getApiBaseUrl } from "../../../src/lib/apiFetch";
 import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
-import { oauthStartUrl } from '../../../src/lib/auth';
+import { exportTenantData, oauthStartUrl } from '../../../src/lib/auth';
 
 type AccountInfo = {
   id?: string;
@@ -73,7 +73,7 @@ function maskApiBaseUrl(url: string): string {
 }
 
 export default function PlatformSettingsPage() {
-  const { logout, user, permissions, permissionKeys } = useAuth();
+  const { logout, user, permissions, permissionKeys, activeContext, activeTenant } = useAuth();
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +84,8 @@ export default function PlatformSettingsPage() {
   const [brandingLocationId, setBrandingLocationId] = useState('');
   const [tenantOrg, setTenantOrg] = useState<TenantOrg | null>(null);
   const [whiteLabelSaving, setWhiteLabelSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
   const canManageTenantSettings = permissions.canManageTenant
@@ -233,6 +235,33 @@ export default function PlatformSettingsPage() {
         ) : <p className="text-sm text-slate-400">Create a location to configure branding.</p>}
       </div>
 
+      <div className="card space-y-3 border border-cyan-400/40">
+        <h2 className="section-title">Data portability export</h2>
+        <p className="text-sm text-slate-300">Generate a tenant-scoped JSON export for compliance and backup verification.</p>
+        <button className="button w-fit" type="button" disabled={exporting} onClick={async () => {
+          setExporting(true);
+          setExportMessage(null);
+          try {
+            const payload = await exportTenantData();
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `tenant-export-${new Date().toISOString()}.json`;
+            anchor.click();
+            URL.revokeObjectURL(url);
+            setExportMessage('Export generated and downloaded successfully.');
+          } catch (exportError) {
+            setExportMessage(exportError instanceof Error ? exportError.message : 'Failed to export tenant data.');
+          } finally {
+            setExporting(false);
+          }
+        }}>
+          {exporting ? 'Exporting…' : 'Export data'}
+        </button>
+        {exportMessage ? <p className="text-xs text-slate-300">{exportMessage}</p> : null}
+      </div>
+
       <div className="card space-y-4">
         <h2 className="section-title">Domains</h2>
         <form className="grid gap-3 md:grid-cols-3" onSubmit={async (event) => {
@@ -273,6 +302,22 @@ export default function PlatformSettingsPage() {
 
       <div className="card space-y-4"><h2 className="section-title">Linked accounts</h2><p className="text-sm text-slate-300">Link Google or Apple for faster login in manager/staff/client flows.</p><div className="grid gap-3 md:grid-cols-2"><button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Google</button><button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Apple</button></div></div>
 
+
+
+      <div className="card space-y-3">
+        <h2 className="section-title">Upgrade assistance</h2>
+        <a
+          className="button w-fit"
+          href={`https://calendly.com/gymstack-founder/demo?tenantId=${activeContext?.tenantId ?? ''}&usageState=${activeTenant?.isDemo ? 'demo' : 'live'}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Talk to founder
+        </a>
+        {activeTenant?.isDemo ? (
+          <button className="button secondary w-fit" type="button" onClick={async () => { await apiFetch('/api/demo/reset', { method: 'POST' }); }}>Reset demo data</button>
+        ) : null}
+      </div>
       <div className="card space-y-4"><h2 className="section-title">Environment</h2><dl className="space-y-2 text-sm text-slate-200"><div><dt className="text-slate-400">API base URL</dt><dd>{maskApiBaseUrl(apiBaseUrl)}</dd></div>{showDebugLinks ? <><div><dt className="text-slate-400">Backend health</dt><dd><Link href="/platform/status" className="text-indigo-300 hover:text-indigo-200">Open platform status checks</Link></dd></div><div><dt className="text-slate-400">Diagnostics</dt><dd><Link href="/platform/diagnostics" className="text-indigo-300 hover:text-indigo-200">Open deployment diagnostics</Link></dd></div></> : null}</dl></div>
     </section>
   );

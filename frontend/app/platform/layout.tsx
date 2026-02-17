@@ -19,6 +19,7 @@ const baseNavItems = [
   { label: "Billing", href: "/platform/billing" },
   { label: "Coach", href: "/platform/coach" },
   { label: "Client", href: "/platform/client" },
+  { label: "Insights", href: "/platform/insights" },
   { label: "Settings", href: "/platform/settings" },
   { label: "Location settings", href: "/platform/locations/settings" },
 ];
@@ -26,7 +27,7 @@ const baseNavItems = [
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole, memberships } = useAuth();
+  const { user, loading, logout, permissions, permissionKeys, activeContext, onboarding, ownerOperatorSettings, activeMode, switchMode, chooseContext, platformRole, memberships, activeTenant } = useAuth();
   const [locations, setLocations] = useState<LocationOption[]>([]);
 
   const email = user?.email ?? "platform.user@gymstack.app";
@@ -162,6 +163,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       >
         <>
           <div className="container-app pt-4"><EmailVerificationBanner /></div>
+          {activeTenant?.isDemo ? <div className="container-app"><div className="rounded border border-amber-300/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">Demo mode — data resets daily</div></div> : null}
           {children}
           <div className="container-app pb-6">
             <AppFooter />

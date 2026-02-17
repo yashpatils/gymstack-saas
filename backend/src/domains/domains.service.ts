@@ -10,11 +10,20 @@ import { normalizeHostname } from './domain.util';
 export class DomainsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async assertNotDemoTenant(tenantId: string) {
+    const tenant = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { isDemo: true } });
+    if (tenant?.isDemo) {
+      throw new ForbiddenException('Custom domains are disabled in demo mode');
+    }
+  }
+
   async create(requester: User, input: CreateDomainDto) {
     const tenantId = requester.activeTenantId ?? requester.orgId;
     if (!tenantId) throw new ForbiddenException('Missing tenant context');
 
     await this.assertManagePermission(requester.id, tenantId, input.locationId ?? null);
+
+    await this.assertNotDemoTenant(tenantId);
 
     const hostname = normalizeHostname(input.hostname);
     if (!hostname) throw new BadRequestException('Invalid hostname');
@@ -98,6 +107,8 @@ export class DomainsService {
 
     await this.assertManagePermission(requester.id, tenantId, locationId);
 
+    await this.assertNotDemoTenant(tenantId);
+
     const hostname = normalizeHostname(hostnameInput);
     if (!hostname) {
       throw new BadRequestException('Invalid hostname');
@@ -139,6 +150,8 @@ export class DomainsService {
     if (!tenantId) throw new ForbiddenException('Missing tenant context');
 
     await this.assertManagePermission(requester.id, tenantId, locationId);
+
+    await this.assertNotDemoTenant(tenantId);
 
     const location = await this.prisma.gym.findFirst({
       where: { id: locationId, orgId: tenantId },

@@ -23,7 +23,6 @@ type ResendSuccessResponse = {
 type ResendErrorResponse = {
   name?: string;
   message?: string;
-  statusCode?: number;
 };
 
 export class EmailProviderError extends Error {
@@ -46,99 +45,66 @@ export class EmailService {
 
   async sendVerifyEmail(payload: { to: string; name?: string; token: string }): Promise<void> {
     const link = `${this.emailConfig.appUrl}/verify-email?token=${encodeURIComponent(payload.token)}`;
-    const greeting = payload.name ? `Hi ${payload.name},` : 'Hi there,';
-
-    await this.sendEmail({
-      to: payload.to,
-      subject: 'Verify your Gymstack email',
-      template: 'verify_email',
-      html: this.wrapTemplate({
-        title: 'Verify your email',
-        greeting,
-        intro: 'Welcome to Gymstack. Please verify your email address to secure your account.',
-        buttonLabel: 'Verify email',
-        link,
-      }),
-      text: `${greeting} Verify your Gymstack email: ${link}`,
-      tags: [{ name: 'template', value: 'verify_email' }],
-      debugLink: link,
-    });
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'verify_email', subject: 'Verify your Gymstack email', title: 'Verify your email', intro: 'Welcome to Gymstack. Please verify your email address to secure your account.', buttonLabel: 'Verify email', link });
   }
 
   async sendResetPasswordEmail(payload: { to: string; name?: string; token: string }): Promise<void> {
     const link = `${this.emailConfig.appUrl}/reset-password?token=${encodeURIComponent(payload.token)}`;
-    const greeting = payload.name ? `Hi ${payload.name},` : 'Hi there,';
-
-    await this.sendEmail({
-      to: payload.to,
-      subject: 'Reset your Gymstack password',
-      template: 'reset_password',
-      html: this.wrapTemplate({
-        title: 'Reset your password',
-        greeting,
-        intro: 'We received a request to reset your password. Use the button below to continue.',
-        buttonLabel: 'Reset password',
-        link,
-      }),
-      text: `${greeting} Reset your Gymstack password: ${link}`,
-      tags: [{ name: 'template', value: 'reset_password' }],
-      debugLink: link,
-    });
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'reset_password', subject: 'Reset your Gymstack password', title: 'Reset your password', intro: 'We received a request to reset your password. Use the button below to continue.', buttonLabel: 'Reset password', link });
   }
+
 
   async sendDeleteAccountEmail(payload: { to: string; name?: string; token: string }): Promise<void> {
     const link = `${this.emailConfig.appUrl}/confirm-delete-account?token=${encodeURIComponent(payload.token)}`;
-    const greeting = payload.name ? `Hi ${payload.name},` : 'Hi there,';
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'delete_account', subject: 'Confirm your Gymstack account deletion', title: 'Confirm account deletion', intro: 'We received a request to delete your account. Confirm this action using the button below.', buttonLabel: 'Confirm deletion', link });
+  }
 
-    await this.sendEmail({
-      to: payload.to,
-      subject: 'Confirm your Gymstack account deletion',
-      template: 'delete_account',
-      html: this.wrapTemplate({
-        title: 'Confirm account deletion',
-        greeting,
-        intro: 'We received a request to delete your account. Confirm this action using the button below.',
-        buttonLabel: 'Confirm deletion',
-        link,
-      }),
-      text: `${greeting} Confirm your Gymstack account deletion: ${link}`,
-      tags: [{ name: 'template', value: 'delete_account' }],
-      debugLink: link,
-    });
+    async sendWelcomeTenantOwner(payload: { to: string; name?: string; tenantName: string }): Promise<void> {
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'welcome_tenant_owner', subject: `Welcome to Gymstack, ${payload.tenantName}`, title: 'Welcome to Gymstack', intro: `Your tenant ${payload.tenantName} is ready. Start by inviting your staff and configuring your first location.`, buttonLabel: 'Open dashboard', link: `${this.emailConfig.appUrl}/platform` });
+  }
+
+  async sendInviteStaff(payload: { to: string; inviteUrl: string; managerName?: string }): Promise<void> {
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.managerName, template: 'invite_staff', subject: 'You are invited to Gymstack staff workspace', title: 'Staff invitation', intro: 'You have been invited to manage day-to-day operations in Gymstack.', buttonLabel: 'Accept invite', link: payload.inviteUrl });
+  }
+
+  async sendInviteClient(payload: { to: string; inviteUrl: string; name?: string }): Promise<void> {
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'invite_client', subject: 'You are invited to Gymstack', title: 'Client invitation', intro: 'Your gym invited you to join Gymstack and access classes, memberships, and bookings.', buttonLabel: 'Accept invite', link: payload.inviteUrl });
+  }
+
+  async sendBookingConfirmation(payload: { to: string; name?: string; sessionName: string; startsAtIso: string; locationName?: string }): Promise<void> {
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'booking_confirmation', subject: `Booking confirmed: ${payload.sessionName}`, title: 'Booking confirmed', intro: `Your booking for ${payload.sessionName} is confirmed for ${new Date(payload.startsAtIso).toLocaleString()}.${payload.locationName ? ` Location: ${payload.locationName}.` : ''}`, buttonLabel: 'View bookings', link: `${this.emailConfig.appUrl}/my-bookings` });
+  }
+
+  async sendBookingReminder(payload: { to: string; name?: string; sessionName: string; startsAtIso: string }): Promise<void> {
+    await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'booking_reminder', subject: `Reminder: ${payload.sessionName}`, title: 'Upcoming booking reminder', intro: `Friendly reminder: ${payload.sessionName} starts at ${new Date(payload.startsAtIso).toLocaleString()}.`, buttonLabel: 'Open booking', link: `${this.emailConfig.appUrl}/my-bookings` });
   }
 
   async sendLocationInvite(to: string, inviteUrl: string, managerName?: string): Promise<void> {
-    const greeting = managerName ? `Hi ${managerName},` : 'Hi there,';
+    await this.sendInviteStaff({ to, inviteUrl, managerName });
+  }
+
+  async sendTemplatedActionEmail(payload: { to: string; name?: string; template: string; subject: string; title: string; intro: string; buttonLabel: string; link: string }): Promise<void> {
+    const greeting = payload.name ? `Hi ${payload.name},` : 'Hi there,';
     await this.sendEmail({
-      to,
-      subject: 'You are invited to manage a Gymstack location',
-      template: 'location_invite',
-      html: this.wrapTemplate({
-        title: 'Gymstack invitation',
-        greeting,
-        intro: 'You have been invited to manage day-to-day operations in Gymstack.',
-        buttonLabel: 'Accept invite',
-        link: inviteUrl,
-      }),
-      text: `${greeting} You have been invited to manage day-to-day operations in Gymstack. Accept invite: ${inviteUrl}`,
-      tags: [{ name: 'template', value: 'location_invite' }],
+      to: payload.to,
+      subject: payload.subject,
+      template: payload.template,
+      html: this.wrapTemplate({ title: payload.title, greeting, intro: payload.intro, buttonLabel: payload.buttonLabel, link: payload.link }),
+      text: `${greeting} ${payload.intro} ${payload.link}`,
+      tags: [{ name: 'template', value: payload.template }],
+      debugLink: payload.link,
     });
   }
 
   async sendEmail(input: SendEmailInput): Promise<void> {
     const redactedRecipient = this.redactEmail(input.to);
-
     if (this.emailConfig.emailDisable || !this.emailConfig.resendApiKey) {
-      this.logger.log(
-        `DEV email template=${input.template} recipient=${redactedRecipient} subject="${input.subject}"`,
-      );
+      this.logger.log(`DEV email template=${input.template} recipient=${redactedRecipient} subject="${input.subject}"`);
       if (input.debugLink) {
         this.logger.log(`DEV email link template=${input.template} url=${input.debugLink}`);
       }
       return;
     }
-
-    this.logger.log(JSON.stringify({ event: 'email_send_attempt', provider: this.emailConfig.provider, template: input.template }));
 
     try {
       const response = await fetch('https://api.resend.com/emails', {
@@ -147,50 +113,18 @@ export class EmailService {
           Authorization: `Bearer ${this.emailConfig.resendApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          from: this.emailConfig.from,
-          to: [input.to],
-          subject: input.subject,
-          html: input.html,
-          text: input.text,
-          tags: input.tags,
-        }),
+        body: JSON.stringify({ from: this.emailConfig.from, to: [input.to], subject: input.subject, html: input.html, text: input.text, tags: input.tags }),
       });
 
       if (!response.ok) {
-        const errorPayload = await response.json() as ResendErrorResponse;
-        this.logger.error(
-          JSON.stringify({
-            event: 'email_send_failure',
-            provider: this.emailConfig.provider,
-            template: input.template,
-            status: response.status,
-            message: errorPayload.message ?? 'Unknown Resend API error',
-          }),
-        );
+        const errorPayload = (await response.json()) as ResendErrorResponse;
         throw new EmailProviderError(errorPayload.message ?? `Email send failed with status ${response.status}`, response.status, errorPayload.name);
       }
 
-      const result = await response.json() as ResendSuccessResponse;
-      this.logger.log(
-        JSON.stringify({
-          event: 'email_send_success',
-          provider: this.emailConfig.provider,
-          template: input.template,
-          messageId: result.id,
-        }),
-      );
+      const result = (await response.json()) as ResendSuccessResponse;
+      this.logger.log(JSON.stringify({ event: 'email_send_success', provider: this.emailConfig.provider, template: input.template, messageId: result.id }));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown email transport error';
-      this.logger.error(
-        JSON.stringify({
-          event: 'email_send_failure',
-          provider: this.emailConfig.provider,
-          template: input.template,
-          status: null,
-          message,
-        }),
-      );
       if (error instanceof EmailProviderError) {
         throw error;
       }
@@ -199,17 +133,7 @@ export class EmailService {
   }
 
   private wrapTemplate(payload: { title: string; greeting: string; intro: string; buttonLabel: string; link: string }): string {
-    return `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;">
-        <h2 style="margin:0 0 12px 0;color:#111827;">Gymstack</h2>
-        <h3 style="margin:0 0 16px 0;">${payload.title}</h3>
-        <p style="margin:0 0 12px 0;">${payload.greeting}</p>
-        <p style="margin:0 0 20px 0;">${payload.intro}</p>
-        <a href="${payload.link}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:6px;">${payload.buttonLabel}</a>
-        <p style="margin:20px 0 0 0;font-size:13px;color:#374151;">If the button does not work, copy and paste this link into your browser:</p>
-        <p style="font-size:13px;word-break:break-word;"><a href="${payload.link}">${payload.link}</a></p>
-      </div>
-    `;
+    return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;"><h2 style="margin:0 0 12px 0;color:#111827;">Gymstack</h2><h3 style="margin:0 0 16px 0;">${payload.title}</h3><p style="margin:0 0 12px 0;">${payload.greeting}</p><p style="margin:0 0 20px 0;">${payload.intro}</p><a href="${payload.link}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:6px;">${payload.buttonLabel}</a><p style="margin:20px 0 0 0;font-size:13px;color:#374151;">If the button does not work, copy and paste this link into your browser:</p><p style="font-size:13px;word-break:break-word;"><a href="${payload.link}">${payload.link}</a></p></div>`;
   }
 
   private redactEmail(email: string): string {
@@ -217,8 +141,6 @@ export class EmailService {
     if (!localPart || !domain) {
       return '***';
     }
-
-    const first = localPart[0] ?? '*';
-    return `${first}***@${domain}`;
+    return `${localPart[0] ?? '*'}***@${domain}`;
   }
 }

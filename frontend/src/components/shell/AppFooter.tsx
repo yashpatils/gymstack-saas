@@ -16,6 +16,7 @@ export function AppFooter() {
         <div className="platform-footer-links">
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy</Link>
+          <Link href="/cookies">Cookies</Link>
           <Link href="/platform/support">Support</Link>
         </div>
       </footer>
