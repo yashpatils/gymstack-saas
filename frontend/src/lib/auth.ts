@@ -50,9 +50,10 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 export async function login(email: string, password: string): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
+  const normalizedEmail = email.trim();
   const data = await apiFetch<AuthLoginResponse>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email: normalizedEmail, password }),
     headers: {
       'Content-Type': 'application/json',
     },

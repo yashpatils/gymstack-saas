@@ -64,6 +64,8 @@ export class AuthController {
   private logAuthFailure(endpoint: string, req: Request, error: unknown): void {
     const statusCode = error instanceof HttpException ? error.getStatus() : 500;
     const message = error instanceof Error ? error.message : String(error);
+    const responseDetails = error instanceof HttpException ? error.getResponse() : undefined;
+
     this.logger.error(
       JSON.stringify({
         event: 'auth_endpoint_failure',
@@ -71,6 +73,7 @@ export class AuthController {
         requestId: req.requestId ?? 'unknown',
         statusCode,
         message,
+        details: responseDetails,
       }),
     );
   }
