@@ -7,12 +7,14 @@ import { CreateInviteDto } from './dto/create-invite.dto';
 import { assertCanCreateLocationInvite } from './invite-permissions';
 import { hasSupportModeContext } from '../auth/support-mode.util';
 import { JobsService } from '../jobs/jobs.service';
+import { PlanService } from '../billing/plan.service';
 
 @Injectable()
 export class InvitesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobsService: JobsService,
+    private readonly planService: PlanService,
   ) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
@@ -40,6 +42,10 @@ export class InvitesService {
     if (input.locationId && !location) throw new BadRequestException('Invalid locationId');
 
     await this.assertCanCreateInvite(requester, tenantId, input.locationId, input.role);
+
+    if (input.role === MembershipRole.GYM_STAFF_COACH || input.role === MembershipRole.TENANT_LOCATION_ADMIN) {
+      await this.planService.assertWithinLimits(tenantId, 'inviteStaff');
+    }
 
     const token = randomBytes(32).toString('base64url');
     const tokenHash = this.hashToken(token);
@@ -201,7 +207,7 @@ export class InvitesService {
     }
 
     const tenantId = requester.activeTenantId ?? requester.orgId;
-    if (!tenantId || (tenantId !== invite.tenantId && !hasSupportModeContext(requester, invite.tenantId, invite.locationId))) {
+    if (!tenantId || (tenantId !== invite.tenantId && !hasSupportModeContext(requester, invite.tenantId, invite.locationId ?? undefined))) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
@@ -216,7 +222,7 @@ export class InvitesService {
       select: { id: true },
     });
 
-    if (!isCreator && !requesterIsOwner && !hasSupportModeContext(requester, invite.tenantId, invite.locationId)) {
+    if (!isCreator && !requesterIsOwner && !hasSupportModeContext(requester, invite.tenantId, invite.locationId ?? undefined)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 

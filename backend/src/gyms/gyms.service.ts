@@ -3,6 +3,7 @@ import { MembershipRole, MembershipStatus, Prisma, Role } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
+import { PlanService } from '../billing/plan.service';
 import { User } from '../users/user.model';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { ManageLocationManagerDto } from './dto/manage-location-manager.dto';
@@ -21,6 +22,7 @@ export class GymsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
+    private readonly planService: PlanService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -31,6 +33,8 @@ export class GymsService {
   }
 
   async createGym(orgId: string, ownerId: string, name: string) {
+    await this.planService.assertWithinLimits(orgId, 'createLocation');
+
     const gym = await this.prisma.gym.create({
       data: {
         name,

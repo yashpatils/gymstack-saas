@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { adminApiFetch } from '../../../_lib/server-admin-api';
 import type { AdminTenantDetail } from '../../../../../src/types/admin';
 import { TenantActions } from '../tenant-actions';
@@ -11,7 +12,7 @@ export default async function AdminTenantDetailPage({ params }: { params: { tena
         <h1 className="text-3xl font-semibold text-white">{tenant.tenant.name}</h1>
         <p className="mt-2 text-sm text-slate-300">Tenant ID: {tenant.tenant.id}</p>
         <p className="mt-1 text-sm text-slate-300">Billing: {tenant.billing.subscriptionStatus} • ${(tenant.billing.mrrCents / 100).toFixed(2)} MRR</p>
-        <div className="mt-4"><TenantActions tenantId={tenant.tenant.id} isDisabled={tenant.tenant.isDisabled} /></div>
+        <div className="mt-4 flex items-center gap-3"><TenantActions tenantId={tenant.tenant.id} isDisabled={tenant.tenant.isDisabled} /><Link className="rounded-lg border border-white/20 px-2 py-1 text-xs" href={`/admin/tenants/${tenant.tenant.id}/plan`}>Plan overrides</Link></div>
       </header>
 
       <article className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">

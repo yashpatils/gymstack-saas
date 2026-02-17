@@ -66,6 +66,12 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum PlanKey {
+  starter
+  pro
+  enterprise
+}
+
 enum BillingProvider {
   STRIPE
   RAZORPAY
@@ -330,7 +336,7 @@ model FeatureFlag {
   enabled         Boolean          @default(false)
   scope           FeatureFlagScope @default(GLOBAL)
   tenantId        String?
-  locationId      String??
+  locationId      String?
   updatedByUserId String?
   updatedAt       DateTime         @updatedAt
   createdAt       DateTime         @default(now())
@@ -448,6 +454,7 @@ model Organization {
   stripeCustomerId String? @unique
   stripeSubscriptionId String? @unique
   stripePriceId String?
+  planKey      PlanKey       @default(starter)
   billingProvider BillingProvider @default(STRIPE)
   billingCountry String?
   billingCurrency String?
@@ -487,10 +494,36 @@ model Organization {
   referredByTenant Organization? @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
   trialEvents TrialEvent[]
   feedbackItems Feedback[]
+  planOverride TenantPlanOverride?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@index([referredByTenantId])
+}
+
+model PlanDefinition {
+  id                 String   @id @default(cuid())
+  key                PlanKey  @unique
+  displayName        String
+  stripePriceId      String?
+  maxLocations       Int
+  maxStaffSeats      Int
+  whiteLabelIncluded Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model TenantPlanOverride {
+  id                    String   @id @default(cuid())
+  tenantId              String   @unique
+  maxLocationsOverride  Int?
+  maxStaffSeatsOverride Int?
+  whiteLabelOverride    Boolean?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  tenant                Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model Lead {
@@ -615,7 +648,7 @@ model MembershipPlan {
 model ClientMembership {
   id              String                 @id @default(uuid())
   userId          String
-  locationId      String?
+  locationId      String
   planId          String?
   status          ClientMembershipStatus
   startAt         DateTime

@@ -270,6 +270,72 @@ export class AdminService {
     });
   }
 
+
+  async getTenantPlan(tenantId: string) {
+    const tenant = await this.prisma.organization.findUnique({ where: { id: tenantId }, include: { planOverride: true } });
+
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    const plan = await this.prisma.planDefinition.findUnique({ where: { key: tenant.planKey } });
+    if (!plan) throw new NotFoundException('Plan definition not found');
+
+    const locationsUsed = await this.prisma.gym.count({ where: { orgId: tenantId } });
+    const staffSeatsUsed = await this.prisma.membership.count({
+      where: {
+        orgId: tenantId,
+        status: MembershipStatus.ACTIVE,
+        role: { in: [MembershipRole.TENANT_OWNER, MembershipRole.TENANT_LOCATION_ADMIN, MembershipRole.GYM_STAFF_COACH] },
+      },
+    });
+
+    return {
+      tenantId,
+      plan: {
+        key: plan.key,
+        displayName: plan.displayName,
+        maxLocations: tenant.planOverride?.maxLocationsOverride ?? plan.maxLocations,
+        maxStaffSeats: tenant.planOverride?.maxStaffSeatsOverride ?? plan.maxStaffSeats,
+        whiteLabelIncluded: tenant.planOverride?.whiteLabelOverride ?? plan.whiteLabelIncluded,
+      },
+      usage: { locationsUsed, staffSeatsUsed },
+      override: tenant.planOverride,
+    };
+  }
+
+  async updateTenantPlanOverrides(
+    tenantId: string,
+    input: { maxLocationsOverride?: number | null; maxStaffSeatsOverride?: number | null; whiteLabelOverride?: boolean | null },
+    adminUserId: string,
+  ) {
+    const tenant = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    const override = await this.prisma.tenantPlanOverride.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        maxLocationsOverride: input.maxLocationsOverride ?? null,
+        maxStaffSeatsOverride: input.maxStaffSeatsOverride ?? null,
+        whiteLabelOverride: typeof input.whiteLabelOverride === 'boolean' ? input.whiteLabelOverride : null,
+      },
+      update: {
+        maxLocationsOverride: input.maxLocationsOverride ?? null,
+        maxStaffSeatsOverride: input.maxStaffSeatsOverride ?? null,
+        whiteLabelOverride: typeof input.whiteLabelOverride === 'boolean' ? input.whiteLabelOverride : null,
+      },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: {
+        adminUserId,
+        tenantId,
+        type: 'TENANT_FEATURES_UPDATED',
+        metadata: { planOverrides: { maxLocationsOverride: override.maxLocationsOverride, maxStaffSeatsOverride: override.maxStaffSeatsOverride, whiteLabelOverride: override.whiteLabelOverride } },
+      },
+    });
+
+    return { tenantId, override };
+  }
   async getMigrationStatus() {
     type MigrationRow = { migration_name: string; started_at: Date; finished_at: Date | null; rolled_back_at: Date | null; logs: string | null };
     const rows = await this.prisma.$queryRaw<MigrationRow[]>`

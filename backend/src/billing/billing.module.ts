@@ -8,6 +8,7 @@ import { BillingController } from './billing.controller';
 import { StripeWebhookController } from './stripe-webhook.controller';
 import { BillingService } from './billing.service';
 import { SubscriptionGatingService } from './subscription-gating.service';
+import { PlanService } from './plan.service';
 import { StripeBillingProvider } from './providers/stripe-billing.provider';
 import { RazorpayBillingProvider } from './providers/razorpay-billing.provider';
 import { BillingProviderRegistry } from './billing-provider.registry';
@@ -19,11 +20,12 @@ import { BillingProviderRegistry } from './billing-provider.registry';
     RequireVerifiedEmailGuard,
     BillingService,
     SubscriptionGatingService,
+    PlanService,
     RolesGuard,
     StripeBillingProvider,
     RazorpayBillingProvider,
     BillingProviderRegistry,
   ],
-  exports: [SubscriptionGatingService],
+  exports: [SubscriptionGatingService, PlanService],
 })
 export class BillingModule {}
