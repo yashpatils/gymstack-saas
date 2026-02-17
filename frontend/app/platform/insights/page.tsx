@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+
+import Link from "next/link";
 import { apiFetch, ApiFetchError } from "../../../src/lib/apiFetch";
 import { EmptyState } from "../../../src/components/common/EmptyState";
 
@@ -125,6 +127,12 @@ export default function PlatformInsightsPage() {
       </section>
 
       <section className="grid gap-4">
+        {filtered.some((insight) => insight.title.includes("Inactive members detected")) ? (
+          <div className="card flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-200">Inactive members detected</p>
+            <Link className="button" href="/platform/campaigns">✨ Send reactivation campaign</Link>
+          </div>
+        ) : null}
         {loading ? <p className="text-sm text-slate-400">Loading insights…</p> : null}
         {!loading && filtered.length === 0 ? <EmptyState title="No insights yet" description="Generate insights to see attendance, churn, and utilization trends." /> : null}
         {filtered.map((insight) => (

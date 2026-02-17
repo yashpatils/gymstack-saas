@@ -28,6 +28,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { DeveloperModule } from './developer/developer.module';
 import { DevelopersModule } from './developers/developers.module';
 import { PublicApiModule } from './public-api/public-api.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PublicApiModule } from './public-api/public-api.module';
     PublicApiModule,
     DeveloperModule,
     DevelopersModule,
+    CampaignsModule,
   ],
   controllers: [AppController],
   providers: [
