@@ -1,73 +1,40 @@
 "use client";
 
-import {
-  Badge,
-  Button,
-  Card,
-  PageHeader,
-  PageShell,
-  SectionTitle,
-  Table,
-} from "../../components/ui";
-import { useBackendAction } from "../../components/use-backend-action";
+import { useEffect, useState } from "react";
+import { Badge, Card, PageHeader, PageShell, SectionTitle, Table } from "../../components/ui";
+import { apiFetch } from "@/src/lib/apiFetch";
+
+type WatchItem = { tenantId: string; tenantName: string; billingStatus: "PAST_DUE" | "GRACE_PERIOD" | "FROZEN"; gracePeriodEndsAt: string | null };
 
 export default function PlatformTenantsPage() {
-  const { backendResponse, callBackend } = useBackendAction();
+  const [items, setItems] = useState<WatchItem[]>([]);
+
+  useEffect(() => {
+    void apiFetch<{ items: WatchItem[] }>("/api/admin/billing-watchlist", { method: "GET", cache: "no-store" })
+      .then((response) => setItems(response.items))
+      .catch(() => setItems([]));
+  }, []);
 
   return (
     <PageShell>
-      <PageHeader
-        title="Tenant Directory"
-        subtitle="Monitor onboarding, health, and expansion opportunities."
-        actions={
-          <Button onClick={() => callBackend("Invite tenant")}>
-            Invite tenant
-          </Button>
-        }
-      />
-      {backendResponse ? (
-        <p className="text-sm text-slate-400">
-          Backend response: {backendResponse}
-        </p>
-      ) : null}
-
+      <PageHeader title="Tenant Billing Watchlist" subtitle="Tenants in past_due, grace_period, or frozen states." />
       <div className="grid grid-3">
-        <Card
-          title="Total tenants"
-          description="47 active gyms across regions."
-          footer={<Badge tone="success">+5 this quarter</Badge>}
-        />
-        <Card
-          title="At-risk accounts"
-          description="4 tenants need onboarding support."
-          footer={<Badge tone="warning">Action required</Badge>}
-        />
-        <Card
-          title="Expansion pipeline"
-          description="12 gyms in evaluation stage."
-        />
+        <Card title="Past due" description={`${items.filter((item) => item.billingStatus === "PAST_DUE").length} tenants`} />
+        <Card title="Grace period" description={`${items.filter((item) => item.billingStatus === "GRACE_PERIOD").length} tenants`} />
+        <Card title="Frozen" description={`${items.filter((item) => item.billingStatus === "FROZEN").length} tenants`} />
       </div>
 
       <section className="section">
-        <SectionTitle>Tenant health</SectionTitle>
-        <Card title="Account status" description="Latest activity and growth signals.">
+        <SectionTitle>Billing action queue</SectionTitle>
+        <Card title="At-risk tenants" description="Open tenant billing for recovery actions.">
           <Table
-            headers={["Tenant", "Locations", "Plan", "Health"]}
-            rows={[
-              ["Elevate Fitness", "6", "Growth", <Badge>Healthy</Badge>],
-              [
-                "Pulse Athletics",
-                "3",
-                "Scale",
-                <Badge tone="success">Expanding</Badge>,
-              ],
-              [
-                "Northside Gym",
-                "2",
-                "Starter",
-                <Badge tone="warning">Needs support</Badge>,
-              ],
-            ]}
+            headers={["Tenant", "Status", "Grace ends", "Action"]}
+            rows={items.map((item) => [
+              item.tenantName,
+              <Badge tone={item.billingStatus === "FROZEN" ? "warning" : "default"}>{item.billingStatus}</Badge>,
+              item.gracePeriodEndsAt ? new Date(item.gracePeriodEndsAt).toLocaleDateString() : "-",
+              <a className="underline" href={`/platform/billing?tenantId=${item.tenantId}`}>Open tenant billing</a>,
+            ])}
           />
         </Card>
       </section>

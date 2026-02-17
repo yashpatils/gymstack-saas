@@ -35,13 +35,23 @@ export class PublicApiService {
     return { data, total, page, pageSize };
   }
 
-  async schedule(tenantId: string, page: number, pageSize: number): Promise<PaginatedResponse<{ id: string; classId: string; locationId: string; startsAt: Date; endsAt: Date }>> {
-    const where = { location: { orgId: tenantId }, status: ClassSessionStatus.SCHEDULED };
+  async sessions(tenantId: string, query: { from?: string; to?: string; page: number; pageSize: number }): Promise<PaginatedResponse<{ id: string; classId: string; locationId: string; startsAt: Date; endsAt: Date }>> {
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+
+    if (from && Number.isNaN(from.getTime())) throw new BadRequestException('Invalid from date');
+    if (to && Number.isNaN(to.getTime())) throw new BadRequestException('Invalid to date');
+
+    const where = {
+      location: { orgId: tenantId },
+      status: ClassSessionStatus.SCHEDULED,
+      startsAt: { gte: from, lte: to },
+    };
     const [data, total] = await Promise.all([
-      this.prisma.classSession.findMany({ where, skip: (page - 1) * pageSize, take: pageSize, orderBy: { startsAt: 'asc' }, select: { id: true, classId: true, locationId: true, startsAt: true, endsAt: true } }),
+      this.prisma.classSession.findMany({ where, skip: (query.page - 1) * query.pageSize, take: query.pageSize, orderBy: { startsAt: 'asc' }, select: { id: true, classId: true, locationId: true, startsAt: true, endsAt: true } }),
       this.prisma.classSession.count({ where }),
     ]);
-    return { data, total, page, pageSize };
+    return { data, total, page: query.page, pageSize: query.pageSize };
   }
 
   async createBooking(tenantId: string, input: { sessionId: string; memberEmail: string }): Promise<{ bookingId: string; status: ClassBookingStatus }> {

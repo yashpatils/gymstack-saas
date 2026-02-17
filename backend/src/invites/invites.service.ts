@@ -8,6 +8,7 @@ import { assertCanCreateLocationInvite } from './invite-permissions';
 import { hasSupportModeContext } from '../auth/support-mode.util';
 import { JobsService } from '../jobs/jobs.service';
 import { PlanService } from '../billing/plan.service';
+import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
 
 @Injectable()
 export class InvitesService {
@@ -15,6 +16,7 @@ export class InvitesService {
     private readonly prisma: PrismaService,
     private readonly jobsService: JobsService,
     private readonly planService: PlanService,
+    private readonly billingLifecycleService: BillingLifecycleService,
   ) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
@@ -44,8 +46,11 @@ export class InvitesService {
     await this.assertCanCreateInvite(requester, tenantId, input.locationId, input.role);
 
     if (input.role === MembershipRole.GYM_STAFF_COACH || input.role === MembershipRole.TENANT_LOCATION_ADMIN) {
+      await this.billingLifecycleService.assertCanInviteStaff(tenantId);
       await this.planService.assertWithinLimits(tenantId, 'inviteStaff');
     }
+
+    await this.billingLifecycleService.assertMutableAccess(tenantId);
 
     const token = randomBytes(32).toString('base64url');
     const tokenHash = this.hashToken(token);

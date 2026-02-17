@@ -10,6 +10,7 @@ import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BillingCheckoutInput, BillingPortalInput, BillingProviderAdapter, BillingWebhookEvent } from '../billing.types';
 import { normalizeSubscriptionStatus } from '../subscription-status.util';
+import { BillingLifecycleService } from '../billing-lifecycle.service';
 
 @Injectable()
 export class StripeBillingProvider implements BillingProviderAdapter {
@@ -20,6 +21,7 @@ export class StripeBillingProvider implements BillingProviderAdapter {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly billingLifecycleService: BillingLifecycleService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -160,7 +162,17 @@ export class StripeBillingProvider implements BillingProviderAdapter {
       || event.type === 'customer.subscription.updated'
       || event.type === 'customer.subscription.deleted'
     ) {
-      await this.handleSubscriptionEvent(event.payload as Stripe.Subscription);
+      await this.handleSubscriptionEvent(event.payload as Stripe.Subscription, event.type);
+      return;
+    }
+
+    if (event.type === 'invoice.payment_failed') {
+      await this.handleInvoiceEvent(event.payload as Stripe.Invoice, 'failed');
+      return;
+    }
+
+    if (event.type === 'invoice.paid') {
+      await this.handleInvoiceEvent(event.payload as Stripe.Invoice, 'paid');
       return;
     }
 
@@ -188,7 +200,7 @@ export class StripeBillingProvider implements BillingProviderAdapter {
     });
   }
 
-  private async handleSubscriptionEvent(subscription: Stripe.Subscription): Promise<void> {
+  private async handleSubscriptionEvent(subscription: Stripe.Subscription, eventType: string): Promise<void> {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : null;
     if (!customerId) {
       this.logger.warn('Subscription webhook missing customer id.');
@@ -227,20 +239,36 @@ export class StripeBillingProvider implements BillingProviderAdapter {
       },
     });
 
-
-    await this.prisma.auditLog.create({
-      data: {
-        actorType: 'SYSTEM',
-        tenantId: tenant.id,
-        action: nextStatus === SubscriptionStatus.PAST_DUE ? 'PAYMENT_FAILED' : nextStatus === SubscriptionStatus.ACTIVE ? 'PAYMENT_RECOVERED' : 'PLAN_CHANGED',
-        targetType: 'billing',
-        targetId: tenant.id,
-        entityType: 'billing',
-        entityId: tenant.id,
-        metadata: { provider: 'stripe', nextPriceId, nextStatus },
-      },
-    });
+    if (eventType === 'customer.subscription.deleted') {
+      await this.billingLifecycleService.handleSubscriptionCanceled(tenant.id);
+    }
 
     this.logger.log(`Processed subscription update for tenant ${tenant.id} with status ${nextStatus}.`);
   }
+
+  private async handleInvoiceEvent(invoice: Stripe.Invoice, mode: 'failed' | 'paid'): Promise<void> {
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : null;
+    if (!customerId) {
+      this.logger.warn('Invoice webhook missing customer id.');
+      return;
+    }
+
+    const tenant = await this.prisma.organization.findFirst({
+      where: { OR: [{ stripeCustomerId: customerId }, { billingCustomerId: customerId }] },
+      select: { id: true },
+    });
+
+    if (!tenant) {
+      this.logger.warn(`No tenant found for Stripe customer ${customerId}.`);
+      return;
+    }
+
+    if (mode === 'failed') {
+      await this.billingLifecycleService.handlePaymentFailed(tenant.id);
+      return;
+    }
+
+    await this.billingLifecycleService.handlePaymentRecovered(tenant.id);
+  }
 }
+

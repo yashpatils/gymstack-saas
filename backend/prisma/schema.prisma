@@ -77,6 +77,15 @@ enum BillingProvider {
   RAZORPAY
 }
 
+enum TenantBillingStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  GRACE_PERIOD
+  FROZEN
+  CANCELED
+}
+
 enum UserStatus {
   ACTIVE
   DELETED
@@ -466,6 +475,8 @@ model Organization {
   billingSubscriptionId String?
   billingPriceId String?
   subscriptionStatus SubscriptionStatus @default(FREE)
+  billingStatus TenantBillingStatus @default(ACTIVE)
+  gracePeriodEndsAt DateTime?
   currentPeriodEnd DateTime?
   providerMetadata Json?
   isTrialUsed Boolean @default(false)
