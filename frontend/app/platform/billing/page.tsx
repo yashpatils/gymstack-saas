@@ -10,6 +10,8 @@ const PLAN_NAMES: Record<string, string> = {
 };
 
 type BillingStatus = {
+  provider: "STRIPE" | "RAZORPAY";
+  billingCountry: string | null;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   priceId: string | null;
@@ -24,6 +26,7 @@ export default function BillingPage() {
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [workingPlan, setWorkingPlan] = useState<string | null>(null);
+  const [providerLoading, setProviderLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const currentPlanName = useMemo(() => {
@@ -114,7 +117,32 @@ export default function BillingPage() {
       });
       window.location.assign(response.url);
     } catch (error) {
+      if (error instanceof ApiFetchError && error.statusCode === 501) {
+        setMessage("Portal is unavailable for this provider. Please contact support to manage billing.");
+        return;
+      }
       setMessage(error instanceof Error ? error.message : "Unable to open billing portal.");
+    }
+  }
+
+  async function updateProvider(provider: "STRIPE" | "RAZORPAY") {
+    setProviderLoading(true);
+    setMessage(null);
+
+    try {
+      await apiFetch<{ billingProvider: "STRIPE" | "RAZORPAY" }>("/api/tenant/billing-provider", {
+        method: "PATCH",
+        body: {
+          billingProvider: provider,
+          billingCountry: status?.billingCountry ?? (provider === "RAZORPAY" ? "IN" : undefined),
+          billingCurrency: provider === "RAZORPAY" ? "INR" : undefined,
+        },
+      });
+      await loadStatus();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update billing provider.");
+    } finally {
+      setProviderLoading(false);
     }
   }
 
@@ -139,10 +167,22 @@ export default function BillingPage() {
 
         <dl className="grid gap-3 text-sm md:grid-cols-2">
           <div><dt className="text-slate-400">Current plan</dt><dd>{currentPlanName}</dd></div>
+          <div><dt className="text-slate-400">Provider</dt><dd>{status?.provider ?? "STRIPE"}</dd></div>
           <div><dt className="text-slate-400">Subscription status</dt><dd>{status?.subscriptionStatus ?? "Not subscribed"}</dd></div>
           <div><dt className="text-slate-400">Renews on</dt><dd>{status?.currentPeriodEnd ? new Date(status.currentPeriodEnd).toLocaleDateString() : "—"}</dd></div>
           <div><dt className="text-slate-400">White-label eligibility</dt><dd>{status?.whiteLabelEligible ? "Eligible" : "Upgrade to Pro"}</dd></div>
         </dl>
+      </div>
+
+      <div className="card space-y-3">
+        <h2 className="section-title">Billing provider</h2>
+        {status?.billingCountry === "IN" ? (
+          <p className="text-sm text-indigo-200">Use Razorpay for local India payment experience.</p>
+        ) : null}
+        <div className="flex gap-2">
+          <button className="button" type="button" disabled={providerLoading || status?.provider === "STRIPE"} onClick={() => void updateProvider("STRIPE")}>Use Stripe</button>
+          <button className="button secondary" type="button" disabled={providerLoading || status?.provider === "RAZORPAY"} onClick={() => void updateProvider("RAZORPAY")}>Use Razorpay</button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
