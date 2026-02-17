@@ -54,6 +54,7 @@ export class AdminService {
 
     const [tenants, newTenants7d, newTenants30d] = await Promise.all([
       this.prisma.organization.findMany({
+        where: { isDemo: false },
         select: {
           isDisabled: true,
           users: {
@@ -63,8 +64,8 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.organization.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-      this.prisma.organization.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      this.prisma.organization.count({ where: { createdAt: { gte: sevenDaysAgo }, isDemo: false } }),
+      this.prisma.organization.count({ where: { createdAt: { gte: thirtyDaysAgo }, isDemo: false } }),
     ]);
 
     let activeSubscriptions = 0;

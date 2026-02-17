@@ -431,6 +431,30 @@ model Organization {
   notificationMarkers NotificationMarker[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([referredByTenantId])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  gymName   String
+  size      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model TrialEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  eventType String
+  createdAt DateTime @default(now())
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([eventType])
 }
 
 model ApiKey {

@@ -47,6 +47,6 @@ import { InvitesModule } from '../invites/invites.module';
   ],
   controllers: [AuthController, OauthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard, AuthTokenService, RequireVerifiedEmailGuard, SensitiveRateLimitService, OAuthStateService, OAuthIdentityService, RefreshTokenService],
-  exports: [RequireVerifiedEmailGuard],
+  exports: [RequireVerifiedEmailGuard, AuthService],
 })
 export class AuthModule {}

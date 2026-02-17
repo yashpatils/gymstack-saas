@@ -7,6 +7,8 @@ type RequestUser = { userId?: string; id?: string; sub?: string };
 
 type RequestUser = { userId?: string; id?: string; sub?: string };
 
+type RequestUser = { id: string };
+
 @Controller('admin')
 @VerifiedEmailRequired()
 @UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
