@@ -324,20 +324,38 @@ export class AnalyticsService {
   }
 
   private async getTopClasses(tenantId: string, locationId?: string): Promise<Array<{ classTitle: string; bookings: number }>> {
-    const rows = await this.prisma.classBooking.groupBy({
-      by: ['classId'],
+    const sessionRows = await this.prisma.classBooking.groupBy({
+      by: ['sessionId'],
       where: {
         location: { orgId: tenantId },
-        locationId: locationId,
+        locationId,
         createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
       },
-      _count: { _all: true },
-      orderBy: { _count: { classId: 'desc' } },
-      take: 5,
+      _count: { sessionId: true },
+      orderBy: { _count: { sessionId: 'desc' } },
     });
 
-    const classes = await this.prisma.class.findMany({ where: { id: { in: rows.map((row) => row.classId) } }, select: { id: true, title: true } });
-    return rows.map((row) => ({ classTitle: classes.find((cls) => cls.id === row.classId)?.title ?? 'Unknown class', bookings: row._count._all }));
+    const sessions = await this.prisma.classSession.findMany({
+      where: { id: { in: sessionRows.map((row) => row.sessionId) } },
+      select: { id: true, classId: true },
+    });
+    const sessionToClassId = new Map(sessions.map((session) => [session.id, session.classId]));
+
+    const bookingsByClass = new Map<string, number>();
+    for (const row of sessionRows) {
+      const classId = sessionToClassId.get(row.sessionId);
+      if (!classId) continue;
+      bookingsByClass.set(classId, (bookingsByClass.get(classId) ?? 0) + row._count.sessionId);
+    }
+
+    const topClasses = [...bookingsByClass.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const classes = await this.prisma.class.findMany({
+      where: { id: { in: topClasses.map(([classId]) => classId) } },
+      select: { id: true, title: true },
+    });
+    const classTitles = new Map(classes.map((cls) => [cls.id, cls.title]));
+
+    return topClasses.map(([classId, bookings]) => ({ classTitle: classTitles.get(classId) ?? 'Unknown class', bookings }));
   }
 
   private async getMembershipChanges(tenantId: string, locationId?: string): Promise<{ newMemberships: number; canceledMemberships: number }> {

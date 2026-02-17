@@ -147,6 +147,13 @@ enum FeatureFlagScope {
   LOCATION
 }
 
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -433,6 +440,8 @@ model Organization {
   supportTickets SupportTicket[] @relation("SupportTicketTenant")
   pushSubscriptions PushSubscription[]
   notificationMarkers NotificationMarker[]
+  apiKeys      ApiKey[]
+  webhookEndpoints WebhookEndpoint[]
   referredTenants Organization[] @relation("TenantReferrals")
   referredByTenant Organization? @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
   trialEvents TrialEvent[]
@@ -694,6 +703,64 @@ model SupportTicket {
   @@index([status, createdAt])
 }
 
+model JobLog {
+  id        String    @id @default(cuid())
+  type      String
+  status    JobStatus @default(QUEUED)
+  attempts  Int       @default(0)
+  error     String?
+  payload   Json?
+  createdAt DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model ApiKey {
+  id        String       @id @default(cuid())
+  tenantId  String
+  name      String
+  keyHash   String       @unique
+  lastUsedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime     @default(now())
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, revokedAt])
+}
+
+model WebhookEndpoint {
+  id         String            @id @default(cuid())
+  tenantId   String
+  url        String
+  secret     String
+  events     String[]
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId, active])
+}
+
+model WebhookDelivery {
+  id                String          @id @default(cuid())
+  webhookEndpointId String
+  eventType         String
+  payload           Json
+  responseStatus    Int?
+  responseBody      String?
+  attemptCount      Int             @default(0)
+  nextRetryAt       DateTime?
+  createdAt         DateTime        @default(now())
+  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+
+  @@index([webhookEndpointId, createdAt])
+  @@index([nextRetryAt])
+}
+
 model Feedback {
   id         String            @id @default(cuid())
   tenantId   String
@@ -780,4 +847,3 @@ model InsightLog {
   @@index([tenantId, createdAt])
   @@index([locationId, createdAt])
 }
-
