@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleIn
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { ActiveMode, Membership, MembershipRole, MembershipStatus, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
+import { ActiveMode, AuditActorType, Membership, MembershipRole, MembershipStatus, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -248,6 +248,7 @@ export class AuthService implements OnModuleInit {
 
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || user.status !== UserStatus.ACTIVE) {
+      this.auditService.log({ action: 'LOGIN_FAILED', targetType: 'user', metadata: { email }, ip: context?.ip, userAgent: context?.userAgent });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -259,6 +260,7 @@ export class AuthService implements OnModuleInit {
 
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
+      this.auditService.log({ actor: { userId: user.id, type: AuditActorType.USER, email: user.email, role: user.role }, tenantId: user.orgId ?? null, action: 'LOGIN_FAILED', targetType: 'user', targetId: user.id, ip: context?.ip, userAgent: context?.userAgent });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -273,10 +275,11 @@ export class AuthService implements OnModuleInit {
     const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
-    await this.auditService.log({
+    this.auditService.log({
+      actor: { userId: user.id, type: AuditActorType.USER, email: user.email, role: resolvedRole },
       orgId: activeContext?.tenantId,
       userId: user.id,
-      action: 'auth.login',
+      action: 'LOGIN_SUCCESS',
       entityType: 'user',
       entityId: user.id,
       metadata: { email: user.email },
@@ -782,7 +785,7 @@ export class AuthService implements OnModuleInit {
   }
 
 
-  async forgotPassword(email: string): Promise<{ ok: true }> {
+  async forgotPassword(email: string, context?: { ip?: string; userAgent?: string }): Promise<{ ok: true }> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || user.status !== UserStatus.ACTIVE) {
       return { ok: true };
@@ -798,10 +801,11 @@ export class AuthService implements OnModuleInit {
       this.logger.error(`forgot-password email failed: ${message}`);
     }
 
+    this.auditService.log({ actor: { userId: user.id, type: AuditActorType.USER, email: user.email, role: user.role }, tenantId: user.orgId ?? null, action: 'PASSWORD_RESET_REQUESTED', targetType: 'user', targetId: user.id, ip: context?.ip, userAgent: context?.userAgent });
     return { ok: true };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<{ ok: true }> {
+  async resetPassword(token: string, newPassword: string, context?: { ip?: string; userAgent?: string }): Promise<{ ok: true }> {
     const tokenHash = this.hashResetToken(token);
     const now = new Date();
     const existingToken = await this.prisma.passwordResetToken.findFirst({
@@ -814,7 +818,11 @@ export class AuthService implements OnModuleInit {
     await this.prisma.$transaction([
       this.prisma.user.update({ where: { id: existingToken.userId }, data: { password: passwordHash } }),
       this.prisma.passwordResetToken.update({ where: { id: existingToken.id }, data: { usedAt: now } }),
-    ]);
+]);
+    const resetUser = await this.prisma.user.findUnique({ where: { id: existingToken.userId }, select: { id: true, email: true, role: true, orgId: true } });
+    if (resetUser) {
+      this.auditService.log({ actor: { userId: resetUser.id, type: AuditActorType.USER, email: resetUser.email, role: resetUser.role }, tenantId: resetUser.orgId ?? null, action: 'PASSWORD_RESET', targetType: 'user', targetId: resetUser.id, ip: context?.ip, userAgent: context?.userAgent });
+    }
     return { ok: true };
   }
 

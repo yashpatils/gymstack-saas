@@ -227,6 +227,20 @@ export class StripeBillingProvider implements BillingProviderAdapter {
       },
     });
 
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'SYSTEM',
+        tenantId: tenant.id,
+        action: nextStatus === SubscriptionStatus.PAST_DUE ? 'PAYMENT_FAILED' : nextStatus === SubscriptionStatus.ACTIVE ? 'PAYMENT_RECOVERED' : 'PLAN_CHANGED',
+        targetType: 'billing',
+        targetId: tenant.id,
+        entityType: 'billing',
+        entityId: tenant.id,
+        metadata: { provider: 'stripe', nextPriceId, nextStatus },
+      },
+    });
+
     this.logger.log(`Processed subscription update for tenant ${tenant.id} with status ${nextStatus}.`);
   }
 }

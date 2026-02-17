@@ -237,7 +237,7 @@ export class AuthController {
     const ipKey = context.ip ?? 'unknown';
     const emailKey = hashIdentifier(body.email.trim().toLowerCase());
     this.sensitiveRateLimitService.check(`forgot:${ipKey}:${emailKey}`, 8, 60 * 60_000);
-    return this.authService.forgotPassword(body.email);
+    return this.authService.forgotPassword(body.email, context);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -247,6 +247,6 @@ export class AuthController {
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
     this.sensitiveRateLimitService.check(`reset:${ipKey}`, 8, 60 * 60_000);
-    return this.authService.resetPassword(body.token, body.newPassword);
+    return this.authService.resetPassword(body.token, body.newPassword, context);
   }
 }

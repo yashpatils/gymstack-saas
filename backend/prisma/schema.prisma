@@ -301,6 +301,8 @@ model AuthToken {
 model AuditLog {
   id           String        @id @default(uuid())
   actorUserId  String?
+  actorEmail   String?
+  actorRole    String?
   actorType    AuditActorType @default(SYSTEM)
   tenantId     String?
   locationId   String?
@@ -313,6 +315,7 @@ model AuditLog {
   entityId     String?
   metadata     Json?
   ip           String?
+  ipAddress    String?
   userAgent    String?
   createdAt    DateTime      @default(now())
   organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
@@ -328,6 +331,7 @@ model AuditLog {
   @@index([actorUserId])
   @@index([action])
   @@index([createdAt])
+  @@index([tenantId, createdAt])
 }
 
 model FeatureFlag {
