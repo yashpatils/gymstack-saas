@@ -22,9 +22,7 @@ import { LocationMembershipsModule } from './location-memberships/location-membe
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
-import { TenantRateLimitGuard } from './common/tenant-rate-limit.guard';
-import { JobsModule } from './jobs/jobs.module';
-import { CacheModule } from './cache/cache.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -49,8 +47,7 @@ import { CacheModule } from './cache/cache.module';
     OnboardingModule,
     LocationAppModule,
     FeatureFlagsModule,
-    JobsModule,
-    CacheModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [

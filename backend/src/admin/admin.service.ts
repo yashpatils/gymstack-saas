@@ -3,6 +3,38 @@ import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/cl
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+type AdminOverviewResponse = {
+  totals: {
+    mrrCents: number;
+    activeTenants: number;
+    activeSubscriptions: number;
+    trials: number;
+    pastDue: number;
+    canceled: number;
+  };
+  trends: {
+    newTenants7d: number;
+    newTenants30d: number;
+  };
+};
+
+type AdminTenantListItem = {
+  tenantId: string;
+  tenantName: string;
+  createdAt: string;
+  subscriptionStatus: SubscriptionStatus | 'FREE';
+  priceId: string | null;
+  mrrCents: number;
+  whiteLabelEligible: boolean;
+  whiteLabelEnabledEffective: boolean;
+  locationsCount: number;
+  usersCount: number;
+  ownersCount: number;
+  managersCount: number;
+  customDomainsCount: number;
+  isDisabled: boolean;
+};
+
 @Injectable()
 export class AdminService {
   constructor(
@@ -21,94 +53,128 @@ export class AdminService {
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
     const [tenants, newTenants7d, newTenants30d] = await Promise.all([
-      this.prisma.organization.findMany({ include: { users: { select: { subscriptionStatus: true }, take: 1, orderBy: { createdAt: 'desc' } } } }),
+      this.prisma.organization.findMany({
+        select: {
+          isDisabled: true,
+          users: {
+            select: { subscriptionStatus: true },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      }),
       this.prisma.organization.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
       this.prisma.organization.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     ]);
 
-    const totals = tenants.reduce(
-      (acc, tenant) => {
-        if (tenant.isDisabled) {
-          return acc;
-        }
-        const status = tenant.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
-        acc.activeTenants += 1;
-        acc.activeSubscriptions += status === SubscriptionStatus.ACTIVE ? 1 : 0;
-        acc.trials += status === SubscriptionStatus.TRIAL ? 1 : 0;
-        acc.pastDue += status === SubscriptionStatus.PAST_DUE ? 1 : 0;
-        acc.canceled += status === SubscriptionStatus.CANCELED ? 1 : 0;
-        acc.mrrCents += this.resolveMrrCents(status);
-        return acc;
-      },
-      { mrrCents: 0, activeTenants: 0, activeSubscriptions: 0, trials: 0, pastDue: 0, canceled: 0 },
-    );
+    let activeSubscriptions = 0;
+    let trials = 0;
+    let pastDue = 0;
+    let canceled = 0;
+    let mrrCents = 0;
+    let activeTenants = 0;
 
-    return { totals, trends: { newTenants7d, newTenants30d } };
+    for (const tenant of tenants) {
+      if (tenant.isDisabled) {
+        continue;
+      }
+      activeTenants += 1;
+      const status = tenant.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
+      if (status === SubscriptionStatus.ACTIVE) activeSubscriptions += 1;
+      if (status === SubscriptionStatus.TRIAL) trials += 1;
+      if (status === SubscriptionStatus.PAST_DUE) pastDue += 1;
+      if (status === SubscriptionStatus.CANCELED) canceled += 1;
+      mrrCents += this.resolveMrrCents(status);
+    }
+
+    return { totals: { mrrCents, activeTenants, activeSubscriptions, trials, pastDue, canceled }, trends: { newTenants7d, newTenants30d } };
   }
 
-  async listTenants(page: number, query?: string) {
-    const pageSize = 20;
+  async listTenants(page: number, pageSize: number, query?: string, status?: string): Promise<{ items: AdminTenantListItem[]; page: number; total: number }> {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.min(Math.floor(pageSize), 100) : 20;
     const normalizedQuery = query?.trim();
-    const where = normalizedQuery ? { name: { contains: normalizedQuery, mode: 'insensitive' as const } } : {};
+    const normalizedStatus = status?.trim().toUpperCase();
+
+    const where = normalizedQuery
+      ? {
+          name: {
+            contains: normalizedQuery,
+            mode: 'insensitive' as const,
+          },
+        }
+      : undefined;
 
     const [total, organizations] = await Promise.all([
       this.prisma.organization.count({ where }),
       this.prisma.organization.findMany({
         where,
-        skip: (safePage - 1) * pageSize,
-        take: pageSize,
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
         orderBy: { createdAt: 'desc' },
+        skip: (safePage - 1) * safePageSize,
+        take: safePageSize,
         include: {
-          _count: { select: { gyms: true, users: true, customDomains: true } },
-          users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, take: 1, orderBy: { createdAt: 'desc' } },
+          _count: { select: { gyms: true, users: true } },
           memberships: { where: { status: MembershipStatus.ACTIVE }, select: { role: true } },
+          users: { select: { subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'desc' }, take: 1 },
         },
+        orderBy: { createdAt: 'desc' },
       }),
+      this.prisma.organization.count({ where }),
     ]);
 
-    const items = organizations.map((organization) => {
-      const status = organization.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
-      return {
-        tenantId: organization.id,
-        tenantName: organization.name,
-        createdAt: organization.createdAt.toISOString(),
-        subscriptionStatus: status,
-        priceId: organization.users[0]?.stripeSubscriptionId ?? null,
-        mrrCents: this.resolveMrrCents(status),
-        whiteLabelEligible: organization._count.gyms > 0,
-        whiteLabelEnabledEffective: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
-        locationsCount: organization._count.gyms,
-        usersCount: organization._count.users,
-        ownersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length,
-        managersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN).length,
-        customDomainsCount: organization._count.customDomains,
-        isDisabled: organization.isDisabled,
-      };
-    });
+    const items = organizations
+      .map((organization) => {
+        const latestUser = organization.users[0];
+        const subscriptionStatus = latestUser?.subscriptionStatus ?? SubscriptionStatus.FREE;
+        return {
+          tenantId: organization.id,
+          tenantName: organization.name,
+          createdAt: organization.createdAt.toISOString(),
+          subscriptionStatus,
+          priceId: latestUser?.stripeSubscriptionId ?? null,
+          mrrCents: this.resolveMrrCents(subscriptionStatus),
+          whiteLabelEligible: organization._count.gyms > 0,
+          whiteLabelEnabledEffective: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
+          locationsCount: organization._count.gyms,
+          usersCount: organization._count.users,
+          ownersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length,
+          managersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN).length,
+          customDomainsCount: organization._count.customDomains,
+          isDisabled: organization.isDisabled,
+        };
+      })
+      .filter((item) => (normalizedStatus ? item.subscriptionStatus === normalizedStatus : true));
 
     return { items, page: safePage, total };
   }
 
-  async listJobs(page: number) {
-    const pageSize = 50;
-    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-    const [items, total] = await Promise.all([this.jobLogService.list(safePage, pageSize), this.jobLogService.count()]);
-    return { items, page: safePage, total };
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const updated = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: { whiteLabelEnabled: input.whiteLabelBranding, whiteLabelBrandingEnabled: input.whiteLabelBranding },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: { adminUserId, tenantId, type: 'TENANT_FEATURES_UPDATED', metadata: { whiteLabelBranding: input.whiteLabelBranding } },
+    });
+
+    return { tenantId: updated.id, whiteLabelBranding: updated.whiteLabelEnabled || updated.whiteLabelBrandingEnabled };
   }
 
   async getTenant(tenantId: string) {
     const organization = await this.prisma.organization.findUnique({
       where: { id: tenantId },
       include: {
-        gyms: { select: { id: true, name: true, slug: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
-        users: { select: { id: true, email: true, subscriptionStatus: true, stripeSubscriptionId: true }, take: 5, orderBy: { createdAt: 'asc' } },
-        adminEvents: { take: 50, orderBy: { createdAt: 'desc' } },
+        gyms: { orderBy: { createdAt: 'asc' }, select: { id: true, name: true, slug: true, createdAt: true } },
+        users: { select: { id: true, email: true, role: true, createdAt: true }, orderBy: { createdAt: 'asc' }, take: 10 },
+        adminEvents: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     });
-
     if (!organization) return null;
-    const status = organization.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
+
     return {
       tenant: {
         id: organization.id,
@@ -117,33 +183,46 @@ export class AdminService {
         subscriptionStatus: organization.subscriptionStatus ?? null,
         whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
-      locations: organization.gyms.map((gym) => ({ ...gym, createdAt: gym.createdAt.toISOString() })),
+      locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
-      billing: { subscriptionStatus: status, priceId: organization.users[0]?.stripeSubscriptionId ?? null, mrrCents: this.resolveMrrCents(status) },
+      billing: {
+        subscriptionStatus: SubscriptionStatus.FREE,
+        priceId: null,
+        mrrCents: 0,
+      },
       events: organization.adminEvents.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
     };
   }
 
-  async setTenantFeatures(tenantId: string, payload: { whiteLabelBranding: boolean }, adminUserId: string) {
-    await this.prisma.organization.update({
-      where: { id: tenantId },
-      data: { whiteLabelBrandingEnabled: payload.whiteLabelBranding, whiteLabelEnabled: payload.whiteLabelBranding },
-    });
-
-    await this.prisma.adminEvent.create({
-      data: { adminUserId, tenantId, type: 'TENANT_FEATURES_UPDATED', metadata: payload },
-    });
-
-    return { tenantId, ...payload };
-  }
-
-  async toggleTenantActive(tenantId: string, adminUserId: string) {
+  async toggleTenantActive(tenantId: string, adminUserId: string): Promise<{ tenantId: string; isDisabled: boolean }> {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true, isDisabled: true } });
     if (!org) throw new NotFoundException('Tenant not found');
     const isDisabled = !org.isDisabled;
     await this.prisma.organization.update({ where: { id: tenantId }, data: { isDisabled, disabledAt: isDisabled ? new Date() : null } });
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED' } });
     return { tenantId, isDisabled };
+  }
+
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const tenant = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: {
+        whiteLabelBrandingEnabled: input.whiteLabelBranding,
+        whiteLabelEnabled: input.whiteLabelBranding,
+      },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: {
+        adminUserId,
+        tenantId,
+        type: 'TENANT_FEATURES_UPDATED',
+        metadata: { whiteLabelBranding: input.whiteLabelBranding },
+      },
+    });
+
+    return tenant;
   }
 
   async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined) {
@@ -156,7 +235,9 @@ export class AdminService {
   async searchUsers(query?: string) {
     const normalizedQuery = query?.trim();
     return this.prisma.user.findMany({
-      where: normalizedQuery ? { OR: [{ email: { contains: normalizedQuery, mode: 'insensitive' } }, { id: { contains: normalizedQuery, mode: 'insensitive' } }] } : undefined,
+      where: normalizedQuery
+        ? { OR: [{ email: { contains: normalizedQuery, mode: 'insensitive' } }, { id: { contains: normalizedQuery, mode: 'insensitive' } }] }
+        : undefined,
       orderBy: { createdAt: 'desc' },
       take: 50,
       select: { id: true, email: true, status: true, role: true, createdAt: true, orgId: true },
@@ -164,7 +245,7 @@ export class AdminService {
   }
 
   async getUserDetail(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    return this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -183,7 +264,12 @@ export class AdminService {
   async revokeUserSessions(userId: string, actorUserId: string) {
     const now = new Date();
     const result = await this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
-    await this.prisma.auditLog.create({ data: { actorType: 'ADMIN', actorUserId, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId, metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId } });
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'ADMIN', actorUserId, tenantId: null, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId,
+        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId,
+      },
+    });
     return { ok: true as const, revoked: result.count };
   }
 
@@ -196,7 +282,7 @@ export class AdminService {
     });
   }
 
-  listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string }) {
+  async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string }) {
     return this.prisma.auditLog.findMany({
       where: {
         tenantId: filters.tenantId || undefined,
@@ -206,7 +292,29 @@ export class AdminService {
       },
       orderBy: { createdAt: 'desc' },
       take: 200,
-      select: { id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true, metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } } },
+      select: {
+        id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true,
+        metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } },
+      },
     });
+  }
+
+  async getMigrationStatus() {
+    type MigrationRow = { migration_name: string; started_at: Date; finished_at: Date | null; rolled_back_at: Date | null; logs: string | null };
+    const rows = await this.prisma.$queryRaw<MigrationRow[]>`
+      SELECT migration_name, started_at, finished_at, rolled_back_at, logs
+      FROM _prisma_migrations
+      ORDER BY started_at DESC
+      LIMIT 100
+    `;
+    const failed = rows.filter((row) => row.finished_at === null && row.rolled_back_at === null);
+    return {
+      checkedAt: new Date().toISOString(),
+      total: rows.length,
+      failedCount: failed.length,
+      failedMigrations: failed.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), logs: row.logs })),
+      migrations: rows.map((row) => ({ migrationName: row.migration_name, startedAt: row.started_at.toISOString(), finishedAt: row.finished_at ? row.finished_at.toISOString() : null, rolledBackAt: row.rolled_back_at ? row.rolled_back_at.toISOString() : null })),
+      guidance: ['Take an immediate backup/snapshot before manual intervention.', 'Inspect the failed migration SQL and deployment logs.', 'Use prisma migrate resolve --rolled-back or --applied after validation.', 'Re-run prisma migrate deploy once the state is consistent.'],
+    };
   }
 }

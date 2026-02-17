@@ -1,45 +1,39 @@
 import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 
 type RequestUser = { userId?: string; id?: string; sub?: string };
 
+type RequestUser = { userId?: string; id?: string; sub?: string };
+
 @Controller('admin')
 @VerifiedEmailRequired()
 @UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
+@Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('overview')
-  overview() {
-    return this.adminService.getOverview();
-  }
-
-  @Get('metrics')
-  async metrics() {
-    const overview = await this.adminService.getOverview();
-    return {
-      tenantsTotal: overview.totals.activeTenants,
-      locationsTotal: 0,
-      usersTotal: 0,
-      signups7d: overview.trends.newTenants7d,
-      signups30d: overview.trends.newTenants30d,
-      activeMembershipsTotal: 0,
-      mrr: overview.totals.mrrCents / 100,
-      activeSubscriptions: overview.totals.activeSubscriptions,
-    };
-  }
+  overview() { return this.adminService.getOverview(); }
 
   @Get('tenants')
   tenants(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('query') query?: string) {
     return this.adminService.listTenants(page ?? 1, query);
   }
 
-  @Get('ops/jobs')
-  jobs(@Query('page', new ParseIntPipe({ optional: true })) page?: number) {
-    return this.adminService.listJobs(page ?? 1);
+  @Get('growth')
+  growth() {
+    return this.adminService.getGrowthMetrics();
+  }
+
+  @Get('tenants')
+  tenants(
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
+    @Query('query') query?: string,
+  ) {
+    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query, status);
   }
 
   @Get('audit')
@@ -48,9 +42,7 @@ export class AdminController {
   }
 
   @Get('users')
-  users(@Query('query') query?: string) {
-    return this.adminService.searchUsers(query);
-  }
+  users(@Query('query') query?: string) { return this.adminService.searchUsers(query); }
 
   @Get('users/:id')
   async userDetail(@Param('id') id: string) {
@@ -70,9 +62,12 @@ export class AdminController {
   }
 
   @Post('tenants/:tenantId/features')
-  setTenantFeatures(@Param('tenantId') tenantId: string, @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean, @Req() req: { user: RequestUser }) {
-    const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
-    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, adminId);
+  setTenantFeatures(
+    @Param('tenantId') tenantId: string,
+    @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
+    @Req() req: { user: { id: string } },
+  ) {
+    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
   }
 
   @Get('tenants/:tenantId')
@@ -84,8 +79,7 @@ export class AdminController {
 
   @Post('tenants/:tenantId/toggle-active')
   toggleTenantActive(@Param('tenantId') tenantId: string, @Req() req: { user: RequestUser }) {
-    const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
-    return this.adminService.toggleTenantActive(tenantId, adminId);
+    return this.adminService.toggleTenantActive(tenantId, req.user.userId ?? req.user.id ?? req.user.sub ?? '');
   }
 
   @Post('impersonate')
@@ -94,3 +88,7 @@ export class AdminController {
     return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }
 }
+
+type RequestUser = {
+  id: string;
+};

@@ -21,6 +21,8 @@ export class OrganizationsService {
         whiteLabelBrandingEnabled: true,
         stripePriceId: true,
         subscriptionStatus: true,
+        trialEndsAt: true,
+        isTrialUsed: true,
       },
     });
 
@@ -44,6 +46,68 @@ export class OrganizationsService {
       createdAt: organization.createdAt,
       whiteLabelEnabled,
       whiteLabelEligible,
+      trialEndsAt: organization.trialEndsAt,
+      isTrialUsed: organization.isTrialUsed,
+    };
+  }
+
+  async getGrowthStatus(userId: string, orgId: string): Promise<{
+    tenantId: string;
+    trialEndsAt: string;
+    trialDaysLeft: number;
+    isTrialExpired: boolean;
+    checklist: Array<{ key: string; label: string; completed: boolean; href: string }>;
+    completedSteps: number;
+    totalSteps: number;
+    inactiveDays: 0 | 3 | 7 | 14;
+  }> {
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, orgId, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const [organization, locationCount, staffCount, clientCount, planCount, latestAudit] = await Promise.all([
+      this.prisma.organization.findUnique({ where: { id: orgId }, select: { createdAt: true, trialEndsAt: true } }),
+      this.prisma.gym.count({ where: { orgId } }),
+      this.prisma.membership.count({ where: { orgId, role: { in: [MembershipRole.GYM_STAFF_COACH, MembershipRole.TENANT_LOCATION_ADMIN] }, status: MembershipStatus.ACTIVE } }),
+      this.prisma.membership.count({ where: { orgId, role: MembershipRole.CLIENT, status: MembershipStatus.ACTIVE } }),
+      this.prisma.membershipPlan.count({ where: { location: { orgId } } }),
+      this.prisma.auditLog.findFirst({ where: { tenantId: orgId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    ]);
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    const trialEndsAt = organization.trialEndsAt ?? new Date(organization.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const trialDaysLeft = Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+    const checklist = [
+      { key: 'location', label: 'Create your first location', completed: locationCount > 0, href: '/platform/gyms/new' },
+      { key: 'staff', label: 'Add your first staff member', completed: staffCount > 0, href: '/platform/team' },
+      { key: 'plan', label: 'Create a membership plan', completed: planCount > 0, href: '/platform/plans' },
+      { key: 'client', label: 'Add your first client', completed: clientCount > 0, href: '/platform/users' },
+      { key: 'class', label: 'Create your first class', completed: false, href: '/classes' },
+      { key: 'booking', label: 'Enable online booking', completed: false, href: '/schedule' },
+    ];
+
+    const completedSteps = checklist.filter((step) => step.completed).length;
+    const lastActivityAt = latestAudit?.createdAt ?? organization.createdAt;
+    const inactiveDaysCount = Math.floor((Date.now() - lastActivityAt.getTime()) / (24 * 60 * 60 * 1000));
+    const inactiveDays: 0 | 3 | 7 | 14 = inactiveDaysCount >= 14 ? 14 : inactiveDaysCount >= 7 ? 7 : inactiveDaysCount >= 3 ? 3 : 0;
+
+    return {
+      tenantId: orgId,
+      trialEndsAt: trialEndsAt.toISOString(),
+      trialDaysLeft,
+      isTrialExpired: trialDaysLeft <= 0,
+      checklist,
+      completedSteps,
+      totalSteps: checklist.length,
+      inactiveDays,
     };
   }
 

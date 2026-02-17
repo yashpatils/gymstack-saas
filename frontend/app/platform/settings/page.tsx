@@ -6,7 +6,7 @@ import PageHeader from "../../../src/components/PageHeader";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import { getApiBaseUrl } from "../../../src/lib/apiFetch";
 import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
-import { oauthStartUrl } from '../../../src/lib/auth';
+import { exportTenantData, oauthStartUrl } from '../../../src/lib/auth';
 
 type AccountInfo = {
   id?: string;
@@ -84,6 +84,8 @@ export default function PlatformSettingsPage() {
   const [brandingLocationId, setBrandingLocationId] = useState('');
   const [tenantOrg, setTenantOrg] = useState<TenantOrg | null>(null);
   const [whiteLabelSaving, setWhiteLabelSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
   const canManageTenantSettings = permissions.canManageTenant
@@ -231,6 +233,33 @@ export default function PlatformSettingsPage() {
             <button className="button w-fit" type="submit">Save branding</button>
           </form>
         ) : <p className="text-sm text-slate-400">Create a location to configure branding.</p>}
+      </div>
+
+      <div className="card space-y-3 border border-cyan-400/40">
+        <h2 className="section-title">Data portability export</h2>
+        <p className="text-sm text-slate-300">Generate a tenant-scoped JSON export for compliance and backup verification.</p>
+        <button className="button w-fit" type="button" disabled={exporting} onClick={async () => {
+          setExporting(true);
+          setExportMessage(null);
+          try {
+            const payload = await exportTenantData();
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `tenant-export-${new Date().toISOString()}.json`;
+            anchor.click();
+            URL.revokeObjectURL(url);
+            setExportMessage('Export generated and downloaded successfully.');
+          } catch (exportError) {
+            setExportMessage(exportError instanceof Error ? exportError.message : 'Failed to export tenant data.');
+          } finally {
+            setExporting(false);
+          }
+        }}>
+          {exporting ? 'Exporting…' : 'Export data'}
+        </button>
+        {exportMessage ? <p className="text-xs text-slate-300">{exportMessage}</p> : null}
       </div>
 
       <div className="card space-y-4">
