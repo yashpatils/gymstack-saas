@@ -3,11 +3,15 @@ import {
   Catch,
   ExceptionFilter,
   HttpException,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { extractExceptionMessage, sanitizeForLogs } from '../common/logging-sanitizer';
 
 @Catch(HttpException)
 export class AuthExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AuthExceptionFilter.name);
+
   catch(exception: HttpException, host: ArgumentsHost): void {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
@@ -19,19 +23,25 @@ export class AuthExceptionFilter implements ExceptionFilter {
 
     const statusCode = exception.getStatus();
     const exceptionResponse = exception.getResponse();
+    const message = extractExceptionMessage(exceptionResponse, 'Request failed');
 
-    let message = 'Request failed';
-
-    if (typeof exceptionResponse === 'string') {
-      message = exceptionResponse;
-    } else if (
-      typeof exceptionResponse === 'object' &&
-      exceptionResponse !== null &&
-      'message' in exceptionResponse
-    ) {
-      const rawMessage = (exceptionResponse as { message: string | string[] }).message;
-      message = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage;
-    }
+    this.logger.warn(
+      JSON.stringify({
+        event: 'auth_http_exception',
+        requestId: request.requestId ?? 'unknown',
+        route: request.originalUrl,
+        statusCode,
+        message,
+        validationErrors:
+          typeof exceptionResponse === 'object' &&
+          exceptionResponse !== null &&
+          'message' in exceptionResponse &&
+          Array.isArray((exceptionResponse as { message?: unknown }).message)
+            ? (exceptionResponse as { message: unknown[] }).message
+            : undefined,
+        requestBody: sanitizeForLogs(request.body),
+      }),
+    );
 
     response.status(statusCode).json({
       message,
