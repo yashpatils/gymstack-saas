@@ -20,6 +20,7 @@ import { AccountModule } from './account/account.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { LocationMembershipsModule } from './location-memberships/location-memberships.module';
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
+import { TenantRateLimitGuard } from './common/tenant-rate-limit.guard';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';

@@ -1,32 +1,20 @@
 import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 
 type RequestUser = { userId?: string; id?: string; sub?: string };
 
-type RequestUser = { userId?: string; id?: string; sub?: string };
-
-type RequestUser = { id: string };
-
 @Controller('admin')
 @VerifiedEmailRequired()
 @UseGuards(JwtAuthGuard, RequirePlatformAdminGuard)
-@Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('overview')
-  overview() { return this.adminService.getOverview(); }
-
-  @Get('tenants')
-  tenants(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('query') query?: string) {
-    return this.adminService.listTenants(page ?? 1, query);
-  }
-
-  @Get('growth')
-  growth() {
-    return this.adminService.getGrowthMetrics();
+  overview() {
+    return this.adminService.getOverview();
   }
 
   @Get('tenants')
@@ -34,6 +22,7 @@ export class AdminController {
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('query') query?: string,
+    @Query('status') status?: string,
   ) {
     return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query, status);
   }
@@ -44,7 +33,9 @@ export class AdminController {
   }
 
   @Get('users')
-  users(@Query('query') query?: string) { return this.adminService.searchUsers(query); }
+  users(@Query('query') query?: string) {
+    return this.adminService.searchUsers(query);
+  }
 
   @Get('users/:id')
   async userDetail(@Param('id') id: string) {
@@ -67,7 +58,7 @@ export class AdminController {
   setTenantFeatures(
     @Param('tenantId') tenantId: string,
     @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
-    @Req() req: { user: { id: string } },
+    @Req() req: { user: RequestUser },
   ) {
     return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id ?? req.user.userId ?? req.user.sub ?? '');
   }
@@ -90,7 +81,3 @@ export class AdminController {
     return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }
 }
-
-type RequestUser = {
-  id: string;
-};

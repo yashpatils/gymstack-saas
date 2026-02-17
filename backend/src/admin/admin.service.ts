@@ -3,21 +3,6 @@ import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/cl
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-type AdminOverviewResponse = {
-  totals: {
-    mrrCents: number;
-    activeTenants: number;
-    activeSubscriptions: number;
-    trials: number;
-    pastDue: number;
-    canceled: number;
-  };
-  trends: {
-    newTenants7d: number;
-    newTenants30d: number;
-  };
-};
-
 type AdminTenantListItem = {
   tenantId: string;
   tenantName: string;
@@ -76,9 +61,7 @@ export class AdminService {
     let activeTenants = 0;
 
     for (const tenant of tenants) {
-      if (tenant.isDisabled) {
-        continue;
-      }
+      if (tenant.isDisabled) continue;
       activeTenants += 1;
       const status = tenant.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
       if (status === SubscriptionStatus.ACTIVE) activeSubscriptions += 1;
@@ -98,21 +81,13 @@ export class AdminService {
     const normalizedStatus = status?.trim().toUpperCase();
 
     const where = normalizedQuery
-      ? {
-          name: {
-            contains: normalizedQuery,
-            mode: 'insensitive' as const,
-          },
-        }
+      ? { name: { contains: normalizedQuery, mode: 'insensitive' as const } }
       : undefined;
 
     const [total, organizations] = await Promise.all([
       this.prisma.organization.count({ where }),
       this.prisma.organization.findMany({
         where,
-        skip: (safePage - 1) * safePageSize,
-        take: safePageSize,
-        orderBy: { createdAt: 'desc' },
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
         include: {
@@ -122,7 +97,6 @@ export class AdminService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.organization.count({ where }),
     ]);
 
     const items = organizations
@@ -142,7 +116,7 @@ export class AdminService {
           usersCount: organization._count.users,
           ownersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_OWNER).length,
           managersCount: organization.memberships.filter((membership) => membership.role === MembershipRole.TENANT_LOCATION_ADMIN).length,
-          customDomainsCount: organization._count.customDomains,
+          customDomainsCount: 0,
           isDisabled: organization.isDisabled,
         };
       })
@@ -186,11 +160,7 @@ export class AdminService {
       },
       locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
-      billing: {
-        subscriptionStatus: SubscriptionStatus.FREE,
-        priceId: null,
-        mrrCents: 0,
-      },
+      billing: { subscriptionStatus: SubscriptionStatus.FREE, priceId: null, mrrCents: 0 },
       events: organization.adminEvents.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
     };
   }
@@ -202,28 +172,6 @@ export class AdminService {
     await this.prisma.organization.update({ where: { id: tenantId }, data: { isDisabled, disabledAt: isDisabled ? new Date() : null } });
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED' } });
     return { tenantId, isDisabled };
-  }
-
-  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
-    const tenant = await this.prisma.organization.update({
-      where: { id: tenantId },
-      data: {
-        whiteLabelBrandingEnabled: input.whiteLabelBranding,
-        whiteLabelEnabled: input.whiteLabelBranding,
-      },
-      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
-    });
-
-    await this.prisma.adminEvent.create({
-      data: {
-        adminUserId,
-        tenantId,
-        type: 'TENANT_FEATURES_UPDATED',
-        metadata: { whiteLabelBranding: input.whiteLabelBranding },
-      },
-    });
-
-    return tenant;
   }
 
   async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined) {
@@ -246,7 +194,7 @@ export class AdminService {
   }
 
   async getUserDetail(userId: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
