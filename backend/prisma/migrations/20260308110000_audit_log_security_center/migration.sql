@@ -1,6 +1,6 @@
 ALTER TABLE "AuditLog"
-  ADD COLUMN "actorEmail" TEXT,
-  ADD COLUMN "actorRole" TEXT,
-  ADD COLUMN "ipAddress" TEXT;
+  ADD COLUMN IF NOT EXISTS "actorEmail" TEXT,
+  ADD COLUMN IF NOT EXISTS "actorRole" TEXT,
+  ADD COLUMN IF NOT EXISTS "ipAddress" TEXT;
 
-CREATE INDEX "AuditLog_tenantId_createdAt_idx" ON "AuditLog"("tenantId", "createdAt");
+CREATE INDEX IF NOT EXISTS "AuditLog_tenantId_createdAt_idx" ON "AuditLog"("tenantId", "createdAt");

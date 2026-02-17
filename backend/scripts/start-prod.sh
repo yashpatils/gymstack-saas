@@ -1,34 +1,22 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-migration_startup_guard() {
-  local status_output
-  local status_exit_code
+resolve_failed_migrations() {
   local failed_migrations
 
-  set +e
-  status_output="$(npx prisma migrate status 2>&1)"
-  status_exit_code=$?
-  set -e
+  if ! command -v psql >/dev/null 2>&1; then
+    echo "[start-prod] Unable to check for failed migrations: psql is not installed." >&2
+    exit 1
+  fi
 
-  echo "$status_output"
+  if [[ -z "${DATABASE_URL:-}" ]]; then
+    echo "[start-prod] Unable to check for failed migrations: DATABASE_URL is not set." >&2
+    exit 1
+  fi
 
-  failed_migrations="$(
-    echo "$status_output" \
-      | tr -d '\r' \
-      | awk '
-          /Following migration(s)? have failed:/ { capture=1; next }
-          /Read more/ { capture=0 }
-          capture {
-            line=$0
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
-            gsub(/^[-*][[:space:]]+/, "", line)
-            if (line ~ /^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[A-Za-z0-9_]+$/) {
-              print line
-            }
-          }
-        '
-  )"
+  failed_migrations="$({
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -c "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at;"
+  } 2>/dev/null || true)"
 
   if [[ -n "$failed_migrations" ]]; then
     echo "[start-prod] ERROR: Failed Prisma migrations detected. Startup halted."
@@ -41,11 +29,15 @@ migration_startup_guard() {
     return 1
   fi
 
-  if [[ $status_exit_code -ne 0 ]]; then
-    echo "[start-prod] ERROR: prisma migrate status failed (exit code: $status_exit_code). Startup halted before migrate deploy."
-    echo "[start-prod] Inspect the migration status output above and resolve manually before retrying."
-    return 1
-  fi
+  echo "[start-prod] Found failed Prisma migrations:" >&2
+  while IFS= read -r migration_name; do
+    [[ -z "$migration_name" ]] && continue
+    echo "  - $migration_name" >&2
+  done <<< "$failed_migrations"
+
+  echo "[start-prod] Migrations are in a failed state. Resolve each migration before deployment." >&2
+  echo "Run: npx prisma migrate resolve --rolled-back <migration> OR --applied <migration>" >&2
+  exit 1
 }
 
 echo "[start-prod] Running DB connectivity check"

@@ -31,7 +31,7 @@ export default function PlatformTenantsPage() {
             headers={["Tenant", "Status", "Grace ends", "Action"]}
             rows={items.map((item) => [
               item.tenantName,
-              <Badge tone={item.billingStatus === "FROZEN" ? "warning" : "default"}>{item.billingStatus}</Badge>,
+              <Badge tone={item.billingStatus === "FROZEN" ? "warning" : undefined}>{item.billingStatus}</Badge>,
               item.gracePeriodEndsAt ? new Date(item.gracePeriodEndsAt).toLocaleDateString() : "-",
               <a className="underline" href={`/platform/billing?tenantId=${item.tenantId}`}>Open tenant billing</a>,
             ])}
