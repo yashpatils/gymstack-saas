@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class LoginDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
@@ -8,4 +8,12 @@ export class LoginDto {
 
   @IsString()
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
+  @IsOptional()
+  @IsString()
+  tenantSlug?: string;
 }

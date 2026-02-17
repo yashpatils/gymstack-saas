@@ -53,7 +53,7 @@ type AuthContextValue = {
   activeMode?: 'OWNER' | 'MANAGER';
   onboarding?: OnboardingState;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
-  login: (email: string, password: string, options?: { adminOnly?: boolean }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  login: (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, locationId?: string, mode?: 'OWNER' | 'MANAGER') => Promise<void>;
@@ -253,8 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearAuthState, hydrateFromMe]);
 
-  const login = useCallback(async (email: string, password: string, _options?: { adminOnly?: boolean }) => {
-    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password);
+  const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => {
+    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password, { tenantId: options?.tenantId, tenantSlug: options?.tenantSlug });
     setToken(authToken);
     await hydrateFromMe();
     await track('login_success', { role: loggedInUser.role });

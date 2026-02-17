@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { MembershipRole, MembershipStatus, Prisma, Role } from '@prisma/client';
+import { MembershipRole, MembershipStatus, PlanKey, Prisma, Role, SubscriptionStatus } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
@@ -22,6 +23,7 @@ function toGymSlug(name: string): string {
 export class GymsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
     private readonly planService: PlanService,
     private readonly auditService: AuditService,
@@ -68,7 +70,12 @@ export class GymsService {
     if (memberships.length === 0) {
       const createdGym = await this.prisma.$transaction(async (tx) => {
         const organization = await tx.organization.create({
-          data: { name: `${name} Organization` },
+          data: {
+            name: `${name} Organization`,
+            subscriptionStatus: SubscriptionStatus.TRIAL,
+            planKey: this.getTrialPlanKey(),
+            ...this.getTrialWindow(),
+          },
         });
 
         await tx.membership.create({
@@ -129,6 +136,22 @@ export class GymsService {
     }
 
     return this.createGym(orgId, user.id, name);
+  }
+
+  private getTrialPlanKey(): PlanKey {
+    const configured = this.configService.get<string>('TRIAL_PLAN_KEY')?.toLowerCase();
+    if (configured === PlanKey.pro || configured === PlanKey.enterprise || configured === PlanKey.starter) {
+      return configured;
+    }
+    return PlanKey.pro;
+  }
+
+  private getTrialWindow(): { trialStartedAt: Date; trialEndsAt: Date } {
+    const configured = Number.parseInt(this.configService.get<string>('TRIAL_DAYS') ?? '14', 10);
+    const trialDays = Number.isFinite(configured) && configured > 0 ? configured : 14;
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt.getTime() + trialDays * 24 * 60 * 60 * 1000);
+    return { trialStartedAt, trialEndsAt };
   }
 
 

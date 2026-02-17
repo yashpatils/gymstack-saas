@@ -122,8 +122,21 @@ function LoginPageContent() {
             if (submitError instanceof ApiFetchError && submitError.requestId) {
               setSupportRequestId(submitError.requestId);
             }
+            if (submitError instanceof ApiFetchError && submitError.statusCode === 409 && submitError.details && typeof submitError.details === 'object' && 'code' in submitError.details) {
+              const code = String((submitError.details as { code?: unknown }).code ?? '');
+              if (code === 'TENANT_SELECTION_REQUIRED') {
+                router.push('/select-workspace');
+                return;
+              }
+              if (code === 'NO_WORKSPACE') {
+                router.push('/onboarding');
+                return;
+              }
+            }
             if (isAdminHost && submitError instanceof ApiFetchError && submitError.statusCode === 403) {
               setError(ADMIN_RESTRICTED_MESSAGE);
+            } else if (submitError instanceof ApiFetchError && submitError.statusCode === 401) {
+              setError('Invalid email or password.');
             } else {
               setError(submitError instanceof Error ? submitError.message : "Unable to login.");
             }

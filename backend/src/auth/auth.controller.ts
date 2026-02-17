@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Logger, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Logger, Post, Query, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { createHash } from 'crypto';
@@ -124,6 +124,8 @@ export class AuthController {
   async login(
     @Body() body: LoginDto,
     @Req() req: Request,
+    @Query('tenantId') tenantId?: string,
+    @Query('tenantSlug') tenantSlug?: string,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
     // Keep /api/auth/login usable for CLI/Postman-based admin/dev testing flows that do not set X-Requested-With.
     const context = getRequestContext(req);
@@ -131,7 +133,11 @@ export class AuthController {
     const emailKey = hashIdentifier(body.email.trim().toLowerCase());
     this.sensitiveRateLimitService.check(`login:${ipKey}:${emailKey}`, 12, 15 * 60_000);
     try {
-      return await this.authService.login(body, context);
+      return await this.authService.login({
+        ...body,
+        tenantId: body.tenantId ?? tenantId,
+        tenantSlug: body.tenantSlug ?? tenantSlug,
+      }, context);
     } catch (error) {
       this.logAuthFailure('POST /api/auth/login', req, error);
       throw error;

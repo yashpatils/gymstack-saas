@@ -15,6 +15,7 @@ import { BillingProviderRegistry } from './billing-provider.registry';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { BillingLifecycleService } from './billing-lifecycle.service';
+import { PlanGatingGuard } from './plan-gating.guard';
 
 @Module({
   imports: [ConfigModule, PrismaModule, AuditModule, NotificationsModule, EmailModule],
@@ -29,7 +30,8 @@ import { BillingLifecycleService } from './billing-lifecycle.service';
     RazorpayBillingProvider,
     BillingProviderRegistry,
     BillingLifecycleService,
+    PlanGatingGuard,
   ],
-  exports: [SubscriptionGatingService, PlanService, BillingLifecycleService],
+  exports: [SubscriptionGatingService, PlanService, BillingLifecycleService, PlanGatingGuard],
 })
 export class BillingModule {}

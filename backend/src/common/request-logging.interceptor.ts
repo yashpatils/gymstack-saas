@@ -32,7 +32,11 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     };
 
     response.once('finish', logIfNeeded);
-    response.once('close', logIfNeeded);
+    response.once('close', () => {
+      if (!response.writableEnded) {
+        logIfNeeded();
+      }
+    });
 
     return next.handle().pipe(
       finalize(() => {
