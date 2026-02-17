@@ -39,8 +39,33 @@ echo "[start-prod] Checking migration status"
 resolve_failed_migrations
 
 echo "[start-prod] Applying migrations"
-if ! npx prisma migrate deploy; then
+set +e
+migrate_output=$(npx prisma migrate deploy 2>&1)
+migrate_exit_code=$?
+set -e
+
+if [[ $migrate_exit_code -ne 0 ]]; then
+  echo "$migrate_output" >&2
   echo "[start-prod] ERROR: prisma migrate deploy failed. Startup halted." >&2
+
+  if [[ "$migrate_output" == *"P3009"* ]]; then
+    failed_migration=$(printf '%s\n' "$migrate_output" | awk -F'`' 'NF >= 3 { print $2; exit }')
+
+    if [[ -n "$failed_migration" ]]; then
+      echo "[start-prod] Detected failed migration: $failed_migration" >&2
+      echo "[start-prod] Run the following commands:" >&2
+      echo "[start-prod]   npx prisma migrate status" >&2
+      echo "[start-prod]   npx prisma migrate resolve --rolled-back $failed_migration" >&2
+      echo "[start-prod]   npx prisma migrate resolve --applied $failed_migration" >&2
+    else
+      echo "[start-prod] Detected Prisma error code P3009." >&2
+      echo "[start-prod] Run the following commands:" >&2
+      echo "[start-prod]   npx prisma migrate status" >&2
+      echo "[start-prod]   npx prisma migrate resolve --rolled-back <migration>" >&2
+      echo "[start-prod]   npx prisma migrate resolve --applied <migration>" >&2
+    fi
+  fi
+
   exit 1
 fi
 
