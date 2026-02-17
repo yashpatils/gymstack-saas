@@ -93,15 +93,30 @@ Required environment variables:
 
 ## Resolving failed Prisma migrations (P3009)
 
-If backend startup fails because `npx prisma migrate deploy` reports `P3009`, use the failed migration name printed in logs and run:
+If backend startup fails because `npx prisma migrate deploy` reports `P3009`, inspect the failed migration entry in Neon first, then resolve it and re-run deploy.
+
+1. Identify the failed migration name from startup logs (example: `20260308110000_audit_log_security_center`).
+2. In Neon SQL editor, inspect Prisma migration logs:
+
+```sql
+SELECT migration_name, started_at, finished_at, rolled_back_at, logs
+FROM _prisma_migrations
+WHERE migration_name = '20260308110000_audit_log_security_center';
+```
+
+3. Decide how to resolve:
+   - Use `--rolled-back` when the migration failed and should be retried after fixing the root cause (most common for partial/failed attempts).
+   - Use `--applied` only when the schema changes are already present in production and you want Prisma to mark that migration as completed without re-running SQL.
+4. Run resolve + deploy:
 
 ```bash
 npx prisma migrate status
 npx prisma migrate resolve --rolled-back <migration>
 npx prisma migrate resolve --applied <migration>
+npx prisma migrate deploy
 ```
 
-Use `--rolled-back` when the migration should be retried, or `--applied` only if its schema changes are already present.
+Run only one of the `migrate resolve` commands based on your situation, then run `npx prisma migrate deploy`.
 
 
 ### CORS allowlist defaults
