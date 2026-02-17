@@ -32,10 +32,13 @@ async function proxyRequest(request: NextRequest, path: string[]): Promise<NextR
     redirect: 'manual',
   });
 
+  const outboundHeaders = new Headers(response.headers);
+  outboundHeaders.set('Cache-Control', 'no-store');
+
   return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers: outboundHeaders,
   });
 }
 

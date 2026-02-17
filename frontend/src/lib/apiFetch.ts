@@ -1,6 +1,7 @@
 import { getAccessToken } from './auth/tokenStore';
 import { getStoredActiveContext } from './auth/contextStore';
 import { getStoredPlatformRole, getSupportModeContext } from './supportMode';
+import { addFrontendBreadcrumb, captureFrontendApiError } from './monitoring';
 
 type ApiFetchInit = Omit<RequestInit, 'body'> & {
   body?: BodyInit | Record<string, unknown> | null;
@@ -175,6 +176,10 @@ export async function apiFetch<T>(
     headers.set('Accept', 'application/json');
   }
 
+  const method = (init.method ?? 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD' && !headers.has('X-Requested-With')) {
+    headers.set('X-Requested-With', 'XMLHttpRequest');
+  }
 
   const platformRole = getStoredPlatformRole();
   const supportContext = getSupportModeContext();
@@ -193,6 +198,11 @@ export async function apiFetch<T>(
   }
 
   const requestBody = isRecordBody(init.body) ? JSON.stringify(init.body) : init.body;
+  addFrontendBreadcrumb({
+    category: 'api',
+    message: `${method} ${path}`,
+    data: { route: path },
+  });
   if (isRecordBody(init.body) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -242,7 +252,11 @@ export async function apiFetch<T>(
             ? `API request failed: ${apiErrorCode}`
           : `Request failed with status ${response.status}`;
 
-    throw new ApiFetchError(message, response.status, details, requestId);
+    const apiError = new ApiFetchError(message, response.status, details, requestId);
+    if (response.status >= 500) {
+      captureFrontendApiError(apiError, { path, method, requestId });
+    }
+    throw apiError;
   }
 
   if (!isJson) {
