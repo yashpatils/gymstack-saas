@@ -12,6 +12,7 @@ import { listGyms, type Gym } from "../../src/lib/gyms";
 import { listUsers, type User } from "../../src/lib/users";
 import { apiFetch } from "../../src/lib/apiFetch";
 import { track } from "../../src/lib/analytics";
+import { listWhatsNew, type ChangelogEntry } from "../../src/lib/feedback";
 import { getGrowthStatus, type GrowthStatus } from "../../src/lib/growth";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { UpgradeModal } from "../../src/components/common/UpgradeModal";
@@ -33,6 +34,7 @@ export default function PlatformPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("locations");
   const [growthStatus, setGrowthStatus] = useState<GrowthStatus | null>(null);
+  const [whatsNew, setWhatsNew] = useState<ChangelogEntry[]>([]);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const isTenantOwner = memberships.some((membership) => membership.role === "TENANT_OWNER");
@@ -44,11 +46,12 @@ export default function PlatformPage() {
       setLoading(true);
       setError(null);
 
-      const [gymResult, userResult, summaryResult, growthResult] = await Promise.allSettled([
+      const [gymResult, userResult, summaryResult, growthResult, whatsNewResult] = await Promise.allSettled([
         listGyms(),
         listUsers(),
         apiFetch<DashboardSummary>("/api/org/dashboard-summary", { method: "GET" }),
         getGrowthStatus(),
+        listWhatsNew(),
       ]);
 
       if (!active) {
@@ -73,6 +76,8 @@ export default function PlatformPage() {
       if (growthResult.status === "fulfilled") {
         setGrowthStatus(growthResult.value);
       }
+
+      setWhatsNew(whatsNewResult.status === "fulfilled" ? whatsNewResult.value : []);
 
       setLoading(false);
     };
