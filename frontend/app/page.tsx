@@ -100,8 +100,8 @@ export default function LandingPage() {
               <Link href="/signup" className="button lg">
                 Start free trial
               </Link>
-              <Link href="/pricing" className="button secondary lg">
-                View pricing
+              <Link href="/book-demo" className="button secondary lg">
+                Book a demo
               </Link>
             </div>
           </div>

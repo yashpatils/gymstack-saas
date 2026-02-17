@@ -60,6 +60,7 @@ export type ActiveContext = {
 export type ActiveTenant = {
   id: string;
   name: string;
+  isDemo?: boolean;
 };
 
 export type ActiveLocation = {

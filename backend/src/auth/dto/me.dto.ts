@@ -52,4 +52,6 @@ export class AuthMeResponseDto {
   activeMode!: "OWNER" | "MANAGER";
   permissions!: PermissionFlags;
   permissionKeys!: string[];
+  activeTenant?: { id: string; name: string; isDemo?: boolean } | null;
+  activeLocation?: { id: string; name: string; customDomain?: string | null } | null;
 }

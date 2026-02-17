@@ -123,6 +123,7 @@ export class PublicService {
             stripePriceId: byCustomDomain.org.stripePriceId,
             subscriptionStatus: byCustomDomain.org.subscriptionStatus,
           }),
+          isDisabled: false,
         },
       };
     }
@@ -179,6 +180,7 @@ export class PublicService {
           stripePriceId: bySlug.org.stripePriceId,
           subscriptionStatus: bySlug.org.subscriptionStatus,
         }),
+        isDisabled: false,
       },
     };
   }

@@ -66,6 +66,12 @@ export class BillingService {
     return ids;
   }
 
+
+  private ensureWebhookConfiguration(): void {
+    if (!this.configService.get<string>('STRIPE_WEBHOOK_SECRET')) {
+      throw new ServiceUnavailableException('Missing STRIPE_WEBHOOK_SECRET.');
+    }
+  }
   async createCheckoutSession(payload: CheckoutPayload): Promise<{ url: string }> {
     const stripe = this.ensureStripeConfigured();
     const allowedPriceIds = this.getAllowedPriceIds();
@@ -80,11 +86,14 @@ export class BillingService {
 
     const tenant = await this.prisma.organization.findUnique({
       where: { id: payload.tenantId },
-      select: { id: true, name: true, stripeCustomerId: true },
+      select: { id: true, name: true, stripeCustomerId: true, isDemo: true },
     });
 
     if (!tenant) {
       throw new BadRequestException('Tenant not found.');
+    }
+    if (tenant.isDemo) {
+      throw new BadRequestException('Billing is disabled in demo mode.');
     }
 
     const ownerMembership = await this.prisma.membership.findFirst({
@@ -137,9 +146,12 @@ export class BillingService {
     const stripe = this.ensureStripeConfigured();
     const tenant = await this.prisma.organization.findUnique({
       where: { id: tenantId },
-      select: { stripeCustomerId: true },
+      select: { stripeCustomerId: true, isDemo: true },
     });
 
+    if (tenant?.isDemo) {
+      throw new BadRequestException('Billing portal is disabled in demo mode.');
+    }
     if (!tenant?.stripeCustomerId) {
       throw new BadRequestException('Stripe customer is not set for this tenant.');
     }
@@ -160,11 +172,15 @@ export class BillingService {
         subscriptionStatus: true,
         currentPeriodEnd: true,
         whiteLabelEnabled: true,
+        isDemo: true,
       },
     });
 
     if (!tenant) {
       throw new BadRequestException('Tenant not found.');
+    }
+    if (tenant.isDemo) {
+      throw new BadRequestException('Billing is disabled in demo mode.');
     }
 
     const whiteLabelEligible = this.subscriptionGatingService.isWhiteLabelEligible({
@@ -267,22 +283,19 @@ export class BillingService {
         subscriptionStatus: nextStatus,
         currentPeriodEnd,
         whiteLabelEnabled: eligible ? tenant.whiteLabelEnabled : false,
+        upgradedAt: nextStatus === 'active' ? new Date() : undefined,
       },
     });
-  }
 
-  private ensureWebhookConfiguration(): void {
-    const missing: string[] = [];
-
-    if (!this.configService.get<string>('STRIPE_SECRET_KEY')) {
-      missing.push('STRIPE_SECRET_KEY');
-    }
-    if (!this.configService.get<string>('STRIPE_WEBHOOK_SECRET')) {
-      missing.push('STRIPE_WEBHOOK_SECRET');
+    if (nextStatus === 'active') {
+      await this.prisma.trialEvent.create({ data: { tenantId: tenant.id, eventType: 'upgraded' } });
+    } else if (nextStatus === 'trialing') {
+      await this.prisma.trialEvent.create({ data: { tenantId: tenant.id, eventType: 'trial_active' } });
+    } else if (nextStatus === 'canceled') {
+      await this.prisma.trialEvent.create({ data: { tenantId: tenant.id, eventType: 'trial_expired' } });
     }
 
-    if (missing.length > 0) {
-      throw new ServiceUnavailableException(`Missing Stripe webhook configuration: ${missing.join(', ')}.`);
-    }
+
+    this.logger.log(`Processed subscription update for tenant ${tenant.id} with status ${nextStatus}.`);
   }
 }

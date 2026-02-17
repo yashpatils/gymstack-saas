@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleIn
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { ActiveMode, Membership, MembershipRole, MembershipStatus, Role, UserStatus } from '@prisma/client';
+import { ActiveMode, Membership, MembershipRole, MembershipStatus, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -28,6 +28,11 @@ function generateVerificationToken(): { rawToken: string; tokenHash: string; exp
   const tokenHash = createHash('sha256').update(rawToken).digest('hex');
   const expiresAt = new Date(Date.now() + 24 * 60 * 60_000);
   return { rawToken, tokenHash, expiresAt };
+}
+
+function buildReferralCode(namePart: string): string {
+  const base = namePart.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || "GYM";
+  return `${base}-${randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
 @Injectable()
@@ -84,11 +89,27 @@ export class AuthService implements OnModuleInit {
           password: passwordHash,
           emailVerifiedAt: null,
           status: UserStatus.ACTIVE,
+          subscriptionStatus: SubscriptionStatus.TRIAL,
         },
       });
 
+      const referredBy = input.referralCode
+        ? await tx.organization.findFirst({ where: { referralCode: input.referralCode } })
+        : null;
+      const trialStartedAt = new Date();
+      const trialEndsAt = new Date(trialStartedAt.getTime() + 14 * 24 * 60 * 60 * 1000);
       const organization = await tx.organization.create({
-        data: { name: `${email.split('@')[0]}'s Tenant` },
+        data: {
+          name: `${email.split('@')[0]}'s Tenant`,
+          referralCode: buildReferralCode(email.split('@')[0]),
+          referredByTenantId: referredBy?.id,
+          subscriptionStatus: SubscriptionStatus.TRIAL,
+          trialStartedAt,
+          trialEndsAt,
+          trialEvents: {
+            create: [{ eventType: 'trial_started' }, { eventType: 'trial_active' }],
+          },
+        },
       });
 
       const membership = await tx.membership.create({
@@ -746,6 +767,12 @@ export class AuthService implements OnModuleInit {
       activeMode: active?.activeMode ?? ActiveMode.OWNER,
       permissions: permissionFlags,
       permissionKeys: permissionFlagsToKeys(permissionFlags),
+      activeTenant: canonicalContext.tenantId
+        ? await this.prisma.organization.findUnique({ where: { id: canonicalContext.tenantId }, select: { id: true, name: true, isDemo: true } })
+        : null,
+      activeLocation: canonicalContext.locationId
+        ? await this.prisma.gym.findUnique({ where: { id: canonicalContext.locationId }, select: { id: true, name: true, customDomain: true } })
+        : null,
     };
   }
 

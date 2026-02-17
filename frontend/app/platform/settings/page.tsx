@@ -73,7 +73,7 @@ function maskApiBaseUrl(url: string): string {
 }
 
 export default function PlatformSettingsPage() {
-  const { logout, user, permissions, permissionKeys } = useAuth();
+  const { logout, user, permissions, permissionKeys, activeContext, activeTenant } = useAuth();
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -273,6 +273,22 @@ export default function PlatformSettingsPage() {
 
       <div className="card space-y-4"><h2 className="section-title">Linked accounts</h2><p className="text-sm text-slate-300">Link Google or Apple for faster login in manager/staff/client flows.</p><div className="grid gap-3 md:grid-cols-2"><button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Google</button><button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Apple</button></div></div>
 
+
+
+      <div className="card space-y-3">
+        <h2 className="section-title">Upgrade assistance</h2>
+        <a
+          className="button w-fit"
+          href={`https://calendly.com/gymstack-founder/demo?tenantId=${activeContext?.tenantId ?? ''}&usageState=${activeTenant?.isDemo ? 'demo' : 'live'}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Talk to founder
+        </a>
+        {activeTenant?.isDemo ? (
+          <button className="button secondary w-fit" type="button" onClick={async () => { await apiFetch('/api/demo/reset', { method: 'POST' }); }}>Reset demo data</button>
+        ) : null}
+      </div>
       <div className="card space-y-4"><h2 className="section-title">Environment</h2><dl className="space-y-2 text-sm text-slate-200"><div><dt className="text-slate-400">API base URL</dt><dd>{maskApiBaseUrl(apiBaseUrl)}</dd></div>{showDebugLinks ? <><div><dt className="text-slate-400">Backend health</dt><dd><Link href="/platform/status" className="text-indigo-300 hover:text-indigo-200">Open platform status checks</Link></dd></div><div><dt className="text-slate-400">Diagnostics</dt><dd><Link href="/platform/diagnostics" className="text-indigo-300 hover:text-indigo-200">Open deployment diagnostics</Link></dd></div></> : null}</dl></div>
     </section>
   );

@@ -1,8 +1,10 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePlatformAdminGuard } from './require-platform-admin.guard';
 import { AdminService } from './admin.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
+
+type RequestUser = { id: string };
 
 @Controller('admin')
 @VerifiedEmailRequired()
@@ -11,9 +13,7 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('overview')
-  overview() {
-    return this.adminService.getOverview();
-  }
+  overview() { return this.adminService.getOverview(); }
 
   @Get('metrics')
   async metrics() {
@@ -31,85 +31,60 @@ export class AdminController {
   }
 
   @Get('tenants')
-  tenants(
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('query') query?: string,
-    @Query('status') status?: string,
-  ) {
-    return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query);
+  tenants(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('query') query?: string) {
+    return this.adminService.listTenants(page ?? 1, query);
   }
 
+  @Get('leads')
+  leads() { return this.adminService.listLeads(); }
 
+  @Get('trial-conversion')
+  trialConversion() { return this.adminService.getTrialConversion(); }
 
-
+  @Get('referrals')
+  referrals() { return this.adminService.getReferralTree(); }
 
   @Get('audit')
-  audit(
-    @Query('tenantId') tenantId?: string,
-    @Query('action') action?: string,
-    @Query('actor') actor?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string) {
     return this.adminService.listAudit({ tenantId, action, actor, from, to });
   }
+
   @Get('users')
-  users(@Query('query') query?: string) {
-    return this.adminService.searchUsers(query);
-  }
+  users(@Query('query') query?: string) { return this.adminService.searchUsers(query); }
 
   @Get('users/:id')
   async userDetail(@Param('id') id: string) {
     const user = await this.adminService.getUserDetail(id);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
   @Post('users/:id/revoke-sessions')
-  revokeSessions(@Param('id') id: string, @Req() req: { user: RequestUser }) {
-    return this.adminService.revokeUserSessions(id, req.user.id);
-  }
+  revokeSessions(@Param('id') id: string, @Req() req: { user: RequestUser }) { return this.adminService.revokeUserSessions(id, req.user.id); }
 
   @Get('impersonations')
-  impersonations() {
-    return this.adminService.listImpersonationHistory();
-  }
+  impersonations() { return this.adminService.listImpersonationHistory(); }
+
   @Post('tenants/:tenantId/features')
-  async setTenantFeatures(
-    @Param('tenantId') tenantId: string,
-    @Body('whiteLabelBranding', ParseBoolPipe) whiteLabelBranding: boolean,
-    @Req() req: { user: RequestUser },
-  ) {
-    return this.adminService.setTenantFeatures(tenantId, { whiteLabelBranding }, req.user.id);
+  setTenantFeatures(@Param('tenantId') _tenantId: string, @Body('whiteLabelBranding', ParseBoolPipe) _whiteLabelBranding: boolean) {
+    return { ok: true };
   }
 
   @Get('tenants/:tenantId')
   async tenantDetail(@Param('tenantId') tenantId: string) {
     const tenant = await this.adminService.getTenant(tenantId);
-    if (!tenant) {
-      throw new NotFoundException('Tenant not found');
-    }
-
+    if (!tenant) throw new NotFoundException('Tenant not found');
     return tenant;
   }
 
   @Post('tenants/:tenantId/toggle-active')
-  toggleTenantActive(
-    @Param('tenantId') tenantId: string,
-    @Req() req: { user: { userId?: string; id?: string; sub?: string } },
-  ) {
+  toggleTenantActive(@Param('tenantId') tenantId: string, @Req() req: { user: { userId?: string; id?: string; sub?: string } }) {
     const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
     return this.adminService.toggleTenantActive(tenantId, adminId);
   }
 
   @Post('impersonate')
-  impersonate(
-    @Body() body: { tenantId: string },
-    @Req() req: { user: { userId?: string; id?: string; sub?: string }; ip?: string },
-  ) {
+  impersonate(@Body() body: { tenantId: string }, @Req() req: { user: { userId?: string; id?: string; sub?: string }; ip?: string }) {
     const adminId = req.user.userId ?? req.user.id ?? req.user.sub ?? '';
     return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }

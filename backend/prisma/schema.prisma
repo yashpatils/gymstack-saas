@@ -99,6 +99,18 @@ enum ClassBookingStatus {
   CHECKED_IN
 }
 
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -133,6 +145,10 @@ model User {
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
   createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
+  coachedClasses         Class[]
+  classBookings          ClassBooking[]
+  featureFlagsUpdated    FeatureFlag[] @relation("FeatureFlagUpdatedBy")
+  adminEvents            AdminEvent[]
 
   @@index([orgId])
 }
@@ -324,6 +340,11 @@ model Gym {
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]
+  classes       Class[]
+  classSessions ClassSession[]
+  classBookings ClassBooking[]
+  auditLogs     AuditLog[]
+  featureFlags  FeatureFlag[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -342,6 +363,13 @@ model Organization {
   stripePriceId String?
   subscriptionStatus String?
   currentPeriodEnd DateTime?
+  isDemo      Boolean      @default(false)
+  demoLastResetAt DateTime?
+  referralCode String? @unique
+  referredByTenantId String?
+  trialStartedAt DateTime?
+  trialEndsAt DateTime?
+  upgradedAt DateTime?
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
@@ -353,8 +381,35 @@ model Organization {
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
   adminEvents AdminEvent[]
+  referredTenants Organization[] @relation("TenantReferrals")
+  referredByTenant Organization? @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
+  trialEvents TrialEvent[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([referredByTenantId])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  gymName   String
+  size      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model TrialEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  eventType String
+  createdAt DateTime @default(now())
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([eventType])
 }
 
 model AdminEvent {
@@ -475,4 +530,55 @@ model ClientMembership {
   @@index([locationId, status])
   @@index([planId])
   @@index([createdByUserId])
+}
+
+model Class {
+  id          String   @id @default(uuid())
+  locationId  String
+  title       String
+  description String?
+  coachUserId String?
+  capacity    Int
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  location    Gym      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  coach       User?    @relation(fields: [coachUserId], references: [id], onDelete: SetNull)
+  sessions    ClassSession[]
+
+  @@index([locationId, isActive])
+}
+
+model ClassSession {
+  id               String @id @default(uuid())
+  classId          String
+  locationId       String
+  startsAt         DateTime
+  endsAt           DateTime
+  capacityOverride Int?
+  status           ClassSessionStatus @default(SCHEDULED)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  classTemplate    Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  location         Gym   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  bookings         ClassBooking[]
+
+  @@index([locationId, startsAt])
+}
+
+model ClassBooking {
+  id         String @id @default(uuid())
+  sessionId  String
+  locationId String
+  userId     String
+  status     ClassBookingStatus @default(BOOKED)
+  canceledAt  DateTime?
+  bookedAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  session    ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  location   Gym @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([locationId, status])
 }
