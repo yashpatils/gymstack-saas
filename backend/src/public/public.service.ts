@@ -99,6 +99,7 @@ export class PublicService {
             whiteLabelBrandingEnabled: true,
             stripePriceId: true,
             subscriptionStatus: true,
+            isDisabled: true,
           },
         },
       },
@@ -123,6 +124,7 @@ export class PublicService {
             stripePriceId: byCustomDomain.org.stripePriceId,
             subscriptionStatus: byCustomDomain.org.subscriptionStatus,
           }),
+          isDisabled: byCustomDomain.org.isDisabled,
         },
       };
     }
@@ -152,6 +154,7 @@ export class PublicService {
             whiteLabelBrandingEnabled: true,
             stripePriceId: true,
             subscriptionStatus: true,
+            isDisabled: true,
           },
         },
       },
@@ -179,6 +182,7 @@ export class PublicService {
           stripePriceId: bySlug.org.stripePriceId,
           subscriptionStatus: bySlug.org.subscriptionStatus,
         }),
+        isDisabled: bySlug.org.isDisabled,
       },
     };
   }
