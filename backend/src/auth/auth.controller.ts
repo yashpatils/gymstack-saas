@@ -39,9 +39,11 @@ function hashIdentifier(value: string): string {
 function requireRequestedWithHeader(req: Request): void {
   const requestedWith = req.header('X-Requested-With');
   if (requestedWith !== 'XMLHttpRequest') {
+    const missingHeaders = requestedWith ? [] : ['X-Requested-With'];
     throw new BadRequestException({
-      code: 'AUTH_INVALID_REQUEST',
-      message: 'Invalid request headers.',
+      code: 'INVALID_HEADERS',
+      message: 'Missing or invalid required headers.',
+      missingHeaders,
     });
   }
 }
@@ -87,7 +89,6 @@ export class AuthController {
     @Body() body: SignupDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
-    requireRequestedWithHeader(req);
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
     const emailKey = hashIdentifier(body.email.trim().toLowerCase());
@@ -150,7 +151,6 @@ export class AuthController {
     @Body() body: LoginDto,
     @Req() req: Request,
   ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
-    requireRequestedWithHeader(req);
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
     const emailKey = hashIdentifier(body.email.trim().toLowerCase());
