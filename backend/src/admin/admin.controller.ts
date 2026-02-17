@@ -79,6 +79,21 @@ export class AdminController {
     return this.adminService.listImpersonationHistory();
   }
 
+  @Get('integrations/api-keys')
+  apiKeys(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number) {
+    return this.adminService.listApiKeys(page ?? 1, pageSize ?? 20);
+  }
+
+  @Post('integrations/api-keys/:id/revoke')
+  revokeIntegrationApiKey(@Param('id') id: string) {
+    return this.adminService.revokeApiKey(id);
+  }
+
+  @Get('integrations/webhook-failures')
+  webhookFailures(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number) {
+    return this.adminService.listWebhookFailures(page ?? 1, pageSize ?? 20);
+  }
+
   @Post('tenants/:tenantId/features')
   setTenantFeatures(
     @Param('tenantId') tenantId: string,
