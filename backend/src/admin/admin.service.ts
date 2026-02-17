@@ -3,21 +3,6 @@ import { MembershipRole, MembershipStatus, SubscriptionStatus } from '@prisma/cl
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-type AdminOverviewResponse = {
-  totals: {
-    mrrCents: number;
-    activeTenants: number;
-    activeSubscriptions: number;
-    trials: number;
-    pastDue: number;
-    canceled: number;
-  };
-  trends: {
-    newTenants7d: number;
-    newTenants30d: number;
-  };
-};
-
 type AdminTenantListItem = {
   tenantId: string;
   tenantName: string;
@@ -76,9 +61,7 @@ export class AdminService {
     let activeTenants = 0;
 
     for (const tenant of tenants) {
-      if (tenant.isDisabled) {
-        continue;
-      }
+      if (tenant.isDisabled) continue;
       activeTenants += 1;
       const status = tenant.users[0]?.subscriptionStatus ?? SubscriptionStatus.FREE;
       if (status === SubscriptionStatus.ACTIVE) activeSubscriptions += 1;
@@ -98,12 +81,7 @@ export class AdminService {
     const normalizedStatus = status?.trim().toUpperCase();
 
     const where = normalizedQuery
-      ? {
-          name: {
-            contains: normalizedQuery,
-            mode: 'insensitive' as const,
-          },
-        }
+      ? { name: { contains: normalizedQuery, mode: 'insensitive' as const } }
       : undefined;
 
     const [total, organizations] = await Promise.all([
@@ -204,11 +182,7 @@ export class AdminService {
       },
       locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
-      billing: {
-        subscriptionStatus: SubscriptionStatus.FREE,
-        priceId: null,
-        mrrCents: 0,
-      },
+      billing: { subscriptionStatus: SubscriptionStatus.FREE, priceId: null, mrrCents: 0 },
       events: organization.adminEvents.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
     };
   }

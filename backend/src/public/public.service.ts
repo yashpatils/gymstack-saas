@@ -119,7 +119,6 @@ export class PublicService {
         },
         tenant: {
           id: byCustomDomain.org.id,
-          isDisabled: byCustomDomain.org.isDisabled,
           whiteLabelEnabled: this.subscriptionGatingService.getEffectiveWhiteLabel({
             whiteLabelEnabled: Boolean(byCustomDomain.org.whiteLabelEnabled || byCustomDomain.org.whiteLabelBrandingEnabled),
             stripePriceId: byCustomDomain.org.stripePriceId,
@@ -177,7 +176,6 @@ export class PublicService {
       },
       tenant: {
         id: bySlug.org.id,
-        isDisabled: bySlug.org.isDisabled,
         whiteLabelEnabled: this.subscriptionGatingService.getEffectiveWhiteLabel({
           whiteLabelEnabled: Boolean(bySlug.org.whiteLabelEnabled || bySlug.org.whiteLabelBrandingEnabled),
           stripePriceId: bySlug.org.stripePriceId,
