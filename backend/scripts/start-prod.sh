@@ -5,8 +5,8 @@ resolve_failed_migrations() {
   local failed_migrations
 
   if ! command -v psql >/dev/null 2>&1; then
-    echo "[start-prod] Unable to check for failed migrations: psql is not installed." >&2
-    exit 1
+    echo "[start-prod] psql not available — skipping failed migration check"
+    return 0
   fi
 
   if [[ -z "${DATABASE_URL:-}" ]]; then
