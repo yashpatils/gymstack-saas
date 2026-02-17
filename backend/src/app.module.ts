@@ -24,7 +24,6 @@ import { TenantRateLimitGuard } from './common/tenant-rate-limit.guard';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
-import { TenantRateLimitGuard } from './common/tenant-rate-limit.guard';
 
 @Module({
   imports: [
