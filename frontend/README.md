@@ -19,6 +19,7 @@ npm run predeploy
 Required env vars:
 
 - `NEXT_PUBLIC_API_URL` (public browser API origin)
+- `NEXT_PUBLIC_SITE_URL` (public canonical site URL used for Next.js metadata, e.g. `https://gymstack.club`)
 - `API_URL` (server-only API origin for SSR/server actions; point to Railway backend)
 - `NEXT_PUBLIC_STRIPE_PRICE_ID` (optional if billing checkout flow disabled)
 
