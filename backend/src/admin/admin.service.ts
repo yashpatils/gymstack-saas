@@ -196,6 +196,28 @@ export class AdminService {
     return { tenantId, isDisabled };
   }
 
+  async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
+    const tenant = await this.prisma.organization.update({
+      where: { id: tenantId },
+      data: {
+        whiteLabelBrandingEnabled: input.whiteLabelBranding,
+        whiteLabelEnabled: input.whiteLabelBranding,
+      },
+      select: { id: true, whiteLabelEnabled: true, whiteLabelBrandingEnabled: true },
+    });
+
+    await this.prisma.adminEvent.create({
+      data: {
+        adminUserId,
+        tenantId,
+        type: 'TENANT_FEATURES_UPDATED',
+        metadata: { whiteLabelBranding: input.whiteLabelBranding },
+      },
+    });
+
+    return tenant;
+  }
+
   async impersonateTenant(tenantId: string, adminUserId: string, ip: string | undefined): Promise<{ tenantId: string; supportMode: { tenantId: string } }> {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!org) throw new NotFoundException('Tenant not found');

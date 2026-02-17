@@ -102,3 +102,7 @@ export class AdminController {
     return this.adminService.impersonateTenant(body.tenantId, adminId, req.ip);
   }
 }
+
+type RequestUser = {
+  id: string;
+};

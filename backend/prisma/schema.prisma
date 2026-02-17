@@ -99,6 +99,18 @@ enum ClassBookingStatus {
   CHECKED_IN
 }
 
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  TENANT
+  LOCATION
+}
+
 model User {
   id                   String               @id @default(uuid())
   email                String               @unique
@@ -133,6 +145,12 @@ model User {
   refreshTokens         RefreshToken[]
   clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
   createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
+  coachedClasses         Class[]            @relation("ClassCoach")
+  classBookings          ClassBooking[]
+  pushSubscriptions      PushSubscription[]
+  notificationMarkers    NotificationMarker[]
+  updatedFeatureFlags    FeatureFlag[]       @relation("FeatureFlagUpdatedBy")
+  adminEvents            AdminEvent[]
 
   @@index([orgId])
 }
@@ -324,6 +342,13 @@ model Gym {
   locationInvites LocationInvite[]
   membershipPlans MembershipPlan[]
   clientMemberships ClientMembership[]
+  classes        Class[]
+  classSessions  ClassSession[]
+  classBookings  ClassBooking[]
+  pushSubscriptions PushSubscription[]
+  notificationMarkers NotificationMarker[]
+  auditLogs      AuditLog[]
+  featureFlags   FeatureFlag[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -353,6 +378,8 @@ model Organization {
   locationInvites LocationInvite[]
   ownerOperatorSettings OwnerOperatorSetting[]
   adminEvents AdminEvent[]
+  pushSubscriptions PushSubscription[]
+  notificationMarkers NotificationMarker[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
