@@ -28,7 +28,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { DeveloperModule } from './developer/developer.module';
 import { DevelopersModule } from './developers/developers.module';
 import { PublicApiModule } from './public-api/public-api.module';
-import { CampaignsModule } from './campaigns/campaigns.module';
+import { AiInsightsModule } from './ai-insights/ai-insights.module';
 
 @Module({
   imports: [
@@ -58,7 +58,7 @@ import { CampaignsModule } from './campaigns/campaigns.module';
     PublicApiModule,
     DeveloperModule,
     DevelopersModule,
-    CampaignsModule,
+    AiInsightsModule,
   ],
   controllers: [AppController],
   providers: [

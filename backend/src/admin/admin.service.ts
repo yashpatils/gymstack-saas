@@ -3,6 +3,7 @@ import { MembershipRole, MembershipStatus, SubscriptionStatus, TenantBillingStat
 import { JobLogService } from '../jobs/job-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
+import { AiInsightsService } from '../ai-insights/ai-insights.service';
 
 type AdminTenantListItem = {
   tenantId: string;
@@ -27,6 +28,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly jobLogService: JobLogService,
     private readonly webhooksService: WebhooksService,
+    private readonly aiInsightsService: AiInsightsService,
   ) {}
 
   private resolveMrrCents(status: SubscriptionStatus | 'FREE'): number {
@@ -177,6 +179,11 @@ export class AdminService {
         webhookFailures: webhookFailureMap.get(tenant.id) ?? 0,
       })),
     };
+  }
+
+
+  async getAiUsage() {
+    return this.aiInsightsService.getAiUsageForAdmin();
   }
 
   async getOverview() {
