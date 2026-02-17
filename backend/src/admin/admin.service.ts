@@ -340,6 +340,7 @@ export class AdminService {
     const isDisabled = !org.isDisabled;
     await this.prisma.organization.update({ where: { id: tenantId }, data: { isDisabled, disabledAt: isDisabled ? new Date() : null } });
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: isDisabled ? 'TENANT_DISABLED' : 'TENANT_ENABLED' } });
+    await this.prisma.auditLog.create({ data: { actorType: 'ADMIN', actorUserId: adminUserId, actorRole: 'PLATFORM_ADMIN', tenantId, action: 'TENANT_SUSPENSION_TOGGLED', targetType: 'tenant', targetId: tenantId, entityType: 'tenant', entityId: tenantId, metadata: { isDisabled } } });
     return { tenantId, isDisabled };
   }
 
@@ -347,6 +348,7 @@ export class AdminService {
     const org = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!org) throw new NotFoundException('Tenant not found');
     await this.prisma.adminEvent.create({ data: { adminUserId, tenantId, type: 'IMPERSONATE_START', metadata: { tenantId }, ip: ip ?? null } });
+    await this.prisma.auditLog.create({ data: { actorType: 'ADMIN', actorUserId: adminUserId, actorRole: 'PLATFORM_ADMIN', tenantId, action: 'IMPERSONATION_START', targetType: 'tenant', targetId: tenantId, entityType: 'tenant', entityId: tenantId, ipAddress: ip ?? null, ip: ip ?? null } });
     return { tenantId, supportMode: { tenantId } };
   }
 
@@ -385,7 +387,7 @@ export class AdminService {
     await this.prisma.auditLog.create({
       data: {
         actorType: 'ADMIN', actorUserId, tenantId: null, action: 'ADMIN_REVOKE_SESSIONS', targetType: 'USER', targetId: userId,
-        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId,
+        metadata: { revokedCount: result.count }, entityType: 'USER', entityId: userId, actorRole: 'PLATFORM_ADMIN',
       },
     });
     return { ok: true as const, revoked: result.count };
@@ -400,8 +402,9 @@ export class AdminService {
     });
   }
 
-  async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string }) {
-    return this.prisma.auditLog.findMany({
+  async listAudit(filters: { tenantId?: string; action?: string; actor?: string; from?: string; to?: string; limit?: number; cursor?: string }) {
+    const safeLimit = Number.isFinite(filters.limit) ? Math.min(Math.max(filters.limit ?? 50, 1), 200) : 50;
+    const rows = await this.prisma.auditLog.findMany({
       where: {
         tenantId: filters.tenantId || undefined,
         action: filters.action || undefined,
@@ -409,12 +412,17 @@ export class AdminService {
         createdAt: { gte: filters.from ? new Date(filters.from) : undefined, lte: filters.to ? new Date(filters.to) : undefined },
       },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      cursor: filters.cursor ? { id: filters.cursor } : undefined,
+      skip: filters.cursor ? 1 : 0,
+      take: safeLimit + 1,
       select: {
         id: true, actorType: true, action: true, targetType: true, targetId: true, tenantId: true, locationId: true,
-        metadata: true, createdAt: true, actorUser: { select: { id: true, email: true } },
+        metadata: true, ipAddress: true, actorEmail: true, actorRole: true, createdAt: true, actorUser: { select: { id: true, email: true } },
       },
     });
+    const hasNext = rows.length > safeLimit;
+    const items = hasNext ? rows.slice(0, safeLimit) : rows;
+    return { items, nextCursor: hasNext ? items[items.length - 1]?.id ?? null : null };
   }
 
 
@@ -478,6 +486,21 @@ export class AdminService {
         tenantId,
         type: 'TENANT_FEATURES_UPDATED',
         metadata: { planOverrides: { maxLocationsOverride: override.maxLocationsOverride, maxStaffSeatsOverride: override.maxStaffSeatsOverride, whiteLabelOverride: override.whiteLabelOverride } },
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'ADMIN',
+        actorUserId: adminUserId,
+        actorRole: 'PLATFORM_ADMIN',
+        tenantId,
+        action: 'PLAN_OVERRIDE',
+        targetType: 'tenant',
+        targetId: tenantId,
+        entityType: 'tenant',
+        entityId: tenantId,
+        metadata: { maxLocationsOverride: override.maxLocationsOverride, maxStaffSeatsOverride: override.maxStaffSeatsOverride, whiteLabelOverride: override.whiteLabelOverride },
       },
     });
 

@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { AuditActorType } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
 
 @Injectable()
 export class DeveloperService {
-  constructor(private readonly prisma: PrismaService, private readonly webhooksService: WebhooksService) {}
+  constructor(private readonly prisma: PrismaService, private readonly webhooksService: WebhooksService, private readonly auditService: AuditService) {}
 
   private getTenantId(user: { activeTenantId?: string | null }): string {
     const tenantId = user.activeTenantId;
@@ -18,7 +20,7 @@ export class DeveloperService {
     return this.prisma.apiKey.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, createdAt: true, lastUsedAt: true, revokedAt: true } });
   }
 
-  async createApiKey(user: { activeTenantId?: string | null }, name: string): Promise<{ id: string; name: string; key: string }> {
+  async createApiKey(user: { activeTenantId?: string | null; id?: string; email?: string; role?: string }, name: string): Promise<{ id: string; name: string; key: string }> {
     if (!name.trim()) throw new BadRequestException('Name is required');
     const tenantId = this.getTenantId(user);
     const plain = `gsk_${randomBytes(24).toString('hex')}`;
@@ -27,7 +29,7 @@ export class DeveloperService {
     return { ...created, key: plain };
   }
 
-  async revokeApiKey(user: { activeTenantId?: string | null }, id: string): Promise<void> {
+  async revokeApiKey(user: { activeTenantId?: string | null; id?: string; email?: string; role?: string }, id: string): Promise<void> {
     const tenantId = this.getTenantId(user);
     await this.prisma.apiKey.updateMany({ where: { id, tenantId, revokedAt: null }, data: { revokedAt: new Date() } });
   }
