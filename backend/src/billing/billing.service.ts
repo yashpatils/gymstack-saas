@@ -5,22 +5,23 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SubscriptionStatus } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
-
-type SubscriptionPayload = {
-  customerId: string;
-  priceId: string;
-  successUrl?: string;
-  cancelUrl?: string;
-};
+import { SubscriptionGatingService } from './subscription-gating.service';
 
 type CheckoutPayload = {
-  userId: string;
+  tenantId: string;
   priceId: string;
-  successUrl?: string;
-  cancelUrl?: string;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+type TenantBillingStatus = {
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  priceId: string | null;
+  whiteLabelEligible: boolean;
+  whiteLabelEnabled: boolean;
 };
 
 @Injectable()
@@ -31,12 +32,11 @@ export class BillingService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly subscriptionGatingService: SubscriptionGatingService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
-      this.logger.warn(
-        'Stripe is not configured. Missing STRIPE_SECRET_KEY; Stripe features will be unavailable.',
-      );
+      this.logger.warn('Stripe is not configured. Missing STRIPE_SECRET_KEY.');
       return;
     }
 
@@ -45,251 +45,244 @@ export class BillingService {
 
   private ensureStripeConfigured(): Stripe {
     if (!this.stripe) {
-      throw new ServiceUnavailableException(
-        'Stripe integration is disabled. Set STRIPE_SECRET_KEY to enable billing routes.',
-      );
+      throw new ServiceUnavailableException('Stripe integration is disabled. Set STRIPE_SECRET_KEY.');
     }
 
     return this.stripe;
   }
 
-  async createCustomer(email: string, name?: string) {
-    return this.ensureStripeConfigured().customers.create({
-      email,
-      name,
-    });
-  }
+  private getAllowedPriceIds(): Set<string> {
+    const starter = this.configService.get<string>('STRIPE_PRICE_STARTER');
+    const pro = this.configService.get<string>('STRIPE_PRICE_PRO');
+    const ids = new Set<string>();
 
-  async createCheckoutSession(payload: CheckoutPayload) {
-    this.ensureStripeConfigured();
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.userId },
-    });
-
-    if (!user) {
-      throw new BadRequestException('User not found');
+    if (starter) {
+      ids.add(starter);
+    }
+    if (pro) {
+      ids.add(pro);
     }
 
+    return ids;
+  }
+
+  async createCheckoutSession(payload: CheckoutPayload): Promise<{ url: string }> {
     const stripe = this.ensureStripeConfigured();
-    const customerId = user.stripeCustomerId
-      ? user.stripeCustomerId
+    const allowedPriceIds = this.getAllowedPriceIds();
+
+    if (allowedPriceIds.size === 0) {
+      throw new ServiceUnavailableException('No Stripe prices are configured.');
+    }
+
+    if (!allowedPriceIds.has(payload.priceId)) {
+      throw new BadRequestException('Unsupported priceId.');
+    }
+
+    const tenant = await this.prisma.organization.findUnique({
+      where: { id: payload.tenantId },
+      select: { id: true, name: true, stripeCustomerId: true },
+    });
+
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found.');
+    }
+
+    const ownerMembership = await this.prisma.membership.findFirst({
+      where: { orgId: tenant.id, role: 'TENANT_OWNER', status: 'ACTIVE' },
+      include: { user: { select: { email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const customerId = tenant.stripeCustomerId
+      ? tenant.stripeCustomerId
       : (
           await stripe.customers.create({
-            email: user.email,
-            metadata: {
-              userId: user.id,
-            },
+            email: ownerMembership?.user.email,
+            name: tenant.name,
+            metadata: { tenantId: tenant.id },
           })
         ).id;
 
-    if (!user.stripeCustomerId) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          stripeCustomerId: customerId,
-        },
+    if (!tenant.stripeCustomerId) {
+      await this.prisma.organization.update({
+        where: { id: tenant.id },
+        data: { stripeCustomerId: customerId },
       });
     }
 
-    const session = await this.createSubscription({
-      customerId,
-      priceId: payload.priceId,
-      successUrl: payload.successUrl,
-      cancelUrl: payload.cancelUrl,
-    });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        subscriptionStatus: SubscriptionStatus.FREE,
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [{ price: payload.priceId, quantity: 1 }],
+      success_url: payload.successUrl,
+      cancel_url: payload.cancelUrl,
+      metadata: {
+        tenantId: tenant.id,
+      },
+      subscription_data: {
+        metadata: {
+          tenantId: tenant.id,
+        },
       },
     });
 
-    return session;
-  }
-
-  async createSubscription(payload: SubscriptionPayload) {
-    const stripe = this.ensureStripeConfigured();
-    const successUrl =
-      payload.successUrl ??
-      this.configService.get<string>('STRIPE_SUCCESS_URL') ??
-      '';
-    const cancelUrl =
-      payload.cancelUrl ??
-      this.configService.get<string>('STRIPE_CANCEL_URL') ??
-      '';
-
-    if (!successUrl || !cancelUrl) {
-      throw new BadRequestException(
-        'Missing STRIPE_SUCCESS_URL or STRIPE_CANCEL_URL configuration.',
-      );
+    if (!session.url) {
+      throw new ServiceUnavailableException('Stripe checkout session URL is unavailable.');
     }
 
-    return stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: payload.customerId,
-      line_items: [
-        {
-          price: payload.priceId,
-          quantity: 1,
-        },
-      ],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+    return { url: session.url };
+  }
+
+  async createPortalSession(tenantId: string, returnUrl: string): Promise<{ url: string }> {
+    const stripe = this.ensureStripeConfigured();
+    const tenant = await this.prisma.organization.findUnique({
+      where: { id: tenantId },
+      select: { stripeCustomerId: true },
     });
+
+    if (!tenant?.stripeCustomerId) {
+      throw new BadRequestException('Stripe customer is not set for this tenant.');
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: tenant.stripeCustomerId,
+      return_url: returnUrl,
+    });
+
+    return { url: portalSession.url };
+  }
+
+  async getTenantBillingStatus(tenantId: string): Promise<TenantBillingStatus> {
+    const tenant = await this.prisma.organization.findUnique({
+      where: { id: tenantId },
+      select: {
+        stripePriceId: true,
+        subscriptionStatus: true,
+        currentPeriodEnd: true,
+        whiteLabelEnabled: true,
+      },
+    });
+
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found.');
+    }
+
+    const whiteLabelEligible = this.subscriptionGatingService.isWhiteLabelEligible({
+      stripePriceId: tenant.stripePriceId,
+      subscriptionStatus: tenant.subscriptionStatus,
+    });
+
+    return {
+      subscriptionStatus: tenant.subscriptionStatus,
+      currentPeriodEnd: tenant.currentPeriodEnd ? tenant.currentPeriodEnd.toISOString() : null,
+      priceId: tenant.stripePriceId,
+      whiteLabelEligible,
+      whiteLabelEnabled: tenant.whiteLabelEnabled,
+    };
   }
 
   async handleWebhook(payload: Buffer, signature?: string | string[]) {
     this.ensureWebhookConfiguration();
     const stripe = this.ensureStripeConfigured();
-    const normalizedPayload = this.normalizeWebhookPayload(payload);
-
     const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      throw new ServiceUnavailableException(
-        'Stripe webhook is unavailable. Missing STRIPE_WEBHOOK_SECRET.',
-      );
+      throw new ServiceUnavailableException('Missing STRIPE_WEBHOOK_SECRET.');
     }
+
     if (!signature) {
       throw new BadRequestException('Missing Stripe signature header.');
     }
 
     const sig = Array.isArray(signature) ? signature[0] : signature;
-    const event = stripe.webhooks.constructEvent(
-      normalizedPayload,
-      sig,
-      webhookSecret,
-    );
+    const event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
 
     switch (event.type) {
       case 'checkout.session.completed':
-        await this.handleCheckoutCompleted(
-          event.data.object as Stripe.Checkout.Session,
-        );
+        await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
-        await this.handleSubscriptionEvent(
-          event.data.object as Stripe.Subscription,
-        );
-        break;
-      case 'invoice.payment_succeeded':
-        this.logger.log(`Invoice paid: ${event.data.object.id}`);
-        break;
-      case 'invoice.payment_failed':
-        this.logger.warn(`Invoice failed: ${event.data.object.id}`);
+        await this.handleSubscriptionEvent(event.data.object as Stripe.Subscription);
         break;
       default:
-        this.logger.log(`Unhandled event: ${event.type}`);
+        this.logger.log(`Unhandled Stripe event: ${event.type}`);
     }
 
     return { received: true };
   }
 
-  async getSubscriptionStatus(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        subscriptionStatus: true,
-        stripeCustomerId: true,
-        stripeSubscriptionId: true,
-      },
-    });
+  private async handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
+    const tenantId = session.metadata?.tenantId;
+    const customerId = typeof session.customer === 'string' ? session.customer : null;
 
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    return user;
-  }
-
-  private async handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-    const customerId =
-      typeof session.customer === 'string' ? session.customer : null;
-    const subscriptionId =
-      typeof session.subscription === 'string' ? session.subscription : null;
-
-    if (!customerId) {
-      this.logger.warn('Checkout session missing customer id');
+    if (!tenantId || !customerId) {
+      this.logger.warn('checkout.session.completed missing tenant/customer metadata.');
       return;
     }
 
-    await this.prisma.user.updateMany({
-      where: { stripeCustomerId: customerId },
+    await this.prisma.organization.update({
+      where: { id: tenantId },
       data: {
         stripeCustomerId: customerId,
-        stripeSubscriptionId: subscriptionId ?? undefined,
-        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        stripeSubscriptionId: typeof session.subscription === 'string' ? session.subscription : null,
       },
     });
   }
 
-  private async handleSubscriptionEvent(subscription: Stripe.Subscription) {
-    const customerId =
-      typeof subscription.customer === 'string' ? subscription.customer : null;
+  private async handleSubscriptionEvent(subscription: Stripe.Subscription): Promise<void> {
+    const customerId = typeof subscription.customer === 'string' ? subscription.customer : null;
 
     if (!customerId) {
-      this.logger.warn('Subscription event missing customer id');
+      this.logger.warn('Subscription webhook missing customer id.');
       return;
     }
 
-    await this.prisma.user.updateMany({
+    const tenant = await this.prisma.organization.findFirst({
       where: { stripeCustomerId: customerId },
+      select: { id: true, whiteLabelEnabled: true },
+    });
+
+    if (!tenant) {
+      this.logger.warn(`No tenant found for Stripe customer ${customerId}.`);
+      return;
+    }
+
+    const nextPriceId = subscription.items.data[0]?.price?.id ?? null;
+    const nextStatus = subscription.status;
+    const currentPeriodEnd = subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000)
+      : null;
+
+    const eligible = this.subscriptionGatingService.isWhiteLabelEligible({
+      stripePriceId: nextPriceId,
+      subscriptionStatus: nextStatus,
+    });
+
+    await this.prisma.organization.update({
+      where: { id: tenant.id },
       data: {
-        stripeCustomerId: customerId,
         stripeSubscriptionId: subscription.id,
-        subscriptionStatus: this.mapSubscriptionStatus(subscription.status),
+        stripePriceId: nextPriceId,
+        subscriptionStatus: nextStatus,
+        currentPeriodEnd,
+        whiteLabelEnabled: eligible ? tenant.whiteLabelEnabled : false,
       },
     });
   }
 
-  private ensureWebhookConfiguration() {
+  private ensureWebhookConfiguration(): void {
     const missing: string[] = [];
 
     if (!this.configService.get<string>('STRIPE_SECRET_KEY')) {
       missing.push('STRIPE_SECRET_KEY');
     }
-
     if (!this.configService.get<string>('STRIPE_WEBHOOK_SECRET')) {
       missing.push('STRIPE_WEBHOOK_SECRET');
     }
 
-    if (missing.length) {
-      throw new ServiceUnavailableException(
-        `Stripe webhook is unavailable. Missing configuration: ${missing.join(', ')}.`,
-      );
-    }
-  }
-
-  private normalizeWebhookPayload(payload: Buffer): Buffer {
-    if (Buffer.isBuffer(payload)) {
-      return payload;
-    }
-
-    throw new BadRequestException(
-      'Invalid webhook payload. Configure raw body parsing for /billing/webhook.',
-    );
-  }
-
-  private mapSubscriptionStatus(
-    status: Stripe.Subscription.Status,
-  ): SubscriptionStatus {
-    switch (status) {
-      case 'active':
-        return SubscriptionStatus.ACTIVE;
-      case 'past_due':
-        return SubscriptionStatus.PAST_DUE;
-      case 'canceled':
-      case 'unpaid':
-        return SubscriptionStatus.CANCELED;
-      case 'trialing':
-        return SubscriptionStatus.TRIAL;
-      case 'incomplete':
-      case 'incomplete_expired':
-      default:
-        return SubscriptionStatus.FREE;
+    if (missing.length > 0) {
+      throw new ServiceUnavailableException(`Missing Stripe webhook configuration: ${missing.join(', ')}.`);
     }
   }
 }

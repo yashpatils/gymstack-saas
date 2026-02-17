@@ -1,6 +1,7 @@
 import { Body, Controller, ForbiddenException, Get, Patch, Req } from '@nestjs/common';
 import { User } from '../users/user.model';
 import { UpdateOrgDto } from './dto/update-org.dto';
+import { UpdateWhiteLabelDto } from './dto/update-white-label.dto';
 import { OrganizationsService } from './organizations.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
@@ -34,6 +35,17 @@ export class OrganizationsController {
     }
 
     return this.organizationsService.getDashboardSummary(user.id, tenantId);
+  }
+
+
+  @Patch('white-label')
+  updateWhiteLabel(@Req() req: { user?: User }, @Body() body: UpdateWhiteLabelDto) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.organizationsService.updateWhiteLabel(user.activeTenantId ?? user.orgId, user.id, body.whiteLabelEnabled);
   }
 
   @Patch()

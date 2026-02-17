@@ -1,27 +1,52 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { SubscriptionStatus } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+
+const BILLING_ACTIVE_STATUSES = new Set(['active', 'trialing']);
+
+type TenantSubscriptionSnapshot = {
+  stripePriceId: string | null;
+  subscriptionStatus: string | null;
+  whiteLabelEnabled: boolean;
+};
 
 @Injectable()
 export class SubscriptionGatingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  async getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { subscriptionStatus: true },
-    });
+  isWhiteLabelEligible(tenant: Pick<TenantSubscriptionSnapshot, 'stripePriceId' | 'subscriptionStatus'>): boolean {
+    const proPriceId = this.configService.get<string>('STRIPE_PRICE_PRO');
+    if (!proPriceId) {
+      return false;
+    }
 
-    return user?.subscriptionStatus ?? SubscriptionStatus.FREE;
+    return tenant.stripePriceId === proPriceId && BILLING_ACTIVE_STATUSES.has((tenant.subscriptionStatus ?? '').toLowerCase());
   }
 
-  async requireActiveSubscription(userId: string): Promise<void> {
-    const status = await this.getSubscriptionStatus(userId);
+  getEffectiveWhiteLabel(tenant: TenantSubscriptionSnapshot): boolean {
+    return tenant.whiteLabelEnabled && this.isWhiteLabelEligible(tenant);
+  }
 
-    if (status !== SubscriptionStatus.ACTIVE) {
-      throw new ForbiddenException(
-        'An active subscription is required for this action. Please upgrade your plan.',
-      );
+  async getTenantBillingSnapshot(tenantId: string): Promise<TenantSubscriptionSnapshot | null> {
+    return this.prisma.organization.findUnique({
+      where: { id: tenantId },
+      select: {
+        stripePriceId: true,
+        subscriptionStatus: true,
+        whiteLabelEnabled: true,
+      },
+    });
+  }
+
+  async getWhiteLabelEligibility(tenantId: string): Promise<boolean> {
+    const tenant = await this.getTenantBillingSnapshot(tenantId);
+    if (!tenant) {
+      return false;
     }
+
+    return this.isWhiteLabelEligible(tenant);
   }
 }

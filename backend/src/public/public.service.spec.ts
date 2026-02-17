@@ -13,12 +13,16 @@ describe('PublicService', () => {
     },
   };
 
+  const subscriptionGatingService = {
+    getEffectiveWhiteLabel: jest.fn((tenant: { whiteLabelEnabled: boolean }) => tenant.whiteLabelEnabled),
+  };
+
   let service: PublicService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.BASE_DOMAIN = 'gymstack.club';
-    service = new PublicService(prisma as never);
+    service = new PublicService(prisma as never, subscriptionGatingService as never);
   });
 
   it('returns null for base app hosts', async () => {
