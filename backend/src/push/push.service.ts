@@ -132,7 +132,10 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async sendToUser(userId: string, tenantId: string | null, locationId: string | null, payload: PushPayload, type: string): Promise<void> {
-    await this.notificationsService.createForUser({ userId, type, title: payload.title, body: payload.body });
+    const resolvedTenantId = tenantId ?? (await this.prisma.membership.findFirst({ where: { userId, status: 'ACTIVE' }, select: { orgId: true } }))?.orgId;
+    if (resolvedTenantId) {
+      await this.notificationsService.createForUser({ tenantId: resolvedTenantId, locationId, userId, type: 'SYSTEM', title: payload.title, body: payload.body, metadata: { sourceType: type } });
+    }
 
     if (!this.webPush) {
       return;
