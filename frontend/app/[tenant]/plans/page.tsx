@@ -90,7 +90,14 @@ export default function PlansPage() {
       {showCreate ? (
         <Card title="Create membership plan" description="Define plan details for this location.">
           <form className="grid grid-2 gap-4" onSubmit={onCreate}>
-            <Input required value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Plan name" />
+            <Input
+              label="Plan name"
+              name="plan-name"
+              required
+              value={form.name}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Plan name"
+            />
             <select
               className="input"
               value={form.interval}
@@ -100,8 +107,20 @@ export default function PlansPage() {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <Input value={form.priceCents} onChange={(event) => setForm((current) => ({ ...current, priceCents: event.target.value }))} placeholder="Price in cents (optional)" />
-            <Input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Description (optional)" />
+            <Input
+              label="Price in cents"
+              name="price-cents"
+              value={form.priceCents}
+              onChange={(event) => setForm((current) => ({ ...current, priceCents: event.target.value }))}
+              placeholder="Price in cents (optional)"
+            />
+            <Input
+              label="Description"
+              name="description"
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+              placeholder="Description (optional)"
+            />
             <div>
               <Button disabled={saving} type="submit">{saving ? 'Saving…' : 'Save plan'}</Button>
             </div>
