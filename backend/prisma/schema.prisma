@@ -124,7 +124,8 @@ model User {
   customDomains        CustomDomain[]
   locationInvites      LocationInvite[]
   consumedLocationInvites LocationInvite[] @relation("InviteConsumer")
-  auditLogs            AuditLog[]
+  auditLogs            AuditLog[]            @relation("LegacyAuditUser")
+  actedAuditLogs       AuditLog[]            @relation("AuditActorUser")
   notifications        Notification[]
   authTokens           AuthToken[]
   authIdentities       AuthIdentity[]
@@ -200,6 +201,12 @@ model AuthToken {
 
 model AuditLog {
   id           String        @id @default(uuid())
+  actorUserId  String?
+  actorType    AuditActorType @default(SYSTEM)
+  tenantId     String?
+  locationId   String?
+  targetType   String?
+  targetId     String?
   orgId        String?
   userId       String?
   action       String
@@ -210,12 +217,36 @@ model AuditLog {
   userAgent    String?
   createdAt    DateTime      @default(now())
   organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
-  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user         User?         @relation("LegacyAuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  actorUser    User?         @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  tenant       Organization? @relation("TenantAuditLogs", fields: [tenantId], references: [id], onDelete: SetNull)
+  location     Gym?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
   @@index([orgId])
   @@index([userId])
+  @@index([tenantId])
+  @@index([locationId])
+  @@index([actorUserId])
   @@index([action])
   @@index([createdAt])
+}
+
+model FeatureFlag {
+  id              String           @id @default(uuid())
+  key             String
+  enabled         Boolean          @default(false)
+  scope           FeatureFlagScope @default(GLOBAL)
+  tenantId        String?
+  locationId      String?
+  updatedByUserId String?
+  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime         @default(now())
+  tenant          Organization?    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location        Gym?             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  updatedByUser   User?            @relation("FeatureFlagUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([key, scope, tenantId, locationId])
+  @@index([scope, key])
 }
 
 model Invite {
@@ -312,6 +343,8 @@ model Organization {
   users       User[]
   memberships Membership[]
   auditLogs   AuditLog[]
+  tenantAuditLogs AuditLog[] @relation("TenantAuditLogs")
+  featureFlags FeatureFlag[]
   invites     Invite[]
   gyms        Gym[]
   customDomains CustomDomain[]

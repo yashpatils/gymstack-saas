@@ -2,16 +2,44 @@ import { apiFetch } from './apiFetch';
 
 export type AuditLog = {
   id: string;
+  actorType?: 'USER' | 'ADMIN' | 'SYSTEM';
   action: string;
-  entityType: string;
-  entityId?: string | null;
+  targetType?: string | null;
+  targetId?: string | null;
+  tenantId?: string | null;
+  locationId?: string | null;
   createdAt: string;
-  user?: {
+  actorUser?: {
     id: string;
     email: string;
   } | null;
 };
 
-export async function listAuditLogs(limit = 50): Promise<AuditLog[]> {
-  return apiFetch<AuditLog[]>(`/api/audit?limit=${limit}`, { method: 'GET', cache: 'no-store' });
+export type AuditFilters = {
+  tenantId?: string;
+  action?: string;
+  actor?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+};
+
+function toQueryString(filters: AuditFilters): string {
+  const params = new URLSearchParams();
+  if (filters.limit) params.set('limit', String(filters.limit));
+  if (filters.tenantId) params.set('tenantId', filters.tenantId);
+  if (filters.action) params.set('action', filters.action);
+  if (filters.actor) params.set('actor', filters.actor);
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+export async function listAuditLogs(filters: AuditFilters = {}): Promise<AuditLog[]> {
+  return apiFetch<AuditLog[]>(`/api/audit${toQueryString(filters)}`, { method: 'GET', cache: 'no-store' });
+}
+
+export async function listAdminAuditLogs(filters: AuditFilters = {}): Promise<AuditLog[]> {
+  return apiFetch<AuditLog[]>(`/api/admin/audit${toQueryString(filters)}`, { method: 'GET', cache: 'no-store' });
 }

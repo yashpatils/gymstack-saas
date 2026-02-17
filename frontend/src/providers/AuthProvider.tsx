@@ -257,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password);
     setToken(authToken);
     await hydrateFromMe();
+    await track('login_success', { role: loggedInUser.role });
     return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [hydrateFromMe, normalizeMemberships]);
 
@@ -264,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role, inviteToken);
     setToken(authToken);
     await hydrateFromMe();
+    await track('signup_success', { role: signedUpUser.role });
     return { user: signedUpUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext, emailDeliveryWarning };
   }, [hydrateFromMe, normalizeMemberships]);
 
@@ -271,6 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { token: authToken, user: invitedUser, memberships: nextMemberships, activeContext: nextActiveContext } = await acceptInviteRequest(input);
     setToken(authToken);
     await hydrateFromMe();
+    await track('invite_consumed', { role: invitedUser.role });
     return { user: invitedUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [hydrateFromMe, normalizeMemberships]);
 

@@ -16,6 +16,10 @@ export class AuditController {
   listAuditLogs(
     @Req() req: { user?: User },
     @Query('limit') limit?: string,
+    @Query('action') action?: string,
+    @Query('actor') actor?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
     const user = req.user;
     if (!user) {
@@ -24,6 +28,7 @@ export class AuditController {
 
     const parsedLimit = limit ? Number.parseInt(limit, 10) : 50;
 
-    return this.auditService.listLatest(user.orgId, parsedLimit);
+    const tenantId = user.activeTenantId ?? user.orgId;
+    return this.auditService.listLatest(tenantId, parsedLimit, { action, actor, from, to });
   }
 }
