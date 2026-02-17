@@ -58,8 +58,8 @@ export class AdminController {
   }
 
   @Get('audit')
-  audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.adminService.listAudit({ tenantId, action, actor, from, to });
+  audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+    return this.adminService.listAudit({ tenantId, action, actor, from, to, limit: limit ? Number.parseInt(limit, 10) : undefined, cursor });
   }
 
   @Get('users')

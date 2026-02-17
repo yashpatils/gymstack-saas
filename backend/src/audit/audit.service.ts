@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 type AuditActor = {
   userId?: string | null;
   type: AuditActorType;
+  email?: string | null;
+  role?: string | null;
 };
 
 type RequestContext = {
@@ -47,7 +49,7 @@ export class AuditService {
     return Array.isArray(value) ? value[0] : value;
   }
 
-  async log(input: AuditLogInput): Promise<void> {
+  log(input: AuditLogInput): void {
     const actorUserId = input.actor?.userId ?? input.userId ?? null;
     const actorType = input.actor?.type ?? (actorUserId ? AuditActorType.USER : AuditActorType.SYSTEM);
     const tenantId = input.tenantId ?? input.orgId ?? null;
@@ -60,11 +62,12 @@ export class AuditService {
       null;
     const resolvedUserAgent = input.userAgent ?? this.extractFirstHeaderValue(input.req?.headers, 'user-agent') ?? null;
 
-    try {
-      await this.prisma.auditLog.create({
+    void this.prisma.auditLog.create({
         data: {
           actorType,
           actorUserId,
+          actorEmail: input.actor?.email ?? null,
+          actorRole: input.actor?.role ?? null,
           tenantId,
           locationId: input.locationId ?? null,
           targetType,
@@ -76,18 +79,19 @@ export class AuditService {
           entityId: targetId,
           metadata: input.metadata,
           ip: resolvedIp,
+          ipAddress: resolvedIp,
           userAgent: resolvedUserAgent,
         },
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(`Failed to write audit log for action ${input.action}: ${error instanceof Error ? error.message : String(error)}`);
       });
-    } catch (error) {
-      this.logger.warn(`Failed to write audit log for action ${input.action}: ${error instanceof Error ? error.message : String(error)}`);
-    }
   }
 
-  async listLatest(tenantId: string, limit = 50, filters?: { action?: string; actor?: string; from?: string; to?: string }) {
+  async listLatest(tenantId: string, limit = 50, filters?: { action?: string; actor?: string; from?: string; to?: string; cursor?: string }) {
     const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 200) : 50;
 
-    return this.prisma.auditLog.findMany({
+    const rows = await this.prisma.auditLog.findMany({
       where: {
         tenantId,
         action: filters?.action || undefined,
@@ -105,7 +109,9 @@ export class AuditService {
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: safeLimit,
+      cursor: filters?.cursor ? { id: filters.cursor } : undefined,
+      skip: filters?.cursor ? 1 : 0,
+      take: safeLimit + 1,
       select: {
         id: true,
         actorType: true,
@@ -115,7 +121,10 @@ export class AuditService {
         tenantId: true,
         locationId: true,
         metadata: true,
+        ipAddress: true,
         createdAt: true,
+        actorEmail: true,
+        actorRole: true,
         actorUser: {
           select: {
             id: true,
@@ -124,5 +133,12 @@ export class AuditService {
         },
       },
     });
+
+    const hasNext = rows.length > safeLimit;
+    const items = hasNext ? rows.slice(0, safeLimit) : rows;
+    return {
+      items,
+      nextCursor: hasNext ? items[items.length - 1]?.id ?? null : null,
+    };
   }
 }

@@ -190,5 +190,18 @@ export class RazorpayBillingProvider implements BillingProviderAdapter {
         upgradedAt: normalizedStatus === SubscriptionStatus.ACTIVE ? new Date() : undefined,
       },
     });
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'SYSTEM',
+        tenantId,
+        action: normalizedStatus === SubscriptionStatus.PAST_DUE ? 'PAYMENT_FAILED' : normalizedStatus === SubscriptionStatus.ACTIVE ? 'PAYMENT_RECOVERED' : 'PLAN_CHANGED',
+        targetType: 'billing',
+        targetId: tenantId,
+        entityType: 'billing',
+        entityId: tenantId,
+        metadata: { provider: 'razorpay', nextPriceId, normalizedStatus },
+      },
+    });
+
   }
 }

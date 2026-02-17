@@ -20,6 +20,7 @@ export class AuditController {
     @Query('actor') actor?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('cursor') cursor?: string,
   ) {
     const user = req.user;
     if (!user) {
@@ -29,6 +30,6 @@ export class AuditController {
     const parsedLimit = limit ? Number.parseInt(limit, 10) : 50;
 
     const tenantId = user.activeTenantId ?? user.orgId;
-    return this.auditService.listLatest(tenantId, parsedLimit, { action, actor, from, to });
+    return this.auditService.listLatest(tenantId, parsedLimit, { action, actor, from, to, cursor });
   }
 }
