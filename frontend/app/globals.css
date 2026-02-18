@@ -1541,8 +1541,9 @@ body {
   .platform-sidebar-modern {
     position: fixed;
     left: 0;
-    top: 0;
-    height: 100vh;
+    top: var(--topbar-h);
+    height: calc(100vh - var(--topbar-h));
+    width: min(320px, 85vw);
     overflow-y: auto;
     z-index: 50;
     transform: translateX(-100%);
@@ -1578,9 +1579,9 @@ body {
 
   .platform-sidebar-modern {
     width: 100%;
-    height: 100vh;
+    height: calc(100vh - var(--topbar-h));
     position: sticky;
-    top: 0;
+    top: var(--topbar-h);
   }
 
   .platform-shell.platform-shell-collapsed .platform-sidebar-modern {

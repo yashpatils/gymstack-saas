@@ -40,6 +40,7 @@ type AuthContextValue = {
   token: string | null;
   loading: boolean;
   isLoading: boolean;
+  isHydrating: boolean;
   isAuthenticated: boolean;
   meStatus: 200 | 401 | 403 | null;
   authIssue: AuthIssue;
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(() => (typeof window === 'undefined' ? null : getToken()));
   const [isLoading, setIsLoading] = useState(true);
+  const [isHydrating, setIsHydrating] = useState(true);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [platformRole, setPlatformRole] = useState<'PLATFORM_ADMIN' | null>(null);
   const [permissions, setPermissions] = useState<PermissionFlags>({
@@ -252,6 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMeStatus(401);
       setAuthIssue('SESSION_EXPIRED');
       setIsLoading(false);
+      setIsHydrating(false);
     };
 
     window.addEventListener('gymstack:session-expired', handleSessionExpired as EventListener);
@@ -264,6 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     const loadUser = async () => {
+      setIsHydrating(true);
       const existingToken = getToken();
       if (!isMounted) return;
 
@@ -273,6 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setMeStatus(null);
         setAuthIssue(null);
         setIsLoading(false);
+        setIsHydrating(false);
         return;
       }
 
@@ -295,6 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (isMounted) {
           setIsLoading(false);
+          setIsHydrating(false);
         }
       }
     };
@@ -396,6 +402,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       loading: isLoading,
       isLoading,
+      isHydrating,
       isAuthenticated: Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS'),
       meStatus,
       authIssue,
@@ -424,7 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       resendVerification,
     }),
-    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
+    [user, token, isLoading, isHydrating, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
