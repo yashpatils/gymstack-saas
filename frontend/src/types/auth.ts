@@ -109,8 +109,6 @@ export type AuthMeResponse = {
   activeTenant?: ActiveTenant;
   activeLocation?: ActiveLocation;
   activeMode?: 'OWNER' | 'MANAGER';
-  activeTenantId?: string | null;
-  activeLocationId?: string | null;
   userContext?: UserContext;
   canUseSocialLogin?: boolean;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
