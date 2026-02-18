@@ -47,16 +47,12 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 backdrop-blur-xl">
-      <div className="px-4 py-2 md:px-6">
-        <div className="flex justify-center py-2">
-          <h1 className="text-lg font-semibold tracking-wide text-foreground/95">Gym Stack</h1>
-        </div>
-        <div className="grid min-h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 py-2">
+      <div className="px-4 py-3 md:px-6">
+        <div className="grid min-h-14 grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="flex items-center gap-2">
             {showMenuToggle ? (
               <button type="button" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu">☰</button>
             ) : null}
-            <button type="button" className="button ghost topbar-icon-button" aria-label="Notifications">🔔</button>
             {leftExtra}
           </div>
           <div className="flex justify-center">{centerContent}</div>
