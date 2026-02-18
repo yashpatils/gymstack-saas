@@ -5,7 +5,7 @@ type AnalyticsProps = {
   locationId?: string;
   role?: string;
   pageName?: string;
-  [key: string]: string | number | boolean | undefined;
+  [key: string]: unknown;
 };
 
 function isAnalyticsEnabled(): boolean {
@@ -24,32 +24,38 @@ async function sha256(value: string): Promise<string> {
 }
 
 export async function track(eventName: string, properties: AnalyticsProps = {}): Promise<void> {
-  if (!isAnalyticsEnabled()) {
-    return;
-  }
-
-  const activeContext = getStoredActiveContext();
-  const tenantIdRaw = properties.tenantId ?? activeContext?.tenantId;
-  const locationIdRaw = properties.locationId ?? activeContext?.locationId;
-
-  const payload = {
-    eventName,
-    properties: {
-      ...properties,
-      tenantId: tenantIdRaw ? await sha256(tenantIdRaw) : undefined,
-      locationId: locationIdRaw ? await sha256(locationIdRaw) : undefined,
-      pageName: properties.pageName ?? (typeof window !== 'undefined' ? window.location.pathname : undefined),
-    },
-    occurredAt: new Date().toISOString(),
-  };
-
-  if (typeof window !== 'undefined') {
-    const ph = (window as { posthog?: { capture?: (name: string, props: Record<string, unknown>) => void } }).posthog;
-    if (ph?.capture) {
-      ph.capture(payload.eventName, payload.properties);
+  try {
+    if (!isAnalyticsEnabled()) {
       return;
     }
-  }
 
-  console.debug('[analytics]', payload);
+    const activeContext = getStoredActiveContext();
+    const tenantIdRaw = typeof properties.tenantId === 'string' ? properties.tenantId : activeContext?.tenantId;
+    const locationIdRaw = typeof properties.locationId === 'string' ? properties.locationId : activeContext?.locationId;
+
+    const payload = {
+      eventName,
+      properties: {
+        ...properties,
+        tenantId: tenantIdRaw ? await sha256(tenantIdRaw) : undefined,
+        locationId: locationIdRaw ? await sha256(locationIdRaw) : undefined,
+        pageName: typeof properties.pageName === 'string'
+          ? properties.pageName
+          : (typeof window !== 'undefined' ? window.location.pathname : undefined),
+      },
+      occurredAt: new Date().toISOString(),
+    };
+
+    if (typeof window !== 'undefined') {
+      const ph = (window as { posthog?: { capture?: (name: string, props: Record<string, unknown>) => void } }).posthog;
+      if (ph?.capture) {
+        ph.capture(payload.eventName, payload.properties);
+        return;
+      }
+    }
+
+    console.debug('[analytics]', payload);
+  } catch (error) {
+    console.warn('[analytics] track failed', { eventName, error });
+  }
 }
