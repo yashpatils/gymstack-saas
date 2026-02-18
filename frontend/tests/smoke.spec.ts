@@ -74,7 +74,7 @@ test('mobile menu toggles below top bar when authenticated', async ({ page }) =>
   await expect(menuToggle).toBeVisible();
   await menuToggle.click();
 
-  const sidebar = page.locator('.platform-sidebar-modern');
+  const sidebar = page.locator('#platform-sidebar-drawer');
   await expect(sidebar).toBeVisible();
 
   const sidebarBox = await sidebar.boundingBox();
@@ -84,6 +84,24 @@ test('mobile menu toggles below top bar when authenticated', async ({ page }) =>
   expect((sidebarBox?.y ?? 0) + 1).toBeGreaterThanOrEqual(headerBox?.height ?? 0);
 });
 
+
+test('desktop sidebar is visible with stable width', async ({ page }) => {
+  test.skip(!hasCredentials, 'Set E2E_EMAIL and E2E_PASSWORD to run authenticated navigation checks.');
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email!);
+  await page.getByLabel('Password').fill(password!);
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await page.waitForURL('**/platform', { timeout: 20_000 });
+
+  const sidebar = page.locator('#platform-sidebar-drawer');
+  await expect(sidebar).toBeVisible();
+
+  const box = await sidebar.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
+});
 test('account dropdown remains usable after reload while authenticated', async ({ page }) => {
   test.skip(!hasCredentials, 'Set E2E_EMAIL and E2E_PASSWORD to run authenticated navigation checks.');
 
