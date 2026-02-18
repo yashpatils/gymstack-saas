@@ -98,7 +98,7 @@ export function PageShell({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <main className={`page ${className ?? ""}`}>{children}</main>;
+  return <main className={`w-full space-y-6 ${className ?? ""}`}>{children}</main>;
 }
 
 export function PageHeader({
