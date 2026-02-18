@@ -1,4 +1,4 @@
-import { ApiFetchError, apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
+import { apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth/tokenStore';
 import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from '../types/auth';
 
@@ -156,14 +156,7 @@ export function applyOAuthToken(token: string): void {
 }
 
 export async function getMe(): Promise<AuthMeResponse> {
-  try {
-    return await apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store' });
-  } catch (error) {
-    if (error instanceof ApiFetchError && error.statusCode === 401) {
-      logout();
-    }
-    throw error;
-  }
+  return apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store' });
 }
 
 export function logout(): void {
@@ -174,13 +167,8 @@ configureApiAuth(
   refreshAccessToken,
   () => {
     logout();
-    if (
-      typeof window !== 'undefined' &&
-      window.location.pathname !== '/login' &&
-      window.location.pathname !== '/'
-    ) {
-      const params = new URLSearchParams({ message: 'Session expired. Please sign in again.' });
-      window.location.assign(`/login?${params.toString()}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gymstack:session-expired'));
     }
   },
 );
