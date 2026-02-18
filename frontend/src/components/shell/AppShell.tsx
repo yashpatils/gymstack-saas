@@ -1,13 +1,13 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarNav } from "./Sidebar";
 import type { AppNavItem } from "./nav-config";
 
 export function ContentContainer({ children }: { children: ReactNode }) {
-  return <main className="container-app flex-1 py-6">{children}</main>;
+  return <main className="flex-1 min-w-0 px-4 py-4 lg:px-8 lg:py-6">{children}</main>;
 }
 
 export function AppShell({
@@ -29,8 +29,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(112);
-  const headerHostRef = useRef<HTMLDivElement | null>(null);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!mobileNavOpen) {
@@ -57,33 +56,13 @@ export function AppShell({
     setMobileNavOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
-    const element = headerHostRef.current;
-    if (!element || typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver((entries) => {
-      const nextHeight = Math.round(entries[0]?.contentRect.height ?? 0);
-      if (nextHeight > 0) {
-        setHeaderHeight(nextHeight);
-      }
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div
-      className={`platform-shell shell-${variant}`}
-      style={{ "--platform-header-height": `${headerHeight}px` } as CSSProperties}
-    >
+    <div className={`platform-shell shell-${variant}`}>
       {mobileNavOpen ? (
         <button
           type="button"
           className="fixed inset-x-0 bottom-0 z-30 bg-black/50 lg:hidden"
-          style={{ top: "var(--platform-header-height)" }}
+          style={{ top: "var(--topbar-h)" }}
           onClick={() => setMobileNavOpen(false)}
           aria-label="Close menu"
         />
@@ -94,13 +73,13 @@ export function AppShell({
         onClose={() => setMobileNavOpen(false)}
         title={sidebarTitle}
         subtitle={sidebarSubtitle}
+        collapsed={desktopSidebarCollapsed}
+        onToggleCollapsed={() => setDesktopSidebarCollapsed((current) => !current)}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div ref={headerHostRef}>
-          {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
-        </div>
+      <div className="flex min-w-0 flex-1 flex-col pt-[var(--topbar-h)]">
+        {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
         <ContentContainer>{children}</ContentContainer>
-        {footer ? <div className="container-app pb-6">{footer}</div> : null}
+        {footer ? <div className="px-4 pb-6 lg:px-8">{footer}</div> : null}
       </div>
     </div>
   );

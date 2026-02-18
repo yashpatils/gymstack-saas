@@ -105,13 +105,16 @@ test('desktop sidebar is visible with stable width', async ({ page }) => {
   expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
 });
 
-test('login then open account menu keeps user authenticated', async ({ page }) => {
+test('login reload and account menu interaction keeps user authenticated', async ({ page }) => {
   test.skip(!hasCredentials, 'Set E2E_EMAIL and E2E_PASSWORD to run authenticated navigation checks.');
 
   await page.goto('/login');
   await page.getByLabel('Email').fill(email!);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Log in' }).click();
+  await page.waitForURL('**/platform', { timeout: 20_000 });
+
+  await page.reload();
   await page.waitForURL('**/platform', { timeout: 20_000 });
 
   const accountToggle = page.getByRole('button', { name: 'Open account menu' });
