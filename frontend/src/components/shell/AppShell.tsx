@@ -1,13 +1,13 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarNav } from "./Sidebar";
 import type { AppNavItem } from "./nav-config";
 
 export function ContentContainer({ children }: { children: ReactNode }) {
-  return <main className="container-app flex-1 py-6">{children}</main>;
+  return <main className="flex-1 min-w-0 px-4 py-4 lg:px-8 lg:py-6">{children}</main>;
 }
 
 export function AppShell({
@@ -58,23 +58,6 @@ export function AppShell({
     setMobileNavOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
-    const element = headerHostRef.current;
-    if (!element || typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver((entries) => {
-      const nextHeight = Math.round(entries[0]?.contentRect.height ?? 0);
-      if (nextHeight > 0) {
-        setHeaderHeight(nextHeight);
-      }
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <div
       className={`platform-shell shell-${variant} ${sidebarCollapsed ? "platform-shell-collapsed" : ""}`}
@@ -102,7 +85,7 @@ export function AppShell({
           {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
         </div>
         <ContentContainer>{children}</ContentContainer>
-        {footer ? <div className="container-app pb-6">{footer}</div> : null}
+        {footer ? <div className="px-4 pb-6 lg:px-8">{footer}</div> : null}
       </div>
     </div>
   );

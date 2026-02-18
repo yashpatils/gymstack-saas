@@ -50,9 +50,9 @@ export function AppHeader({
   }, [isAccountMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 backdrop-blur-xl">
-      <div className="px-4 py-3 md:px-6">
-        <div className="grid min-h-14 grid-cols-[1fr_auto_1fr] items-center gap-2">
+    <header className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)] border-b border-white/5 bg-[rgba(7,10,20,0.78)] backdrop-blur-xl">
+      <div className="h-full px-4 md:px-6">
+        <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="flex items-center gap-2">
             {showMenuToggle ? (
               <button type="button" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu">☰</button>

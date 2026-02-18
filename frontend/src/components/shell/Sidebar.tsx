@@ -64,6 +64,17 @@ export function SidebarNav({
       <div className="platform-sidebar-section-labels">
         <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Navigation</p>
       </div>
+      {onToggleCollapsed ? (
+        <button
+          type="button"
+          className="button secondary hidden w-full items-center justify-center gap-2 lg:inline-flex"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? "»" : "«"}
+          {!collapsed ? "Collapse" : null}
+        </button>
+      ) : null}
       <nav className="platform-sidebar-nav" aria-label={`${title} navigation`}>
         {Object.entries(sectionLabels).map(([section, label]) => {
           const scopedItems = items.filter((item) => item.section === section);
@@ -84,6 +95,7 @@ export function SidebarNav({
                         className={`platform-nav-item ${isActive ? "platform-nav-item-active" : ""}`}
                         onClick={onClose}
                         aria-current={isActive ? "page" : undefined}
+                        title={collapsed ? item.label : undefined}
                       >
                         <span aria-hidden="true" className="platform-nav-item-icon mr-2 inline-block w-4 text-center">{item.icon}</span>
                         <span className="platform-nav-item-label">{item.label}</span>
