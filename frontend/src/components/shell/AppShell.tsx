@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { SidebarNav } from "./Sidebar";
 import type { AppNavItem } from "./nav-config";
 
@@ -26,6 +27,7 @@ export function AppShell({
   footer?: ReactNode;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(112);
   const headerHostRef = useRef<HTMLDivElement | null>(null);
@@ -35,6 +37,9 @@ export function AppShell({
       return;
     }
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMobileNavOpen(false);
@@ -42,8 +47,15 @@ export function AppShell({
     };
 
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [mobileNavOpen]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const element = headerHostRef.current;
@@ -70,7 +82,8 @@ export function AppShell({
       {mobileNavOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 bg-black/50 lg:hidden"
+          style={{ top: "var(--platform-header-height)" }}
           onClick={() => setMobileNavOpen(false)}
           aria-label="Close menu"
         />

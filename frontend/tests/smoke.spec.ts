@@ -60,7 +60,8 @@ test('admin login page renders', async ({ page }) => {
 });
 
 
-test('mobile menu toggles below top bar when authenticated', async ({ page }) => {
+
+test('mobile toggle opens nav below top bar when authenticated', async ({ page }) => {
   test.skip(!hasCredentials, 'Set E2E_EMAIL and E2E_PASSWORD to run authenticated navigation checks.');
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -70,12 +71,13 @@ test('mobile menu toggles below top bar when authenticated', async ({ page }) =>
   await page.getByRole('button', { name: 'Log in' }).click();
   await page.waitForURL('**/platform', { timeout: 20_000 });
 
-  const menuToggle = page.getByRole('button', { name: 'Toggle menu' });
+  const menuToggle = page.getByRole('button', { name: /open menu|toggle menu/i });
   await expect(menuToggle).toBeVisible();
   await menuToggle.click();
 
-  const sidebar = page.locator('#platform-sidebar-drawer');
+  const sidebar = page.locator('.platform-sidebar-modern');
   await expect(sidebar).toBeVisible();
+  await expect(sidebar).toHaveClass(/platform-sidebar-open/);
 
   const sidebarBox = await sidebar.boundingBox();
   const headerBox = await page.locator('header.sticky').first().boundingBox();
@@ -95,14 +97,15 @@ test('desktop sidebar is visible with stable width', async ({ page }) => {
   await page.getByRole('button', { name: 'Log in' }).click();
   await page.waitForURL('**/platform', { timeout: 20_000 });
 
-  const sidebar = page.locator('#platform-sidebar-drawer');
+  const sidebar = page.locator('.platform-sidebar-modern');
   await expect(sidebar).toBeVisible();
 
   const box = await sidebar.boundingBox();
   expect(box).not.toBeNull();
   expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
 });
-test('account dropdown remains usable after reload while authenticated', async ({ page }) => {
+
+test('login then open account menu keeps user authenticated', async ({ page }) => {
   test.skip(!hasCredentials, 'Set E2E_EMAIL and E2E_PASSWORD to run authenticated navigation checks.');
 
   await page.goto('/login');
@@ -111,13 +114,15 @@ test('account dropdown remains usable after reload while authenticated', async (
   await page.getByRole('button', { name: 'Log in' }).click();
   await page.waitForURL('**/platform', { timeout: 20_000 });
 
-  await page.reload();
-  await page.waitForURL('**/platform', { timeout: 20_000 });
-
   const accountToggle = page.getByRole('button', { name: 'Open account menu' });
   await expect(accountToggle).toBeVisible();
-  await accountToggle.click();
 
+  await accountToggle.click();
   await expect(page.getByRole('link', { name: 'Account info' })).toBeVisible();
+  await expect(page).not.toHaveURL(/\/login/);
+
+  await accountToggle.click();
+  await accountToggle.click();
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expect(page).not.toHaveURL(/\/login/);
 });

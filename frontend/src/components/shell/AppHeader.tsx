@@ -69,6 +69,7 @@ export function AppHeader({
                 onClick={() => setIsAccountMenuOpen((current) => !current)}
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
+                aria-label="Open account menu"
               >
                 <span className="user-chip-avatar h-8 w-8 rounded-full">{accountInitials}</span>
                 <span className="hidden max-w-[120px] truncate sm:block">{accountName}</span>
