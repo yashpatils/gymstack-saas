@@ -10,6 +10,8 @@ type SidebarNavProps = {
   onClose?: () => void;
   title: string;
   subtitle: string;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 const sectionLabels: Record<AppNavItem["section"], string> = {
@@ -31,15 +33,36 @@ function isActivePath(pathname: string, href: string): boolean {
   return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
-export function SidebarNav({ items, mobileOpen = false, onClose, title, subtitle }: SidebarNavProps) {
+export function SidebarNav({
+  items,
+  mobileOpen = false,
+  onClose,
+  title,
+  subtitle,
+  collapsed = false,
+  onToggleCollapsed,
+}: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
-    <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""}`}>
+    <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""} ${collapsed ? "platform-sidebar-collapsed" : ""}`}>
       <div className="rounded-2xl border border-border/80 bg-black/20 p-4 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Gym Stack</p>
-        <p className="mt-2 text-lg font-semibold text-foreground">{title}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+        <p className="mt-2 text-lg font-semibold text-foreground platform-sidebar-title">{title}</p>
+        <p className="mt-1 text-xs text-muted-foreground platform-sidebar-subtitle">{subtitle}</p>
+      </div>
+      {onToggleCollapsed ? (
+        <button
+          type="button"
+          className="platform-sidebar-collapse-toggle button ghost hidden h-8 px-2 text-xs lg:inline-flex"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? "→" : "←"}
+        </button>
+      ) : null}
+      <div className="platform-sidebar-section-labels">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Navigation</p>
       </div>
       <nav className="platform-sidebar-nav" aria-label={`${title} navigation`}>
         {Object.entries(sectionLabels).map(([section, label]) => {
@@ -50,7 +73,7 @@ export function SidebarNav({ items, mobileOpen = false, onClose, title, subtitle
 
           return (
             <div key={section} className="space-y-2">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
+              <p className="platform-sidebar-section-label text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
               <ul className="space-y-1">
                 {scopedItems.map((item) => {
                   const isActive = isActivePath(pathname, item.href);
@@ -62,8 +85,8 @@ export function SidebarNav({ items, mobileOpen = false, onClose, title, subtitle
                         onClick={onClose}
                         aria-current={isActive ? "page" : undefined}
                       >
-                        <span aria-hidden="true" className="mr-2 inline-block w-4 text-center">{item.icon}</span>
-                        {item.label}
+                        <span aria-hidden="true" className="platform-nav-item-icon mr-2 inline-block w-4 text-center">{item.icon}</span>
+                        <span className="platform-nav-item-label">{item.label}</span>
                       </Link>
                     </li>
                   );
