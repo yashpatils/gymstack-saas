@@ -29,6 +29,7 @@ import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
 import { initFrontendMonitoring, setMonitoringUserContext } from '../lib/monitoring';
+import { track } from '../lib/analytics';
 
 export type AuthIssue = 'SESSION_EXPIRED' | 'INSUFFICIENT_PERMISSIONS' | null;
 
