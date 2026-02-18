@@ -1,0 +1,9 @@
+[
+  {
+    "route": "*",
+    "unauth": { "status": null, "finalURL": "not-run" },
+    "authed": { "status": null, "finalURL": "not-run" },
+    "screenshots": {},
+    "consoleErrors": ["Preview run not executed in this environment (frontend dependencies unavailable)."]
+  }
+]

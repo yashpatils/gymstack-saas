@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { useThemeConfig, type ThemeMode } from "../../providers/ThemeProvider";
 
 type AppHeaderProps = {
   onToggleMenu: () => void;
@@ -17,6 +18,12 @@ type AppHeaderProps = {
   gatingStatusSummary?: string;
 };
 
+const themeOptions: Array<{ mode: ThemeMode; label: string }> = [
+  { mode: "light", label: "Light" },
+  { mode: "dark", label: "Dark" },
+  { mode: "system", label: "System" },
+];
+
 export function AppHeader({
   onToggleMenu,
   showMenuToggle = true,
@@ -29,6 +36,7 @@ export function AppHeader({
   qaBypass = false,
   gatingStatusSummary,
 }: AppHeaderProps) {
+  const { themeMode, setThemeMode, effectiveTheme } = useThemeConfig();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -86,6 +94,25 @@ export function AppHeader({
                       <p className="mt-1 text-[11px] text-amber-100/90">Would be blocked: {gatingStatusSummary ?? 'UNKNOWN'}</p>
                     </div>
                   ) : null}
+                  <div className="mb-2 rounded-lg border border-white/10 px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Theme</p>
+                    <div className="mt-2 flex gap-1 rounded-lg bg-black/25 p-1">
+                      {themeOptions.map((option) => (
+                        <button
+                          key={option.mode}
+                          type="button"
+                          className={`rounded-md px-2 py-1 text-xs ${themeMode === option.mode ? "bg-white/20 text-white" : "text-slate-300 hover:bg-white/10"}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setThemeMode(option.mode);
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-400">Current: {effectiveTheme}</p>
+                  </div>
                   {accountLinks.map((link) => (
                     <Link key={link.href} href={link.href} className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsAccountMenuOpen(false); }}>{link.label}</Link>
                   ))}

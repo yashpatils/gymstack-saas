@@ -40,8 +40,21 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const themeBootstrapScript = `(() => {
+    const key = 'gymstack.themeMode';
+    const stored = window.localStorage.getItem(key);
+    const mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+    const effective = mode === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : mode;
+    document.documentElement.dataset.theme = effective;
+  })();`;
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+      </head>
       <body className={geist.variable} style={getTokenCssVariables()}>
         <AuthProvider>
           <ThemeProvider>
