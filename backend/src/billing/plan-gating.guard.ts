@@ -23,7 +23,7 @@ export class PlanGatingGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<{ user?: { role?: Role; activeTenantId?: string; orgId?: string } }>();
+    const request = context.switchToHttp().getRequest<{ user?: { role?: Role; activeTenantId?: string; orgId?: string; qaBypass?: boolean } }>();
     const role = request.user?.role;
     if (role === Role.ADMIN || role === Role.PLATFORM_ADMIN) {
       return true;
@@ -45,11 +45,12 @@ export class PlanGatingGuard implements CanActivate {
     const snapshot = await this.subscriptionGatingService.getTenantBillingSnapshot(tenantId);
     const currentPlan = snapshot?.subscriptionStatus === SubscriptionStatus.FREE ? 'free' : (snapshot?.planKey ?? 'starter');
     const status = snapshot?.subscriptionStatus ?? SubscriptionStatus.FREE;
+    const qaBypass = request.user?.qaBypass === true;
 
     const allowed = (status === SubscriptionStatus.ACTIVE || status === SubscriptionStatus.TRIAL)
       && (PLAN_ORDER[currentPlan] ?? 0) >= PLAN_ORDER[requiredPlan];
 
-    if (!allowed) {
+    if (!allowed && !qaBypass) {
       throw new HttpException({
         code: 'PLAN_UPGRADE_REQUIRED',
         message: 'Upgrade to continue using this feature.',

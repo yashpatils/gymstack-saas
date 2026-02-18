@@ -30,6 +30,11 @@ export type TenantBillingStatusResponse = {
   priceId: string | null;
   whiteLabelEligible: boolean;
   whiteLabelEnabled: boolean;
+  effectiveAccess: boolean;
+  gatingStatus: {
+    wouldBeBlocked: boolean;
+    reasonCode: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
+  };
   usage: {
     locationsUsed: number;
     maxLocations: number;

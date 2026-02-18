@@ -100,6 +100,6 @@ export class BillingController {
       throw new ForbiddenException('Missing tenant context');
     }
 
-    return this.billingService.getTenantBillingStatus(tenantId);
+    return this.billingService.getTenantBillingStatus(tenantId, user.qaBypass === true);
   }
 }

@@ -25,7 +25,7 @@ import {
   type SignupRole,
   verifyEmail as verifyEmailRequest,
 } from '../lib/auth';
-import type { ActiveLocation, ActiveTenant, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, PermissionFlags, TenantFeatures } from '../types/auth';
+import type { ActiveLocation, ActiveTenant, GatingStatus, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, PermissionFlags, TenantFeatures } from '../types/auth';
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
@@ -55,6 +55,9 @@ type AuthContextValue = {
   activeMode?: 'OWNER' | 'MANAGER';
   onboarding?: OnboardingState;
   ownerOperatorSettings?: OwnerOperatorSettings | null;
+  qaBypass: boolean;
+  effectiveAccess?: boolean;
+  gatingStatus?: GatingStatus;
   login: (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
@@ -70,7 +73,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() => (typeof window === 'undefined' ? null : getToken()));
   const [isLoading, setIsLoading] = useState(true);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [platformRole, setPlatformRole] = useState<'PLATFORM_ADMIN' | null>(null);
@@ -93,6 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ownerOperatorSettings, setOwnerOperatorSettings] = useState<OwnerOperatorSettings | null | undefined>(undefined);
   const [meStatus, setMeStatus] = useState<200 | 401 | 403 | null>(null);
   const [authIssue, setAuthIssue] = useState<AuthIssue>(null);
+  const [qaBypass, setQaBypass] = useState(false);
+  const [effectiveAccess, setEffectiveAccess] = useState<boolean | undefined>(undefined);
+  const [gatingStatus, setGatingStatus] = useState<GatingStatus | undefined>(undefined);
 
   const clearAuthState = useCallback(() => {
     setMonitoringUserContext(null);
@@ -120,6 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveMode(undefined);
     setOnboarding(undefined);
     setOwnerOperatorSettings(undefined);
+    setQaBypass(false);
+    setEffectiveAccess(undefined);
+    setGatingStatus(undefined);
   }, []);
 
   const normalizeMemberships = useCallback((source: AuthMeResponse['memberships']): Membership[] => {
@@ -186,6 +195,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveMode(meResponse.activeMode);
     setOnboarding(meResponse.onboarding);
     setOwnerOperatorSettings(meResponse.ownerOperatorSettings);
+    setQaBypass(Boolean(meResponse.user.qaBypass));
+    setEffectiveAccess(meResponse.effectiveAccess);
+    setGatingStatus(meResponse.gatingStatus);
   }, [normalizeMemberships, normalizePermissions]);
 
   const hydrateFromMe = useCallback(async () => {
@@ -399,6 +411,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       activeMode,
       onboarding,
       ownerOperatorSettings,
+      qaBypass,
+      effectiveAccess,
+      gatingStatus,
       login,
       signup,
       acceptInvite,
@@ -409,7 +424,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       resendVerification,
     }),
-    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
+    [user, token, isLoading, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

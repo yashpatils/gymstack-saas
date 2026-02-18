@@ -1171,6 +1171,7 @@ body {
 
 .container-app {
   width: 100%;
+  margin: 0;
   padding: 1.5rem;
 }
 
@@ -1269,9 +1270,20 @@ body {
 }
 
 .platform-shell {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   min-height: 100vh;
   width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .platform-shell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .platform-shell.platform-shell-collapsed {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
 }
 
 .platform-mobile-nav {
@@ -1316,25 +1328,45 @@ body {
 }
 
 .platform-sidebar-modern {
-  width: 18rem;
-  min-width: 18rem;
-  flex-shrink: 0;
-  position: sticky;
-  top: var(--topbar-h);
-  height: calc(100vh - var(--topbar-h));
   border-right: 1px solid var(--border);
   background: rgba(2, 6, 23, 0.75);
   backdrop-filter: blur(8px);
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  overflow-y: auto;
+  gap: 1rem;
+  width: 280px;
+  min-width: 0;
+  max-width: 100%;
+  position: relative;
+  z-index: 30;
 }
 
-.platform-sidebar-collapsed {
-  width: 4.5rem;
-  min-width: 4.5rem;
+.platform-content-column {
+  min-width: 0;
+}
+
+.platform-sidebar-section-labels {
+  display: none;
+}
+
+.platform-sidebar-collapsed .platform-sidebar-title,
+.platform-sidebar-collapsed .platform-sidebar-subtitle,
+.platform-sidebar-collapsed .platform-sidebar-section-label,
+.platform-sidebar-collapsed .platform-nav-item-label {
+  display: none;
+}
+
+.platform-sidebar-collapsed .platform-nav-item {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.platform-sidebar-collapsed .platform-nav-item-icon {
+  margin-right: 0;
 }
 
 .platform-sidebar-nav {
@@ -1508,15 +1540,13 @@ body {
 
   .platform-sidebar-modern {
     position: fixed;
-    top: var(--topbar-h);
     left: 0;
-    height: calc(100vh - var(--topbar-h));
+    top: 0;
+    height: 100vh;
     overflow-y: auto;
-    z-index: 40;
+    z-index: 50;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
-    width: min(320px, 85vw);
-    max-width: min(320px, 85vw);
   }
 
   .platform-sidebar-open {
@@ -1544,6 +1574,18 @@ body {
 
   .platform-menu-toggle {
     display: none;
+  }
+
+  .platform-sidebar-modern {
+    width: 100%;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+
+  .platform-shell.platform-shell-collapsed .platform-sidebar-modern {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 
   .dashboard-main-grid {

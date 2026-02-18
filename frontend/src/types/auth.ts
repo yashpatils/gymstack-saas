@@ -32,6 +32,12 @@ export type AuthUser = {
   tenantId?: string | null;
   orgId?: string | null;
   emailVerifiedAt?: string | null;
+  qaBypass?: boolean;
+};
+
+export type GatingStatus = {
+  wouldBeBlocked: boolean;
+  reasonCode: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
 };
 
 export type Membership = {
@@ -117,6 +123,8 @@ export type AuthMeResponse = {
   subscriptionStatus?: string | null;
   stripeConfigured?: boolean;
   tenantFeatures?: TenantFeatures;
+  effectiveAccess?: boolean;
+  gatingStatus?: GatingStatus;
 };
 
 export type AuthLoginResponse = {

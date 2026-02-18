@@ -29,7 +29,9 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(112);
+  const headerHostRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!mobileNavOpen) {
@@ -57,12 +59,14 @@ export function AppShell({
   }, [pathname]);
 
   return (
-    <div className={`platform-shell shell-${variant}`}>
+    <div
+      className={`platform-shell shell-${variant} ${sidebarCollapsed ? "platform-shell-collapsed" : ""}`}
+      style={{ "--platform-header-height": `${headerHeight}px` } as CSSProperties}
+    >
       {mobileNavOpen ? (
         <button
           type="button"
-          className="fixed inset-x-0 bottom-0 z-30 bg-black/50 lg:hidden"
-          style={{ top: "var(--topbar-h)" }}
+          className="platform-sidebar-backdrop fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           aria-label="Close menu"
         />
@@ -73,11 +77,13 @@ export function AppShell({
         onClose={() => setMobileNavOpen(false)}
         title={sidebarTitle}
         subtitle={sidebarSubtitle}
-        collapsed={desktopSidebarCollapsed}
-        onToggleCollapsed={() => setDesktopSidebarCollapsed((current) => !current)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
       />
-      <div className="flex min-w-0 flex-1 flex-col pt-[var(--topbar-h)]">
-        {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
+      <div className="platform-content-column flex min-w-0 flex-1 flex-col">
+        <div ref={headerHostRef}>
+          {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
+        </div>
         <ContentContainer>{children}</ContentContainer>
         {footer ? <div className="px-4 pb-6 lg:px-8">{footer}</div> : null}
       </div>

@@ -43,7 +43,10 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Open account menu"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsOpen((current) => !current);
+        }}
       >
         <span className="user-chip-avatar h-8 w-8 rounded-full">{initials}</span>
         <span className="hidden max-w-[120px] truncate sm:block">{label}</span>
@@ -52,16 +55,17 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
 
       {isOpen ? (
         <div ref={menuRef} role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-64 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl">
-          <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsOpen(false)}>
+          <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
             Account info
           </Link>
-          <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={() => setIsOpen(false)}>
+          <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
             Settings
           </Link>
           <button
             type="button"
             className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
               setIsOpen(false);
               onLogout();
             }}
