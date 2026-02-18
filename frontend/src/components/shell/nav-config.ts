@@ -25,6 +25,7 @@ export const platformNavItems: AppNavItem[] = [
   { label: "Settings", href: "/platform/settings", icon: "⚙", section: "settings" },
   { label: "Developer", href: "/platform/developer", icon: "🧩", section: "settings" },
   { label: "QA status", href: "/platform/qa", icon: "🧪", section: "settings", debugOnly: true },
+  { label: "Shell preview", href: "/platform/dev/shell-preview", icon: "🧱", section: "settings", debugOnly: true },
   { label: "Location settings", href: "/platform/locations/settings", icon: "📍", section: "settings" },
   {
     label: "Admin",

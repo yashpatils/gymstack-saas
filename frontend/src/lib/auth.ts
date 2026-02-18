@@ -40,7 +40,7 @@ export async function refreshAccessToken(): Promise<string | null> {
       return data.accessToken;
     } catch (error) {
       if (error instanceof ApiFetchError && (error.statusCode === 401 || error.statusCode === 403)) {
-        logout();
+        return null;
       }
       return null;
     } finally {

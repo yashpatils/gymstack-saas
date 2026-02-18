@@ -208,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveMode(meResponse.activeMode);
     setOnboarding(meResponse.onboarding);
     setOwnerOperatorSettings(meResponse.ownerOperatorSettings);
-    setQaBypass(Boolean(meResponse.user.qaBypass));
+    setQaBypass(Boolean(meResponse.qaBypass ?? meResponse.user.qaBypass));
     setEffectiveAccess(meResponse.effectiveAccess);
     setGatingStatus(meResponse.gatingStatus);
     setQaModeEnabled(Boolean(meResponse.qaModeEnabled));
@@ -220,14 +220,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applyMeResponse(meResponse);
       return meResponse;
     } catch (error) {
-      if (error instanceof ApiFetchError) {
-        if (error.statusCode === 401) {
-          setMeStatus(401);
-          setAuthIssue('SESSION_EXPIRED');
-        } else if (error.statusCode === 403) {
-          setMeStatus(403);
-          setAuthIssue('INSUFFICIENT_PERMISSIONS');
-        }
+      if (error instanceof ApiFetchError && error.statusCode === 403) {
+        setMeStatus(403);
+        setAuthIssue('INSUFFICIENT_PERMISSIONS');
       }
       throw error;
     }
@@ -240,11 +235,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error instanceof ApiFetchError && error.statusCode === 401) {
         const nextToken = await refreshAccessToken();
         if (!nextToken) {
+          setMeStatus(401);
+          setAuthIssue('SESSION_EXPIRED');
           throw error;
         }
 
         setToken(nextToken);
-        return hydrateFromMe();
+        try {
+          return await hydrateFromMe();
+        } catch (retryError) {
+          if (retryError instanceof ApiFetchError && retryError.statusCode === 401) {
+            setMeStatus(401);
+            setAuthIssue('SESSION_EXPIRED');
+          }
+          throw retryError;
+        }
       }
 
       throw error;

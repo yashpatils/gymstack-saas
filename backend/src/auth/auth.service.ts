@@ -908,9 +908,13 @@ export class AuthService implements OnModuleInit {
       ? await this.subscriptionGatingService.getTenantBillingSnapshot(canonicalContext.tenantId)
       : null;
     const qaModeEnabled = isQaModeEnabled(this.configService.get<string>('QA_MODE'));
+    const adminEmail = this.configService.get<string>('ADMIN_EMAIL')?.trim().toLowerCase();
+    const isAdminEmailUser = Boolean(adminEmail && user.email.trim().toLowerCase() === adminEmail);
     const effectiveQaBypass = shouldApplyQaBypass({
       qaModeEnabled,
       userQaBypass: user.qaBypass,
+      isPlatformAdmin: userIsPlatformAdmin,
+      isAdminEmailUser,
     });
     const accessEvaluation = this.subscriptionGatingService.evaluateTenantAccess(snapshot, effectiveQaBypass);
     const activeTenant = canonicalContext.tenantId
@@ -935,7 +939,7 @@ export class AuthService implements OnModuleInit {
         orgId: user.orgId ?? undefined,
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-        qaBypass: user.qaBypass,
+        qaBypass: effectiveQaBypass,
       },
       isPlatformAdmin: userIsPlatformAdmin,
       platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
@@ -966,7 +970,12 @@ export class AuthService implements OnModuleInit {
         : null,
       activeLocation,
       effectiveAccess: accessEvaluation.effectiveAccess,
-      gatingStatus: accessEvaluation.gatingStatus,
+      gatingStatus: {
+        ok: !accessEvaluation.gatingStatus.wouldBeBlocked,
+        reasonCode: accessEvaluation.gatingStatus.reasonCode,
+        wouldBeBlocked: accessEvaluation.gatingStatus.wouldBeBlocked,
+      },
+      qaBypass: effectiveQaBypass,
       qaModeEnabled,
       context: {
         tenant: { id: canonicalContext.tenantId, name: activeTenant?.name ?? null },
@@ -976,7 +985,11 @@ export class AuthService implements OnModuleInit {
         plan: snapshot?.planKey ?? 'starter',
         trialDaysLeft,
         status: snapshot?.subscriptionStatus ?? 'UNKNOWN',
-        gatingSummary: accessEvaluation.gatingStatus,
+        gatingSummary: {
+          ok: !accessEvaluation.gatingStatus.wouldBeBlocked,
+          reasonCode: accessEvaluation.gatingStatus.reasonCode,
+          wouldBeBlocked: accessEvaluation.gatingStatus.wouldBeBlocked,
+        },
       },
     };
   }

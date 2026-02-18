@@ -36,8 +36,9 @@ export type AuthUser = {
 };
 
 export type GatingStatus = {
-  wouldBeBlocked: boolean;
-  reasonCode: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
+  ok?: boolean;
+  wouldBeBlocked?: boolean;
+  reasonCode?: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
 };
 
 export type AuthContextSummary = {
@@ -140,6 +141,7 @@ export type AuthMeResponse = {
   tenantFeatures?: TenantFeatures;
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatus;
+  qaBypass?: boolean;
   qaModeEnabled?: boolean;
   context: AuthContextSummary;
   billing: AuthBillingSummary;
