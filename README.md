@@ -177,17 +177,17 @@ Onboarding flow:
 Use this script to upsert the QA admin user in the connected database and always reset it to a known password.
 
 ```bash
-DATABASE_URL=<neon url> ENABLE_QA_USER_SEED=true npm run ensure:qa-user
+DATABASE_URL=<neon url> QA_EMAIL=<qa email> QA_PASSWORD=<qa password> ENABLE_QA_USER_SEED=true npm run ensure:qa-user
 ```
 
 Optional overrides:
 
 - `QA_EMAIL` (default: `qa+admin@gymstack.club`)
 - `QA_PASSWORD` (default: `TestPassword123!`)
-- `QA_BYPASS` (default: `true`)
-- `QA_ROLE` (default: `ADMIN`)
 
 Safety guard: the script refuses to run unless `ENABLE_QA_USER_SEED=true` is set.
+
+To activate QA bypass behavior and the `/platform/qa` status panel, set `QA_MODE=true` in the backend environment.
 
 Verification checklist:
 

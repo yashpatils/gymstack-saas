@@ -1,4 +1,4 @@
-import { MembershipRole } from '@prisma/client';
+import { MembershipRole, SubscriptionStatus } from '@prisma/client';
 import { PermissionFlags } from '../permission-resolver';
 
 export class MembershipDto {
@@ -58,8 +58,16 @@ export class AuthMeResponseDto {
   activeMode!: "OWNER" | "MANAGER";
   permissions!: PermissionFlags;
   permissionKeys!: string[];
-  activeTenant?: { id: string; name: string; isDemo?: boolean } | null;
+  activeTenant?: {
+    id: string;
+    name: string;
+    isDemo?: boolean;
+    subscriptionStatus?: SubscriptionStatus;
+    trialStartedAt?: string | null;
+    trialEndsAt?: string | null;
+  } | null;
   activeLocation?: { id: string; name: string; customDomain?: string | null } | null;
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatusDto;
+  qaModeEnabled?: boolean;
 }

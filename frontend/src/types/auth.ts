@@ -67,6 +67,9 @@ export type ActiveTenant = {
   id: string;
   name: string;
   isDemo?: boolean;
+  subscriptionStatus?: string;
+  trialStartedAt?: string | null;
+  trialEndsAt?: string | null;
 };
 
 export type ActiveLocation = {
@@ -125,6 +128,7 @@ export type AuthMeResponse = {
   tenantFeatures?: TenantFeatures;
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatus;
+  qaModeEnabled?: boolean;
 };
 
 export type AuthLoginResponse = {
