@@ -58,7 +58,7 @@ export function AppHeader({
   }, [isAccountMenuOpen]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)] border-b border-white/5 bg-[rgba(7,10,20,0.78)] backdrop-blur-xl">
+    <header data-testid="topbar" className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)] border-b border-white/5 bg-[rgba(7,10,20,0.78)] backdrop-blur-xl">
       <div className="h-full px-4 md:px-6">
         <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="flex items-center gap-2">

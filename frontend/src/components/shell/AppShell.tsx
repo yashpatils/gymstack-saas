@@ -61,7 +61,7 @@ export function AppShell({
   return (
     <div
       data-testid="app-shell"
-      className={`shell-${variant} min-h-screen w-full`}
+      className={`gs-shell shell-${variant} min-h-screen w-full`}
       style={{ "--topbar-h": `${TOPBAR_H}px` } as CSSProperties}
     >
       {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}

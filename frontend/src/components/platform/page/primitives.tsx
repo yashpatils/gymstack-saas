@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export function PageContainer({ children }: { children: ReactNode }) {
-  return <div className="w-full space-y-[var(--space-xl)] px-4 py-4 lg:px-8 lg:py-6">{children}</div>;
+  return <div className="w-full space-y-[var(--space-xl)]">{children}</div>;
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {

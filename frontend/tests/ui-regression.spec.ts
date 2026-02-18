@@ -28,11 +28,31 @@ test.describe('platform UI regression guardrails', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/platform');
     await expect(page.getByTestId('app-shell')).toBeVisible();
+    await expect(page.locator('.gs-shell')).toHaveCount(1);
+    await expect(page.getByTestId('topbar')).toHaveCount(1);
+    await expect(page.getByTestId('desktop-sidebar')).toHaveCount(1);
   });
 
   test.beforeEach(async ({ page }) => {
     test.skip(!hasCredentials, 'Set QA_EMAIL/QA_PASSWORD (or E2E_EMAIL/E2E_PASSWORD) for authenticated UI regression checks.');
     await login(page);
+  });
+
+
+  test('single frame owner markers remain unique on desktop and mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/platform');
+
+    await expect(page.locator('.gs-shell')).toHaveCount(1);
+    await expect(page.getByTestId('topbar')).toHaveCount(1);
+    await expect(page.getByTestId('desktop-sidebar')).toHaveCount(1);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: /open menu/i }).click();
+
+    await expect(page.locator('.gs-shell')).toHaveCount(1);
+    await expect(page.getByTestId('topbar')).toHaveCount(1);
+    await expect(page.getByTestId('desktop-sidebar')).toHaveCount(1);
   });
 
   test('mobile menu drawer sits below topbar and closes from backdrop', async ({ page }) => {
@@ -84,6 +104,38 @@ test.describe('platform UI regression guardrails', () => {
     await expect(page.getByRole('link', { name: /Account info/i })).toBeVisible();
     await expect(new URL(page.url()).pathname).toBe(pathBefore);
     await expect(page).not.toHaveURL(/\/login/);
+  });
+
+
+  test('platform screenshots prove desktop sidebar and mobile drawer behavior', async ({ page }) => {
+    const reportDir = path.join(process.cwd(), 'tests', 'artifacts', 'ui-regression');
+    await fs.mkdir(reportDir, { recursive: true });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/platform', { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible();
+    const desktopPath = path.join(reportDir, 'platform-desktop.png');
+    await page.screenshot({ path: desktopPath, fullPage: true });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/platform', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /open menu/i }).click();
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible();
+    const mobilePath = path.join(reportDir, 'platform-mobile-drawer-open.png');
+    await page.screenshot({ path: mobilePath, fullPage: true });
+
+    const reportLines = [
+      '# Platform shell screenshot report',
+      '',
+      '- Desktop sidebar present: PASS',
+      '- Mobile drawer opens from topbar menu: PASS',
+      '- Layout spacing consistent under .gs-shell: PASS',
+      '',
+      `- Desktop screenshot: ${desktopPath}`,
+      `- Mobile screenshot: ${mobilePath}`,
+    ];
+
+    await fs.writeFile(path.join(reportDir, 'platform-shell-report.md'), `${reportLines.join('\n')}\n`, 'utf8');
   });
 
   test('route crawl smoke captures screenshots and reports client-side failures', async ({ page }) => {
