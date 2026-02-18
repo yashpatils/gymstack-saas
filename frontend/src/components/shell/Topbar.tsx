@@ -67,7 +67,7 @@ export function Topbar({
   }, [isAccountMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-[var(--surface-overlay)] backdrop-blur-xl">
       <div className="px-4 py-2 md:px-6">
         <div className="flex justify-center py-1">
           <h1 className="text-base font-semibold tracking-wide text-foreground/95 md:text-lg">Gym Stack</h1>
@@ -108,10 +108,10 @@ export function Topbar({
                 <span className="text-xs">▾</span>
               </button>
               {isAccountMenuOpen ? (
-                <div ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-20 w-64 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
+                <div ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-20 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu">
                   {canSwitchMode ? (
-                    <div className="mb-2 rounded-lg border border-white/10 bg-white/5 p-1 md:hidden">
-                      <p className="px-2 pb-1 pt-0.5 text-[11px] uppercase tracking-[0.2em] text-slate-400">Mode</p>
+                    <div className="mb-2 rounded-lg border border-border bg-background/60 p-1 md:hidden">
+                      <p className="px-2 pb-1 pt-0.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Mode</p>
                       <ModeToggle activeMode={activeMode} onSwitchMode={(mode) => {
                         setIsAccountMenuOpen(false);
                         onSwitchMode(mode);
@@ -119,14 +119,14 @@ export function Topbar({
                     </div>
                   ) : null}
                   {canShowLocationSwitcher ? (
-                    <div className="mb-2 rounded-lg border border-white/10 bg-white/5 p-2 md:hidden">
+                    <div className="mb-2 rounded-lg border border-border bg-background/60 p-2 md:hidden">
                       <LocationSwitcher locations={locations} activeLocationId={activeLocationId} activeMode={activeMode} onSelect={onSelectLocation} canCreate />
                     </div>
                   ) : null}
-                  <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>Account info</Link>
-                  <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>Settings</Link>
+                  <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-background/60" onClick={() => setIsAccountMenuOpen(false)}>Account info</Link>
+                  <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-background/60" onClick={() => setIsAccountMenuOpen(false)}>Settings</Link>
                   {showAdminPortalLink ? (
-                    <a href={adminPortalUrl} className="mt-1 block rounded-lg px-3 py-2 text-sm text-sky-200 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>Admin portal</a>
+                    <a href={adminPortalUrl} className="mt-1 block rounded-lg px-3 py-2 text-sm text-sky-500 hover:bg-background/60" onClick={() => setIsAccountMenuOpen(false)}>Admin portal</a>
                   ) : null}
                   <button type="button" className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20" onClick={() => {
                     setIsAccountMenuOpen(false);

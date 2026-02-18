@@ -47,12 +47,12 @@ export function SidebarNav({
   return (
     <aside
       id="platform-sidebar"
-      className={`platform-sidebar-modern fixed left-0 top-[var(--topbar-h)] z-50 h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] -translate-x-full overflow-y-auto border-r border-border/70 bg-slate-950/95 p-4 shadow-xl transition-transform duration-200 ease-out lg:sticky lg:z-20 lg:w-full lg:translate-x-0 lg:shadow-none ${mobileOpen ? "platform-sidebar-open translate-x-0" : ""} ${collapsed ? "platform-sidebar-collapsed" : ""}`}
+      className={`platform-sidebar-modern fixed left-0 top-[var(--topbar-h)] z-50 h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] -translate-x-full overflow-y-auto border-r border-border/70 bg-[var(--surface-sidebar)] p-4 shadow-xl transition-transform duration-200 ease-out lg:sticky lg:z-20 lg:w-full lg:translate-x-0 lg:shadow-none ${mobileOpen ? "platform-sidebar-open translate-x-0" : ""} ${collapsed ? "platform-sidebar-collapsed" : ""}`}
       aria-label={`${title} navigation`}
       data-testid="desktop-sidebar"
       data-collapsed={collapsed}
     >
-      <div className="rounded-2xl border border-border/80 bg-black/20 p-4 text-center">
+      <div className="rounded-2xl border border-border/80 bg-card p-4 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Gym Stack</p>
         <p className="platform-sidebar-title mt-2 text-lg font-semibold text-foreground">{title}</p>
         <p className="platform-sidebar-subtitle mt-1 text-xs text-muted-foreground">{subtitle}</p>
