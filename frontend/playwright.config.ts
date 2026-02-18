@@ -18,8 +18,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://127.0.0.1:3000',
+    command: process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? 'npm run dev',
+    url: process.env.PLAYWRIGHT_WEB_SERVER_URL ?? 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

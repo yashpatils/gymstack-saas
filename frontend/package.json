@@ -13,7 +13,8 @@
     "preflight": "npm run lint && npm run typecheck && npm run build",
     "predeploy": "npm run lint && npm run typecheck && npm run build",
     "smoke": "playwright test tests/smoke.spec.ts",
-    "smoke:headed": "playwright test tests/smoke.spec.ts --headed"
+    "smoke:headed": "playwright test tests/smoke.spec.ts --headed",
+    "qa:full": "playwright test tests/qa-full.spec.ts"
   },
   "dependencies": {
     "next": "14.2.5",

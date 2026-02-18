@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { resolveEffectivePermissions } from './authorization';
 import { AuditService } from '../audit/audit.service';
 import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
+import { isQaModeEnabled, shouldApplyQaBypass } from '../common/qa-mode.util';
 
 interface JwtPayload {
   sub: string;
@@ -28,6 +29,8 @@ type SupportModeContext = {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly qaModeEnabled: boolean;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -45,6 +48,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: secret ?? 'dev-secret',
       passReqToCallback: true,
     });
+
+    this.qaModeEnabled = isQaModeEnabled(this.configService.get<string>('QA_MODE'));
   }
 
   async validate(
@@ -86,7 +91,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       isPlatformAdmin: userIsPlatformAdmin,
       supportMode,
       emailVerifiedAt: user?.emailVerifiedAt ?? null,
-      qaBypass: payload.qaBypass ?? user?.qaBypass ?? false,
+      qaBypass: shouldApplyQaBypass({
+        qaModeEnabled: this.qaModeEnabled,
+        userQaBypass: payload.qaBypass ?? user?.qaBypass ?? false,
+      }),
     };
   }
 
