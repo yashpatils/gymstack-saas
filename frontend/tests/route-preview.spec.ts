@@ -61,6 +61,28 @@ async function attemptLogin(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
+
+async function runPlatformAssertions(page: Page, viewport: "desktop" | "mobile") {
+  await page.goto('/platform', { waitUntil: 'domcontentloaded' });
+
+  if (viewport === 'desktop') {
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible();
+  } else {
+    const toggle = page.getByRole('button', { name: /open menu/i }).first();
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    const drawer = page.getByTestId('mobile-drawer');
+    await expect(drawer).toBeVisible();
+    const box = await drawer.boundingBox();
+    expect((box?.y ?? 0) + 1).toBeGreaterThanOrEqual(64);
+  }
+
+  const account = page.getByRole('button', { name: 'Open account menu' });
+  await expect(account).toBeVisible();
+  await account.click();
+  await expect(page).not.toHaveURL(/\/login/);
+}
+
 async function visitAndCapture(page: Page, route: string, viewport: 'desktop' | 'mobile', label: 'unauth' | 'authed', consoleErrors: string[]) {
   const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(500);
@@ -132,6 +154,9 @@ async function runPreview(context: BrowserContext, viewport: 'desktop' | 'mobile
       consoleErrors,
     });
   }
+
+  await attemptLogin(page);
+  await runPlatformAssertions(page, viewport);
 
   await page.close();
   return results;

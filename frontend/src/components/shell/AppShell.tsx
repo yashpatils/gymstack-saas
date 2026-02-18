@@ -9,7 +9,7 @@ import type { AppNavItem } from "./nav-config";
 export const TOPBAR_H = 64;
 
 export function ContentContainer({ children }: { children: ReactNode }) {
-  return <main className="min-w-0 w-full px-4 py-4 lg:px-8 lg:py-6"><div className="mx-auto w-full max-w-[1400px]">{children}</div></main>;
+  return <main className="min-w-0 w-full px-6 py-6 lg:px-8"><div className="mx-auto w-full max-w-[1360px]">{children}</div></main>;
 }
 
 export function AppShell({
@@ -75,9 +75,7 @@ export function AppShell({
         />
       ) : null}
 
-      <div
-        className={`grid min-h-[calc(100vh-var(--topbar-h))] pt-[var(--topbar-h)] lg:grid-cols-[288px_1fr] ${sidebarCollapsed ? "lg:grid-cols-[72px_1fr]" : ""}`}
-      >
+      <div className={`grid min-h-[calc(100vh-var(--topbar-h))] pt-[var(--topbar-h)] lg:grid-cols-[288px_1fr] ${sidebarCollapsed ? "lg:grid-cols-[72px_1fr]" : ""}`}>
         <SidebarNav
           items={navItems}
           mobileOpen={mobileNavOpen}

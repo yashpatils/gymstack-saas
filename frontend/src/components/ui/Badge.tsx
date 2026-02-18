@@ -4,12 +4,12 @@ import { cn } from "./utils";
 type BadgeVariant = "default" | "secondary" | "success" | "warning" | "destructive" | "outline";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-blue-600 text-white",
-  secondary: "bg-slate-200 text-slate-900",
-  success: "bg-emerald-600 text-white",
-  warning: "bg-amber-500 text-slate-900",
-  destructive: "bg-red-600 text-white",
-  outline: "border border-slate-300 bg-transparent text-slate-700",
+  default: "bg-[var(--brand-100)] text-[var(--accent)]",
+  secondary: "bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)]",
+  success: "bg-[var(--success-100)] text-[var(--success-600)]",
+  warning: "bg-[var(--warning-100)] text-[var(--warning-600)]",
+  destructive: "bg-[var(--danger-100)] text-[var(--danger-600)]",
+  outline: "border border-[var(--border)] bg-transparent text-[var(--text-muted)]",
 };
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
