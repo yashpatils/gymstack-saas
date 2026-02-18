@@ -172,6 +172,38 @@ Onboarding flow:
 - New users without memberships can create their first tenant + first location.
 - The backend creates `organization (tenant)`, `gym (location)`, and `TENANT_OWNER` membership, then the app auto-uses that context.
 
+### Ensure QA admin user exists (Railway/Neon)
+
+Use this script to upsert the QA admin user in the connected database and always reset it to a known password.
+
+```bash
+DATABASE_URL=<neon url> ENABLE_QA_USER_SEED=true npm run ensure:qa-user
+```
+
+Optional overrides:
+
+- `QA_EMAIL` (default: `qa+admin@gymstack.club`)
+- `QA_PASSWORD` (default: `TestPassword123!`)
+- `QA_BYPASS` (default: `true`)
+- `QA_ROLE` (default: `ADMIN`)
+
+Safety guard: the script refuses to run unless `ENABLE_QA_USER_SEED=true` is set.
+
+Verification checklist:
+
+```bash
+# 1) Confirm user exists in Neon
+psql "$DATABASE_URL" -c "SELECT id, email, role, \"qaBypass\", \"emailVerifiedAt\" FROM \"User\" WHERE email = 'qa+admin@gymstack.club';"
+
+# 2) Login with known credentials
+curl -sS -X POST "$API_URL/api/auth/login" \
+  -H 'content-type: application/json' \
+  -d '{"email":"qa+admin@gymstack.club","password":"TestPassword123!"}'
+
+# 3) Confirm qaBypass on me endpoint (replace <access_token> from login response)
+curl -sS "$API_URL/api/auth/me" -H "Authorization: Bearer <access_token>"
+```
+
 ### Seed data
 
 Use the backend seed to create a tenant owner and tenant/gym context:
