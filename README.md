@@ -427,3 +427,37 @@ Run this checklist before shipping layout/auth changes:
 5. **Regression automation**
    - Run lint/type/build checks.
    - Run Playwright smoke, including authenticated menu/account checks when `E2E_EMAIL` + `E2E_PASSWORD` are set.
+
+## Platform UI contract (canonical shell)
+
+The platform surface must obey one layout owner and one navigation system:
+
+- `frontend/app/platform/layout.tsx` is the only owner of platform shell composition.
+- `frontend/src/components/shell/AppShell.tsx` is the canonical shell contract (fixed topbar, single sidebar instance, mobile drawer mode, main content wrapper).
+- Sidebar and topbar primitives must not be imported outside `frontend/src/components/shell/*`.
+- Platform pages should render page primitives/content only (`PageHeader`, `PageContainer`, cards/sections), not custom nav/shell wrappers.
+- Default platform content spacing is standardized:
+  - Mobile: `px-4 py-4`
+  - Desktop: `px-8 py-6`
+
+### UI regression/e2e guardrails
+
+From `frontend/`:
+
+```bash
+# fast smoke
+npm run smoke
+
+# canonical platform UI regression suite
+npm run ui:regression
+
+# extended QA crawl/report suite
+npm run qa:full
+```
+
+`ui:regression` covers:
+
+- mobile drawer open/close + topbar offset checks
+- desktop sidebar width + collapse checks
+- auth persistence after reload + account dropdown interaction
+- route crawl with desktop/mobile screenshots and console/500 regression assertions

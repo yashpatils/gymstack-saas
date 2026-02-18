@@ -14,7 +14,8 @@
     "predeploy": "npm run lint && npm run typecheck && npm run build",
     "smoke": "playwright test tests/smoke.spec.ts",
     "smoke:headed": "playwright test tests/smoke.spec.ts --headed",
-    "qa:full": "playwright test tests/qa-full.spec.ts"
+    "qa:full": "playwright test tests/qa-full.spec.ts",
+    "ui:regression": "playwright test tests/ui-regression.spec.ts"
   },
   "dependencies": {
     "next": "14.2.5",

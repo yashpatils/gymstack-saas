@@ -45,11 +45,16 @@ export function SidebarNav({
   const pathname = usePathname();
 
   return (
-    <aside className={`platform-sidebar-modern ${mobileOpen ? "platform-sidebar-open" : ""} ${collapsed ? "platform-sidebar-collapsed" : ""}`}>
+    <aside
+      id="platform-sidebar"
+      className={`platform-sidebar-modern fixed left-0 top-[var(--topbar-h)] z-50 h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] -translate-x-full overflow-y-auto border-r border-border/70 bg-slate-950/95 p-4 shadow-xl transition-transform duration-200 ease-out lg:sticky lg:z-20 lg:w-full lg:translate-x-0 lg:shadow-none ${mobileOpen ? "platform-sidebar-open translate-x-0" : ""} ${collapsed ? "platform-sidebar-collapsed" : ""}`}
+      aria-label={`${title} navigation`}
+      data-collapsed={collapsed}
+    >
       <div className="rounded-2xl border border-border/80 bg-black/20 p-4 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Gym Stack</p>
-        <p className="mt-2 text-lg font-semibold text-foreground platform-sidebar-title">{title}</p>
-        <p className="mt-1 text-xs text-muted-foreground platform-sidebar-subtitle">{subtitle}</p>
+        <p className="platform-sidebar-title mt-2 text-lg font-semibold text-foreground">{title}</p>
+        <p className="platform-sidebar-subtitle mt-1 text-xs text-muted-foreground">{subtitle}</p>
       </div>
       {onToggleCollapsed ? (
         <button
@@ -64,18 +69,7 @@ export function SidebarNav({
       <div className="platform-sidebar-section-labels">
         <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Navigation</p>
       </div>
-      {onToggleCollapsed ? (
-        <button
-          type="button"
-          className="button secondary hidden w-full items-center justify-center gap-2 lg:inline-flex"
-          onClick={onToggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? "»" : "«"}
-          {!collapsed ? "Collapse" : null}
-        </button>
-      ) : null}
-      <nav className="platform-sidebar-nav" aria-label={`${title} navigation`}>
+      <nav className="platform-sidebar-nav" aria-label={`${title} navigation links`}>
         {Object.entries(sectionLabels).map(([section, label]) => {
           const scopedItems = items.filter((item) => item.section === section);
           if (!scopedItems.length) {
