@@ -17,10 +17,10 @@ export const designTokens = {
   },
   zIndex: {
     base: 1,
-    header: 40,
-    sidebar: 45,
+    header: 60,
+    sidebar: 55,
     overlay: 50,
-    modal: 60,
+    modal: 70,
   },
   duration: {
     fast: "120ms",
@@ -32,7 +32,7 @@ export const designTokens = {
     contentPadding: "1.25rem",
   },
   sidebar: {
-    expanded: "16rem",
+    expanded: "18rem",
     collapsed: "4.5rem",
     mobileNavHeight: "4.5rem",
   },
@@ -42,6 +42,39 @@ export const designTokens = {
     location: "3.5rem",
   },
 } as const;
+
+export const themeColorTokens = {
+  dark: {
+    "--bg": "#0c0f14",
+    "--surface-1": "#131821",
+    "--surface-2": "#181e28",
+    "--surface-3": "#212937",
+    "--surface-sidebar": "#121923",
+    "--surface-overlay": "rgba(14, 19, 27, 0.86)",
+    "--border": "rgba(148, 163, 184, 0.2)",
+    "--text": "#e6edf8",
+    "--text-muted": "#96a3bb",
+    "--accent": "#8a98ff",
+    "--accent-strong": "#6e7ef7",
+  },
+  light: {
+    "--bg": "#f4f6fb",
+    "--surface-1": "#ffffff",
+    "--surface-2": "#f7f9ff",
+    "--surface-3": "#edf1f8",
+    "--surface-sidebar": "#f8fbff",
+    "--surface-overlay": "rgba(255, 255, 255, 0.88)",
+    "--border": "rgba(15, 23, 42, 0.12)",
+    "--text": "#0f172a",
+    "--text-muted": "#55627a",
+    "--accent": "#4f46e5",
+    "--accent-strong": "#4338ca",
+  },
+} as const;
+
+export function getThemeColorTokens(theme: "light" | "dark"): Record<string, string> {
+  return { ...themeColorTokens[theme] };
+}
 
 export function getTokenCssVariables(): Record<string, string> {
   return {

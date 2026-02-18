@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "./AuthProvider";
+import { getThemeColorTokens } from "../styles/tokens";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type EffectiveTheme = "light" | "dark";
@@ -63,6 +64,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const nextEffectiveTheme = resolveEffectiveTheme(themeMode);
     setEffectiveTheme(nextEffectiveTheme);
     document.documentElement.dataset.theme = nextEffectiveTheme;
+    const themeTokens = getThemeColorTokens(nextEffectiveTheme);
+    Object.entries(themeTokens).forEach(([token, value]) => {
+      document.documentElement.style.setProperty(token, value);
+    });
     window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
   }, [themeMode]);
 
@@ -73,8 +78,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
-      setEffectiveTheme(media.matches ? "dark" : "light");
-      document.documentElement.dataset.theme = media.matches ? "dark" : "light";
+      const resolvedTheme = media.matches ? "dark" : "light";
+      setEffectiveTheme(resolvedTheme);
+      document.documentElement.dataset.theme = resolvedTheme;
+      const themeTokens = getThemeColorTokens(resolvedTheme);
+      Object.entries(themeTokens).forEach(([token, value]) => {
+        document.documentElement.style.setProperty(token, value);
+      });
     };
 
     media.addEventListener("change", onChange);

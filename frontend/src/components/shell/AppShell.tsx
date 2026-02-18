@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarNav } from "./Sidebar";
 import type { AppNavItem } from "./nav-config";
-
-export const TOPBAR_H = 64;
+import { DESKTOP_SIDEBAR_COLLAPSED, DESKTOP_SIDEBAR_EXPANDED, TOPBAR_H } from "./constants";
 
 export function ContentContainer({ children }: { children: ReactNode }) {
   return <main className="min-w-0 w-full px-6 py-6 lg:px-8"><div className="mx-auto w-full max-w-[1360px]">{children}</div></main>;
@@ -69,13 +68,19 @@ export function AppShell({
       {mobileNavOpen ? (
         <button
           type="button"
-          className="fixed inset-0 top-[var(--topbar-h)] z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 top-[var(--topbar-h)] z-[50] bg-black/55 lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           aria-label="Close menu"
         />
       ) : null}
 
-      <div className={`grid min-h-[calc(100vh-var(--topbar-h))] pt-[var(--topbar-h)] lg:grid-cols-[288px_1fr] ${sidebarCollapsed ? "lg:grid-cols-[72px_1fr]" : ""}`}>
+      <div
+        className={`grid min-h-[calc(100vh-var(--topbar-h))] pt-[var(--topbar-h)] ${sidebarCollapsed ? "lg:grid-cols-[var(--sidebar-collapsed)_1fr]" : "lg:grid-cols-[var(--sidebar-expanded)_1fr]"}`}
+        style={{
+          "--sidebar-expanded": `${DESKTOP_SIDEBAR_EXPANDED}px`,
+          "--sidebar-collapsed": `${DESKTOP_SIDEBAR_COLLAPSED}px`,
+        } as CSSProperties}
+      >
         <SidebarNav
           items={navItems}
           mobileOpen={mobileNavOpen}

@@ -40,8 +40,9 @@ export class MeDto {
 }
 
 export class GatingStatusDto {
-  wouldBeBlocked!: boolean;
-  reasonCode!: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
+  ok!: boolean;
+  reasonCode?: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
+  wouldBeBlocked?: boolean;
 }
 
 
@@ -82,6 +83,7 @@ export class AuthMeResponseDto {
   activeLocation?: { id: string; name: string; customDomain?: string | null } | null;
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatusDto;
+  qaBypass?: boolean;
   qaModeEnabled?: boolean;
   context!: AuthContextSummaryDto;
   billing!: AuthBillingSummaryDto;

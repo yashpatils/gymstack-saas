@@ -23,16 +23,12 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     const startedAt = Date.now();
     const requestId = request.requestId ?? String(response.getHeader('x-request-id') ?? response.getHeader('X-Request-Id') ?? 'unknown');
 
-    const canWriteHeaders = !response.headersSent && !response.writableEnded;
+    this.safeSetHeader(response, 'x-request-id', requestId);
 
-    if (canWriteHeaders) {
-      response.setHeader('x-request-id', requestId);
-
-      const requestUser = isRecord(request.user) ? request.user : null;
-      const authorization = request.header('authorization');
-      if (authorization || requestUser) {
-        response.setHeader('Cache-Control', 'no-store');
-      }
+    const requestUser = isRecord(request.user) ? request.user : null;
+    const authorization = request.header('authorization');
+    if (authorization || requestUser) {
+      this.safeSetHeader(response, 'Cache-Control', 'no-store');
     }
 
     let hasLogged = false;
@@ -59,6 +55,14 @@ export class RequestLoggingInterceptor implements NestInterceptor {
         }
       }),
     );
+  }
+
+  private safeSetHeader(response: Response, key: string, value: string): void {
+    if (response.headersSent || response.writableEnded) {
+      return;
+    }
+
+    response.setHeader(key, value);
   }
 
   private logRequest(request: Request, response: Response, startedAt: number, requestId: string): void {

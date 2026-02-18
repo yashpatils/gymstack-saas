@@ -11,9 +11,17 @@ export function isQaModeEnabled(value: string | undefined | null): boolean {
 export function shouldApplyQaBypass({
   qaModeEnabled,
   userQaBypass,
+  isPlatformAdmin,
+  isAdminEmailUser,
 }: {
   qaModeEnabled: boolean;
   userQaBypass?: boolean | null;
+  isPlatformAdmin?: boolean;
+  isAdminEmailUser?: boolean;
 }): boolean {
+  if (isPlatformAdmin || isAdminEmailUser) {
+    return true;
+  }
+
   return qaModeEnabled && userQaBypass === true;
 }

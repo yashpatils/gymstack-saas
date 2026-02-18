@@ -118,9 +118,10 @@ export function SidebarNav({
       </aside>
 
       <aside
-        className={`platform-sidebar-modern fixed left-0 top-[var(--topbar-h)] z-50 h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] overflow-y-auto border-r border-border/70 p-4 shadow-xl transition-transform duration-200 ease-out lg:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`platform-sidebar-modern fixed left-0 top-[var(--topbar-h)] z-[55] h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] overflow-y-auto border-r border-border/70 p-4 shadow-xl transition-transform duration-200 ease-out lg:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-label={`${title} mobile navigation`}
         data-testid="mobile-drawer"
+        aria-hidden={!mobileOpen}
       >
         <SidebarBody items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={false} onClose={onClose} />
       </aside>

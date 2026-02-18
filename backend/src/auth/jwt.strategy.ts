@@ -81,6 +81,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ? await resolveEffectivePermissions(this.prisma, payload.sub, tenantId, locationId)
       : [];
 
+    const adminEmail = this.configService.get<string>('ADMIN_EMAIL')?.trim().toLowerCase();
+    const isAdminEmailUser = Boolean(adminEmail && user?.email?.trim().toLowerCase() === adminEmail);
+
     return {
       ...payload,
       userId: payload.sub,
@@ -94,6 +97,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       qaBypass: shouldApplyQaBypass({
         qaModeEnabled: this.qaModeEnabled,
         userQaBypass: payload.qaBypass ?? user?.qaBypass ?? false,
+        isPlatformAdmin: userIsPlatformAdmin,
+        isAdminEmailUser,
       }),
     };
   }

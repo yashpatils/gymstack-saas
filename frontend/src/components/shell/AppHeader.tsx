@@ -66,6 +66,11 @@ export function AppHeader({
               <button type="button" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu">☰</button>
             ) : null}
             {leftExtra}
+            {qaBypass ? (
+              <span className="hidden rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-amber-100 md:inline-flex">
+                QA BYPASS
+              </span>
+            ) : null}
           </div>
           <div className="flex justify-center">{centerContent}</div>
           <div className="flex justify-end">
@@ -91,7 +96,7 @@ export function AppHeader({
                   {qaBypass ? (
                     <div className="mb-2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
                       <p className="font-semibold tracking-wide">QA BYPASS ON</p>
-                      <p className="mt-1 text-[11px] text-amber-100/90">Would be blocked: {gatingStatusSummary ?? 'UNKNOWN'}</p>
+                      <p className="mt-1 text-[11px] text-amber-100/90">Would be blocked: {gatingStatusSummary ?? "UNKNOWN"}</p>
                     </div>
                   ) : null}
                   <div className="mb-2 rounded-lg border border-border px-3 py-2">
@@ -114,14 +119,30 @@ export function AppHeader({
                     <p className="mt-1 text-[11px] text-muted-foreground">Current: {effectiveTheme}</p>
                   </div>
                   {accountLinks.map((link) => (
-                    <Link key={link.href} href={link.href} className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-background/60" onClick={(event) => { event.stopPropagation(); setIsAccountMenuOpen(false); }}>{link.label}</Link>
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-background/60"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setIsAccountMenuOpen(false);
+                      }}
+                    >
+                      {link.label}
+                    </Link>
                   ))}
                   {onLogout ? (
-                    <button type="button" className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20" onClick={(event) => {
-                      event.stopPropagation();
-                      setIsAccountMenuOpen(false);
-                      onLogout();
-                    }}>Logout</button>
+                    <button
+                      type="button"
+                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setIsAccountMenuOpen(false);
+                        onLogout();
+                      }}
+                    >
+                      Logout
+                    </button>
                   ) : null}
                 </div>
               ) : null}
