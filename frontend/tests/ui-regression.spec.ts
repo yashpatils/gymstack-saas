@@ -23,6 +23,13 @@ async function login(page: import('playwright/test').Page) {
 }
 
 test.describe('platform UI regression guardrails', () => {
+
+  test('platform layout mounts canonical app shell wrapper', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/platform');
+    await expect(page.getByTestId('app-shell')).toBeVisible();
+  });
+
   test.beforeEach(async ({ page }) => {
     test.skip(!hasCredentials, 'Set QA_EMAIL/QA_PASSWORD (or E2E_EMAIL/E2E_PASSWORD) for authenticated UI regression checks.');
     await login(page);

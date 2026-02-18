@@ -13,7 +13,7 @@ type AuthGateProps = {
 export function AuthGate({ children, fallback = null }: AuthGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authIssue, authState, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout, token, user, meStatus } = useAuth();
+  const { authIssue, authState, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout, meStatus } = useAuth();
   const hasAttemptedAutoSelect = useRef(false);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
     router.replace('/select-workspace');
   }, [activeContext, isLoading, memberships.length, pathname, router]);
 
-  if (authState === 'hydrating' || isHydrating || isLoading || (token && !user && !authIssue) || meStatus === null) {
+  if (authState === 'hydrating' || isHydrating || isLoading || meStatus === null) {
     return <>{fallback}</>;
   }
 

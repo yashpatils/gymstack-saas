@@ -69,9 +69,6 @@ export function AppHeader({
           </div>
           <div className="flex justify-center">{centerContent}</div>
           <div className="flex justify-end">
-            <div className="mr-2 hidden items-center rounded-full border border-lime-300/60 bg-lime-300/20 px-2 py-1 text-[10px] font-semibold tracking-[0.14em] text-lime-100 md:flex">
-              NEW SHELL ACTIVE
-            </div>
             <div className="relative">
               <button
                 ref={triggerRef}
