@@ -59,6 +59,7 @@ type AuthContextValue = {
   qaBypass: boolean;
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatus;
+  qaModeEnabled: boolean;
   login: (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
@@ -101,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [qaBypass, setQaBypass] = useState(false);
   const [effectiveAccess, setEffectiveAccess] = useState<boolean | undefined>(undefined);
   const [gatingStatus, setGatingStatus] = useState<GatingStatus | undefined>(undefined);
+  const [qaModeEnabled, setQaModeEnabled] = useState(false);
 
   const clearAuthState = useCallback(() => {
     setMonitoringUserContext(null);
@@ -131,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setQaBypass(false);
     setEffectiveAccess(undefined);
     setGatingStatus(undefined);
+    setQaModeEnabled(false);
   }, []);
 
   const normalizeMemberships = useCallback((source: AuthMeResponse['memberships']): Membership[] => {
@@ -200,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setQaBypass(Boolean(meResponse.user.qaBypass));
     setEffectiveAccess(meResponse.effectiveAccess);
     setGatingStatus(meResponse.gatingStatus);
+    setQaModeEnabled(Boolean(meResponse.qaModeEnabled));
   }, [normalizeMemberships, normalizePermissions]);
 
   const hydrateFromMe = useCallback(async () => {
@@ -421,6 +425,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       qaBypass,
       effectiveAccess,
       gatingStatus,
+      qaModeEnabled,
       login,
       signup,
       acceptInvite,

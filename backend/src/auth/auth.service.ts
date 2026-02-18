@@ -18,6 +18,7 @@ import { RefreshTokenService } from './refresh-token.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
 import { InviteAdmissionService } from '../invites/invite-admission.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
+import { isQaModeEnabled, shouldApplyQaBypass } from '../common/qa-mode.util';
 
 const RESEND_VERIFICATION_RESPONSE = {
   ok: true as const,
@@ -906,12 +907,19 @@ export class AuthService implements OnModuleInit {
     const snapshot = canonicalContext.tenantId
       ? await this.subscriptionGatingService.getTenantBillingSnapshot(canonicalContext.tenantId)
       : null;
-    const accessEvaluation = this.subscriptionGatingService.evaluateTenantAccess(snapshot, user.qaBypass);
+    const qaModeEnabled = isQaModeEnabled(this.configService.get<string>('QA_MODE'));
+    const effectiveQaBypass = shouldApplyQaBypass({
+      qaModeEnabled,
+      userQaBypass: user.qaBypass,
+    });
+    const accessEvaluation = this.subscriptionGatingService.evaluateTenantAccess(snapshot, effectiveQaBypass);
 
     return {
       user: {
         id: user.id,
         email: user.email,
+        role: user.role,
+        orgId: user.orgId ?? undefined,
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
         qaBypass: user.qaBypass,
@@ -937,13 +945,23 @@ export class AuthService implements OnModuleInit {
       permissions: permissionFlags,
       permissionKeys: permissionFlagsToKeys(permissionFlags),
       activeTenant: canonicalContext.tenantId
-        ? await this.prisma.organization.findUnique({ where: { id: canonicalContext.tenantId }, select: { id: true, name: true, isDemo: true } })
+        ? await this.prisma.organization.findUnique({
+          where: { id: canonicalContext.tenantId },
+          select: { id: true, name: true, isDemo: true, subscriptionStatus: true, trialStartedAt: true, trialEndsAt: true },
+        }).then((tenant) => tenant
+          ? {
+            ...tenant,
+            trialStartedAt: tenant.trialStartedAt ? tenant.trialStartedAt.toISOString() : null,
+            trialEndsAt: tenant.trialEndsAt ? tenant.trialEndsAt.toISOString() : null,
+          }
+          : null)
         : null,
       activeLocation: canonicalContext.locationId
         ? await this.prisma.gym.findUnique({ where: { id: canonicalContext.locationId }, select: { id: true, name: true, customDomain: true } })
         : null,
       effectiveAccess: accessEvaluation.effectiveAccess,
       gatingStatus: accessEvaluation.gatingStatus,
+      qaModeEnabled,
     };
   }
 

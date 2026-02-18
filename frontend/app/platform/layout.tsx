@@ -10,7 +10,7 @@ import { NotificationBell } from "../../src/components/notifications/Notificatio
 import { useAuth } from "../../src/providers/AuthProvider";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout, permissionKeys, permissions, activeContext, platformRole, activeTenant, qaBypass, gatingStatus } = useAuth();
+  const { user, logout, permissionKeys, permissions, activeContext, platformRole, activeTenant, qaBypass, gatingStatus, qaModeEnabled } = useAuth();
 
   const role: NavRole = platformRole === "PLATFORM_ADMIN" ? "PLATFORM_ADMIN" : (activeContext?.role ?? "CLIENT");
   const canManageBilling = permissions.canManageBilling || permissionKeys.includes("billing:manage") || role === "PLATFORM_ADMIN";
@@ -26,6 +26,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     }
 
     if ((item.featureFlag === "billing" || item.href === "/platform/billing") && !canManageBilling) {
+      return false;
+    }
+
+    if (item.debugOnly && !qaModeEnabled) {
       return false;
     }
 
