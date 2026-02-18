@@ -25,6 +25,7 @@ async function ensureMembership(userId: string, orgId: string, role: string, gym
 }
 
 async function main() {
+  const enableQaUserSeed = String(process.env.ENABLE_QA_USER_SEED ?? '').toLowerCase() === 'true';
   const ownerEmail = process.env.DEMO_EMAIL ?? 'owner@gymstack.dev';
   const ownerPassword = process.env.DEMO_PASSWORD ?? 'demo12345';
   const tenantName = process.env.DEMO_TENANT_NAME ?? 'GymStack Demo Tenant';
@@ -73,54 +74,57 @@ async function main() {
 
   await ensureMembership(owner.id, tenant.id, MembershipRole.TENANT_LOCATION_ADMIN, gym.id);
 
-  const qaEmail = 'qa+admin@gymstack.club';
-  const qaPassword = 'TestPassword123!';
-  const qaPasswordHash = await bcrypt.hash(qaPassword, 10);
+  if (enableQaUserSeed) {
+    const qaEmail = 'qa+admin@gymstack.club';
+    const qaPassword = 'TestPassword123!';
+    const qaPasswordHash = await bcrypt.hash(qaPassword, 10);
 
-  const qaTenant = await prisma.organization.upsert({
-    where: { id: 'seed-qa-tenant' },
-    update: { name: 'GymStack QA Tenant' },
-    create: {
-      id: 'seed-qa-tenant',
-      name: 'GymStack QA Tenant',
-      subscriptionStatus: SubscriptionStatus.FREE,
-      billingProvider: BillingProvider.STRIPE,
-    },
-  });
+    const qaTenant = await prisma.organization.upsert({
+      where: { id: 'seed-qa-tenant' },
+      update: { name: 'GymStack QA Tenant' },
+      create: {
+        id: 'seed-qa-tenant',
+        name: 'GymStack QA Tenant',
+        subscriptionStatus: SubscriptionStatus.FREE,
+        billingProvider: BillingProvider.STRIPE,
+      },
+    });
 
-  const qaUser = await prisma.user.upsert({
-    where: { email: qaEmail },
-    update: {
-      password: qaPasswordHash,
-      role: Role.ADMIN,
-      orgId: qaTenant.id,
-      qaBypass: true,
-      status: UserStatus.ACTIVE,
-      emailVerifiedAt: new Date(),
-    },
-    create: {
-      email: qaEmail,
-      password: qaPasswordHash,
-      role: Role.ADMIN,
-      orgId: qaTenant.id,
-      qaBypass: true,
-      status: UserStatus.ACTIVE,
-      emailVerifiedAt: new Date(),
-    },
-  });
+    const qaUser = await prisma.user.upsert({
+      where: { email: qaEmail },
+      update: {
+        password: qaPasswordHash,
+        role: Role.ADMIN,
+        orgId: qaTenant.id,
+        qaBypass: true,
+        status: UserStatus.ACTIVE,
+        emailVerifiedAt: new Date(),
+      },
+      create: {
+        email: qaEmail,
+        password: qaPasswordHash,
+        role: Role.ADMIN,
+        orgId: qaTenant.id,
+        qaBypass: true,
+        status: UserStatus.ACTIVE,
+        emailVerifiedAt: new Date(),
+      },
+    });
 
-  const qaGym = await prisma.gym.upsert({
-    where: { id: 'seed-qa-gym' },
-    update: { name: 'GymStack QA Location', orgId: qaTenant.id, ownerId: qaUser.id },
-    create: { id: 'seed-qa-gym', name: 'GymStack QA Location', orgId: qaTenant.id, ownerId: qaUser.id },
-  });
+    const qaGym = await prisma.gym.upsert({
+      where: { id: 'seed-qa-gym' },
+      update: { name: 'GymStack QA Location', orgId: qaTenant.id, ownerId: qaUser.id },
+      create: { id: 'seed-qa-gym', name: 'GymStack QA Location', orgId: qaTenant.id, ownerId: qaUser.id },
+    });
 
-  await ensureMembership(qaUser.id, qaTenant.id, MembershipRole.TENANT_OWNER);
-  await ensureMembership(qaUser.id, qaTenant.id, MembershipRole.TENANT_LOCATION_ADMIN, qaGym.id);
+    await ensureMembership(qaUser.id, qaTenant.id, MembershipRole.TENANT_OWNER);
+    await ensureMembership(qaUser.id, qaTenant.id, MembershipRole.TENANT_LOCATION_ADMIN, qaGym.id);
+
+    console.log(`QA User: ${qaEmail} / ${qaPassword}`);
+    console.log(`QA Tenant: ${qaTenant.name} (${qaTenant.id})`);
+  }
 
   console.log(`Seed complete. Owner: ${ownerEmail} / ${ownerPassword}`);
-  console.log(`QA User: ${qaEmail} / ${qaPassword}`);
-  console.log(`QA Tenant: ${qaTenant.name} (${qaTenant.id})`);
 }
 
 main()
