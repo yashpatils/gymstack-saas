@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { useOnClickOutside } from "@/src/hooks/useOnClickOutside";
 
 type PlatformAccountDropdownProps = {
   label: string;
