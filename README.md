@@ -366,3 +366,32 @@ Email dispatch supports async queueing via `EmailQueueService` so request handle
 2. Confirm DNS propagation completed (can take minutes to hours).
 3. Retry verification endpoint after propagation.
 4. Ensure wildcard records do not conflict with explicit verification records.
+
+
+## QA checklist (navigation + auth/session)
+
+Run this checklist before shipping layout/auth changes:
+
+1. **Mobile menu toggle**
+   - Open app at mobile viewport (e.g., 390x844).
+   - Tap `Toggle menu` and confirm sidebar opens.
+   - Confirm sidebar starts below top bar/title row and menu title remains visible.
+
+2. **Desktop sidebar width**
+   - Open app at desktop viewport (>= 1280px).
+   - Confirm sidebar keeps intended width and does not collapse.
+   - Confirm main content remains aligned without horizontal overflow.
+
+3. **Login persistence + account dropdown**
+   - Log in and navigate to `/platform`.
+   - Reload browser tab.
+   - Open account dropdown (`Open account menu`) and confirm no redirect to `/login`.
+
+4. **Session expiry behavior**
+   - Force an invalid access token (or expire token in test env).
+   - Confirm app only redirects to login after `/api/auth/me` and refresh both fail.
+   - Confirm login page shows: `Session expired. Please sign in again.`
+
+5. **Regression automation**
+   - Run lint/type/build checks.
+   - Run Playwright smoke, including authenticated menu/account checks when `E2E_EMAIL` + `E2E_PASSWORD` are set.

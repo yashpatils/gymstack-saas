@@ -211,6 +211,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleSessionExpired = () => {
+      clearAuthState();
+      setToken(null);
+      setMeStatus(401);
+      setAuthIssue('SESSION_EXPIRED');
+      setIsLoading(false);
+    };
+
+    window.addEventListener('gymstack:session-expired', handleSessionExpired as EventListener);
+    return () => {
+      window.removeEventListener('gymstack:session-expired', handleSessionExpired as EventListener);
+    };
+  }, [clearAuthState]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const loadUser = async () => {

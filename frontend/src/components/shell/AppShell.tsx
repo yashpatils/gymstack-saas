@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SidebarNav } from "./Sidebar";
 import type { AppNavItem } from "./nav-config";
 
@@ -27,6 +27,8 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(112);
+  const headerHostRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!mobileNavOpen) {
@@ -43,8 +45,28 @@ export function AppShell({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileNavOpen]);
 
+  useEffect(() => {
+    const element = headerHostRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const nextHeight = Math.round(entries[0]?.contentRect.height ?? 0);
+      if (nextHeight > 0) {
+        setHeaderHeight(nextHeight);
+      }
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className={`platform-shell shell-${variant}`}>
+    <div
+      className={`platform-shell shell-${variant}`}
+      style={{ "--platform-header-height": `${headerHeight}px` } as CSSProperties}
+    >
       {mobileNavOpen ? (
         <button
           type="button"
@@ -61,7 +83,9 @@ export function AppShell({
         subtitle={sidebarSubtitle}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
+        <div ref={headerHostRef}>
+          {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
+        </div>
         <ContentContainer>{children}</ContentContainer>
         {footer ? <div className="container-app pb-6">{footer}</div> : null}
       </div>
