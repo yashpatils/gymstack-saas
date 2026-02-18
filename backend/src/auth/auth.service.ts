@@ -11,6 +11,7 @@ import { EmailProviderError, EmailService } from '../email/email.service';
 import { AuthMeResponseDto, MeDto, MembershipDto } from './dto/me.dto';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { hashPassword } from './password-hasher';
 import { permissionFlagsToKeys, resolvePermissions } from './permission-resolver';
 import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { RefreshTokenService } from './refresh-token.service';
@@ -84,7 +85,7 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('User already exists');
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await hashPassword(password);
     const created = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -184,7 +185,7 @@ export class AuthService implements OnModuleInit {
         return tx.user.create({
           data: {
             email: input.email,
-            password: await bcrypt.hash(input.password, 10),
+            password: await hashPassword(input.password),
             role: Role.USER,
             emailVerifiedAt: null,
             status: UserStatus.ACTIVE,
@@ -204,7 +205,7 @@ export class AuthService implements OnModuleInit {
       } else {
         await tx.user.update({
           where: { id: existing.id },
-          data: { password: await bcrypt.hash(input.password, 10) },
+          data: { password: await hashPassword(input.password) },
         });
       }
 
@@ -477,7 +478,7 @@ export class AuthService implements OnModuleInit {
     const user = existing ?? await this.prisma.user.create({
       data: {
         email: normalizedEmail,
-        password: await bcrypt.hash(input.password, 10),
+        password: await hashPassword(input.password),
         role: Role.USER,
         emailVerifiedAt: null,
         status: UserStatus.ACTIVE,
@@ -976,7 +977,7 @@ export class AuthService implements OnModuleInit {
     if (!existingToken) {
       throw new BadRequestException('Invalid or expired reset token');
     }
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await hashPassword(newPassword);
     await this.prisma.$transaction([
       this.prisma.user.update({ where: { id: existingToken.userId }, data: { password: passwordHash } }),
       this.prisma.passwordResetToken.update({ where: { id: existingToken.id }, data: { usedAt: now } }),
