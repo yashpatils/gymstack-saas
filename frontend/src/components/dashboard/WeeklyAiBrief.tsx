@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SkeletonBlock } from '../common/SkeletonBlock';
 import { type AiActionType, getWeeklyAiBrief, type WeeklyAiBrief } from '../../lib/aiBrief';
+import { ApiFetchError } from '../../lib/apiFetch';
 
 const ACTION_MAP: Record<AiActionType, { label: string; href: string }> = {
   INVITE_MEMBERS_BACK: { label: 'Invite inactive members', href: '/platform/invites' },
@@ -27,7 +28,12 @@ export function WeeklyAiBriefCard() {
         }
       } catch (loadError) {
         if (active) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load AI brief.');
+          if (loadError instanceof ApiFetchError && (loadError.statusCode === 403 || loadError.statusCode === 404)) {
+            setError(null);
+            setBrief(null);
+          } else {
+            setError('Unable to load AI brief right now.');
+          }
         }
       } finally {
         if (active) {
@@ -79,6 +85,10 @@ export function WeeklyAiBriefCard() {
               ))}
           </div>
         </>
+      ) : null}
+
+      {!loading && !brief && !error ? (
+        <p className="text-sm text-slate-300">Insights will appear here once enough activity is available for this tenant.</p>
       ) : null}
     </div>
   );
