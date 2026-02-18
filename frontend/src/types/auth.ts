@@ -40,6 +40,18 @@ export type GatingStatus = {
   reasonCode: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
 };
 
+export type AuthContextSummary = {
+  tenant: { id: string | null; name: string | null };
+  location: { id: string | null; name: string | null };
+};
+
+export type AuthBillingSummary = {
+  plan: string;
+  trialDaysLeft: number;
+  status: string;
+  gatingSummary: GatingStatus;
+};
+
 export type Membership = {
   id: string;
   tenantId: string;
@@ -129,6 +141,8 @@ export type AuthMeResponse = {
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatus;
   qaModeEnabled?: boolean;
+  context: AuthContextSummary;
+  billing: AuthBillingSummary;
 };
 
 export type AuthLoginResponse = {

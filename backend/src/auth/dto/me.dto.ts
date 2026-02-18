@@ -44,6 +44,19 @@ export class GatingStatusDto {
   reasonCode!: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
 }
 
+
+export class AuthContextSummaryDto {
+  tenant!: { id: string | null; name: string | null };
+  location!: { id: string | null; name: string | null };
+}
+
+export class AuthBillingSummaryDto {
+  plan!: string;
+  trialDaysLeft!: number;
+  status!: SubscriptionStatus | 'UNKNOWN';
+  gatingSummary!: GatingStatusDto;
+}
+
 export class AuthMeResponseDto {
   user!: MeDto;
   isPlatformAdmin!: boolean;
@@ -70,4 +83,6 @@ export class AuthMeResponseDto {
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatusDto;
   qaModeEnabled?: boolean;
+  context!: AuthContextSummaryDto;
+  billing!: AuthBillingSummaryDto;
 }

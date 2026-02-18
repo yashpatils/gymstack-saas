@@ -913,6 +913,19 @@ export class AuthService implements OnModuleInit {
       userQaBypass: user.qaBypass,
     });
     const accessEvaluation = this.subscriptionGatingService.evaluateTenantAccess(snapshot, effectiveQaBypass);
+    const activeTenant = canonicalContext.tenantId
+      ? await this.prisma.organization.findUnique({
+        where: { id: canonicalContext.tenantId },
+        select: { id: true, name: true, isDemo: true, subscriptionStatus: true, trialStartedAt: true, trialEndsAt: true },
+      })
+      : null;
+    const activeLocation = canonicalContext.locationId
+      ? await this.prisma.gym.findUnique({ where: { id: canonicalContext.locationId }, select: { id: true, name: true, customDomain: true } })
+      : null;
+
+    const trialDaysLeft = snapshot?.trialEndsAt
+      ? Math.max(0, Math.ceil((snapshot.trialEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+      : 0;
 
     return {
       user: {
@@ -944,24 +957,27 @@ export class AuthService implements OnModuleInit {
       activeMode: active?.activeMode ?? ActiveMode.OWNER,
       permissions: permissionFlags,
       permissionKeys: permissionFlagsToKeys(permissionFlags),
-      activeTenant: canonicalContext.tenantId
-        ? await this.prisma.organization.findUnique({
-          where: { id: canonicalContext.tenantId },
-          select: { id: true, name: true, isDemo: true, subscriptionStatus: true, trialStartedAt: true, trialEndsAt: true },
-        }).then((tenant) => tenant
-          ? {
-            ...tenant,
-            trialStartedAt: tenant.trialStartedAt ? tenant.trialStartedAt.toISOString() : null,
-            trialEndsAt: tenant.trialEndsAt ? tenant.trialEndsAt.toISOString() : null,
-          }
-          : null)
+      activeTenant: activeTenant
+        ? {
+          ...activeTenant,
+          trialStartedAt: activeTenant.trialStartedAt ? activeTenant.trialStartedAt.toISOString() : null,
+          trialEndsAt: activeTenant.trialEndsAt ? activeTenant.trialEndsAt.toISOString() : null,
+        }
         : null,
-      activeLocation: canonicalContext.locationId
-        ? await this.prisma.gym.findUnique({ where: { id: canonicalContext.locationId }, select: { id: true, name: true, customDomain: true } })
-        : null,
+      activeLocation,
       effectiveAccess: accessEvaluation.effectiveAccess,
       gatingStatus: accessEvaluation.gatingStatus,
       qaModeEnabled,
+      context: {
+        tenant: { id: canonicalContext.tenantId, name: activeTenant?.name ?? null },
+        location: { id: canonicalContext.locationId, name: activeLocation?.name ?? null },
+      },
+      billing: {
+        plan: snapshot?.planKey ?? 'starter',
+        trialDaysLeft,
+        status: snapshot?.subscriptionStatus ?? 'UNKNOWN',
+        gatingSummary: accessEvaluation.gatingStatus,
+      },
     };
   }
 

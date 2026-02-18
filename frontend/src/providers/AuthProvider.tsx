@@ -33,6 +33,7 @@ import { initFrontendMonitoring, setMonitoringUserContext } from '../lib/monitor
 import { track } from '../lib/analytics';
 
 export type AuthIssue = 'SESSION_EXPIRED' | 'INSUFFICIENT_PERMISSIONS' | null;
+export type AuthState = 'hydrating' | 'authed' | 'guest';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -42,6 +43,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isHydrating: boolean;
   isAuthenticated: boolean;
+  authState: AuthState;
   meStatus: 200 | 401 | 403 | null;
   authIssue: AuthIssue;
   memberships: Membership[];
@@ -103,6 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [effectiveAccess, setEffectiveAccess] = useState<boolean | undefined>(undefined);
   const [gatingStatus, setGatingStatus] = useState<GatingStatus | undefined>(undefined);
   const [qaModeEnabled, setQaModeEnabled] = useState(false);
+
+  const authState: AuthState = (isHydrating || isLoading)
+    ? 'hydrating'
+    : (Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS'))
+      ? 'authed'
+      : 'guest';
 
   const clearAuthState = useCallback(() => {
     setMonitoringUserContext(null);
@@ -407,7 +415,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: isLoading,
       isLoading,
       isHydrating,
-      isAuthenticated: Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS'),
+      isAuthenticated: authState === 'authed',
+      authState,
       meStatus,
       authIssue,
       memberships,
@@ -436,7 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       resendVerification,
     }),
-    [user, token, isLoading, isHydrating, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
+    [user, token, isLoading, isHydrating, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, authState, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,0 +1,35 @@
+{
+  "backendFolder": "backend",
+  "authEndpoints": [
+    {
+      "endpoint": "/api/auth/forgot-password",
+      "sources": [
+        "frontend/app/forgot-password/page.tsx"
+      ]
+    },
+    {
+      "endpoint": "/api/auth/me",
+      "sources": [
+        "frontend/__tests__/apiFetch.test.ts",
+        "frontend/app/_admin/_lib/server-admin-api.ts",
+        "frontend/app/admin/_lib/server-admin-api.ts",
+        "frontend/app/debug/page.tsx",
+        "frontend/app/platform/settings/page.tsx",
+        "frontend/app/platform/status/page.tsx",
+        "frontend/tests/qa-full.spec.ts"
+      ]
+    },
+    {
+      "endpoint": "/api/auth/refresh",
+      "sources": [
+        "frontend/tests/qa-full.spec.ts"
+      ]
+    },
+    {
+      "endpoint": "/api/auth/reset-password",
+      "sources": [
+        "frontend/app/reset-password/ResetPasswordClient.tsx"
+      ]
+    }
+  ]
+}

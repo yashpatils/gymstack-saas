@@ -13,16 +13,16 @@ type AuthGateProps = {
 export function AuthGate({ children, fallback = null }: AuthGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authIssue, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout, token, user, meStatus } = useAuth();
+  const { authIssue, authState, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout, token, user, meStatus } = useAuth();
   const hasAttemptedAutoSelect = useRef(false);
 
   useEffect(() => {
-    if (isHydrating || isLoading || isAuthenticated || (token && (meStatus === null || !authIssue)) || pathname === '/login') {
+    if (authState === 'hydrating' || isAuthenticated || pathname === '/login') {
       return;
     }
 
     router.replace('/login');
-  }, [authIssue, isAuthenticated, isHydrating, isLoading, meStatus, pathname, router, token]);
+  }, [authState, isAuthenticated, pathname, router]);
 
   useEffect(() => {
     if (authIssue !== 'SESSION_EXPIRED') {
@@ -53,7 +53,7 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
     router.replace('/select-workspace');
   }, [activeContext, isLoading, memberships.length, pathname, router]);
 
-  if (isHydrating || isLoading || (token && !user && !authIssue)) {
+  if (authState === 'hydrating' || isHydrating || isLoading || (token && !user && !authIssue) || meStatus === null) {
     return <>{fallback}</>;
   }
 
