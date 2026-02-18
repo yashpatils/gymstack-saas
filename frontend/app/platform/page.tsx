@@ -6,7 +6,7 @@ import { PageCard, PageContainer, PageGrid, PageHeader, PageSection } from "../.
 import { DataTable, EmptyState, ErrorState, LoadingState, StatCard, type DataTableColumn } from "../../src/components/platform/data";
 import { listGyms, type Gym } from "../../src/lib/gyms";
 import { listUsers, type User } from "../../src/lib/users";
-import { apiFetch } from "../../src/lib/apiFetch";
+import { ApiFetchError, apiFetch } from "../../src/lib/apiFetch";
 import { WeeklyAiBriefCard } from "../../src/components/dashboard/WeeklyAiBrief";
 
 type DashboardSummary = {
@@ -29,7 +29,7 @@ export default function PlatformPage() {
       setLoading(true);
       setError(null);
       try {
-        const [gymList, userList, dashboard] = await Promise.all([
+        const [gymListResult, userListResult, dashboardResult] = await Promise.allSettled([
           listGyms(),
           listUsers(),
           apiFetch<DashboardSummary>("/api/org/dashboard-summary", { method: "GET" }),
@@ -37,9 +37,23 @@ export default function PlatformPage() {
         if (!active) {
           return;
         }
+        const gymList = gymListResult.status === "fulfilled" ? gymListResult.value : [];
+        const userList = userListResult.status === "fulfilled" ? userListResult.value : [];
+        const dashboard = dashboardResult.status === "fulfilled" ? dashboardResult.value : null;
+
         setGyms(gymList);
         setUsers(userList);
         setSummary(dashboard);
+
+        const errors = [gymListResult, userListResult, dashboardResult]
+          .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+          .map((result) => result.reason)
+          .filter((reason): reason is Error => reason instanceof Error);
+
+        const hasNonPermissionError = errors.some((reason) => !(reason instanceof ApiFetchError && reason.statusCode === 403));
+        if (hasNonPermissionError) {
+          setError("Some dashboard data is temporarily unavailable.");
+        }
       } catch (loadError) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : "Failed to load dashboard.");
