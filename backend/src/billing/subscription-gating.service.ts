@@ -12,6 +12,16 @@ type TenantSubscriptionSnapshot = {
   planKey?: string | null;
 };
 
+export type AccessReasonCode = 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
+
+export type TenantAccessEvaluation = {
+  effectiveAccess: boolean;
+  gatingStatus: {
+    wouldBeBlocked: boolean;
+    reasonCode: AccessReasonCode;
+  };
+};
+
 @Injectable()
 export class SubscriptionGatingService {
   constructor(
@@ -78,5 +88,18 @@ export class SubscriptionGatingService {
     }
 
     return this.isWhiteLabelEligible(tenant);
+  }
+
+  evaluateTenantAccess(snapshot: Pick<TenantSubscriptionSnapshot, 'subscriptionStatus'> | null, qaBypass = false): TenantAccessEvaluation {
+    const subscriptionStatus = normalizeSubscriptionStatus(snapshot?.subscriptionStatus ?? null);
+    const wouldBeBlocked = !isActiveSubscriptionStatus(subscriptionStatus);
+
+    return {
+      effectiveAccess: qaBypass ? true : !wouldBeBlocked,
+      gatingStatus: {
+        wouldBeBlocked,
+        reasonCode: wouldBeBlocked ? 'NO_ACTIVE_SUBSCRIPTION' : 'OK',
+      },
+    };
   }
 }

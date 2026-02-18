@@ -36,6 +36,12 @@ export class MeDto {
   orgId?: string;
   emailVerified!: boolean;
   emailVerifiedAt!: string | null;
+  qaBypass!: boolean;
+}
+
+export class GatingStatusDto {
+  wouldBeBlocked!: boolean;
+  reasonCode!: 'OK' | 'NO_ACTIVE_SUBSCRIPTION';
 }
 
 export class AuthMeResponseDto {
@@ -54,4 +60,6 @@ export class AuthMeResponseDto {
   permissionKeys!: string[];
   activeTenant?: { id: string; name: string; isDemo?: boolean } | null;
   activeLocation?: { id: string; name: string; customDomain?: string | null } | null;
+  effectiveAccess?: boolean;
+  gatingStatus?: GatingStatusDto;
 }

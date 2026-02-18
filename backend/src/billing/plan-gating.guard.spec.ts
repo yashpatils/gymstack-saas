@@ -35,4 +35,35 @@ describe('PlanGatingGuard', () => {
 
     await expect(guard.canActivate(createContext({ role: Role.USER, activeTenantId: 'tenant_1' }))).rejects.toBeInstanceOf(HttpException);
   });
+
+  it('allows qa bypass user but still reflects blocked status in gating evaluation', async () => {
+    const reflector = { getAllAndOverride: () => 'pro' } as unknown as Reflector;
+    const service = {
+      getTenantBillingSnapshot: jest.fn().mockResolvedValue({
+        subscriptionStatus: SubscriptionStatus.FREE,
+        planKey: 'starter',
+        trialEndsAt: null,
+        stripePriceId: null,
+        whiteLabelEnabled: false,
+      }),
+      evaluateTenantAccess: jest.fn().mockReturnValue({
+        effectiveAccess: true,
+        gatingStatus: {
+          wouldBeBlocked: true,
+          reasonCode: 'NO_ACTIVE_SUBSCRIPTION',
+        },
+      }),
+    };
+    const guard = new PlanGatingGuard(reflector, service as never);
+
+    await expect(guard.canActivate(createContext({ role: Role.USER, activeTenantId: 'tenant_1', qaBypass: true } as never))).resolves.toBe(true);
+
+    expect(service.evaluateTenantAccess()).toEqual({
+      effectiveAccess: true,
+      gatingStatus: {
+        wouldBeBlocked: true,
+        reasonCode: 'NO_ACTIVE_SUBSCRIPTION',
+      },
+    });
+  });
 });

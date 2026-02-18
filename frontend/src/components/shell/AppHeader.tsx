@@ -13,6 +13,8 @@ type AppHeaderProps = {
   accountInitials: string;
   accountLinks?: Array<{ href: string; label: string }>;
   onLogout?: () => void;
+  qaBypass?: boolean;
+  gatingStatusSummary?: string;
 };
 
 export function AppHeader({
@@ -24,6 +26,8 @@ export function AppHeader({
   accountInitials,
   accountLinks = [{ href: "/platform/account", label: "Account info" }],
   onLogout,
+  qaBypass = false,
+  gatingStatusSummary,
 }: AppHeaderProps) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -73,6 +77,12 @@ export function AppHeader({
               </button>
               {isAccountMenuOpen ? (
                 <div ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
+                  {qaBypass ? (
+                    <div className="mb-2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+                      <p className="font-semibold tracking-wide">QA BYPASS ON</p>
+                      <p className="mt-1 text-[11px] text-amber-100/90">Would be blocked: {gatingStatusSummary ?? 'UNKNOWN'}</p>
+                    </div>
+                  ) : null}
                   {accountLinks.map((link) => (
                     <Link key={link.href} href={link.href} className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>{link.label}</Link>
                   ))}

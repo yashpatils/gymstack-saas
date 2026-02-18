@@ -243,6 +243,7 @@ model User {
   deletionRequestedAt  DateTime?
   deletionTokenHash    String?
   deletionTokenExpiresAt DateTime?
+  qaBypass             Boolean              @default(false)
   organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
   memberships          Membership[]
   gyms                 Gym[]

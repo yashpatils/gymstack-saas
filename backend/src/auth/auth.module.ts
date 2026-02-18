@@ -18,6 +18,7 @@ import { OAuthStateService } from './oauth-state.service';
 import { OauthController } from './oauth.controller';
 import { RefreshTokenService } from './refresh-token.service';
 import { InvitesModule } from '../invites/invites.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { InvitesModule } from '../invites/invites.module';
     EmailModule,
     PassportModule,
     InvitesModule,
+    BillingModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

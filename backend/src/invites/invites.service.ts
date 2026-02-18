@@ -47,7 +47,7 @@ export class InvitesService {
 
     if (input.role === MembershipRole.GYM_STAFF_COACH || input.role === MembershipRole.TENANT_LOCATION_ADMIN) {
       await this.billingLifecycleService.assertCanInviteStaff(tenantId);
-      await this.planService.assertWithinLimits(tenantId, 'inviteStaff');
+      await this.planService.assertWithinLimits(tenantId, 'inviteStaff', { qaBypass: requester.qaBypass === true });
     }
 
     await this.billingLifecycleService.assertMutableAccess(tenantId);

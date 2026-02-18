@@ -18,6 +18,7 @@ interface JwtPayload {
   activeGymId?: string;
   activeRole?: MembershipRole;
   activeMode?: 'OWNER' | 'MANAGER';
+  qaBypass?: boolean;
 }
 
 type SupportModeContext = {
@@ -52,7 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   ): Promise<JwtPayload & { userId: string; permissions: string[]; isPlatformAdmin: boolean; supportMode?: SupportModeContext; emailVerifiedAt: Date | null; activeLocationId?: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { email: true, emailVerifiedAt: true },
+      select: { email: true, emailVerifiedAt: true, qaBypass: true },
     });
 
     const userIsPlatformAdmin = isPlatformAdmin(user?.email, getPlatformAdminEmails(this.configService));
@@ -85,6 +86,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       isPlatformAdmin: userIsPlatformAdmin,
       supportMode,
       emailVerifiedAt: user?.emailVerifiedAt ?? null,
+      qaBypass: payload.qaBypass ?? user?.qaBypass ?? false,
     };
   }
 

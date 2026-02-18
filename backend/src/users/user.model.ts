@@ -14,6 +14,7 @@ export interface User {
   activeGymId?: string;
   activeRole?: string;
   activeMode?: 'OWNER' | 'MANAGER';
+  qaBypass?: boolean;
   permissions?: string[];
   isPlatformAdmin?: boolean;
   supportMode?: {
@@ -21,4 +22,3 @@ export interface User {
     locationId?: string;
   };
 }
-
