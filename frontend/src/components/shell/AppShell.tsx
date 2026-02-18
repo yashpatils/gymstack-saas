@@ -29,6 +29,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(112);
   const headerHostRef = useRef<HTMLDivElement | null>(null);
 
@@ -76,14 +77,13 @@ export function AppShell({
 
   return (
     <div
-      className={`platform-shell shell-${variant}`}
+      className={`platform-shell shell-${variant} ${sidebarCollapsed ? "platform-shell-collapsed" : ""}`}
       style={{ "--platform-header-height": `${headerHeight}px` } as CSSProperties}
     >
       {mobileNavOpen ? (
         <button
           type="button"
-          className="fixed inset-x-0 bottom-0 z-30 bg-black/50 lg:hidden"
-          style={{ top: "var(--platform-header-height)" }}
+          className="platform-sidebar-backdrop fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           aria-label="Close menu"
         />
@@ -94,8 +94,10 @@ export function AppShell({
         onClose={() => setMobileNavOpen(false)}
         title={sidebarTitle}
         subtitle={sidebarSubtitle}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="platform-content-column flex min-w-0 flex-1 flex-col">
         <div ref={headerHostRef}>
           {header({ onToggleMenu: () => setMobileNavOpen((value) => !value), showMenuToggle: true })}
         </div>

@@ -66,7 +66,10 @@ export function AppHeader({
                 ref={triggerRef}
                 type="button"
                 className="button secondary flex h-10 items-center gap-2 rounded-xl px-2"
-                onClick={() => setIsAccountMenuOpen((current) => !current)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsAccountMenuOpen((current) => !current);
+                }}
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
                 aria-label="Open account menu"
@@ -78,10 +81,11 @@ export function AppHeader({
               {isAccountMenuOpen ? (
                 <div ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl" role="menu">
                   {accountLinks.map((link) => (
-                    <Link key={link.href} href={link.href} className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={() => setIsAccountMenuOpen(false)}>{link.label}</Link>
+                    <Link key={link.href} href={link.href} className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsAccountMenuOpen(false); }}>{link.label}</Link>
                   ))}
                   {onLogout ? (
-                    <button type="button" className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20" onClick={() => {
+                    <button type="button" className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20" onClick={(event) => {
+                      event.stopPropagation();
                       setIsAccountMenuOpen(false);
                       onLogout();
                     }}>Logout</button>
