@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authState: AuthState = (isHydrating || isLoading)
     ? 'hydrating'
-    : (Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS'))
+    : (Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS' || meStatus === 200))
       ? 'authed'
       : 'guest';
 
@@ -307,7 +307,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               clearAuthState();
             }
             clearToken();
+          } else if (isMounted) {
+            setMeStatus(200);
+            setAuthIssue(null);
           }
+        } else if (isMounted) {
+          setMeStatus(200);
+          setAuthIssue(null);
         }
       } finally {
         if (isMounted) {

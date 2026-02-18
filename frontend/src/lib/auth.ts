@@ -1,4 +1,4 @@
-import { apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
+import { ApiFetchError, apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth/tokenStore';
 import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from '../types/auth';
 
@@ -38,8 +38,10 @@ export async function refreshAccessToken(): Promise<string | null> {
       });
       setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
       return data.accessToken;
-    } catch {
-      logout();
+    } catch (error) {
+      if (error instanceof ApiFetchError && (error.statusCode === 401 || error.statusCode === 403)) {
+        logout();
+      }
       return null;
     } finally {
       refreshPromise = null;

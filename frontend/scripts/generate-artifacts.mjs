@@ -26,10 +26,7 @@ function normalizeRouteSegment(segment) {
   if (segment.startsWith('(') && segment.endsWith(')')) return null;
   if (segment.startsWith('[') && segment.endsWith(']')) {
     const inner = segment.slice(1, -1);
-    if (inner.startsWith('...') || inner.startsWith('[...') || inner.startsWith('[[...')) return '*';
-    if (inner.startsWith('...')) return '*';
-    if (inner.startsWith('[...')) return '*';
-    if (inner.startsWith('[[')) return '*';
+    if (inner.includes('...')) return '*';
     return `:${inner.replace(/\[|\]/g, '')}`;
   }
   return segment;
@@ -38,9 +35,9 @@ function normalizeRouteSegment(segment) {
 function routeFromFile(file) {
   const rel = path.relative(appDir, file).replace(/\\/g, '/');
   if (rel.startsWith('api/')) return null;
-  if (!(rel.endsWith('/page.tsx') || rel.endsWith('/route.ts'))) return null;
+  if (!rel.endsWith('/page.tsx')) return null;
 
-  const withoutFile = rel.replace(/\/(page\.tsx|route\.ts)$/, '');
+  const withoutFile = rel.replace(/\/page\.tsx$/, '');
   const segments = withoutFile.split('/').filter(Boolean);
   const normalized = segments
     .map(normalizeRouteSegment)
@@ -61,8 +58,14 @@ function routeFromFile(file) {
 async function buildRouteManifest() {
   const files = await walk(appDir);
   const routes = files.map(routeFromFile).filter(Boolean).sort((a, b) => a.path.localeCompare(b.path));
+  const staticRoutes = routes.filter((route) => route.kind === 'static');
+  const dynamicRoutes = routes.filter((route) => route.kind === 'dynamic-template');
+
   await fs.mkdir(artifactsDir, { recursive: true });
-  await fs.writeFile(path.join(artifactsDir, 'route-manifest.json'), `${JSON.stringify(routes, null, 2)}\n`);
+  await fs.writeFile(
+    path.join(artifactsDir, 'route-manifest.json'),
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), staticRoutes, dynamicRoutes }, null, 2)}\n`,
+  );
 }
 
 async function buildApiEndpoints() {

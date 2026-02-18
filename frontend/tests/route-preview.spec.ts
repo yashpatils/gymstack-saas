@@ -9,6 +9,12 @@ type RouteEntry = {
   requiresAuth: 'unknown' | boolean;
 };
 
+type RouteManifest = {
+  generatedAt: string;
+  staticRoutes: RouteEntry[];
+  dynamicRoutes: RouteEntry[];
+};
+
 type RouteResult = {
   route: string;
   viewport: 'desktop' | 'mobile';
@@ -30,7 +36,8 @@ const qaPassword = process.env.QA_PASSWORD;
 
 async function loadRoutes(): Promise<RouteEntry[]> {
   const content = await fs.readFile(manifestPath, 'utf8');
-  return JSON.parse(content) as RouteEntry[];
+  const manifest = JSON.parse(content) as RouteManifest;
+  return manifest.staticRoutes;
 }
 
 function slugifyRoute(route: string): string {
