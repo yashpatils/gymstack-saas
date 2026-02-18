@@ -62,7 +62,7 @@ export class BillingService {
     return provider.createPortal({ tenantId, returnUrl });
   }
 
-  async getTenantBillingStatus(tenantId: string): Promise<TenantBillingStatusResponse> {
+  async getTenantBillingStatus(tenantId: string, qaBypass = false): Promise<TenantBillingStatusResponse> {
     const tenant = await this.prisma.organization.findUnique({
       where: { id: tenantId },
       select: {
@@ -87,6 +87,10 @@ export class BillingService {
     }
 
     const billingStatus = await this.billingLifecycleService.refreshBillingState(tenantId);
+    const accessEvaluation = this.subscriptionGatingService.evaluateTenantAccess(
+      { subscriptionStatus: tenant.subscriptionStatus },
+      qaBypass,
+    );
     const effectivePriceId = tenant.billingPriceId ?? tenant.stripePriceId;
     const effectivePlan = await this.planService.getEffectivePlan(tenantId);
     const whiteLabelEligible = effectivePlan.whiteLabelIncluded && (effectivePlan.subscriptionStatus === 'ACTIVE' || effectivePlan.subscriptionStatus === 'TRIAL');
@@ -103,6 +107,8 @@ export class BillingService {
       priceId: effectivePriceId,
       whiteLabelEligible,
       whiteLabelEnabled: tenant.whiteLabelEnabled,
+      effectiveAccess: accessEvaluation.effectiveAccess,
+      gatingStatus: accessEvaluation.gatingStatus,
       usage: {
         locationsUsed: effectivePlan.usage.locationsUsed,
         maxLocations: effectivePlan.maxLocations,

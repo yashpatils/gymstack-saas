@@ -159,7 +159,7 @@ export class OrganizationsService {
 
 
 
-  async updateWhiteLabel(orgId: string | undefined, userId: string, enabled: boolean) {
+  async updateWhiteLabel(orgId: string | undefined, userId: string, enabled: boolean, qaBypass = false) {
     if (!orgId) {
       throw new ForbiddenException('Organization access denied');
     }
@@ -176,7 +176,7 @@ export class OrganizationsService {
     await this.billingLifecycleService.assertCanToggleWhiteLabel(orgId);
 
     if (enabled) {
-      await this.planService.assertWithinLimits(orgId, 'enableWhiteLabel');
+      await this.planService.assertWithinLimits(orgId, 'enableWhiteLabel', { qaBypass });
     }
 
     const updated = await this.prisma.organization.update({

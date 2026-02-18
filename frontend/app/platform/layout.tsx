@@ -10,7 +10,7 @@ import { NotificationBell } from "../../src/components/notifications/Notificatio
 import { useAuth } from "../../src/providers/AuthProvider";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout, permissionKeys, permissions, activeContext, platformRole, activeTenant } = useAuth();
+  const { user, logout, permissionKeys, permissions, activeContext, platformRole, activeTenant, qaBypass, gatingStatus } = useAuth();
 
   const role: NavRole = platformRole === "PLATFORM_ADMIN" ? "PLATFORM_ADMIN" : (activeContext?.role ?? "CLIENT");
   const canManageBilling = permissions.canManageBilling || permissionKeys.includes("billing:manage") || role === "PLATFORM_ADMIN";
@@ -52,6 +52,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
               { href: "/platform/settings", label: "Settings" },
             ]}
             onLogout={logout}
+            qaBypass={qaBypass}
+            gatingStatusSummary={gatingStatus?.reasonCode ?? 'OK'}
           />
         )}
         footer={activeContext?.role === "TENANT_OWNER" ? "Tenant owner controls enabled" : undefined}

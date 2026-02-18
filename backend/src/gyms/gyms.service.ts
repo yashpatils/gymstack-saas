@@ -36,9 +36,9 @@ export class GymsService {
     });
   }
 
-  async createGym(orgId: string, ownerId: string, name: string) {
+  async createGym(orgId: string, ownerId: string, name: string, qaBypass = false) {
     await this.billingLifecycleService.assertCanCreateLocation(orgId);
-    await this.planService.assertWithinLimits(orgId, 'createLocation');
+    await this.planService.assertWithinLimits(orgId, 'createLocation', { qaBypass });
 
     const gym = await this.prisma.gym.create({
       data: {
@@ -135,7 +135,7 @@ export class GymsService {
       throw new ForbiddenException('Only tenant owners can create additional locations');
     }
 
-    return this.createGym(orgId, user.id, name);
+    return this.createGym(orgId, user.id, name, user.qaBypass === true);
   }
 
   private getTrialPlanKey(): PlanKey {

@@ -22,6 +22,12 @@ type LimitErrorCode =
   | 'UPGRADE_REQUIRED'
   | 'SUBSCRIPTION_INACTIVE';
 
+type PlanLimitEvaluation = {
+  allowed: boolean;
+  wouldBeBlocked: boolean;
+  reasonCode: LimitErrorCode | 'OK';
+};
+
 @Injectable()
 export class PlanService {
   constructor(private readonly prisma: PrismaService) {}
@@ -96,29 +102,58 @@ export class PlanService {
     throw new HttpException({ code, message }, status);
   }
 
-  async assertWithinLimits(tenantId: string, actionKey: 'createLocation' | 'inviteStaff' | 'enableWhiteLabel'): Promise<void> {
+  async assertWithinLimits(
+    tenantId: string,
+    actionKey: 'createLocation' | 'inviteStaff' | 'enableWhiteLabel',
+    options?: { qaBypass?: boolean },
+  ): Promise<PlanLimitEvaluation> {
     const plan = await this.getEffectivePlan(tenantId);
+    const qaBypass = options?.qaBypass === true;
+
+    const evaluate = (wouldBeBlocked: boolean, reasonCode: LimitErrorCode | 'OK'): PlanLimitEvaluation => ({
+      allowed: qaBypass ? true : !wouldBeBlocked,
+      wouldBeBlocked,
+      reasonCode,
+    });
 
     if (actionKey === 'createLocation') {
       if (plan.usage.locationsUsed >= plan.maxLocations) {
-        this.throwLimitError('LIMIT_LOCATIONS_REACHED', 'Location limit reached for current plan.', HttpStatus.PAYMENT_REQUIRED);
+        const evaluation = evaluate(true, 'LIMIT_LOCATIONS_REACHED');
+        if (!qaBypass) {
+          this.throwLimitError('LIMIT_LOCATIONS_REACHED', 'Location limit reached for current plan.', HttpStatus.PAYMENT_REQUIRED);
+        }
+        return evaluation;
       }
-      return;
+      return evaluate(false, 'OK');
     }
 
     if (actionKey === 'inviteStaff') {
       if (plan.usage.staffSeatsUsed >= plan.maxStaffSeats) {
-        this.throwLimitError('LIMIT_STAFF_SEATS_REACHED', 'Staff seat limit reached for current plan.', HttpStatus.PAYMENT_REQUIRED);
+        const evaluation = evaluate(true, 'LIMIT_STAFF_SEATS_REACHED');
+        if (!qaBypass) {
+          this.throwLimitError('LIMIT_STAFF_SEATS_REACHED', 'Staff seat limit reached for current plan.', HttpStatus.PAYMENT_REQUIRED);
+        }
+        return evaluation;
       }
-      return;
+      return evaluate(false, 'OK');
     }
 
     if (!this.isActive(plan.subscriptionStatus)) {
-      this.throwLimitError('SUBSCRIPTION_INACTIVE', 'Subscription must be active or trialing.', HttpStatus.PAYMENT_REQUIRED);
+      const evaluation = evaluate(true, 'SUBSCRIPTION_INACTIVE');
+      if (!qaBypass) {
+        this.throwLimitError('SUBSCRIPTION_INACTIVE', 'Subscription must be active or trialing.', HttpStatus.PAYMENT_REQUIRED);
+      }
+      return evaluation;
     }
 
     if (!plan.whiteLabelIncluded) {
-      this.throwLimitError('UPGRADE_REQUIRED', 'Upgrade required to enable white-label.', HttpStatus.PAYMENT_REQUIRED);
+      const evaluation = evaluate(true, 'UPGRADE_REQUIRED');
+      if (!qaBypass) {
+        this.throwLimitError('UPGRADE_REQUIRED', 'Upgrade required to enable white-label.', HttpStatus.PAYMENT_REQUIRED);
+      }
+      return evaluation;
     }
+
+    return evaluate(false, 'OK');
   }
 }

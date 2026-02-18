@@ -61,7 +61,7 @@ export class OrganizationsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.organizationsService.updateWhiteLabel(user.activeTenantId ?? user.orgId, user.id, body.whiteLabelEnabled);
+    return this.organizationsService.updateWhiteLabel(user.activeTenantId ?? user.orgId, user.id, body.whiteLabelEnabled, user.qaBypass === true);
   }
 
   @Patch('billing-provider')

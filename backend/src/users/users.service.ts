@@ -21,6 +21,7 @@ const userSelect = {
   stripeSubscriptionId: true,
   createdAt: true,
   updatedAt: true,
+  qaBypass: true,
 };
 
 @Injectable()
@@ -86,6 +87,20 @@ export class UsersService {
 
     if (!canManageUsers && 'role' in data) {
       throw new ForbiddenException('Insufficient permissions');
+    }
+
+    if (typeof data.qaBypass === 'boolean') {
+      const allowQaBypassEnv = process.env.ALLOW_QA_BYPASS === 'true';
+      const isProduction = process.env.NODE_ENV === 'production';
+      const canToggleQaBypass = requester.isPlatformAdmin || !isProduction || allowQaBypassEnv;
+
+      if (!canToggleQaBypass) {
+        throw new ForbiddenException('Only superadmin can toggle QA bypass in production.');
+      }
+
+      if (requester.id === id) {
+        throw new ForbiddenException('You cannot change your own QA bypass setting.');
+      }
     }
 
     const updatedUser = await this.updateUser(id, orgId, data);

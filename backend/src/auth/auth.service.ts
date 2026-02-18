@@ -16,6 +16,7 @@ import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { RefreshTokenService } from './refresh-token.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
 import { InviteAdmissionService } from '../invites/invite-admission.service';
+import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 
 const RESEND_VERIFICATION_RESPONSE = {
   ok: true as const,
@@ -50,6 +51,7 @@ export class AuthService implements OnModuleInit {
     private readonly emailService: EmailService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly inviteAdmissionService: InviteAdmissionService,
+    private readonly subscriptionGatingService: SubscriptionGatingService,
   ) {}
 
   onModuleInit(): void {
@@ -154,7 +156,7 @@ export class AuthService implements OnModuleInit {
     const refreshToken = await this.refreshTokenService.issue(created.user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     return {
-      accessToken: this.signToken(created.user.id, created.user.email, created.user.role, activeContext),
+      accessToken: this.signToken(created.user.id, created.user.email, created.user.role, activeContext, ActiveMode.OWNER, created.user.qaBypass),
       refreshToken,
       user: {
         id: created.user.id,
@@ -163,6 +165,7 @@ export class AuthService implements OnModuleInit {
         orgId: created.membership.orgId,
         emailVerified: false,
         emailVerifiedAt: null,
+        qaBypass: created.user.qaBypass,
       },
       memberships,
       activeContext,
@@ -225,7 +228,7 @@ export class AuthService implements OnModuleInit {
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     return {
-      accessToken: this.signToken(user.id, user.email, user.role, activeContext),
+      accessToken: this.signToken(user.id, user.email, user.role, activeContext, ActiveMode.OWNER, user.qaBypass),
       refreshToken,
       user: {
         id: user.id,
@@ -234,6 +237,7 @@ export class AuthService implements OnModuleInit {
         orgId: activeContext?.tenantId ?? '',
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+        qaBypass: user.qaBypass,
       },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
@@ -321,7 +325,7 @@ export class AuthService implements OnModuleInit {
 
 
     return {
-      accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext),
+      accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext, ActiveMode.OWNER, user.qaBypass),
       refreshToken,
       user: {
         id: user.id,
@@ -330,6 +334,7 @@ export class AuthService implements OnModuleInit {
         orgId: activeContext?.tenantId ?? '',
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+        qaBypass: user.qaBypass,
       },
       memberships: enabledMemberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
@@ -495,7 +500,7 @@ export class AuthService implements OnModuleInit {
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     return {
-      accessToken: this.signToken(user.id, user.email, user.role, activeContext),
+      accessToken: this.signToken(user.id, user.email, user.role, activeContext, ActiveMode.OWNER, user.qaBypass),
       refreshToken,
       user: {
         id: user.id,
@@ -504,6 +509,7 @@ export class AuthService implements OnModuleInit {
         orgId: activeContext?.tenantId ?? '',
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+        qaBypass: user.qaBypass,
       },
       memberships: memberships.map((membership) => this.toMembershipDto(membership)),
       activeContext,
@@ -812,7 +818,7 @@ export class AuthService implements OnModuleInit {
     }
 
     const tokenRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
-    const accessToken = this.signToken(user.id, user.email, tokenRole, activeContext, activeMode);
+    const accessToken = this.signToken(user.id, user.email, tokenRole, activeContext, activeMode, user.qaBypass);
 
     return {
       accessToken,
@@ -850,12 +856,13 @@ export class AuthService implements OnModuleInit {
         throw new BadRequestException('Invalid locationId for tenant');
       }
 
-      const token = this.signToken(userId, (await this.prisma.user.findUniqueOrThrow({ where: { id: userId } })).email, Role.USER, {
+      const actingUser = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, qaBypass: true } });
+      const token = this.signToken(userId, actingUser.email, Role.USER, {
         tenantId,
         gymId: targetLocationId,
         locationId: targetLocationId,
         role: MembershipRole.TENANT_LOCATION_ADMIN,
-      }, ActiveMode.MANAGER);
+      }, ActiveMode.MANAGER, actingUser.qaBypass);
       return this.me(userId, { tenantId, gymId: targetLocationId, role: MembershipRole.TENANT_LOCATION_ADMIN, activeMode: ActiveMode.MANAGER, accessToken: token });
     }
 
@@ -867,7 +874,7 @@ export class AuthService implements OnModuleInit {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, status: true, emailVerifiedAt: true, role: true, orgId: true },
+      select: { id: true, email: true, status: true, emailVerifiedAt: true, role: true, orgId: true, qaBypass: true },
     });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
@@ -895,6 +902,10 @@ export class AuthService implements OnModuleInit {
     };
 
     const permissionFlags = resolvePermissions(canonicalContext.role);
+    const snapshot = canonicalContext.tenantId
+      ? await this.subscriptionGatingService.getTenantBillingSnapshot(canonicalContext.tenantId)
+      : null;
+    const accessEvaluation = this.subscriptionGatingService.evaluateTenantAccess(snapshot, user.qaBypass);
 
     return {
       user: {
@@ -902,6 +913,7 @@ export class AuthService implements OnModuleInit {
         email: user.email,
         emailVerified: Boolean(user.emailVerifiedAt),
         emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+        qaBypass: user.qaBypass,
       },
       isPlatformAdmin: userIsPlatformAdmin,
       platformRole: userIsPlatformAdmin ? 'PLATFORM_ADMIN' : null,
@@ -929,6 +941,8 @@ export class AuthService implements OnModuleInit {
       activeLocation: canonicalContext.locationId
         ? await this.prisma.gym.findUnique({ where: { id: canonicalContext.locationId }, select: { id: true, name: true, customDomain: true } })
         : null,
+      effectiveAccess: accessEvaluation.effectiveAccess,
+      gatingStatus: accessEvaluation.gatingStatus,
     };
   }
 
@@ -989,7 +1003,7 @@ export class AuthService implements OnModuleInit {
       orderBy: { createdAt: 'asc' },
     });
     const activeContext = await this.getDefaultContext(memberships);
-    return this.signToken(user.id, user.email, user.role, activeContext);
+    return this.signToken(user.id, user.email, user.role, activeContext, ActiveMode.OWNER, user.qaBypass);
   }
 
   private redactEmail(email: string): string {
@@ -1113,7 +1127,7 @@ export class AuthService implements OnModuleInit {
       });
     });
   }
-  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER): string {
+  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER, qaBypass = false): string {
     return this.jwtService.sign({
       sub: userId,
       jti: randomBytes(16).toString('hex'),
@@ -1125,6 +1139,7 @@ export class AuthService implements OnModuleInit {
       activeGymId: activeContext?.gymId,
       activeRole: activeContext?.role,
       activeMode,
+      qaBypass,
     });
   }
 
