@@ -75,12 +75,11 @@ test('mobile toggle opens nav below top bar when authenticated', async ({ page }
   await expect(menuToggle).toBeVisible();
   await menuToggle.click();
 
-  const sidebar = page.locator('.platform-sidebar-modern');
+  const sidebar = page.getByTestId('mobile-drawer');
   await expect(sidebar).toBeVisible();
-  await expect(sidebar).toHaveClass(/platform-sidebar-open/);
 
   const sidebarBox = await sidebar.boundingBox();
-  const headerBox = await page.locator('header.sticky').first().boundingBox();
+  const headerBox = await page.getByTestId('topbar').boundingBox();
   expect(sidebarBox).not.toBeNull();
   expect(headerBox).not.toBeNull();
   expect((sidebarBox?.y ?? 0) + 1).toBeGreaterThanOrEqual(headerBox?.height ?? 0);
@@ -97,7 +96,7 @@ test('desktop sidebar is visible with stable width', async ({ page }) => {
   await page.getByRole('button', { name: 'Log in' }).click();
   await page.waitForURL('**/platform', { timeout: 20_000 });
 
-  const sidebar = page.locator('.platform-sidebar-modern');
+  const sidebar = page.getByTestId('desktop-sidebar');
   await expect(sidebar).toBeVisible();
 
   const box = await sidebar.boundingBox();
@@ -128,4 +127,22 @@ test('login reload and account menu interaction keeps user authenticated', async
   await accountToggle.click();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expect(page).not.toHaveURL(/\/login/);
+});
+
+
+test('theme mode persists across reload', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    window.localStorage.setItem('gymstack.themeMode', 'light');
+    document.documentElement.dataset.theme = 'light';
+  });
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  await page.evaluate(() => {
+    window.localStorage.setItem('gymstack.themeMode', 'dark');
+    document.documentElement.dataset.theme = 'dark';
+  });
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });

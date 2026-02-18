@@ -33,7 +33,7 @@ export function PageGrid({ children, columns = 3 }: { children: ReactNode; colum
 
 export function PageCard({ children, title }: { children: ReactNode; title?: string }) {
   return (
-    <article className="rounded-[var(--radius-xl)] border border-white/10 bg-slate-900/50 p-[var(--space-lg)]">
+    <article className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-1)] p-[var(--space-lg)] shadow-[var(--card-shadow)]">
       {title ? <h2 className="mb-[var(--space-sm)] text-lg font-semibold">{title}</h2> : null}
       {children}
     </article>
