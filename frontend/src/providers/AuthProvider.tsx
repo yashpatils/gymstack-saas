@@ -18,6 +18,7 @@ import {
   login as loginRequest,
   logout as clearToken,
   me as getMe,
+  refreshAccessToken,
   resendVerification as resendVerificationRequest,
   setContext as setContextRequest,
   signup as signupRequest,
@@ -206,6 +207,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [applyMeResponse]);
 
+  const hydrateWithRecovery = useCallback(async () => {
+    try {
+      return await hydrateFromMe();
+    } catch (error) {
+      if (error instanceof ApiFetchError && error.statusCode === 401) {
+        const nextToken = await refreshAccessToken();
+        if (!nextToken) {
+          throw error;
+        }
+
+        setToken(nextToken);
+        return hydrateFromMe();
+      }
+
+      throw error;
+    }
+  }, [hydrateFromMe]);
+
   useEffect(() => {
     initFrontendMonitoring();
   }, []);
@@ -246,18 +265,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        await hydrateFromMe();
+        await hydrateWithRecovery();
       } catch (error) {
-        if (error instanceof ApiFetchError && error.statusCode === 403) {
-          if (isMounted) {
-            setUser(null);
-            setMemberships([]);
+        if (error instanceof ApiFetchError) {
+          if (error.statusCode === 403) {
+            if (isMounted) {
+              setUser(null);
+              setMemberships([]);
+            }
+          } else if (error.statusCode === 401) {
+            if (isMounted) {
+              clearAuthState();
+            }
+            clearToken();
           }
-        } else {
-          if (isMounted) {
-            clearAuthState();
-          }
-          clearToken();
         }
       } finally {
         if (isMounted) {
@@ -271,7 +292,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [clearAuthState, hydrateFromMe]);
+  }, [clearAuthState, hydrateWithRecovery]);
 
   const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => {
     const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password, { tenantId: options?.tenantId, tenantSlug: options?.tenantSlug });
@@ -326,19 +347,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const meResponse = await hydrateFromMe();
-      setToken(existingToken);
+      const meResponse = await hydrateWithRecovery();
+      setToken(getToken());
       return meResponse.user;
     } catch (error) {
-      if (error instanceof ApiFetchError && error.statusCode === 403) {
-        return null;
+      if (error instanceof ApiFetchError) {
+        if (error.statusCode === 403) {
+          return null;
+        }
+        if (error.statusCode === 401) {
+          clearToken();
+          clearAuthState();
+          return null;
+        }
       }
 
-      clearToken();
-      clearAuthState();
-      return null;
+      return user;
     }
-  }, [clearAuthState, hydrateFromMe]);
+  }, [clearAuthState, hydrateWithRecovery, user]);
 
   const verifyEmail = useCallback(async (tokenToVerify: string) => {
     await verifyEmailRequest(tokenToVerify);

@@ -13,16 +13,16 @@ type AuthGateProps = {
 export function AuthGate({ children, fallback = null }: AuthGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authIssue, isLoading, isAuthenticated, memberships, chooseContext, activeContext, logout } = useAuth();
+  const { authIssue, isLoading, isAuthenticated, memberships, chooseContext, activeContext, logout, token, user } = useAuth();
   const hasAttemptedAutoSelect = useRef(false);
 
   useEffect(() => {
-    if (isLoading || isAuthenticated || pathname === '/login') {
+    if (isLoading || isAuthenticated || (token && !authIssue) || pathname === '/login') {
       return;
     }
 
     router.replace('/login');
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [authIssue, isAuthenticated, isLoading, pathname, router, token]);
 
   useEffect(() => {
     if (authIssue !== 'SESSION_EXPIRED') {
@@ -53,7 +53,7 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
     router.replace('/select-workspace');
   }, [activeContext, isLoading, memberships.length, pathname, router]);
 
-  if (isLoading) {
+  if (isLoading || (token && !user && !authIssue)) {
     return <>{fallback}</>;
   }
 
