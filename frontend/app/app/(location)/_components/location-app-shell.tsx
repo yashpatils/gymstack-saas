@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { AppHeader } from "../../../../src/components/shell/AppHeader";
 import { AppShell } from "../../../../src/components/shell/AppShell";
+import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
 import type { NavItemConfig } from "../../../../src/config/nav.config";
 
@@ -18,7 +19,7 @@ function mapLocationNavItems(navItems: NavItemConfig[]): AppNavItem[] {
   return navItems.map((item) => ({
     label: item.label,
     href: item.href,
-    icon: "•",
+    icon: <ShellIcon name="building" width={14} height={14} />,
     section: "operations",
   }));
 }

@@ -21,6 +21,7 @@ html[data-theme="dark"] {
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface-1);
+  --popover: var(--surface-1);
   --muted: var(--surface-3);
   --muted-foreground: var(--text-muted);
   --primary: var(--accent);
@@ -41,7 +42,7 @@ html[data-theme="dark"] {
   --focus-ring: 0 0 0 2px rgba(9, 11, 16, 1), 0 0 0 4px rgba(124, 140, 255, 0.65);
   --content-padding: 24px;
   --radius-card: 16px;
-  --topbar-h: 72px;
+  --topbar-h: 56px;
   --platform-header-height: var(--topbar-h);
 }
 
@@ -59,6 +60,7 @@ html[data-theme="light"] {
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface-1);
+  --popover: var(--surface-1);
   --muted: var(--surface-3);
   --muted-foreground: var(--text-muted);
   --primary: var(--accent);
