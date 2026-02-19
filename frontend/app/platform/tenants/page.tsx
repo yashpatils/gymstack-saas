@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Card, PageHeader, PageShell, SectionTitle, Table } from "../../components/ui";
 import { apiFetch } from "@/src/lib/apiFetch";
@@ -33,7 +34,7 @@ export default function PlatformTenantsPage() {
               item.tenantName,
               <Badge tone={item.billingStatus === "FROZEN" ? "warning" : undefined}>{item.billingStatus}</Badge>,
               item.gracePeriodEndsAt ? new Date(item.gracePeriodEndsAt).toLocaleDateString() : "-",
-              <a className="underline" href={`/platform/billing?tenantId=${item.tenantId}`}>Open tenant billing</a>,
+              <Link className="underline" href={`/platform/billing?tenantId=${item.tenantId}`}>Open tenant billing</Link>,
             ])}
           />
         </Card>

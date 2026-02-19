@@ -23,7 +23,7 @@ type MemberRow = {
 };
 
 function shellCardClassName(extra?: string): string {
-  return ["rounded-2xl border border-white/10 bg-slate-950/50", extra].filter(Boolean).join(" ");
+  return ["rounded-2xl border border-border bg-card", extra].filter(Boolean).join(" ");
 }
 
 function DashboardStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -175,7 +175,7 @@ export default function PlatformPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 text-muted-foreground">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="pb-2 font-medium">Location</th>
                     <th className="pb-2 font-medium">Domain</th>
                     <th className="pb-2 text-right font-medium">Action</th>
@@ -183,7 +183,7 @@ export default function PlatformPage() {
                 </thead>
                 <tbody>
                   {gyms.slice(0, 8).map((gym) => (
-                    <tr key={gym.id} className="border-b border-white/5 text-foreground">
+                    <tr key={gym.id} className="border-b border-border/70 text-foreground">
                       <td className="py-3">{gym.name}</td>
                       <td className="py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
                       <td className="py-3 text-right">
@@ -211,7 +211,7 @@ export default function PlatformPage() {
           {!loading && memberRows.length > 0 ? (
             <ul className="space-y-2">
               {memberRows.map((member) => (
-                <li key={member.id} className="flex items-center justify-between rounded-xl border border-white/10 p-3">
+                <li key={member.id} className="flex items-center justify-between rounded-xl border border-border p-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{member.name}</p>
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
