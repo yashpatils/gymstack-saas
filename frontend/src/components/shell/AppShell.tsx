@@ -112,9 +112,11 @@ export function AppShell({
     });
   };
 
+  const desktopSidebarWidth = sidebarCollapsed ? DESKTOP_SIDEBAR_COLLAPSED : DESKTOP_SIDEBAR_EXPANDED;
+
   return (
-    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} h-[100dvh] w-full overflow-hidden`} style={shellStyle}>
-      <div className="sticky top-0 z-[60] h-[var(--topbar-h)]">
+    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} min-h-[100dvh] w-full bg-background`} style={shellStyle}>
+      <div className="sticky top-0 z-[70] h-[var(--topbar-h)]">
         {header({
           onToggleMenu: () => {
             if (isDesktop) {
@@ -124,13 +126,14 @@ export function AppShell({
 
             setIsMobileDrawerOpen((current) => !current);
           },
-          showMenuToggle: true,
+          showMenuToggle: !isDesktop,
         })}
       </div>
 
-      <div className="flex h-[calc(100dvh-var(--topbar-h))] overflow-hidden">
+      <div className="relative min-h-[calc(100dvh-var(--topbar-h))]">
         <div
-          className={`hidden h-full shrink-0 border-r border-border/60 lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
+          className={`fixed inset-y-0 left-0 z-20 hidden border-r border-border/60 bg-[var(--surface-sidebar)] lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
+          style={{ height: "100dvh" }}
           data-sidebar-collapsed={sidebarCollapsed}
         >
           <SidebarNav
@@ -142,9 +145,9 @@ export function AppShell({
           />
         </div>
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto min-h-full w-full max-w-[1400px] px-4 py-6">{children}</div>
-          {footer ? <div className="px-4 pb-6">{footer}</div> : null}
+        <main className="min-w-0 lg:pl-[var(--sidebar-w)]" style={{ paddingLeft: isDesktop ? desktopSidebarWidth : undefined }}>
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-6">{children}</div>
+          {footer ? <div className="px-4 pb-6 text-sm text-muted-foreground">{footer}</div> : null}
         </main>
       </div>
 
