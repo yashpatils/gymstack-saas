@@ -38,7 +38,7 @@ function isActivePath(pathname: string, href: string): boolean {
   return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
-function SidebarContent({
+export function SidebarContent({
   items,
   pathname,
   title,
