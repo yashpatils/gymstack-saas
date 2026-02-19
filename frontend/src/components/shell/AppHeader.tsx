@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { useThemeConfig, type ThemeMode } from "../../providers/ThemeProvider";
 import { ShellIcon } from "./ShellIcon";
+import { TopBar } from "./TopBar";
 
 type AppHeaderProps = {
   onToggleMenu: () => void;
@@ -25,6 +27,26 @@ const themeOptions: Array<{ mode: ThemeMode; label: string }> = [
   { mode: "system", label: "System" },
 ];
 
+function getMenuPosition(trigger: DOMRect, menuHeight: number): CSSProperties {
+  const width = 272;
+  const viewportPadding = 12;
+  const left = Math.min(
+    Math.max(trigger.right - width, viewportPadding),
+    window.innerWidth - width - viewportPadding,
+  );
+  const roomBelow = window.innerHeight - trigger.bottom;
+  const openAbove = roomBelow < menuHeight + viewportPadding && trigger.top > menuHeight;
+  const top = openAbove ? Math.max(viewportPadding, trigger.top - menuHeight - 8) : Math.min(window.innerHeight - viewportPadding, trigger.bottom + 8);
+
+  return {
+    position: "fixed",
+    top,
+    left,
+    width,
+    maxHeight: `calc(100vh - ${viewportPadding * 2}px)`,
+  };
+}
+
 export function AppHeader({
   onToggleMenu,
   showMenuToggle = true,
@@ -39,11 +61,36 @@ export function AppHeader({
 }: AppHeaderProps) {
   const { themeMode, setThemeMode, effectiveTheme } = useThemeConfig();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const outsideRefs = useMemo(() => [accountMenuRef, triggerRef], []);
 
   useOnClickOutside(outsideRefs, () => setIsAccountMenuOpen(false), isAccountMenuOpen);
+
+  useLayoutEffect(() => {
+    if (!isAccountMenuOpen || !triggerRef.current) {
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current) {
+        return;
+      }
+      const trigger = triggerRef.current.getBoundingClientRect();
+      const menuHeight = accountMenuRef.current?.offsetHeight ?? 360;
+      setMenuStyle(getMenuPosition(trigger, menuHeight));
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isAccountMenuOpen]);
 
   useEffect(() => {
     if (!isAccountMenuOpen) {
@@ -59,42 +106,57 @@ export function AppHeader({
   }, [isAccountMenuOpen]);
 
   return (
-    <header data-testid="topbar" className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)] border-b border-border/70 bg-[var(--surface-overlay)] backdrop-blur-xl">
-      <div className="relative h-full px-4 md:px-6">
-        <div className="flex h-full items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {showMenuToggle ? (
-              <button type="button" data-testid="hamburger" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu"><ShellIcon name="menu" width={16} height={16} /></button>
-            ) : null}
-            {leftExtra ?? <button type="button" className="button secondary topbar-icon-button" aria-label="Notifications"><ShellIcon name="bell" width={16} height={16} /></button>}
-            {qaBypass ? (
-              <span className="hidden rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-amber-100 md:inline-flex">
-                QA BYPASS
-              </span>
-            ) : null}
-          </div>
-          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-center">{centerContent}</div>
-          <div className="flex justify-end">
-            <div className="relative">
-              <button
-                ref={triggerRef}
-                type="button"
-                className="button secondary flex h-10 items-center gap-2 rounded-xl px-2"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setIsAccountMenuOpen((current) => !current);
-                }}
-                aria-expanded={isAccountMenuOpen}
-                aria-haspopup="menu"
-                aria-controls="account-menu"
-                aria-label="Open account menu"
-              >
-                <span className="user-chip-avatar h-8 w-8 rounded-full">{accountInitials}</span>
-                <span className="hidden max-w-[120px] truncate sm:block">{accountName}</span>
-                <ShellIcon name="chevronDown" width={14} height={14} />
-              </button>
-              {isAccountMenuOpen ? (
-                <div id="account-menu" ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu" onClick={(event) => event.stopPropagation()}>
+    <TopBar
+      title={centerContent}
+      leftSlot={(
+        <>
+          {showMenuToggle ? (
+            <button
+              type="button"
+              data-testid="hamburger"
+              className="button secondary topbar-icon-button lg:hidden"
+              onClick={onToggleMenu}
+              aria-label="Open menu"
+            >
+              <ShellIcon name="menu" width={16} height={16} />
+            </button>
+          ) : null}
+          {leftExtra ?? (
+            <button type="button" className="button secondary topbar-icon-button" aria-label="Notifications">
+              <ShellIcon name="bell" width={16} height={16} />
+            </button>
+          )}
+        </>
+      )}
+      rightSlot={(
+        <>
+          <button
+            ref={triggerRef}
+            type="button"
+            className="button secondary flex h-10 items-center gap-2 rounded-xl px-2"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsAccountMenuOpen((current) => !current);
+            }}
+            aria-expanded={isAccountMenuOpen}
+            aria-haspopup="menu"
+            aria-controls="account-menu"
+            aria-label="Open account menu"
+          >
+            <span className="user-chip-avatar h-8 w-8 rounded-full">{accountInitials}</span>
+            <span className="hidden max-w-[120px] truncate sm:block">{accountName}</span>
+            <ShellIcon name="chevronDown" width={14} height={14} />
+          </button>
+          {isAccountMenuOpen
+            ? createPortal(
+                <div
+                  id="account-menu"
+                  ref={accountMenuRef}
+                  role="menu"
+                  style={menuStyle}
+                  className="z-[110] overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-xl"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   {qaBypass ? (
                     <div className="mb-2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
                       <p className="font-semibold tracking-wide">QA BYPASS ON</p>
@@ -125,10 +187,7 @@ export function AppHeader({
                       key={link.href}
                       href={link.href}
                       className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-background/60"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setIsAccountMenuOpen(false);
-                      }}
+                      onClick={() => setIsAccountMenuOpen(false)}
                     >
                       {link.label}
                     </Link>
@@ -137,8 +196,7 @@ export function AppHeader({
                     <button
                       type="button"
                       className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--danger-600)] hover:bg-rose-500/20"
-                      onClick={(event) => {
-                        event.stopPropagation();
+                      onClick={() => {
                         setIsAccountMenuOpen(false);
                         onLogout();
                       }}
@@ -146,12 +204,12 @@ export function AppHeader({
                       Logout
                     </button>
                   ) : null}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+                </div>,
+                document.body,
+              )
+            : null}
+        </>
+      )}
+    />
   );
 }

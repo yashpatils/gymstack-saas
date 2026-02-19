@@ -3,8 +3,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { SidebarNav } from "./SidebarNav";
-import { SidebarDrawer } from "./SidebarDrawer";
+import { Sidebar } from "./Sidebar";
+import { MobileSidebarDrawer } from "./MobileSidebarDrawer";
 import type { AppNavItem } from "./nav-config";
 import {
   DESKTOP_SIDEBAR_COLLAPSED,
@@ -125,7 +125,7 @@ export function AppShell({
         })}
       </div>
 
-      <SidebarDrawer
+      <MobileSidebarDrawer
         items={navItems}
         open={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
@@ -134,7 +134,7 @@ export function AppShell({
       />
 
       <div className="gs-shell__body" data-sidebar-collapsed={sidebarCollapsed}>
-        <SidebarNav
+        <Sidebar
           items={navItems}
           title={sidebarTitle}
           subtitle={sidebarSubtitle}

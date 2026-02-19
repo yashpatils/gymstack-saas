@@ -1,44 +1,112 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../../lib/apiFetch";
 import type { NotificationPageResponse } from "./notification-types";
+import { ShellIcon } from "../shell/ShellIcon";
+
+function getPopoverPosition(trigger: DOMRect): CSSProperties {
+  const width = Math.min(384, window.innerWidth - 24);
+  const left = Math.min(Math.max(trigger.right - width, 12), window.innerWidth - width - 12);
+  const top = Math.min(window.innerHeight - 12, trigger.bottom + 8);
+  return {
+    position: "fixed",
+    top,
+    left,
+    width,
+    maxHeight: "min(26rem, calc(100vh - 24px))",
+  };
+}
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<NotificationPageResponse | null>(null);
-
-  const load = async () => {
-    const next = await apiFetch<NotificationPageResponse>("/api/notifications?page=1&pageSize=8", { method: "GET", cache: "no-store" });
-    setData(next);
-  };
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const load = async () => {
+      const next = await apiFetch<NotificationPageResponse>("/api/notifications?page=1&pageSize=8", { method: "GET", cache: "no-store" });
+      setData(next);
+    };
+
     void load();
   }, []);
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current) {
+        return;
+      }
+      setPopoverStyle(getPopoverPosition(triggerRef.current.getBoundingClientRect()));
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (triggerRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
+    window.addEventListener("keydown", onEscape);
+    window.addEventListener("mousedown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onEscape);
+      window.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
-      <button type="button" className="button ghost" aria-label="notifications" onClick={() => setOpen((value) => !value)}>
-        🔔 {data?.unreadCount ? <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs">{data.unreadCount}</span> : null}
+    <>
+      <button ref={triggerRef} type="button" className="button secondary topbar-icon-button" aria-label="Notifications" onClick={() => setOpen((value) => !value)}>
+        <ShellIcon name="bell" width={16} height={16} />
+        {data?.unreadCount ? <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs text-white">{data.unreadCount}</span> : null}
       </button>
-      {open ? (
-        <div className="absolute right-0 z-20 mt-2 w-96 rounded-xl border border-white/10 bg-slate-900 p-3 shadow-xl">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold">Notifications</p>
-            <Link href="/platform/notifications" className="text-xs text-indigo-300" onClick={() => setOpen(false)}>View all</Link>
-          </div>
-          <ul className="space-y-2">
-            {data?.items.slice(0, 5).map((item) => (
-              <li key={item.id} className="rounded-lg border border-white/10 p-2 text-sm">
-                <p className="font-medium">{item.title}</p>
-                <p className="text-xs text-slate-300">{item.body}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </div>
+      {open
+        ? createPortal(
+            <div ref={popoverRef} className="z-[110] overflow-y-auto rounded-xl border border-border bg-card p-3 shadow-xl" style={popoverStyle} role="dialog" aria-label="Notifications panel">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">Notifications</p>
+                <Link href="/platform/notifications" className="text-xs text-primary" onClick={() => setOpen(false)}>View all</Link>
+              </div>
+              <ul className="space-y-2">
+                {data?.items.slice(0, 5).map((item) => (
+                  <li key={item.id} className="rounded-lg border border-border p-2 text-sm">
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
