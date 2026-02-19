@@ -4,14 +4,14 @@
 }
 
 .gs-shell__header {
-  position: fixed;
-  inset: 0 0 auto 0;
+  position: sticky;
+  top: 0;
   z-index: 60;
+  height: var(--header-h);
 }
 
 .gs-shell__body {
-  min-height: 100vh;
-  padding-top: var(--header-h);
+  min-height: calc(100vh - var(--header-h));
 }
 
 .gs-shell__main {
@@ -33,7 +33,7 @@
   position: fixed;
   top: var(--header-h);
   left: 0;
-  height: calc(100vh - var(--header-h));
+  height: calc(100dvh - var(--header-h));
   width: var(--sidebar-w);
 }
 
@@ -43,7 +43,7 @@
 
 .gs-sidebar-drawer {
   top: var(--header-h);
-  height: calc(100vh - var(--header-h));
+  height: calc(100dvh - var(--header-h));
 }
 
 @media (min-width: 1024px) {

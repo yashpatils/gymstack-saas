@@ -7,16 +7,22 @@ import { apiFetch } from "../../lib/apiFetch";
 import type { NotificationPageResponse } from "./notification-types";
 import { ShellIcon } from "../shell/ShellIcon";
 
-function getPopoverPosition(trigger: DOMRect): CSSProperties {
-  const width = Math.min(384, window.innerWidth - 24);
-  const left = Math.min(Math.max(trigger.right - width, 12), window.innerWidth - width - 12);
-  const top = Math.min(window.innerHeight - 12, trigger.bottom + 8);
+function getPopoverPosition(trigger: DOMRect, popoverHeight: number): CSSProperties {
+  const viewportPadding = 12;
+  const width = Math.min(384, window.innerWidth - viewportPadding * 2);
+  const left = Math.min(Math.max(trigger.right - width, viewportPadding), window.innerWidth - width - viewportPadding);
+  const roomBelow = window.innerHeight - trigger.bottom - viewportPadding;
+  const openAbove = roomBelow < popoverHeight + 8 && trigger.top > popoverHeight;
+  const top = openAbove
+    ? Math.max(viewportPadding, trigger.top - popoverHeight - 8)
+    : Math.min(window.innerHeight - viewportPadding, trigger.bottom + 8);
+
   return {
     position: "fixed",
     top,
     left,
     width,
-    maxHeight: "min(26rem, calc(100vh - 24px))",
+    maxHeight: `calc(100vh - ${viewportPadding * 2}px)`,
   };
 }
 
@@ -45,7 +51,8 @@ export function NotificationBell() {
       if (!triggerRef.current) {
         return;
       }
-      setPopoverStyle(getPopoverPosition(triggerRef.current.getBoundingClientRect()));
+      const popoverHeight = popoverRef.current?.offsetHeight ?? 320;
+      setPopoverStyle(getPopoverPosition(triggerRef.current.getBoundingClientRect(), popoverHeight));
     };
 
     updatePosition();
