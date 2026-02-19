@@ -1,23 +1,21 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useRef } from "react";
-import { usePathname } from "next/navigation";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
-import type { AppNavItem } from "./nav-config";
-import { SidebarContent } from "./Sidebar";
 
 type MobileSidebarDrawerProps = {
-  items: AppNavItem[];
   open: boolean;
+  topOffset?: number;
   onClose: () => void;
-  title: string;
-  subtitle: string;
+  children: ReactNode;
 };
 
-export function MobileSidebarDrawer({ items, open, onClose, title, subtitle }: MobileSidebarDrawerProps) {
-  const pathname = usePathname();
+export function MobileSidebarDrawer({ open, topOffset, onClose, children }: MobileSidebarDrawerProps) {
   const drawerRef = useRef<HTMLElement | null>(null);
   const refs = useMemo(() => [drawerRef], []);
+  const topClass = topOffset ? undefined : "top-[var(--topbar-h)]";
+  const topStyle = topOffset ? { top: `${topOffset}px`, height: `calc(100vh - ${topOffset}px)` } : undefined;
 
   useOnClickOutside(refs, onClose, open);
 
@@ -28,22 +26,22 @@ export function MobileSidebarDrawer({ items, open, onClose, title, subtitle }: M
           type="button"
           data-testid="mobile-drawer-backdrop"
           aria-label="Close menu"
-          className="fixed inset-x-0 bottom-0 top-[var(--topbar-h)] z-[48] bg-black/60 lg:hidden"
+          className={`fixed inset-x-0 bottom-0 z-[48] bg-black/60 lg:hidden ${topClass ?? ""}`}
+          style={topOffset ? { top: `${topOffset}px` } : undefined}
           onClick={onClose}
         />
       ) : null}
       <aside
         id="platform-sidebar-drawer"
         ref={drawerRef}
-        className={`platform-sidebar-modern fixed left-0 top-[var(--topbar-h)] z-[55] h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] border-r border-border/70 p-4 shadow-xl transition-transform duration-200 ease-out lg:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
-        aria-label={`${title} mobile navigation`}
+        className={`platform-sidebar-modern fixed left-0 z-[55] w-[min(320px,85vw)] border-r border-border/70 p-4 shadow-xl transition-transform duration-200 ease-out lg:hidden ${topClass ?? ""} ${open ? "translate-x-0" : "-translate-x-full"}`}
+        style={topStyle}
+        aria-label="Mobile navigation"
         data-testid="mobile-drawer"
         aria-hidden={!open}
       >
         <div className="flex h-full flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto pr-1">
-            <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={false} onNavigate={onClose} />
-          </div>
+          <div className="flex-1 overflow-y-auto pr-1">{children}</div>
         </div>
       </aside>
     </>

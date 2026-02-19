@@ -113,39 +113,53 @@ export function AppShell({
   };
 
   return (
-    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant}`} style={shellStyle}>
-      <div className="gs-shell__header">
+    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} min-h-screen`} style={shellStyle}>
+      <div className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)]">
         {header({
           onToggleMenu: () => {
-            if (!isDesktop) {
-              setIsMobileDrawerOpen((current) => !current);
+            if (isDesktop) {
+              onToggleCollapsed();
+              return;
             }
+
+            setIsMobileDrawerOpen((current) => !current);
           },
-          showMenuToggle: !isDesktop,
+          showMenuToggle: true,
         })}
       </div>
 
-      <MobileSidebarDrawer
-        items={navItems}
-        open={isMobileDrawerOpen}
-        onClose={() => setIsMobileDrawerOpen(false)}
-        title={sidebarTitle}
-        subtitle={sidebarSubtitle}
-      />
+      <div className="pt-[var(--topbar-h)]">
+        <div className="flex h-[calc(100vh-var(--topbar-h))]">
+          <div
+            className={`hidden shrink-0 border-r border-border/60 lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
+            data-sidebar-collapsed={sidebarCollapsed}
+          >
+            <Sidebar
+              items={navItems}
+              title={sidebarTitle}
+              subtitle={sidebarSubtitle}
+              collapsed={sidebarCollapsed}
+              onToggleCollapsed={onToggleCollapsed}
+            />
+          </div>
 
-      <div className="gs-shell__body" data-sidebar-collapsed={sidebarCollapsed}>
+          <main className="min-w-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-6">{children}</div>
+            {footer ? <div className="px-4 pb-6">{footer}</div> : null}
+          </main>
+        </div>
+      </div>
+
+      <MobileSidebarDrawer open={!isDesktop && isMobileDrawerOpen} topOffset={TOPBAR_H} onClose={() => setIsMobileDrawerOpen(false)}>
         <Sidebar
           items={navItems}
           title={sidebarTitle}
           subtitle={sidebarSubtitle}
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={onToggleCollapsed}
+          mobileOpen
+          onClose={() => setIsMobileDrawerOpen(false)}
+          onNavigate={() => setIsMobileDrawerOpen(false)}
         />
-        <main className="gs-shell__main">
-          <div className="gs-shell__content">{children}</div>
-          {footer ? <div className="gs-shell__footer">{footer}</div> : null}
-        </main>
-      </div>
+      </MobileSidebarDrawer>
     </div>
   );
 }

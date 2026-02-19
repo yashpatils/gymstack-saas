@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../src/providers/AuthProvider";
-import { SidebarNav } from "../../../../src/components/shell/Sidebar";
+import { Sidebar } from "../../../../src/components/shell/Sidebar";
 import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
 
@@ -53,13 +53,13 @@ export default function ShellPreviewPage() {
         <article className="rounded-2xl border border-border bg-card p-4">
           <h2 className="text-lg font-semibold">Desktop expanded</h2>
           <div className="mt-4 h-[480px] overflow-hidden rounded-xl border border-border">
-            <SidebarNav items={longList} title="Preview" subtitle="Desktop expanded" collapsed={false} />
+            <Sidebar items={longList} title="Preview" subtitle="Desktop expanded" collapsed={false} />
           </div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4">
           <h2 className="text-lg font-semibold">Desktop collapsed</h2>
           <div className="mt-4 h-[480px] overflow-hidden rounded-xl border border-border">
-            <SidebarNav items={longList} title="Preview" subtitle="Desktop collapsed" collapsed />
+            <Sidebar items={longList} title="Preview" subtitle="Desktop collapsed" collapsed />
           </div>
         </article>
       </section>
@@ -69,10 +69,10 @@ export default function ShellPreviewPage() {
         <p className="mt-1 text-sm text-muted-foreground">Resize to mobile width to validate open/closed drawer. On desktop this still renders as hidden by responsive rules.</p>
         <div className="mt-3 flex items-start gap-4">
           <div className="relative h-[420px] w-[320px] overflow-hidden rounded-xl border border-border bg-[var(--bg)]">
-            <SidebarNav items={previewItems} title="Preview" subtitle="Mobile closed" mobileOpen={false} />
+            <Sidebar items={previewItems} title="Preview" subtitle="Mobile closed" mobileOpen={false} />
           </div>
           <div className="relative h-[420px] w-[320px] overflow-hidden rounded-xl border border-border bg-[var(--bg)]">
-            <SidebarNav items={previewItems} title="Preview" subtitle="Mobile open" mobileOpen onClose={() => undefined} />
+            <Sidebar items={previewItems} title="Preview" subtitle="Mobile open" mobileOpen onClose={() => undefined} />
           </div>
         </div>
       </section>

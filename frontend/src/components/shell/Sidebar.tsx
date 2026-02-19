@@ -106,7 +106,7 @@ export function Sidebar({
   return (
     <aside
       id="platform-sidebar"
-      className={`gs-sidebar platform-sidebar-modern hidden border-r border-border/70 p-4 lg:block ${collapsed ? "gs-sidebar--collapsed" : ""}`}
+      className={`gs-sidebar platform-sidebar-modern border-r border-border/70 p-4 ${mobileOpen ? "block h-full" : "hidden h-full lg:block"} ${collapsed ? "gs-sidebar--collapsed" : ""}`}
       aria-label={`${title} navigation`}
       data-testid="desktop-sidebar"
       data-collapsed={collapsed}
@@ -123,7 +123,7 @@ export function Sidebar({
           {collapsed ? "→" : "←"}
         </button>
       ) : null}
-      <div className="flex h-[calc(100vh-var(--topbar-h)-1rem)] flex-col overflow-hidden">
+      <div className="flex h-full flex-col overflow-hidden">
         <div className="h-full flex-1 overflow-y-auto pr-1" data-testid="sidebar-scroll-region">
           <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={collapsed} onNavigate={onNavigate} />
         </div>
