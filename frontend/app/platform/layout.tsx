@@ -1,7 +1,6 @@
-"use client";
-
+import type { ReactNode } from "react";
 import { AppShell } from "./app-shell";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: ReactNode }) {
   return <AppShell>{children}</AppShell>;
 }

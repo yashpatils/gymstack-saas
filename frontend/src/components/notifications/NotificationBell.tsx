@@ -23,7 +23,7 @@ function getPopoverPosition(trigger: DOMRect, popoverHeight: number): CSSPropert
     top,
     left,
     width,
-    maxHeight: `calc(100vh - ${viewportPadding * 2}px)`,
+    maxHeight: `calc(100dvh - ${viewportPadding * 2}px)`,
   };
 }
 
