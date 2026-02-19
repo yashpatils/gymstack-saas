@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { SkeletonBlock } from '../common/SkeletonBlock';
 import { type AiActionType, getWeeklyAiBrief, type WeeklyAiBrief } from '../../lib/aiBrief';
@@ -49,10 +50,10 @@ export function WeeklyAiBriefCard() {
   }, []);
 
   return (
-    <div className="space-y-3 rounded-[var(--radius-xl)] border border-white/10 bg-slate-900/50 p-[var(--space-lg)]">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-6">
       <div>
         <h2 className="text-lg font-semibold">Weekly AI Brief</h2>
-        <p className="text-sm text-slate-300">Operational insights generated from tenant-level aggregated metrics.</p>
+        <p className="text-sm text-muted-foreground">Operational insights generated from tenant-level aggregated metrics.</p>
       </div>
 
       {loading ? (
@@ -67,8 +68,8 @@ export function WeeklyAiBriefCard() {
 
       {!loading && brief ? (
         <>
-          <p className="text-sm text-slate-200">{brief.summary}</p>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-100">
+          <p className="text-sm text-foreground/90">{brief.summary}</p>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-foreground/85">
             {brief.insights.map((insight, index) => (
               <li key={`${insight.bullet}-${index}`}>{insight.bullet}</li>
             ))}
@@ -79,16 +80,16 @@ export function WeeklyAiBriefCard() {
               .filter((actionType): actionType is AiActionType => Boolean(actionType))
               .filter((actionType, index, array) => array.indexOf(actionType) === index)
               .map((actionType) => (
-                <a key={actionType} href={ACTION_MAP[actionType].href} className="button secondary">
+                <Link key={actionType} href={ACTION_MAP[actionType].href} className="button secondary">
                   {ACTION_MAP[actionType].label}
-                </a>
+                </Link>
               ))}
           </div>
         </>
       ) : null}
 
       {!loading && !brief && !error ? (
-        <p className="text-sm text-slate-300">Insights will appear here once enough activity is available for this tenant.</p>
+        <p className="text-sm text-muted-foreground">Insights will appear here once enough activity is available for this tenant.</p>
       ) : null}
     </div>
   );

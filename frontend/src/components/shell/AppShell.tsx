@@ -115,26 +115,28 @@ export function AppShell({
   const desktopSidebarWidth = sidebarCollapsed ? DESKTOP_SIDEBAR_COLLAPSED : DESKTOP_SIDEBAR_EXPANDED;
 
   return (
-    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} min-h-[100dvh] w-full bg-background`} style={shellStyle}>
-      <div className="sticky top-0 z-[70] h-[var(--topbar-h)]">
+    <div
+      data-testid="app-shell"
+      className={`gs-shell gs-shell--${variant} min-h-screen w-full bg-background`}
+      style={shellStyle}
+    >
+      <div className="sticky top-0 z-50 h-[var(--topbar-h)] border-b bg-background/80 backdrop-blur">
         {header({
           onToggleMenu: () => {
             if (isDesktop) {
               onToggleCollapsed();
               return;
             }
-
             setIsMobileDrawerOpen((current) => !current);
           },
           showMenuToggle: !isDesktop,
         })}
       </div>
 
-      <div className="relative min-h-[calc(100dvh-var(--topbar-h))]">
-        <div
-          className={`fixed inset-y-0 left-0 z-20 hidden h-dvh overflow-hidden border-r border-border bg-[var(--surface-sidebar)] lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
-          style={{ height: "100dvh" }}
-          data-sidebar-collapsed={sidebarCollapsed}
+      <div className="flex min-h-[calc(100vh-var(--topbar-h))]">
+        <aside
+          className="hidden shrink-0 border-r bg-background lg:flex"
+          style={{ width: desktopSidebarWidth }}
         >
           <SidebarNav
             items={navItems}
@@ -143,21 +145,22 @@ export function AppShell({
             collapsed={sidebarCollapsed}
             onToggleCollapsed={onToggleCollapsed}
           />
-        </div>
+        </aside>
 
-        <main className="min-w-0 lg:pl-[var(--sidebar-w)]" style={{ paddingLeft: isDesktop ? desktopSidebarWidth : undefined }}>
-          <div className="mx-auto w-full max-w-[1400px] px-4 py-6">{children}</div>
-          {footer ? <div className="px-4 pb-6 text-sm text-muted-foreground">{footer}</div> : null}
+        <main className="flex-1 min-w-0">
+          <div className="h-full px-4 py-4 lg:px-6 lg:py-6">{children}</div>
+          {footer ? <div className="px-4 pb-6 lg:px-6">{footer}</div> : null}
         </main>
       </div>
 
-      <MobileSidebarDrawer open={!isDesktop && isMobileDrawerOpen} topOffset={TOPBAR_H} onClose={() => setIsMobileDrawerOpen(false)}>
+      <MobileSidebarDrawer open={isMobileDrawerOpen} onClose={() => setIsMobileDrawerOpen(false)}>
         <SidebarNav
           items={navItems}
           title={sidebarTitle}
           subtitle={sidebarSubtitle}
           mobileOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
+          collapsed={false}
           onNavigate={() => setIsMobileDrawerOpen(false)}
         />
       </MobileSidebarDrawer>
