@@ -132,7 +132,7 @@ export function AppShell({
 
       <div className="relative min-h-[calc(100dvh-var(--topbar-h))]">
         <div
-          className={`fixed inset-y-0 left-0 z-20 hidden border-r border-border/60 bg-[var(--surface-sidebar)] lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
+          className={`fixed inset-y-0 left-0 z-20 hidden h-dvh overflow-hidden border-r border-border bg-[var(--surface-sidebar)] lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
           style={{ height: "100dvh" }}
           data-sidebar-collapsed={sidebarCollapsed}
         >

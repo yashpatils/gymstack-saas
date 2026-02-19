@@ -133,7 +133,7 @@ export default function DataTable<T>({
   };
 
   return (
-    <div className="data-table-shell">
+    <div className="data-table-shell space-y-3">
       <div className="data-table-toolbar">
         <input
           className="input"
@@ -143,10 +143,11 @@ export default function DataTable<T>({
         />
       </div>
 
-      <div className="overflow-x-auto">
-      <table className="table data-table">
-        <thead>
-          <tr>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-x-auto">
+          <table className="table data-table w-full text-sm">
+        <thead className="bg-muted/40 text-muted-foreground">
+            <tr>
             {columns.map((column) => {
               const isSorted = sort?.columnId === column.id;
               const sortArrow = isSorted
@@ -156,12 +157,12 @@ export default function DataTable<T>({
                 : "";
 
               return (
-                <th key={column.id} className={column.headerClassName}>
+                <th key={column.id} className={`px-4 py-3 text-left font-medium ${column.headerClassName ?? ""}`.trim()}>
                   <button
                     type="button"
                     onClick={() => onSortClick(column)}
                     disabled={!column.sortable || !column.sortValue}
-                    className="text-left"
+                    className="text-left text-inherit"
                     style={{
                       background: "none",
                       border: 0,
@@ -181,28 +182,29 @@ export default function DataTable<T>({
             })}
           </tr>
         </thead>
-        <tbody>
+                  <tbody className="divide-y divide-border">
           {loading
             ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                <tr key={`skeleton-row-${rowIndex}`}>
+                                <tr key={`skeleton-row-${rowIndex}`} className="hover:bg-muted/30">
                   {columns.map((column) => (
-                    <td key={`${column.id}-skeleton-${rowIndex}`}>
+                                        <td key={`${column.id}-skeleton-${rowIndex}`} className="px-4 py-3">
                       <div className="skeleton" style={{ height: 16 }} />
                     </td>
                   ))}
                 </tr>
               ))
             : paginatedRows.map((row, rowIndex) => (
-                <tr key={getRowKey?.(row, rowIndex) ?? `row-${rowIndex}`}>
+                                <tr key={getRowKey?.(row, rowIndex) ?? `row-${rowIndex}`} className="hover:bg-muted/30">
                   {columns.map((column) => (
-                    <td key={`${column.id}-${rowIndex}`} className={column.className}>
+                                        <td key={`${column.id}-${rowIndex}`} className={`px-4 py-3 ${column.className ?? ""}`.trim()}>
                       {column.cell(row)}
                     </td>
                   ))}
                 </tr>
               ))}
-        </tbody>
-      </table>
+          </tbody>
+          </table>
+        </div>
       </div>
 
       {!loading && totalPages > 1 ? (

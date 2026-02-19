@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { AppNavItem } from "./nav-config";
 
 type SidebarNavProps = {
@@ -41,6 +40,10 @@ function isActivePath(pathname: string, href: string): boolean {
   return currentPath.startsWith(`${itemPath}/`);
 }
 
+function isExternalHref(href: string): boolean {
+  return /^https?:\/\//.test(href);
+}
+
 export function SidebarContent({ items, pathname, title, subtitle, collapsed, onNavigate }: {
   items: AppNavItem[];
   pathname: string;
@@ -49,6 +52,8 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
+  const router = useRouter();
+
   return (
     <>
       <div className="gs-sidebar__brand rounded-2xl border border-border/80 bg-card p-4 text-center">
@@ -68,18 +73,36 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
               <ul className="space-y-1">
                 {scopedItems.map((item) => {
                   const active = isActivePath(pathname, item.href);
+                  const itemClass = `platform-nav-item w-full text-left ${active ? "platform-nav-item-active" : ""}`;
+
                   return (
                     <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={`platform-nav-item ${active ? "platform-nav-item-active" : ""}`}
-                        onClick={onNavigate}
-                        aria-current={active ? "page" : undefined}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <span aria-hidden="true" className="mr-2 inline-flex w-4 items-center justify-center">{item.icon}</span>
-                        <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
-                      </Link>
+                      {isExternalHref(item.href) ? (
+                        <a
+                          href={item.href}
+                          className={itemClass}
+                          onClick={onNavigate}
+                          aria-current={active ? "page" : undefined}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <span aria-hidden="true" className="mr-2 inline-flex w-4 items-center justify-center">{item.icon}</span>
+                          <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          className={itemClass}
+                          onClick={() => {
+                            router.push(item.href);
+                            onNavigate?.();
+                          }}
+                          aria-current={active ? "page" : undefined}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <span aria-hidden="true" className="mr-2 inline-flex w-4 items-center justify-center">{item.icon}</span>
+                          <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
+                        </button>
+                      )}
                     </li>
                   );
                 })}
@@ -107,7 +130,7 @@ export function SidebarNav({
   return (
     <aside
       id="platform-sidebar"
-      className={`gs-sidebar platform-sidebar-modern border-r border-border/70 p-4 ${mobileOpen ? "block h-full" : "hidden h-full lg:block"} ${collapsed ? "gs-sidebar--collapsed" : ""}`}
+      className={`platform-sidebar-modern ${mobileOpen ? "block h-full" : "hidden h-full lg:block"} ${collapsed ? "gs-sidebar--collapsed" : ""}`}
       aria-label={`${title} navigation`}
       data-testid="desktop-sidebar"
       data-collapsed={collapsed}
@@ -124,7 +147,7 @@ export function SidebarNav({
           {collapsed ? "→" : "←"}
         </button>
       ) : null}
-      <div className="h-full overflow-y-auto">
+      <div className="h-full min-h-0 overflow-y-auto border-r border-border p-4">
         <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={collapsed} onNavigate={onNavigate ?? onClose} />
       </div>
     </aside>
