@@ -35,6 +35,26 @@ export function AppShell({
   const pathname = usePathname();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const applyMatch = () => {
+      const desktop = mediaQuery.matches;
+      setIsDesktop(desktop);
+      if (desktop) {
+        setIsMobileDrawerOpen(false);
+      }
+    };
+
+    applyMatch();
+    mediaQuery.addEventListener("change", applyMatch);
+    return () => mediaQuery.removeEventListener("change", applyMatch);
+  }, []);
 
   useEffect(() => {
     setIsMobileDrawerOpen(false);
@@ -74,11 +94,20 @@ export function AppShell({
 
   return (
     <div data-testid="app-shell" className={`gs-shell shell-${variant} min-h-screen w-full`} style={shellStyle}>
-      {header({ onToggleMenu: () => setIsMobileDrawerOpen((current) => !current), showMenuToggle: true })}
+      {header({
+        onToggleMenu: () => {
+          if (isDesktop) {
+            return;
+          }
+          setIsMobileDrawerOpen((current) => !current);
+        },
+        showMenuToggle: !isDesktop,
+      })}
 
       {isMobileDrawerOpen ? (
         <button
           type="button"
+          data-testid="mobile-drawer-backdrop"
           aria-label="Close menu overlay"
           className="fixed inset-0 top-[var(--topbar-h)] z-[50] bg-black/60 lg:hidden"
           onClick={() => setIsMobileDrawerOpen(false)}
