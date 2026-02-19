@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest';
 const ROOT = path.resolve(__dirname, '..');
 const DISALLOWED_IMPORTS = [
   'src/components/shell/Sidebar',
-  'src/components/shell/Topbar',
+  'src/components/shell/TopBar',
 ];
 
 function walk(dir: string, bucket: string[] = []): string[] {
@@ -29,7 +29,7 @@ function walk(dir: string, bucket: string[] = []): string[] {
 }
 
 describe('shell import guard', () => {
-  test('Sidebar and Topbar are only imported inside shell components', () => {
+  test('Sidebar and TopBar are only imported inside shell components', () => {
     const files = walk(ROOT);
     const offenders: string[] = [];
 
