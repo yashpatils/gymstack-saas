@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => (typeof window === 'undefined' ? null : getToken()));
   const [isLoading, setIsLoading] = useState(true);
   const [isHydrating, setIsHydrating] = useState(true);
+  const [authState, setAuthState] = useState<AuthState>('hydrating');
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [platformRole, setPlatformRole] = useState<'PLATFORM_ADMIN' | null>(null);
   const [permissions, setPermissions] = useState<PermissionFlags>({
@@ -105,12 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [effectiveAccess, setEffectiveAccess] = useState<boolean | undefined>(undefined);
   const [gatingStatus, setGatingStatus] = useState<GatingStatus | undefined>(undefined);
   const [qaModeEnabled, setQaModeEnabled] = useState(false);
-
-  const authState: AuthState = (isHydrating || isLoading)
-    ? 'hydrating'
-    : (Boolean(token) && (Boolean(user) || authIssue === 'INSUFFICIENT_PERMISSIONS' || meStatus === 200))
-      ? 'authed'
-      : 'guest';
 
   const clearAuthState = useCallback(() => {
     setMonitoringUserContext(null);
@@ -142,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEffectiveAccess(undefined);
     setGatingStatus(undefined);
     setQaModeEnabled(false);
+    setAuthState('guest');
   }, []);
 
   const normalizeMemberships = useCallback((source: AuthMeResponse['memberships']): Membership[] => {
@@ -212,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEffectiveAccess(meResponse.effectiveAccess);
     setGatingStatus(meResponse.gatingStatus);
     setQaModeEnabled(Boolean(meResponse.qaModeEnabled));
+    setAuthState('authed');
   }, [normalizeMemberships, normalizePermissions]);
 
   const hydrateFromMe = useCallback(async () => {
@@ -284,6 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     const loadUser = async () => {
+      setAuthState('hydrating');
       setIsHydrating(true);
       const existingToken = getToken();
       if (!isMounted) return;
@@ -295,30 +293,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthIssue(null);
         setIsLoading(false);
         setIsHydrating(false);
+        setAuthState('guest');
         return;
       }
 
       try {
         await hydrateWithRecovery();
+        if (isMounted) {
+          setAuthState('authed');
+        }
       } catch (error) {
         if (error instanceof ApiFetchError) {
           if (error.statusCode === 403) {
             if (isMounted) {
               setUser(null);
               setMemberships([]);
+              setAuthState('authed');
             }
           } else if (error.statusCode === 401) {
             if (isMounted) {
               clearAuthState();
+              setAuthState('guest');
             }
             clearToken();
           } else if (isMounted) {
             setMeStatus(200);
             setAuthIssue(null);
+            setAuthState('authed');
           }
         } else if (isMounted) {
           setMeStatus(200);
           setAuthIssue(null);
+          setAuthState(existingToken ? 'authed' : 'guest');
         }
       } finally {
         if (isMounted) {
@@ -375,6 +381,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     setMeStatus(null);
     setAuthIssue(null);
+    setAuthState('guest');
     clearAuthState();
   }, [clearAuthState]);
 

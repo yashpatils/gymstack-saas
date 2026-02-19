@@ -63,7 +63,7 @@ export function AppHeader({
         <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="flex items-center gap-2">
             {showMenuToggle ? (
-              <button type="button" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu">☰</button>
+              <button type="button" data-testid="hamburger" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu">☰</button>
             ) : null}
             {leftExtra}
             {qaBypass ? (

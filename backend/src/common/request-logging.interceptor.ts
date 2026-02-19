@@ -21,7 +21,12 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
     const startedAt = Date.now();
-    const requestId = request.requestId ?? String(response.getHeader('x-request-id') ?? response.getHeader('X-Request-Id') ?? 'unknown');
+    const existingRequestId = response.locals?.requestId ?? response.getHeader('x-request-id') ?? response.getHeader('X-Request-Id');
+    const requestId = request.requestId ?? String(existingRequestId ?? 'unknown');
+
+    if (response.locals) {
+      response.locals.requestId = requestId;
+    }
 
     this.safeSetHeader(response, 'x-request-id', requestId);
 

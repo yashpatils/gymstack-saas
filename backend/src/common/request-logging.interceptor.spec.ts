@@ -64,6 +64,63 @@ describe('RequestLoggingInterceptor', () => {
     expect(payload.route).toBe('/api/auth/me');
   });
 
+
+  it('handles auth me -> refresh -> auth me traffic without header mutation after send', () => {
+    const interceptor = new RequestLoggingInterceptor();
+    const loggerLogSpy = jest.spyOn((interceptor as any).logger, 'log').mockImplementation();
+
+    const makeResponse = (): MockResponse => {
+      const response = new EventEmitter() as MockResponse;
+      response.headersSent = false;
+      response.writableEnded = false;
+      response.statusCode = 200;
+      response.setHeader = jest.fn();
+      response.getHeader = jest.fn();
+      return response;
+    };
+
+    const firstRequest: MockRequest = {
+      requestId: 'me-1',
+      originalUrl: '/api/auth/me',
+      header: () => undefined,
+    };
+    const firstResponse = makeResponse();
+    interceptor.intercept(createExecutionContext(firstRequest, firstResponse), { handle: () => of({ ok: false }) }).subscribe();
+    firstResponse.headersSent = true;
+    firstResponse.writableEnded = true;
+    firstResponse.statusCode = 401;
+    firstResponse.emit('finish');
+
+    const refreshRequest: MockRequest = {
+      requestId: 'refresh-1',
+      originalUrl: '/api/auth/refresh',
+      header: () => undefined,
+    };
+    const refreshResponse = makeResponse();
+    interceptor.intercept(createExecutionContext(refreshRequest, refreshResponse), { handle: () => of({ ok: true }) }).subscribe();
+    refreshResponse.headersSent = true;
+    refreshResponse.writableEnded = true;
+    refreshResponse.statusCode = 200;
+    refreshResponse.emit('finish');
+
+    const secondRequest: MockRequest = {
+      requestId: 'me-2',
+      originalUrl: '/api/auth/me',
+      header: () => undefined,
+    };
+    const secondResponse = makeResponse();
+    interceptor.intercept(createExecutionContext(secondRequest, secondResponse), { handle: () => of({ ok: true }) }).subscribe();
+    secondResponse.headersSent = true;
+    secondResponse.writableEnded = true;
+    secondResponse.statusCode = 200;
+    secondResponse.emit('finish');
+
+    expect(firstResponse.setHeader).toHaveBeenCalledWith('x-request-id', 'me-1');
+    expect(refreshResponse.setHeader).toHaveBeenCalledWith('x-request-id', 'refresh-1');
+    expect(secondResponse.setHeader).toHaveBeenCalledWith('x-request-id', 'me-2');
+    expect(loggerLogSpy).toHaveBeenCalledTimes(3);
+  });
+
   it('does not mutate headers after response is already sent', () => {
     const interceptor = new RequestLoggingInterceptor();
     const loggerLogSpy = jest.spyOn((interceptor as any).logger, 'log').mockImplementation();
