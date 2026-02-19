@@ -9,6 +9,8 @@ type SidebarProps = {
   items: AppNavItem[];
   title: string;
   subtitle: string;
+  mobileOpen?: boolean;
+  onClose?: () => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
   onNavigate?: () => void;
@@ -84,7 +86,16 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
   );
 }
 
-export function Sidebar({ items, title, subtitle, collapsed = false, onToggleCollapsed, onNavigate }: SidebarProps) {
+export function Sidebar({
+  items,
+  title,
+  subtitle,
+  mobileOpen = false,
+  onClose,
+  collapsed = false,
+  onToggleCollapsed,
+  onNavigate,
+}: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -94,6 +105,8 @@ export function Sidebar({ items, title, subtitle, collapsed = false, onToggleCol
       aria-label={`${title} navigation`}
       data-testid="desktop-sidebar"
       data-collapsed={collapsed}
+      data-mobile-open={mobileOpen}
+      data-has-on-close={Boolean(onClose)}
     >
       {onToggleCollapsed ? (
         <button
