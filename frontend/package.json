@@ -19,7 +19,8 @@
     "artifacts:generate": "node ./scripts/generate-artifacts.mjs",
     "ui:preview": "npm run artifacts:generate && playwright test tests/route-preview.spec.ts",
     "test:phase1": "playwright test tests/phase1-foundation.spec.ts",
-    "screenshots:platform": "playwright test tests/phase1-foundation.spec.ts -g \"captures desktop and mobile screenshots\""
+    "screenshots:platform": "playwright test tests/phase1-foundation.spec.ts -g \"captures desktop and mobile screenshots\"",
+    "test:ui": "playwright test tests/smoke.spec.ts"
   },
   "dependencies": {
     "next": "14.2.5",

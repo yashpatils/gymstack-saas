@@ -2,7 +2,7 @@
 
 import { AuthGate } from "../../src/components/AuthGate";
 import { BillingBanner } from "../../src/components/billing/BillingBanner";
-import { AppHeader } from "../../src/components/shell/AppHeader";
+import { HeaderBar } from "../../src/components/shell/HeaderBar";
 import { AppShell as BaseAppShell } from "../../src/components/shell/AppShell";
 import { platformNavItems } from "../../src/components/shell/nav-config";
 import { NotificationBell } from "../../src/components/notifications/NotificationBell";
@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         sidebarTitle="Platform"
         sidebarSubtitle={activeTenant?.name ?? "GymStack workspace"}
         header={({ onToggleMenu, showMenuToggle }) => (
-          <AppHeader
+          <HeaderBar
             onToggleMenu={onToggleMenu}
             showMenuToggle={showMenuToggle}
             leftExtra={<NotificationBell />}
