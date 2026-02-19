@@ -47,15 +47,15 @@ html[data-theme="dark"] {
 
 html[data-theme="light"] {
   color-scheme: light;
-  --bg: #f4f6fb;
+  --bg: #f2f5fb;
   --surface-1: #ffffff;
-  --surface-2: #f9fbff;
-  --surface-3: #eef2f8;
-  --surface-sidebar: #f8fbff;
-  --surface-overlay: rgba(255, 255, 255, 0.86);
-  --border: rgba(15, 23, 42, 0.12);
-  --text: #0f172a;
-  --text-muted: #55627a;
+  --surface-2: #f6f8fe;
+  --surface-3: #e8edf7;
+  --surface-sidebar: #f7faff;
+  --surface-overlay: rgba(255, 255, 255, 0.96);
+  --border: rgba(15, 23, 42, 0.18);
+  --text: #0b1220;
+  --text-muted: #42526b;
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface-1);

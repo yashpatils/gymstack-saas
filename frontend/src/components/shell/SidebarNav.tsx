@@ -65,7 +65,7 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
                         aria-current={active ? "page" : undefined}
                         title={collapsed ? item.label : undefined}
                       >
-                        <span aria-hidden="true" className="mr-2 inline-block w-4 text-center">{item.icon}</span>
+                        <span aria-hidden="true" className="mr-2 inline-flex w-4 items-center justify-center">{item.icon}</span>
                         <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
                       </Link>
                     </li>

@@ -5,19 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../src/providers/AuthProvider";
 import { SidebarNav } from "../../../../src/components/shell/Sidebar";
+import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
 
 const previewItems: AppNavItem[] = [
-  { label: "Overview", href: "/platform", icon: "⌂", section: "core" },
-  { label: "Locations", href: "/platform/locations/settings", icon: "📍", section: "core" },
-  { label: "Staff", href: "/platform/team", icon: "👥", section: "core" },
-  { label: "Invites", href: "/platform/invites", icon: "✉️", section: "operations" },
-  { label: "Billing", href: "/platform/billing", icon: "💳", section: "operations" },
-  { label: "Analytics", href: "/platform/analytics", icon: "📈", section: "operations" },
-  { label: "Export", href: "/platform/data", icon: "🗂️", section: "operations" },
-  { label: "Settings", href: "/platform/settings", icon: "⚙", section: "settings" },
-  { label: "Account", href: "/platform/account", icon: "👤", section: "settings" },
-  { label: "Developer", href: "/platform/developer", icon: "🧪", section: "settings" },
+  { label: "Overview", href: "/platform", icon: <ShellIcon name="home" width={16} height={16} />, section: "core" },
+  { label: "Locations", href: "/platform/locations/settings", icon: <ShellIcon name="pin" width={16} height={16} />, section: "core" },
+  { label: "Staff", href: "/platform/team", icon: <ShellIcon name="users" width={16} height={16} />, section: "core" },
+  { label: "Invites", href: "/platform/invites", icon: <ShellIcon name="search" width={16} height={16} />, section: "operations" },
+  { label: "Billing", href: "/platform/billing", icon: <ShellIcon name="card" width={16} height={16} />, section: "operations" },
+  { label: "Analytics", href: "/platform/analytics", icon: <ShellIcon name="line" width={16} height={16} />, section: "operations" },
+  { label: "Export", href: "/platform/data", icon: <ShellIcon name="database" width={16} height={16} />, section: "operations" },
+  { label: "Settings", href: "/platform/settings", icon: <ShellIcon name="settings" width={16} height={16} />, section: "settings" },
+  { label: "Account", href: "/platform/account", icon: <ShellIcon name="user" width={16} height={16} />, section: "settings" },
+  { label: "Developer", href: "/platform/developer", icon: <ShellIcon name="flask" width={16} height={16} />, section: "settings" },
 ];
 
 export default function ShellPreviewPage() {

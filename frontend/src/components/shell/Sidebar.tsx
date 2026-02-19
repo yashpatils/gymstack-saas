@@ -69,7 +69,7 @@ function SidebarBody({ items, pathname, title, subtitle, collapsed, onClose }: {
                         aria-current={active ? "page" : undefined}
                         title={collapsed ? item.label : undefined}
                       >
-                        <span aria-hidden="true" className="platform-nav-item-icon mr-2 inline-block w-4 text-center">{item.icon}</span>
+                        <span aria-hidden="true" className="platform-nav-item-icon mr-2 inline-flex w-4 items-center justify-center">{item.icon}</span>
                         <span className="platform-nav-item-label">{item.label}</span>
                       </Link>
                     </li>
