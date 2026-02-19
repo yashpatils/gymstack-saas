@@ -30,6 +30,11 @@ function normalizePath(path: string): string {
 function isActivePath(pathname: string, href: string): boolean {
   const currentPath = normalizePath(pathname);
   const itemPath = normalizePath(href);
+
+  if (itemPath === "/platform" || itemPath === "/admin" || itemPath === "/app") {
+    return currentPath === itemPath;
+  }
+
   return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
