@@ -113,7 +113,7 @@ export function AppShell({
   };
 
   return (
-    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} min-h-screen`} style={shellStyle}>
+    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} h-dvh w-full overflow-hidden`} style={shellStyle}>
       <div className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)]">
         {header({
           onToggleMenu: () => {
@@ -129,7 +129,7 @@ export function AppShell({
       </div>
 
       <div className="pt-[var(--topbar-h)]">
-        <div className="flex h-[calc(100vh-var(--topbar-h))]">
+        <div className="flex h-[calc(100dvh-var(--topbar-h))]">
           <div
             className={`hidden shrink-0 border-r border-border/60 lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
             data-sidebar-collapsed={sidebarCollapsed}
