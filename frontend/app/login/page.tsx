@@ -8,6 +8,7 @@ import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
 import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { ApiFetchError } from "../../src/lib/apiFetch";
 import { me as fetchCurrentSession } from "../../src/lib/auth";
+import { getAuthErrorMessage } from "../../src/lib/authErrorMessage";
 import { Alert, Button, Input } from "../components/ui";
 import { getValidatedNextUrl } from "./next-url";
 
@@ -135,10 +136,8 @@ function LoginPageContent() {
             }
             if (isAdminHost && submitError instanceof ApiFetchError && submitError.statusCode === 403) {
               setError(ADMIN_RESTRICTED_MESSAGE);
-            } else if (submitError instanceof ApiFetchError && submitError.statusCode === 401) {
-              setError('Invalid email or password.');
             } else {
-              setError(submitError instanceof Error ? submitError.message : "Unable to login.");
+              setError(getAuthErrorMessage(submitError));
             }
           } finally {
             setSubmitting(false);

@@ -98,9 +98,13 @@ export function Topbar({
                 ref={triggerRef}
                 type="button"
                 className="button secondary h-10 flex items-center gap-2 rounded-xl px-2"
-                onClick={() => setIsAccountMenuOpen((current) => !current)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsAccountMenuOpen((current) => !current);
+                }}
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
+                aria-controls="account-menu"
                 aria-label="Open account menu"
               >
                 <span className="h-8 w-8 rounded-full user-chip-avatar">{initials}</span>
@@ -108,7 +112,7 @@ export function Topbar({
                 <span className="text-xs">▾</span>
               </button>
               {isAccountMenuOpen ? (
-                <div ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-20 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu">
+                <div id="account-menu" ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-20 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu" onClick={(event) => event.stopPropagation()}>
                   {canSwitchMode ? (
                     <div className="mb-2 rounded-lg border border-border bg-background/60 p-1 md:hidden">
                       <p className="px-2 pb-1 pt-0.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Mode</p>

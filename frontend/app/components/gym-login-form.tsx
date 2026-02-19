@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { applyOAuthTokens, me } from '@/src/lib/auth';
+import { getAuthErrorMessage } from '@/src/lib/authErrorMessage';
 import type { MembershipRole } from '@/src/types/auth';
 import { Alert, Button, Input } from './ui';
 import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
@@ -64,7 +65,7 @@ export function GymLoginForm({ tenantId, locationId }: GymLoginFormProps) {
 
           router.push(resolveRoleDestination(role));
         } catch (submitError) {
-          setError(submitError instanceof Error ? submitError.message : 'Unable to login');
+          setError(getAuthErrorMessage(submitError));
         }
       }}
     >

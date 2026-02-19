@@ -85,6 +85,7 @@ export function AppHeader({
                 }}
                 aria-expanded={isAccountMenuOpen}
                 aria-haspopup="menu"
+                aria-controls="account-menu"
                 aria-label="Open account menu"
               >
                 <span className="user-chip-avatar h-8 w-8 rounded-full">{accountInitials}</span>
@@ -92,7 +93,7 @@ export function AppHeader({
                 <span className="text-xs">▾</span>
               </button>
               {isAccountMenuOpen ? (
-                <div ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu">
+                <div id="account-menu" ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu" onClick={(event) => event.stopPropagation()}>
                   {qaBypass ? (
                     <div className="mb-2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
                       <p className="font-semibold tracking-wide">QA BYPASS ON</p>
