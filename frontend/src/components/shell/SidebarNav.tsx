@@ -29,7 +29,16 @@ function normalizePath(path: string): string {
 function isActivePath(pathname: string, href: string): boolean {
   const currentPath = normalizePath(pathname);
   const itemPath = normalizePath(href);
-  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
+
+  if (currentPath === itemPath) {
+    return true;
+  }
+
+  if (itemPath === "/platform") {
+    return false;
+  }
+
+  return currentPath.startsWith(`${itemPath}/`);
 }
 
 export function SidebarContent({ items, pathname, title, subtitle, collapsed, onNavigate }: {

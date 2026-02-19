@@ -43,8 +43,8 @@ function StatusPill({ status }: { status: MemberRow["status"] }) {
       className={[
         "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
         active
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-          : "border-amber-500/30 bg-amber-500/10 text-amber-300",
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
       ].join(" ")}
     >
       {status}
@@ -172,21 +172,21 @@ export default function PlatformPage() {
           ) : null}
 
           {!loading && gyms.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
               <table className="w-full min-w-[520px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="pb-2 font-medium">Location</th>
-                    <th className="pb-2 font-medium">Domain</th>
-                    <th className="pb-2 text-right font-medium">Action</th>
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Location</th>
+                    <th className="px-4 py-3 font-medium">Domain</th>
+                    <th className="px-4 py-3 text-right font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border">
                   {gyms.slice(0, 8).map((gym) => (
-                    <tr key={gym.id} className="border-b border-border/70 text-foreground">
-                      <td className="py-3">{gym.name}</td>
-                      <td className="py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
-                      <td className="py-3 text-right">
+                    <tr key={gym.id} className="text-foreground hover:bg-muted/30">
+                      <td className="px-4 py-3">{gym.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
+                      <td className="px-4 py-3 text-right">
                         <Link href={`/platform/gyms/${gym.id}`} className="button button-sm secondary">
                           Open
                         </Link>
