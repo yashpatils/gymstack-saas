@@ -114,7 +114,7 @@ export function AppHeader({
             <button
               type="button"
               data-testid="hamburger"
-              className="button secondary topbar-icon-button lg:hidden"
+              className="button secondary topbar-icon-button"
               onClick={onToggleMenu}
               aria-label="Open menu"
             >

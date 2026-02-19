@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Sidebar } from "./Sidebar";
+import { SidebarNav } from "./SidebarNav";
 import { MobileSidebarDrawer } from "./MobileSidebarDrawer";
 import type { AppNavItem } from "./nav-config";
 import {
@@ -113,8 +113,8 @@ export function AppShell({
   };
 
   return (
-    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} h-dvh w-full overflow-hidden`} style={shellStyle}>
-      <div className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)]">
+    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant} h-[100dvh] w-full overflow-hidden`} style={shellStyle}>
+      <div className="sticky top-0 z-[60] h-[var(--topbar-h)]">
         {header({
           onToggleMenu: () => {
             if (isDesktop) {
@@ -128,34 +128,32 @@ export function AppShell({
         })}
       </div>
 
-      <div className="pt-[var(--topbar-h)]">
-        <div className="flex h-[calc(100dvh-var(--topbar-h))]">
-          <div
-            className={`hidden shrink-0 border-r border-border/60 lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
-            data-sidebar-collapsed={sidebarCollapsed}
-          >
-            <Sidebar
-              items={navItems}
-              title={sidebarTitle}
-              subtitle={sidebarSubtitle}
-              collapsed={sidebarCollapsed}
-              onToggleCollapsed={onToggleCollapsed}
-            />
-          </div>
-
-          <main className="min-w-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-[1400px] px-4 py-6">{children}</div>
-            {footer ? <div className="px-4 pb-6">{footer}</div> : null}
-          </main>
+      <div className="flex h-[calc(100dvh-var(--topbar-h))] overflow-hidden">
+        <div
+          className={`hidden h-full shrink-0 border-r border-border/60 lg:block ${sidebarCollapsed ? "w-[var(--sidebar-collapsed-w)]" : "w-[var(--sidebar-w)]"}`}
+          data-sidebar-collapsed={sidebarCollapsed}
+        >
+          <SidebarNav
+            items={navItems}
+            title={sidebarTitle}
+            subtitle={sidebarSubtitle}
+            collapsed={sidebarCollapsed}
+            onToggleCollapsed={onToggleCollapsed}
+          />
         </div>
+
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto min-h-full w-full max-w-[1400px] px-4 py-6">{children}</div>
+          {footer ? <div className="px-4 pb-6">{footer}</div> : null}
+        </main>
       </div>
 
       <MobileSidebarDrawer open={!isDesktop && isMobileDrawerOpen} topOffset={TOPBAR_H} onClose={() => setIsMobileDrawerOpen(false)}>
-        <Sidebar
+        <SidebarNav
           items={navItems}
           title={sidebarTitle}
           subtitle={sidebarSubtitle}
-          mobileOpen
+          mobileOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
           onNavigate={() => setIsMobileDrawerOpen(false)}
         />
