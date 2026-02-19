@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { useThemeConfig, type ThemeMode } from "../../providers/ThemeProvider";
+import { ShellIcon } from "./ShellIcon";
 
 type AppHeaderProps = {
   onToggleMenu: () => void;
@@ -59,20 +60,20 @@ export function AppHeader({
 
   return (
     <header data-testid="topbar" className="fixed inset-x-0 top-0 z-[60] h-[var(--topbar-h)] border-b border-border/70 bg-[var(--surface-overlay)] backdrop-blur-xl">
-      <div className="h-full px-4 md:px-6">
-        <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="relative h-full px-4 md:px-6">
+        <div className="flex h-full items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {showMenuToggle ? (
-              <button type="button" data-testid="hamburger" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu">☰</button>
+              <button type="button" data-testid="hamburger" className="button secondary platform-menu-toggle topbar-icon-button lg:hidden" onClick={onToggleMenu} aria-label="Open menu"><ShellIcon name="menu" width={16} height={16} /></button>
             ) : null}
-            {leftExtra}
+            {leftExtra ?? <button type="button" className="button secondary topbar-icon-button" aria-label="Notifications"><ShellIcon name="bell" width={16} height={16} /></button>}
             {qaBypass ? (
               <span className="hidden rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-amber-100 md:inline-flex">
                 QA BYPASS
               </span>
             ) : null}
           </div>
-          <div className="flex justify-center">{centerContent}</div>
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-center">{centerContent}</div>
           <div className="flex justify-end">
             <div className="relative">
               <button
@@ -90,7 +91,7 @@ export function AppHeader({
               >
                 <span className="user-chip-avatar h-8 w-8 rounded-full">{accountInitials}</span>
                 <span className="hidden max-w-[120px] truncate sm:block">{accountName}</span>
-                <span className="text-xs">▾</span>
+                <ShellIcon name="chevronDown" width={14} height={14} />
               </button>
               {isAccountMenuOpen ? (
                 <div id="account-menu" ref={accountMenuRef} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-border bg-card p-2 shadow-xl" role="menu" onClick={(event) => event.stopPropagation()}>
@@ -135,7 +136,7 @@ export function AppHeader({
                   {onLogout ? (
                     <button
                       type="button"
-                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
+                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--danger-600)] hover:bg-rose-500/20"
                       onClick={(event) => {
                         event.stopPropagation();
                         setIsAccountMenuOpen(false);

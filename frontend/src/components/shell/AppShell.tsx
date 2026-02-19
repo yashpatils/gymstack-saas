@@ -1,12 +1,17 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarDrawer } from "./SidebarDrawer";
 import type { AppNavItem } from "./nav-config";
-import { DESKTOP_SIDEBAR_COLLAPSED, DESKTOP_SIDEBAR_EXPANDED, TOPBAR_H } from "./constants";
+import {
+  DESKTOP_SIDEBAR_COLLAPSED,
+  DESKTOP_SIDEBAR_EXPANDED,
+  DESKTOP_SIDEBAR_STORAGE_KEY,
+  TOPBAR_H,
+} from "./constants";
 
 export function AppShell({
   variant,
@@ -26,11 +31,9 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const headerRef = useRef<HTMLDivElement | null>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(TOPBAR_H);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -52,24 +55,14 @@ export function AppShell({
   }, []);
 
   useEffect(() => {
-    const node = headerRef.current?.querySelector("header");
-    if (!(node instanceof HTMLElement) || typeof window === "undefined") {
+    if (typeof window === "undefined") {
       return;
     }
 
-    const updateHeaderHeight = () => {
-      setHeaderHeight(Math.round(node.getBoundingClientRect().height) || TOPBAR_H);
-    };
-
-    updateHeaderHeight();
-    const resizeObserver = new ResizeObserver(updateHeaderHeight);
-    resizeObserver.observe(node);
-    window.addEventListener("resize", updateHeaderHeight);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateHeaderHeight);
-    };
+    const stored = window.localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY);
+    if (stored === "1") {
+      setSidebarCollapsed(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -101,17 +94,27 @@ export function AppShell({
   const shellStyle = useMemo(
     () =>
       ({
-        "--header-h": `${headerHeight}px`,
-        "--topbar-h": `${headerHeight}px`,
+        "--header-h": `${TOPBAR_H}px`,
+        "--topbar-h": `${TOPBAR_H}px`,
         "--sidebar-w": `${DESKTOP_SIDEBAR_EXPANDED}px`,
         "--sidebar-collapsed-w": `${DESKTOP_SIDEBAR_COLLAPSED}px`,
       }) as CSSProperties,
-    [headerHeight],
+    [],
   );
+
+  const onToggleCollapsed = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, next ? "1" : "0");
+      }
+      return next;
+    });
+  };
 
   return (
     <div data-testid="app-shell" className={`gs-shell gs-shell--${variant}`} style={shellStyle}>
-      <div ref={headerRef} className="gs-shell__header">
+      <div className="gs-shell__header">
         {header({
           onToggleMenu: () => {
             if (!isDesktop) {
@@ -136,7 +139,7 @@ export function AppShell({
           title={sidebarTitle}
           subtitle={sidebarSubtitle}
           collapsed={sidebarCollapsed}
-          onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+          onToggleCollapsed={onToggleCollapsed}
         />
         <main className="gs-shell__main">
           <div className="gs-shell__content">{children}</div>
