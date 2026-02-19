@@ -13,9 +13,10 @@ function getPopoverPosition(trigger: DOMRect, popoverHeight: number): CSSPropert
   const left = Math.min(Math.max(trigger.right - width, viewportPadding), window.innerWidth - width - viewportPadding);
   const roomBelow = window.innerHeight - trigger.bottom - viewportPadding;
   const openAbove = roomBelow < popoverHeight + 8 && trigger.top > popoverHeight;
+  const maxTop = Math.max(viewportPadding, window.innerHeight - popoverHeight - viewportPadding);
   const top = openAbove
     ? Math.max(viewportPadding, trigger.top - popoverHeight - 8)
-    : Math.min(window.innerHeight - viewportPadding, trigger.bottom + 8);
+    : Math.min(maxTop, trigger.bottom + 8);
 
   return {
     position: "fixed",
