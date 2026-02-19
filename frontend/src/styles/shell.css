@@ -1,0 +1,61 @@
+.gs-shell {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.gs-shell__header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+}
+
+.gs-shell__body {
+  min-height: 100vh;
+  padding-top: var(--header-h);
+}
+
+.gs-shell__main {
+  min-width: 0;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.gs-shell__content {
+  width: 100%;
+  min-width: 0;
+}
+
+.gs-shell__footer {
+  padding: 0 0.5rem 1.5rem;
+}
+
+.gs-sidebar {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  height: calc(100vh - var(--header-h));
+  width: var(--sidebar-w);
+}
+
+.gs-sidebar--collapsed {
+  width: var(--sidebar-collapsed-w);
+}
+
+.gs-sidebar-drawer {
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+}
+
+@media (min-width: 1024px) {
+  .gs-shell__body {
+    padding-left: var(--sidebar-w);
+  }
+
+  .gs-shell__body[data-sidebar-collapsed="true"] {
+    padding-left: var(--sidebar-collapsed-w);
+  }
+
+  .gs-shell__main {
+    padding: 1.5rem 2rem;
+  }
+}

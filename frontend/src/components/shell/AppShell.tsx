@@ -1,19 +1,12 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { SidebarNav } from "./Sidebar";
+import { SidebarNav } from "./SidebarNav";
+import { SidebarDrawer } from "./SidebarDrawer";
 import type { AppNavItem } from "./nav-config";
 import { DESKTOP_SIDEBAR_COLLAPSED, DESKTOP_SIDEBAR_EXPANDED, TOPBAR_H } from "./constants";
-
-export function ContentContainer({ children }: { children: ReactNode }) {
-  return (
-    <main className="w-full min-w-0 px-6 py-6 lg:px-8">
-      <div className="mx-auto w-full max-w-[1360px]">{children}</div>
-    </main>
-  );
-}
 
 export function AppShell({
   variant,
@@ -33,9 +26,11 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const headerRef = useRef<HTMLDivElement | null>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(TOPBAR_H);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -54,6 +49,27 @@ export function AppShell({
     applyMatch();
     mediaQuery.addEventListener("change", applyMatch);
     return () => mediaQuery.removeEventListener("change", applyMatch);
+  }, []);
+
+  useEffect(() => {
+    const node = headerRef.current?.querySelector("header");
+    if (!(node instanceof HTMLElement) || typeof window === "undefined") {
+      return;
+    }
+
+    const updateHeaderHeight = () => {
+      setHeaderHeight(Math.round(node.getBoundingClientRect().height) || TOPBAR_H);
+    };
+
+    updateHeaderHeight();
+    const resizeObserver = new ResizeObserver(updateHeaderHeight);
+    resizeObserver.observe(node);
+    window.addEventListener("resize", updateHeaderHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateHeaderHeight);
+    };
   }, []);
 
   useEffect(() => {
@@ -85,54 +101,47 @@ export function AppShell({
   const shellStyle = useMemo(
     () =>
       ({
-        "--topbar-h": `${TOPBAR_H}px`,
-        "--sidebar-expanded": `${DESKTOP_SIDEBAR_EXPANDED}px`,
-        "--sidebar-collapsed": `${DESKTOP_SIDEBAR_COLLAPSED}px`,
+        "--header-h": `${headerHeight}px`,
+        "--topbar-h": `${headerHeight}px`,
+        "--sidebar-w": `${DESKTOP_SIDEBAR_EXPANDED}px`,
+        "--sidebar-collapsed-w": `${DESKTOP_SIDEBAR_COLLAPSED}px`,
       }) as CSSProperties,
-    [],
+    [headerHeight],
   );
 
   return (
-    <div data-testid="app-shell" className={`gs-shell shell-${variant} min-h-screen w-full`} style={shellStyle}>
-      {header({
-        onToggleMenu: () => {
-          if (isDesktop) {
-            return;
-          }
-          setIsMobileDrawerOpen((current) => !current);
-        },
-        showMenuToggle: !isDesktop,
-      })}
+    <div data-testid="app-shell" className={`gs-shell gs-shell--${variant}`} style={shellStyle}>
+      <div ref={headerRef} className="gs-shell__header">
+        {header({
+          onToggleMenu: () => {
+            if (!isDesktop) {
+              setIsMobileDrawerOpen((current) => !current);
+            }
+          },
+          showMenuToggle: !isDesktop,
+        })}
+      </div>
 
-      {isMobileDrawerOpen ? (
-        <button
-          type="button"
-          data-testid="mobile-drawer-backdrop"
-          aria-label="Close menu overlay"
-          className="fixed inset-0 top-[var(--topbar-h)] z-[50] bg-black/60 lg:hidden"
-          onClick={() => setIsMobileDrawerOpen(false)}
-        />
-      ) : null}
+      <SidebarDrawer
+        items={navItems}
+        open={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        title={sidebarTitle}
+        subtitle={sidebarSubtitle}
+      />
 
-      <div
-        className={`grid min-h-[calc(100vh-var(--topbar-h))] pt-[var(--topbar-h)] ${
-          sidebarCollapsed ? "lg:grid-cols-[var(--sidebar-collapsed)_1fr]" : "lg:grid-cols-[var(--sidebar-expanded)_1fr]"
-        }`}
-      >
+      <div className="gs-shell__body" data-sidebar-collapsed={sidebarCollapsed}>
         <SidebarNav
           items={navItems}
-          mobileOpen={isMobileDrawerOpen}
-          onClose={() => setIsMobileDrawerOpen(false)}
           title={sidebarTitle}
           subtitle={sidebarSubtitle}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
         />
-
-        <div className="w-full min-w-0">
-          <ContentContainer>{children}</ContentContainer>
-          {footer ? <div className="px-4 pb-6 lg:px-8">{footer}</div> : null}
-        </div>
+        <main className="gs-shell__main">
+          <div className="gs-shell__content">{children}</div>
+          {footer ? <div className="gs-shell__footer">{footer}</div> : null}
+        </main>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AppHeader } from "../../../src/components/shell/AppHeader";
+import { HeaderBar } from "../../../src/components/shell/HeaderBar";
 import { AppShell } from "../../../src/components/shell/AppShell";
 import { adminNavItems } from "../../../src/components/shell/nav-config";
 import { useAuth } from "../../../src/providers/AuthProvider";
@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       sidebarTitle="Admin"
       sidebarSubtitle="Platform Console"
       header={({ onToggleMenu, showMenuToggle }) => (
-        <AppHeader
+        <HeaderBar
           onToggleMenu={onToggleMenu}
           showMenuToggle={showMenuToggle}
           leftExtra={<span className="text-xs uppercase tracking-[0.2em] text-cyan-300">Admin</span>}
