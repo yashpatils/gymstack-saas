@@ -7,7 +7,10 @@ import type { AppNavItem } from "./nav-config";
 type SidebarNavProps = {
   items: AppNavItem[];
   title: string;
-  subtitle: string;
+  subtitle?: string;
+  mobileOpen?: boolean;
+  onClose?: () => void;
+  onNavigate?: () => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
 };
@@ -80,16 +83,27 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
   );
 }
 
-export function SidebarNav({ items, title, subtitle, collapsed = false, onToggleCollapsed }: SidebarNavProps) {
+export function SidebarNav({
+  items,
+  title,
+  subtitle = "",
+  mobileOpen = false,
+  onClose,
+  onNavigate,
+  collapsed = false,
+  onToggleCollapsed,
+}: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
     <aside
       id="platform-sidebar"
-      className={`gs-sidebar platform-sidebar-modern hidden border-r border-border/70 p-4 lg:block ${collapsed ? "gs-sidebar--collapsed" : ""}`}
+      className={`gs-sidebar platform-sidebar-modern border-r border-border/70 p-4 ${mobileOpen ? "block h-full" : "hidden h-full lg:block"} ${collapsed ? "gs-sidebar--collapsed" : ""}`}
       aria-label={`${title} navigation`}
       data-testid="desktop-sidebar"
       data-collapsed={collapsed}
+      data-mobile-open={mobileOpen}
+      data-has-on-close={Boolean(onClose)}
     >
       {onToggleCollapsed ? (
         <button
@@ -102,7 +116,7 @@ export function SidebarNav({ items, title, subtitle, collapsed = false, onToggle
         </button>
       ) : null}
       <div className="h-full overflow-y-auto">
-        <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={collapsed} />
+        <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={collapsed} onNavigate={onNavigate ?? onClose} />
       </div>
     </aside>
   );
