@@ -3,9 +3,9 @@
 import { useEffect, type RefObject } from "react";
 
 export function useOnClickOutside(
-  refs: Array<RefObject<HTMLElement>>,
+  refs: Array<RefObject<HTMLElement | null>>,
   onOutside: () => void,
-  enabled: boolean,
+  enabled = true,
 ): void {
   useEffect(() => {
     if (!enabled) {
@@ -13,26 +13,26 @@ export function useOnClickOutside(
     }
 
     const handler = (event: PointerEvent) => {
-      const target = event.target;
+      if (event.button !== 0) {
+        return;
+      }
 
+      const target = event.target;
       if (!(target instanceof Node)) {
         return;
       }
 
-      const isInside = refs.some((ref) => {
+      const clickedInside = refs.some((ref) => {
         const element = ref.current;
         return Boolean(element?.contains(target));
       });
 
-      if (!isInside) {
+      if (!clickedInside) {
         onOutside();
       }
     };
 
-    document.addEventListener("pointerdown", handler, { capture: true });
-
-    return () => {
-      document.removeEventListener("pointerdown", handler, { capture: true });
-    };
+    document.addEventListener("pointerdown", handler, true);
+    return () => document.removeEventListener("pointerdown", handler, true);
   }, [enabled, onOutside, refs]);
 }
