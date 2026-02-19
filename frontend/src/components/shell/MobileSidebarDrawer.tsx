@@ -15,7 +15,7 @@ export function MobileSidebarDrawer({ open, topOffset, onClose, children }: Mobi
   const drawerRef = useRef<HTMLElement | null>(null);
   const refs = useMemo(() => [drawerRef], []);
   const topClass = topOffset ? undefined : "top-[var(--topbar-h)]";
-  const topStyle = topOffset ? { top: `${topOffset}px`, height: `calc(100vh - ${topOffset}px)` } : undefined;
+  const topStyle = topOffset ? { top: `${topOffset}px`, height: `calc(100dvh - ${topOffset}px)` } : undefined;
 
   useOnClickOutside(refs, onClose, open);
 

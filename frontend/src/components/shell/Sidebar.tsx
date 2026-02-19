@@ -102,6 +102,7 @@ export function Sidebar({
   onNavigate,
 }: SidebarProps) {
   const pathname = usePathname();
+  const handleNavigate = onNavigate ?? onClose;
 
   return (
     <aside
@@ -125,7 +126,7 @@ export function Sidebar({
       ) : null}
       <div className="flex h-full flex-col overflow-hidden">
         <div className="h-full flex-1 overflow-y-auto pr-1" data-testid="sidebar-scroll-region">
-          <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={collapsed} onNavigate={onNavigate} />
+          <SidebarContent items={items} pathname={pathname} title={title} subtitle={subtitle} collapsed={collapsed} onNavigate={handleNavigate} />
         </div>
       </div>
     </aside>
