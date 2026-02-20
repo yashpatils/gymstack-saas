@@ -23,7 +23,12 @@ type MemberRow = {
 };
 
 function shellCardClassName(extra?: string): string {
-  return ["rounded-2xl border border-border/60 bg-background/50 backdrop-blur-md shadow-sm", extra].filter(Boolean).join(" ");
+  return [
+    "rounded-2xl bg-zinc-900/60 shadow-sm ring-1 ring-white/5 backdrop-blur transition-shadow hover:shadow-md",
+    extra,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function DashboardStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -125,8 +130,9 @@ export default function PlatformPage() {
   const mrr = summary?.mrr ?? null;
 
   return (
-    <main className="space-y-6 px-1 pb-2 pt-1 sm:px-2 lg:px-3">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen overflow-x-hidden bg-zinc-950 px-4 pb-6 pt-4 text-zinc-100 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Platform overview</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -141,18 +147,18 @@ export default function PlatformPage() {
             Settings
           </Link>
         </div>
-      </header>
+        </header>
 
-      {error ? <ErrorState message={error} /> : null}
+        {error ? <ErrorState message={error} /> : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 sm:gap-4 lg:gap-6 md:grid-cols-2 xl:grid-cols-4">
         <DashboardStat label="Locations" value={String(summary?.locations ?? gyms.length)} />
         <DashboardStat label="Members" value={String(summary?.members ?? users.length)} />
         <DashboardStat label="MRR" value={mrr === null ? "—" : `$${mrr.toFixed(2)}`} hint={mrr === null ? "Not available" : "Monthly recurring revenue"} />
         <DashboardStat label="Invites" value={String(summary?.invites ?? 0)} hint="Pending organization invites" />
-      </section>
+        </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+        <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <article className={shellCardClassName("p-4 sm:p-5")}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-foreground">Locations</h2>
@@ -172,7 +178,7 @@ export default function PlatformPage() {
           ) : null}
 
           {!loading && gyms.length > 0 ? (
-            <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/50 backdrop-blur-md">
+            <div className="overflow-x-auto rounded-2xl bg-zinc-900/60 shadow-sm ring-1 ring-white/5 backdrop-blur">
               <table className="w-full min-w-[520px] text-left text-sm">
                 <thead className="text-muted-foreground">
                   <tr>
@@ -185,7 +191,7 @@ export default function PlatformPage() {
                   {gyms.slice(0, 8).map((gym) => (
                     <tr key={gym.id} className="text-foreground hover:bg-accent/30">
                       <td className="px-4 py-3">{gym.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
+                      <td className="max-w-[220px] truncate px-4 py-3 text-zinc-300">{gym.id.slice(0, 8)}.gymstack.club</td>
                       <td className="px-4 py-3 text-right">
                         <Link href={`/platform/gyms/${gym.id}`} className="button button-sm secondary">
                           Open
@@ -211,7 +217,7 @@ export default function PlatformPage() {
           {!loading && memberRows.length > 0 ? (
             <ul className="space-y-2">
               {memberRows.map((member) => (
-                <li key={member.id} className="flex items-center justify-between rounded-xl border border-border p-3">
+                <li key={member.id} className="flex items-center justify-between rounded-xl bg-zinc-900/50 p-3 ring-1 ring-white/5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{member.name}</p>
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
@@ -222,11 +228,12 @@ export default function PlatformPage() {
             </ul>
           ) : null}
         </article>
-      </section>
+        </section>
 
-      <section>
-        <WeeklyAiBriefCard />
-      </section>
+        <section>
+          <WeeklyAiBriefCard />
+        </section>
+      </div>
     </main>
   );
 }
