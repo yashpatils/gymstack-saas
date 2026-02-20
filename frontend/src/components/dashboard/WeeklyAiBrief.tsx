@@ -50,7 +50,7 @@ export function WeeklyAiBriefCard() {
   }, []);
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-white p-5 shadow-sm dark:bg-card dark:text-card-foreground">
+    <section className="space-y-3 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
       <div>
         <h2 className="text-lg font-semibold">Weekly AI Brief</h2>
         <p className="text-sm text-muted-foreground">Operational insights generated from tenant-level aggregated metrics.</p>
