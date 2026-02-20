@@ -13,7 +13,7 @@ type DesktopSidebarProps = {
 export function DesktopSidebar({ items, title, subtitle }: DesktopSidebarProps) {
   return (
     <aside
-      className="hidden lg:fixed lg:left-0 lg:z-30 lg:block lg:border-r lg:border-border lg:bg-background/70 lg:backdrop-blur-xl sidebar-sheen"
+      className="sidebar-sheen hidden lg:fixed lg:left-0 lg:z-30 lg:block lg:border-r lg:border-border lg:bg-card/70 lg:backdrop-blur-xl lg:shadow-lg"
       style={{
         top: 0,
         height: "100vh",
