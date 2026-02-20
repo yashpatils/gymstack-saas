@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { usePathname } from "next/navigation";
 import type { AppNavItem } from "./nav-config";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { SidebarContent } from "./SidebarNav";
@@ -15,7 +14,6 @@ type SidebarDrawerProps = {
 };
 
 export function SidebarDrawer({ items, open, onClose, title, subtitle }: SidebarDrawerProps) {
-  const pathname = usePathname();
   const drawerRef = useRef<HTMLElement | null>(null);
   const refs = useMemo(() => [drawerRef], []);
 
@@ -28,14 +26,14 @@ export function SidebarDrawer({ items, open, onClose, title, subtitle }: Sidebar
           type="button"
           data-testid="mobile-drawer-backdrop"
           aria-label="Close menu"
-          className="gs-sidebar-drawer__backdrop fixed inset-x-0 bottom-0 top-[var(--header-h)] z-[48] bg-black/60 lg:hidden"
+          className="gs-sidebar-drawer__backdrop fixed inset-x-0 bottom-0 top-[var(--header-h)] z-[48] bg-black/35 backdrop-blur-sm lg:hidden"
           onClick={onClose}
         />
       ) : null}
       <aside
         id="platform-sidebar-drawer"
         ref={drawerRef}
-        className={`gs-sidebar-drawer platform-sidebar-modern fixed left-0 top-[var(--header-h)] z-[55] w-[min(320px,85vw)] border-r border-border/70 p-4 shadow-xl transition-transform duration-200 ease-out lg:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`gs-sidebar-drawer platform-sidebar-modern fixed left-0 top-[var(--header-h)] z-[55] w-[min(320px,86vw)] border-r border-border/60 bg-background/75 p-4 shadow-2xl backdrop-blur-xl transition-transform duration-200 ease-out lg:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
         aria-label={`${title} mobile navigation`}
         data-testid="mobile-drawer"
         aria-hidden={!open}
@@ -43,11 +41,11 @@ export function SidebarDrawer({ items, open, onClose, title, subtitle }: Sidebar
         <div className="h-full overflow-y-auto">
           <SidebarContent
             items={items}
-            pathname={pathname}
             title={title}
             subtitle={subtitle}
             collapsed={false}
             onNavigate={onClose}
+            className="h-full"
           />
         </div>
       </aside>

@@ -7,141 +7,64 @@ import type { AppNavItem } from "./nav-config";
 
 type SidebarNavProps = {
   items: AppNavItem[];
+  collapsed?: boolean;
+  onNavigate?: () => void;
   title: string;
   subtitle?: string;
-  mobileOpen?: boolean;
-  onClose?: () => void;
-  onNavigate?: () => void;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
+  className?: string;
 };
-
-const sectionLabels: Record<AppNavItem["section"], string> = {
-  core: "Core",
-  operations: "Operations",
-  settings: "Settings",
-};
-
-function normalizePath(path: string): string {
-  if (path.length <= 1) return path;
-  return path.replace(/\/+$/, "");
-}
-
-function isActivePath(pathname: string, href: string): boolean {
-  const currentPath = normalizePath(pathname);
-  const itemPath = normalizePath(href);
-
-  if (itemPath === "/platform" || itemPath === "/admin" || itemPath === "/app") {
-    return currentPath === itemPath;
-  }
-
-  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
-}
 
 export function SidebarContent({
   items,
-  pathname,
+  collapsed = false,
+  onNavigate,
   title,
   subtitle,
-  collapsed,
-  onNavigate,
-}: {
-  items: AppNavItem[];
-  pathname: string;
-  title: string;
-  subtitle: string;
-  collapsed: boolean;
-  onNavigate?: () => void;
-}) {
+  className = "",
+}: SidebarNavProps): ReactNode {
+  const pathname = usePathname();
+
   return (
-    <>
-      <div className="rounded-2xl border border-border bg-card px-4 py-4">
-        <div className="text-xs tracking-[0.3em] text-muted-foreground">GYM STACK</div>
-        <div className="mt-1 text-lg font-semibold">{collapsed ? "Platform" : title}</div>
-        {!collapsed ? <div className="text-sm text-muted-foreground">{subtitle}</div> : null}
+    <div className={`h-full w-full ${className}`}>
+      <div className="px-4 pt-4">
+        <div className="rounded-2xl border border-border/60 bg-background/50 px-4 py-3 backdrop-blur-md">
+          <div className="text-[11px] tracking-[0.22em] text-muted-foreground">GYM STACK</div>
+          <div className="mt-1 text-lg font-semibold leading-tight">{title}</div>
+          {subtitle ? <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div> : null}
+        </div>
       </div>
 
-      <nav className="mt-4 space-y-4" aria-label={`${title} navigation links`}>
-        {Object.entries(sectionLabels).map(([section, label]) => {
-          const scopedItems = items.filter((item) => item.section === section);
-          if (!scopedItems.length) {
-            return null;
-          }
+      <div className="mt-4 h-[calc(100%-120px)] overflow-y-auto px-2 pb-4">
+        <nav className="space-y-1">
+          {items.map((item) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          return (
-            <div key={section} className="space-y-2">
-              <p className="px-2 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
-              <ul className="space-y-1">
-                {scopedItems.map((item) => {
-                  const active = isActivePath(pathname, item.href);
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={`platform-nav-item ${active ? "platform-nav-item-active" : ""}`}
-                        onClick={onNavigate}
-                        aria-current={active ? "page" : undefined}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <span aria-hidden="true" className="mr-2 inline-flex w-4 items-center justify-center">
-                          {item.icon}
-                        </span>
-                        <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
-      </nav>
-    </>
-  );
-}
-
-function Sidebar(props: SidebarNavProps): ReactNode {
-  const {
-    items,
-    title,
-    subtitle = "",
-    onClose,
-    onNavigate,
-    collapsed = false,
-    onToggleCollapsed,
-  } = props;
-  const pathname = usePathname();
-  const handleNavigate = onNavigate ?? onClose;
-
-  return (
-    <div className="flex h-full w-full flex-col">
-      {onToggleCollapsed ? (
-        <div className="px-4 pt-3">
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm hover:bg-accent"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? "Expand" : "Collapse"}
-          </button>
-        </div>
-      ) : null}
-
-      <div className="mt-4 flex-1 overflow-y-auto px-2 pb-6">
-        <SidebarContent
-          items={items}
-          pathname={pathname}
-          title={title}
-          subtitle={subtitle}
-          collapsed={collapsed}
-          onNavigate={handleNavigate}
-        />
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch
+                onClick={() => onNavigate?.()}
+                className={[
+                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
+                  "hover:bg-accent/40",
+                  isActive ? "bg-accent/60 ring-1 ring-accent/40" : "",
+                ].join(" ")}
+              >
+                <span className="shrink-0 opacity-90">{item.icon}</span>
+                {!collapsed ? <span className="truncate">{item.label}</span> : null}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );
 }
 
 export function SidebarNav(props: SidebarNavProps): ReactNode {
-  return <div className="h-full w-full">{Sidebar(props)}</div>;
+  return <SidebarContent {...props} />;
 }
