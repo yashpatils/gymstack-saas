@@ -116,19 +116,19 @@ export default function SchedulePage() {
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-6">
-      <header className="rounded-2xl border bg-white p-6 shadow-sm">
+      <header className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">Schedule</h1>
-            <p className="text-sm text-slate-600">Upcoming classes for the next 7 days.</p>
+            <p className="text-sm text-muted-foreground">Upcoming classes for the next 7 days.</p>
           </div>
           <SupportHelpButton />
         </div>
-        {notice ? <p className="mt-2 text-sm text-amber-600">{notice}</p> : null}
+        {notice ? <p className="mt-2 text-sm text-muted-foreground">{notice}</p> : null}
       </header>
 
       {isStaff ? (
-        <section className="rounded-2xl border bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm">
           <h2 className="text-lg font-semibold">Create Session</h2>
           <form className="mt-4 grid gap-3 md:grid-cols-4" onSubmit={createSession}>
             <select className="rounded-lg border px-3 py-2" value={classId} onChange={(event) => setClassId(event.target.value)} required>
@@ -137,7 +137,7 @@ export default function SchedulePage() {
             </select>
             <input className="rounded-lg border px-3 py-2" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} required />
             <input className="rounded-lg border px-3 py-2" type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} required />
-            <button className="rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create'}</button>
+            <button className="rounded-lg bg-primary px-4 py-2 text-primary-foreground" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create'}</button>
           </form>
         </section>
       ) : null}
@@ -154,12 +154,12 @@ export default function SchedulePage() {
         {sessions.map((item) => {
           const full = item.bookedCount >= item.capacity;
           return (
-            <article key={item.sessionId} className="rounded-xl border bg-white p-4 shadow-sm">
+            <article key={item.sessionId} className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">{item.classTitle}</h3>
-                  <p className="text-sm text-slate-600">{new Date(item.startsAt).toLocaleString()} - {new Date(item.endsAt).toLocaleTimeString()}</p>
-                  <p className="text-xs text-slate-500">{item.bookedCount}/{item.capacity} booked</p>
+                  <p className="text-sm text-muted-foreground">{new Date(item.startsAt).toLocaleString()} - {new Date(item.endsAt).toLocaleTimeString()}</p>
+                  <p className="text-xs text-muted-foreground">{item.bookedCount}/{item.capacity} booked</p>
                 </div>
                 {!isStaff ? (
                   <button
