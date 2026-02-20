@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { AppShell } from "./app-shell";
+import { AppShellProvider } from "./app-shell";
 
-export default function Layout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+export default function PlatformLayout({ children }: { children: ReactNode }) {
+  return <AppShellProvider>{children}</AppShellProvider>;
 }

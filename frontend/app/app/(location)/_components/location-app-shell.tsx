@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AppHeader } from "../../../../src/components/shell/AppHeader";
-import { AppShell } from "../../../../src/components/shell/AppShell";
+import AppShell from "../../../../src/components/shell/AppShell";
 import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
 import type { NavItemConfig } from "../../../../src/config/nav.config";
+import { PlatformAccountDropdown } from "../../../../src/components/platform/layout/PlatformAccountDropdown";
 
 type LocationAppShellProps = {
   navItems: NavItemConfig[];
@@ -24,26 +24,27 @@ function mapLocationNavItems(navItems: NavItemConfig[]): AppNavItem[] {
   }));
 }
 
-export function LocationAppShell({ navItems, locationId, accountName, accountInitials, children }: LocationAppShellProps) {
+export function LocationAppShell({
+  navItems,
+  locationId,
+  accountName,
+  accountInitials,
+  children,
+}: LocationAppShellProps) {
   return (
     <AppShell
-      variant="platform"
-      navItems={mapLocationNavItems(navItems)}
-      sidebarTitle="Location"
-      sidebarSubtitle={locationId}
-      header={({ onToggleMenu, showMenuToggle }) => (
-        <AppHeader
-          onToggleMenu={onToggleMenu}
-          showMenuToggle={showMenuToggle}
-          centerContent={<span className="text-sm font-semibold">Daily Operations</span>}
-          accountName={accountName}
-          accountInitials={accountInitials}
-          accountLinks={[{ href: "/app/settings", label: "Location settings" }]}
+      items={mapLocationNavItems(navItems)}
+      title="Daily Operations"
+      subtitle={locationId}
+      rightSlot={
+        <PlatformAccountDropdown
+          label={accountName}
+          initials={accountInitials}
+          onLogout={() => undefined}
         />
-      )}
+      }
     >
       {children}
     </AppShell>
   );
 }
-

@@ -6,6 +6,7 @@ import { apiFetch, ApiFetchError } from "../../../../src/lib/apiFetch";
 import { StatCard } from "../../../../src/components/common/StatCard";
 import { EmptyState } from "../../../../src/components/common/EmptyState";
 import { useAuth } from "../../../../src/providers/AuthProvider";
+import { PageCard, PageCardContent, PageCardHeader } from "../../../../src/components/ui/page-card";
 
 type Range = "7d" | "30d";
 type TrendMetric = "bookings" | "checkins" | "memberships";
@@ -30,7 +31,7 @@ function RoleGuard({ children }: { children: React.ReactNode }) {
   const allowed = activeContext?.role === "TENANT_OWNER" || activeContext?.role === "TENANT_LOCATION_ADMIN";
 
   if (loading) {
-    return <main className="container-app py-8"><p className="text-sm text-slate-300">Loading analytics…</p></main>;
+    return <main className="container-app py-8"><p className="text-sm text-muted-foreground">Loading analytics…</p></main>;
   }
 
   if (!allowed) {
@@ -85,56 +86,41 @@ export function AnalyticsOverviewView() {
   return (
     <RoleGuard>
       <main className="container-app space-y-6 py-8">
-        <section className="card space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="section-title">Tenant Analytics</h1>
-            <div className="flex gap-2">
-              <button className={`button ${range === "7d" ? "" : "secondary"}`} onClick={() => setRange("7d")} type="button">7d</button>
-              <button className={`button ${range === "30d" ? "" : "secondary"}`} onClick={() => setRange("30d")} type="button">30d</button>
-            </div>
-          </div>
-          {error ? <ErrorBlock message={error} requestId={requestId} /> : null}
-          {overview ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="MRR" value={`$${(overview.mrrCents / 100).toFixed(2)}`} />
-              <StatCard label="Active members" value={String(overview.activeMemberships)} hint={`+${overview.newMemberships} new / ${overview.canceledMemberships} canceled`} />
-              <StatCard label="Bookings" value={String(overview.bookings)} hint={`${overview.cancellations} canceled`} />
-              <StatCard label="Check-ins" value={String(overview.checkins)} hint={`${overview.uniqueActiveClients} unique clients`} />
-            </div>
-          ) : null}
-        </section>
+        <PageCard>
+          <PageCardHeader
+            title="Tenant Analytics"
+            action={<div className="flex gap-2"><button className={`button ${range === "7d" ? "" : "secondary"}`} onClick={() => setRange("7d")} type="button">7d</button><button className={`button ${range === "30d" ? "" : "secondary"}`} onClick={() => setRange("30d")} type="button">30d</button></div>}
+          />
+          <PageCardContent>
+            {error ? <ErrorBlock message={error} requestId={requestId} /> : null}
+            {overview ? <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><StatCard label="MRR" value={`$${(overview.mrrCents / 100).toFixed(2)}`} /><StatCard label="Active members" value={String(overview.activeMemberships)} hint={`+${overview.newMemberships} new / ${overview.canceledMemberships} canceled`} /><StatCard label="Bookings" value={String(overview.bookings)} hint={`${overview.cancellations} canceled`} /><StatCard label="Check-ins" value={String(overview.checkins)} hint={`${overview.uniqueActiveClients} unique clients`} /></div> : null}
+          </PageCardContent>
+        </PageCard>
 
-        <section className="card space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="section-title">Trend ({metric})</h2>
-            <select className="input max-w-56" value={metric} onChange={(event) => setMetric(event.target.value as TrendMetric)}>
-              <option value="bookings">Bookings</option>
-              <option value="checkins">Check-ins</option>
-              <option value="memberships">Memberships</option>
-            </select>
-          </div>
-          {trends.length === 0 ? <EmptyState title="No sessions yet" description="Create sessions and bookings to populate trend analytics." /> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left text-slate-400"><th className="py-2">Date</th><th className="py-2">Value</th><th className="py-2">Signal</th></tr></thead>
-                <tbody>
-                  {trends.map((point) => (
-                    <tr key={point.date} className="border-t border-white/10">
-                      <td className="py-2">{point.date}</td>
-                      <td className="py-2">{point.value}</td>
-                      <td className="py-2"><div className="h-2 rounded bg-indigo-500/30" style={{ width: `${Math.max((point.value / trendMax) * 100, 2)}%` }} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        <PageCard>
+          <PageCardHeader
+            title={`Trend (${metric})`}
+            action={<select className="input max-w-56" value={metric} onChange={(event) => setMetric(event.target.value as TrendMetric)}><option value="bookings">Bookings</option><option value="checkins">Check-ins</option><option value="memberships">Memberships</option></select>}
+          />
+          <PageCardContent>
+            {trends.length === 0 ? <EmptyState title="No sessions yet" description="Create sessions and bookings to populate trend analytics." /> : (
+              <div className="overflow-x-auto rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Date</th><th className="px-4 py-3">Value</th><th className="px-4 py-3">Signal</th></tr></thead>
+                  <tbody>
+                    {trends.map((point) => (
+                      <tr key={point.date} className="border-t border-border hover:bg-accent/30"><td className="px-4 py-3">{point.date}</td><td className="px-4 py-3">{point.value}</td><td className="px-4 py-3"><div className="h-2 rounded bg-indigo-500/30" style={{ width: `${Math.max((point.value / trendMax) * 100, 2)}%` }} /></td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </PageCardContent>
+        </PageCard>
 
-        <section className="card flex flex-wrap gap-3">
-          <Link className="button secondary" href="/platform/analytics/locations">View locations breakdown</Link>
-          <Link className="button secondary" href="/platform/analytics/classes">View top classes</Link>
-        </section>
+        <PageCard>
+          <PageCardContent className="pt-5"><div className="flex flex-wrap gap-3"><Link className="button secondary" href="/platform/analytics/locations">View locations breakdown</Link><Link className="button secondary" href="/platform/analytics/classes">View top classes</Link></div></PageCardContent>
+        </PageCard>
       </main>
     </RoleGuard>
   );
@@ -157,21 +143,12 @@ export function AnalyticsLocationsView() {
   return (
     <RoleGuard>
       <main className="container-app space-y-6 py-8">
-        <section className="card space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="section-title">Location analytics</h1>
-            <div className="flex gap-2">
-              <button className={`button ${range === "7d" ? "" : "secondary"}`} onClick={() => setRange("7d")} type="button">7d</button>
-              <button className={`button ${range === "30d" ? "" : "secondary"}`} onClick={() => setRange("30d")} type="button">30d</button>
-            </div>
-          </div>
-          {rows.length === 0 ? <EmptyState title="No bookings yet" description="Location metrics will appear after classes start receiving bookings." /> : (
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-slate-400"><th className="py-2">Location</th><th>Bookings</th><th>Check-ins</th><th>Active memberships</th><th>Utilization</th></tr></thead>
-              <tbody>{rows.map((row) => <tr className="border-t border-white/10" key={row.locationId}><td className="py-2">{row.name}</td><td>{row.bookings}</td><td>{row.checkins}</td><td>{row.activeMemberships}</td><td><span className="rounded-full bg-indigo-500/20 px-2 py-1 text-xs text-indigo-200">{row.utilizationPct}%</span></td></tr>)}</tbody>
-            </table>
-          )}
-        </section>
+        <PageCard>
+          <PageCardHeader title="Location analytics" action={<div className="flex gap-2"><button className={`button ${range === "7d" ? "" : "secondary"}`} onClick={() => setRange("7d")} type="button">7d</button><button className={`button ${range === "30d" ? "" : "secondary"}`} onClick={() => setRange("30d")} type="button">30d</button></div>} />
+          <PageCardContent>
+            {rows.length === 0 ? <EmptyState title="No bookings yet" description="Location metrics will appear after classes start receiving bookings." /> : <div className="overflow-x-auto rounded-xl border border-border overflow-hidden"><table className="w-full text-sm"><thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Location</th><th className="px-4 py-3">Bookings</th><th className="px-4 py-3">Check-ins</th><th className="px-4 py-3">Active memberships</th><th className="px-4 py-3">Utilization</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-border hover:bg-accent/30" key={row.locationId}><td className="px-4 py-3">{row.name}</td><td className="px-4 py-3">{row.bookings}</td><td className="px-4 py-3">{row.checkins}</td><td className="px-4 py-3">{row.activeMemberships}</td><td className="px-4 py-3"><span className="rounded-full bg-indigo-500/20 px-2 py-1 text-xs text-indigo-200">{row.utilizationPct}%</span></td></tr>)}</tbody></table></div>}
+          </PageCardContent>
+        </PageCard>
       </main>
     </RoleGuard>
   );
@@ -193,15 +170,12 @@ export function AnalyticsClassesView() {
   return (
     <RoleGuard>
       <main className="container-app space-y-6 py-8">
-        <section className="card space-y-4">
-          <h1 className="section-title">Top classes (30d)</h1>
-          {rows.length === 0 ? <EmptyState title="No sessions yet" description="Create classes and sessions to see utilization and ranking." /> : (
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-slate-400"><th className="py-2">Class</th><th>Sessions</th><th>Bookings</th><th>Avg utilization</th></tr></thead>
-              <tbody>{rows.map((row) => <tr className="border-t border-white/10" key={row.classId}><td className="py-2">{row.title}</td><td>{row.sessionsCount}</td><td>{row.bookingsCount}</td><td><span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-200">{row.avgUtilizationPct}%</span></td></tr>)}</tbody>
-            </table>
-          )}
-        </section>
+        <PageCard>
+          <PageCardHeader title="Top classes (30d)" />
+          <PageCardContent>
+            {rows.length === 0 ? <EmptyState title="No sessions yet" description="Create classes and sessions to see utilization and ranking." /> : <div className="overflow-x-auto rounded-xl border border-border overflow-hidden"><table className="w-full text-sm"><thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Class</th><th className="px-4 py-3">Sessions</th><th className="px-4 py-3">Bookings</th><th className="px-4 py-3">Avg utilization</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-border hover:bg-accent/30" key={row.classId}><td className="px-4 py-3">{row.title}</td><td className="px-4 py-3">{row.sessionsCount}</td><td className="px-4 py-3">{row.bookingsCount}</td><td className="px-4 py-3"><span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-200">{row.avgUtilizationPct}%</span></td></tr>)}</tbody></table></div>}
+          </PageCardContent>
+        </PageCard>
       </main>
     </RoleGuard>
   );
