@@ -66,19 +66,19 @@ export function AppShell({
     };
   }, [isMobileDrawerOpen]);
 
+  const desktopSidebarWidth = sidebarCollapsed
+    ? DESKTOP_SIDEBAR_COLLAPSED
+    : DESKTOP_SIDEBAR_EXPANDED;
+
   const shellStyle = useMemo(
     () =>
       ({
         "--topbar-h": `${TOPBAR_H}px`,
-        "--sidebar-w": `${DESKTOP_SIDEBAR_EXPANDED}px`,
+        "--sidebar-w": `${desktopSidebarWidth}px`,
         "--sidebar-collapsed-w": `${DESKTOP_SIDEBAR_COLLAPSED}px`,
       }) as CSSProperties,
-    [],
+    [desktopSidebarWidth],
   );
-
-  const desktopSidebarWidth = sidebarCollapsed
-    ? DESKTOP_SIDEBAR_COLLAPSED
-    : DESKTOP_SIDEBAR_EXPANDED;
 
   const onToggleCollapsed = () => {
     setSidebarCollapsed((cur) => {
@@ -99,32 +99,28 @@ export function AppShell({
       className={`gs-shell gs-shell--${variant} min-h-screen bg-background`}
       style={shellStyle}
     >
-      <div className="sticky top-0 z-30 h-[var(--topbar-h)]">
+      <div className="fixed inset-x-0 top-0 z-50 h-[var(--topbar-h)]">
         <div className="mx-auto h-full w-full max-w-[1400px]">
           {header({ onToggleMenu, showMenuToggle: !isDesktop })}
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-[1400px]">
-        <aside
-          className="hidden lg:flex lg:shrink-0 lg:sticky lg:top-[var(--topbar-h)] lg:h-[calc(100vh-var(--topbar-h))]"
-          style={{ width: desktopSidebarWidth }}
-        >
-          <div className="h-full w-full overflow-y-auto border-r border-border/60 bg-background/40 backdrop-blur-xl">
-            <SidebarNav
-              items={navItems}
-              collapsed={sidebarCollapsed}
-              title={sidebarTitle}
-              subtitle={sidebarSubtitle}
-            />
-          </div>
-        </aside>
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[var(--sidebar-w)] pt-[var(--topbar-h)] lg:block">
+        <SidebarNav
+          items={navItems}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={onToggleCollapsed}
+          title={sidebarTitle}
+          subtitle={sidebarSubtitle}
+        />
+      </aside>
 
-        <main key={pathname} className="min-w-0 flex-1 px-4 py-6 lg:px-8">
+      <main key={pathname} className="min-w-0 pt-[var(--topbar-h)] lg:pl-[var(--sidebar-w)]">
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-6 lg:px-8">
           {children}
           {footer ? <div className="mt-8">{footer}</div> : null}
-        </main>
-      </div>
+        </div>
+      </main>
 
       <SidebarDrawer
         open={isMobileDrawerOpen}

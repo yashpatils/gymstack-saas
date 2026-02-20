@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import type { AppNavItem } from "./nav-config";
-import { SidebarNavContent } from "./SidebarNav";
+import { SidebarNav } from "./Sidebar";
 
 type MobileSidebarDrawerProps = {
   open: boolean;
@@ -38,25 +38,24 @@ export function MobileSidebarDrawer({
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden" style={{ top: "var(--topbar-h)" }}>
-        <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
+      <div className="fixed inset-0 z-40 lg:hidden">
+        <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/20 backdrop-blur-md" onClick={onClose} />
       </div>
 
       <div
-        className="fixed left-0 z-50 h-[calc(100vh-var(--topbar-h))] w-[320px] max-w-[86vw] lg:hidden"
+        className="fixed left-0 z-40 h-[calc(100vh-var(--topbar-h))] w-[min(320px,85vw)] overflow-y-auto lg:hidden"
         style={{ top: "var(--topbar-h)" }}
         ref={panelRef}
       >
-        <div className="h-full border-r border-border/60 bg-background/75 shadow-2xl backdrop-blur-xl">
-          <SidebarNavContent
-            items={items}
-            collapsed={false}
-            onNavigate={onClose}
-            title={title}
-            subtitle={subtitle}
-            className="h-full"
-          />
-        </div>
+        <SidebarNav
+          items={items}
+          collapsed={false}
+          onNavigate={onClose}
+          onClose={onClose}
+          title={title}
+          subtitle={subtitle}
+          mobileOpen
+        />
       </div>
     </>
   );

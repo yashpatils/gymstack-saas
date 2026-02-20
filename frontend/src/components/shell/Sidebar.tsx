@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { AppNavItem } from "./nav-config";
 
-type SidebarProps = {
+export type SidebarProps = {
   items: AppNavItem[];
   title: string;
-  subtitle: string;
+  subtitle?: string;
   mobileOpen?: boolean;
   onClose?: () => void;
   collapsed?: boolean;
@@ -51,7 +51,7 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
       <div className="rounded-2xl border border-border/80 bg-card p-4 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Gym Stack</p>
         <p className="mt-2 text-lg font-semibold text-foreground">{title}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+        {subtitle ? <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p> : null}
       </div>
       <p className="mt-4 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Navigation</p>
       <nav className="mt-3 space-y-4" aria-label={`${title} navigation links`}>

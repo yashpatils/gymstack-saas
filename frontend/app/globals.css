@@ -43,6 +43,8 @@ html[data-theme="dark"] {
   --content-padding: 24px;
   --radius-card: 16px;
   --topbar-h: 56px;
+  --sidebar-w: 288px;
+  --sidebar-collapsed-w: 88px;
   --platform-header-height: var(--topbar-h);
 }
 
