@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../src/providers/AuthProvider";
-import { MobileSidebarDrawer } from "../../../../src/components/shell/MobileSidebarDrawer";
+import { SidebarDrawer } from "../../../../src/components/shell/SidebarDrawer";
 import { SidebarNav } from "../../../../src/components/shell/SidebarNav";
 import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
@@ -70,10 +70,10 @@ export default function ShellPreviewPage() {
         <p className="mt-1 text-sm text-muted-foreground">Resize to mobile width to validate open/closed drawer. On desktop this still renders as hidden by responsive rules.</p>
         <div className="mt-3 flex items-start gap-4">
           <div className="relative h-[420px] w-[320px] overflow-hidden rounded-xl border border-border bg-card">
-            <SidebarNav items={previewItems} title="Preview" subtitle="Desktop" collapsed={false} />
+            <SidebarDrawer open={false} onClose={() => undefined} items={previewItems} title="Preview" subtitle="Mobile closed" />
           </div>
           <div className="relative h-[420px] w-[320px] overflow-hidden rounded-xl border border-border bg-card">
-            <MobileSidebarDrawer open onClose={() => undefined} items={previewItems} title="Preview" subtitle="Mobile open" />
+            <SidebarDrawer open onClose={() => undefined} items={previewItems} title="Preview" subtitle="Mobile open" />
           </div>
         </div>
       </section>

@@ -14,7 +14,15 @@ type SidebarNavProps = {
   className?: string;
 };
 
-export function SidebarContent({
+function isActivePath(href: string, pathname: string): boolean {
+  if (href === "/platform") {
+    return pathname === "/platform";
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function SidebarNavContent({
   items,
   collapsed = false,
   onNavigate,
@@ -37,10 +45,7 @@ export function SidebarContent({
       <div className="mt-4 h-[calc(100%-120px)] overflow-y-auto px-2 pb-4">
         <nav className="space-y-1">
           {items.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = isActivePath(item.href, pathname);
 
             return (
               <Link
@@ -66,5 +71,7 @@ export function SidebarContent({
 }
 
 export function SidebarNav(props: SidebarNavProps): ReactNode {
-  return <SidebarContent {...props} />;
+  return <SidebarNavContent {...props} />;
 }
+
+export { SidebarNavContent as SidebarContent };

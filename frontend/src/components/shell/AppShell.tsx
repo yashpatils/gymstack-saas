@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { MobileSidebarDrawer } from "./MobileSidebarDrawer";
+import { SidebarDrawer } from "./SidebarDrawer";
 import { SidebarNav } from "./SidebarNav";
 import type { AppNavItem } from "./nav-config";
 import {
@@ -99,18 +99,18 @@ export function AppShell({
       className={`gs-shell gs-shell--${variant} min-h-screen bg-background`}
       style={shellStyle}
     >
-      <div className="sticky top-0 z-30 h-[var(--topbar-h)] border-b border-border/60 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-full w-full max-w-[1400px] items-center px-4">
+      <div className="sticky top-0 z-30 h-[var(--topbar-h)]">
+        <div className="mx-auto h-full w-full max-w-[1400px]">
           {header({ onToggleMenu, showMenuToggle: !isDesktop })}
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 lg:grid-cols-[auto_1fr]">
+      <div className="mx-auto flex w-full max-w-[1400px]">
         <aside
-          className="hidden border-r border-border/60 bg-background/40 backdrop-blur-xl lg:block"
+          className="hidden lg:flex lg:shrink-0 lg:sticky lg:top-[var(--topbar-h)] lg:h-[calc(100vh-var(--topbar-h))]"
           style={{ width: desktopSidebarWidth }}
         >
-          <div className="h-[calc(100vh-var(--topbar-h))]">
+          <div className="h-full w-full overflow-y-auto border-r border-border/60 bg-background/40 backdrop-blur-xl">
             <SidebarNav
               items={navItems}
               collapsed={sidebarCollapsed}
@@ -120,13 +120,13 @@ export function AppShell({
           </div>
         </aside>
 
-        <main className="min-w-0 px-4 py-6 lg:px-6">
+        <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">
           {children}
           {footer ? <div className="mt-8">{footer}</div> : null}
         </main>
       </div>
 
-      <MobileSidebarDrawer
+      <SidebarDrawer
         open={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
         items={navItems}
