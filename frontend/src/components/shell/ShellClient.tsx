@@ -10,7 +10,7 @@ import { TOPBAR_HEIGHT } from "./shell-constants";
 type ShellClientProps = {
   items: AppNavItem[];
   topTitle: string;
-  renderTopLeft?: (opts: { openMenu: () => void }) => React.ReactNode;
+  renderTopLeft?: (opts: { toggleMenu: () => void; mobileMenuOpen: boolean }) => React.ReactNode;
   topRight?: React.ReactNode;
   children: React.ReactNode;
   sidebarTitle?: string;
@@ -27,18 +27,27 @@ export function ShellClient({
   sidebarSubtitle,
 }: ShellClientProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const openMenu = React.useCallback(() => setMobileOpen(true), []);
+  const toggleMenu = React.useCallback(() => {
+    setMobileOpen((current) => !current);
+  }, []);
+  const closeMenu = React.useCallback(() => {
+    setMobileOpen(false);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      <TopBar title={topTitle} left={renderTopLeft ? renderTopLeft({ openMenu }) : null} right={topRight} />
+      <TopBar
+        title={topTitle}
+        left={renderTopLeft ? renderTopLeft({ toggleMenu, mobileMenuOpen: mobileOpen }) : null}
+        right={topRight}
+      />
 
       <DesktopSidebar items={items} title={sidebarTitle} subtitle={sidebarSubtitle} />
 
       <SidebarDrawer
         items={items}
         open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
+        onClose={closeMenu}
         title={sidebarTitle}
         subtitle={sidebarSubtitle}
       />
