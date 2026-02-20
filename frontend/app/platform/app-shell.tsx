@@ -49,7 +49,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             showMenuToggle={showMenuToggle}
             leftExtra={<NotificationBell />}
             centerContent={<p className="text-sm font-semibold">{activeTenant?.name ?? "Gym Stack"}</p>}
-            accountName={user?.email ?? "Account"}
             accountInitials={(user?.name ?? user?.email ?? "A").trim().slice(0, 2).toUpperCase()}
             accountLinks={[
               { href: "/platform/account", label: "Account info" },

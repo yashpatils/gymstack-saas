@@ -21,7 +21,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           showMenuToggle={showMenuToggle}
           leftExtra={<span className="text-xs uppercase tracking-[0.2em] text-cyan-300">Admin</span>}
           centerContent={<span className="text-sm font-semibold">Platform Console</span>}
-          accountName={user?.email ?? "PLATFORM_ADMIN"}
           accountInitials={(user?.name ?? user?.email ?? "PA").trim().slice(0, 2).toUpperCase()}
           accountLinks={[
             { href: "/platform/account", label: "Account info" },
