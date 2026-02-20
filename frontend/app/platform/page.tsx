@@ -24,7 +24,7 @@ type MemberRow = {
 
 function shellCardClassName(extra?: string): string {
   return [
-    "rounded-2xl bg-zinc-900/60 shadow-sm ring-1 ring-white/5 backdrop-blur transition-shadow hover:shadow-md",
+    "rounded-2xl border border-border bg-white text-foreground shadow-sm transition-shadow hover:shadow-md dark:bg-card/70 dark:text-card-foreground dark:backdrop-blur-sm",
     extra,
   ]
     .filter(Boolean)
@@ -130,7 +130,7 @@ export default function PlatformPage() {
   const mrr = summary?.mrr ?? null;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-zinc-950 px-4 pb-6 pt-4 text-zinc-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen overflow-x-hidden bg-background px-4 pb-6 pt-4 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -178,20 +178,20 @@ export default function PlatformPage() {
           ) : null}
 
           {!loading && gyms.length > 0 ? (
-            <div className="overflow-x-auto rounded-2xl bg-zinc-900/60 shadow-sm ring-1 ring-white/5 backdrop-blur">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-white shadow-sm dark:bg-card/70 dark:backdrop-blur-sm">
               <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="text-muted-foreground">
+                <thead className="bg-muted/40 text-muted-foreground dark:bg-muted/20">
                   <tr>
                     <th className="px-4 py-3 font-medium">Location</th>
                     <th className="px-4 py-3 font-medium">Domain</th>
                     <th className="px-4 py-3 text-right font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60">
+                <tbody className="divide-y divide-border">
                   {gyms.slice(0, 8).map((gym) => (
                     <tr key={gym.id} className="text-foreground hover:bg-accent/30">
                       <td className="px-4 py-3">{gym.name}</td>
-                      <td className="max-w-[220px] truncate px-4 py-3 text-zinc-300">{gym.id.slice(0, 8)}.gymstack.club</td>
+                      <td className="max-w-[220px] truncate px-4 py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
                       <td className="px-4 py-3 text-right">
                         <Link href={`/platform/gyms/${gym.id}`} className="button button-sm secondary">
                           Open
@@ -217,7 +217,7 @@ export default function PlatformPage() {
           {!loading && memberRows.length > 0 ? (
             <ul className="space-y-2">
               {memberRows.map((member) => (
-                <li key={member.id} className="flex items-center justify-between rounded-xl bg-zinc-900/50 p-3 ring-1 ring-white/5">
+                <li key={member.id} className="flex items-center justify-between rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card/70">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{member.name}</p>
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
