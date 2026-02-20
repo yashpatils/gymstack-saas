@@ -13,7 +13,7 @@ type AppHeaderProps = {
   showMenuToggle?: boolean;
   leftExtra?: ReactNode;
   centerContent?: ReactNode;
-  accountName: string;
+  accountName?: string;
   accountInitials: string;
   accountLinks?: Array<{ href: string; label: string }>;
   onLogout?: () => void;
@@ -52,7 +52,6 @@ export function AppHeader({
   showMenuToggle = true,
   leftExtra,
   centerContent,
-  accountName,
   accountInitials,
   accountLinks = [{ href: "/platform/account", label: "Account info" }],
   onLogout,
@@ -144,7 +143,6 @@ export function AppHeader({
             aria-label="Open account menu"
           >
             <span className="user-chip-avatar h-8 w-8 rounded-full">{accountInitials}</span>
-            <span className="hidden max-w-[120px] truncate sm:block">{accountName}</span>
             <ShellIcon name="chevronDown" width={14} height={14} />
           </button>
           {isAccountMenuOpen
