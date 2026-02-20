@@ -1,6 +1,6 @@
 import "./globals.css";
 import "../src/styles/shell.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { SessionProvider } from "./components/session-provider";
 import { AuthProvider } from "../src/providers/AuthProvider";
@@ -34,6 +34,11 @@ export const metadata: Metadata = {
   icons: {
     apple: '/apple-touch-icon.svg',
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
