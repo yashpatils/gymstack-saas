@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { cn } from "../ui/utils";
-import { TOPBAR_HEIGHT } from "./shell-constants";
 
 type TopBarProps = {
   title: string;
@@ -25,21 +24,16 @@ function wrapTitleTwoLines(title: string) {
 
 export default function TopBar({ title, left, right, centerSubtitle }: TopBarProps) {
   return (
-    <header
-      className={cn("sticky top-0 z-50 w-full border-b border-border bg-background/70 backdrop-blur-xl")}
-      style={{ height: TOPBAR_HEIGHT }}
-    >
-      <div className="mx-auto h-full max-w-[1600px] px-4">
-        <div className="grid h-full grid-rows-2 items-center gap-1 py-2">
-          <div className="relative flex items-center justify-center">
-            <div className="text-center text-sm font-semibold text-foreground/90">{wrapTitleTwoLines(title)}</div>
-          </div>
+    <header className={cn("sticky top-0 z-50 w-full border-b border-border bg-background/70 backdrop-blur-xl")}>
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-2 px-4 py-3 md:px-6">
+        <div className="relative flex items-center justify-center">
+          <div className="text-center text-sm font-semibold text-foreground/90">{wrapTitleTwoLines(title)}</div>
+        </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">{left}</div>
-            <div className="flex items-center gap-2">{centerSubtitle}</div>
-            <div className="flex items-center gap-2">{right}</div>
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">{left}</div>
+          <div className="flex items-center gap-2">{centerSubtitle}</div>
+          <div className="flex items-center gap-2">{right}</div>
         </div>
       </div>
     </header>
