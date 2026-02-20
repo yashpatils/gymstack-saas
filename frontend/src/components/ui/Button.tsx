@@ -16,14 +16,14 @@ const variantClasses: Record<ButtonVariant, string> = {
   default:
     "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-violet-300",
   secondary:
-    "border border-white/15 bg-white/10 text-slate-100 backdrop-blur-sm hover:bg-white/15 hover:ring-1 hover:ring-white/20 focus-visible:ring-slate-300",
+    "border border-border bg-secondary text-foreground backdrop-blur-sm hover:bg-accent/40 hover:ring-1 hover:ring-ring/40 focus-visible:ring-ring",
   outline:
-    "border border-white/20 bg-transparent text-slate-100 hover:bg-white/10 hover:ring-1 hover:ring-violet-300/40 focus-visible:ring-violet-300",
+    "border border-border bg-transparent text-foreground hover:bg-accent/30 hover:ring-1 hover:ring-ring/40 focus-visible:ring-ring",
   ghost:
-    "bg-transparent text-slate-200 hover:bg-white/10 hover:text-white focus-visible:ring-slate-300",
+    "bg-transparent text-muted-foreground hover:bg-accent/30 hover:text-foreground focus-visible:ring-ring",
   destructive:
     "bg-gradient-to-br from-red-500 to-rose-500 text-white shadow-[0_10px_30px_rgba(239,68,68,0.35)] hover:brightness-110 focus-visible:ring-red-400",
-  link: "bg-transparent text-violet-200 underline-offset-4 hover:underline focus-visible:ring-violet-300",
+  link: "bg-transparent text-primary underline-offset-4 hover:underline focus-visible:ring-ring",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
           className,

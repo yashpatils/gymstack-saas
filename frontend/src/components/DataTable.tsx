@@ -143,10 +143,10 @@ export default function DataTable<T>({
         />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/50 backdrop-blur-md">
+      <div className="panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="table data-table w-full text-sm">
-        <thead className="text-muted-foreground">
+                <thead className="bg-muted/40 text-muted-foreground">
             <tr>
             {columns.map((column) => {
               const isSorted = sort?.columnId === column.id;
@@ -182,7 +182,7 @@ export default function DataTable<T>({
             })}
           </tr>
         </thead>
-                  <tbody className="divide-y divide-border/60">
+                            <tbody className="divide-y divide-border/70">
           {loading
             ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
                                 <tr key={`skeleton-row-${rowIndex}`} className="hover:bg-accent/30">
