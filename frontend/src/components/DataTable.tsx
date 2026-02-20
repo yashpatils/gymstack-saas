@@ -143,10 +143,10 @@ export default function DataTable<T>({
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/50 backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="table data-table w-full text-sm">
-        <thead className="bg-muted/40 text-muted-foreground">
+        <thead className="text-muted-foreground">
             <tr>
             {columns.map((column) => {
               const isSorted = sort?.columnId === column.id;
@@ -182,10 +182,10 @@ export default function DataTable<T>({
             })}
           </tr>
         </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-border/60">
           {loading
             ? Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                                <tr key={`skeleton-row-${rowIndex}`} className="hover:bg-muted/30">
+                                <tr key={`skeleton-row-${rowIndex}`} className="hover:bg-accent/30">
                   {columns.map((column) => (
                                         <td key={`${column.id}-skeleton-${rowIndex}`} className="px-4 py-3">
                       <div className="skeleton" style={{ height: 16 }} />
@@ -194,7 +194,7 @@ export default function DataTable<T>({
                 </tr>
               ))
             : paginatedRows.map((row, rowIndex) => (
-                                <tr key={getRowKey?.(row, rowIndex) ?? `row-${rowIndex}`} className="hover:bg-muted/30">
+                                <tr key={getRowKey?.(row, rowIndex) ?? `row-${rowIndex}`} className="hover:bg-accent/30">
                   {columns.map((column) => (
                                         <td key={`${column.id}-${rowIndex}`} className={`px-4 py-3 ${column.className ?? ""}`.trim()}>
                       {column.cell(row)}

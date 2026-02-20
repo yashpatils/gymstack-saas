@@ -23,7 +23,7 @@ type MemberRow = {
 };
 
 function shellCardClassName(extra?: string): string {
-  return ["rounded-2xl border border-border bg-card", extra].filter(Boolean).join(" ");
+  return ["rounded-2xl border border-border/60 bg-background/50 backdrop-blur-md shadow-sm", extra].filter(Boolean).join(" ");
 }
 
 function DashboardStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -172,18 +172,18 @@ export default function PlatformPage() {
           ) : null}
 
           {!loading && gyms.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/50 backdrop-blur-md">
               <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="bg-muted/40 text-muted-foreground">
+                <thead className="text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-medium">Location</th>
                     <th className="px-4 py-3 font-medium">Domain</th>
                     <th className="px-4 py-3 text-right font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/60">
                   {gyms.slice(0, 8).map((gym) => (
-                    <tr key={gym.id} className="text-foreground hover:bg-muted/30">
+                    <tr key={gym.id} className="text-foreground hover:bg-accent/30">
                       <td className="px-4 py-3">{gym.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
                       <td className="px-4 py-3 text-right">
