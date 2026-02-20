@@ -42,7 +42,7 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
   items: AppNavItem[];
   pathname: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
