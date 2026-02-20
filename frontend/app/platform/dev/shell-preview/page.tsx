@@ -54,13 +54,13 @@ export default function ShellPreviewPage() {
         <article className="rounded-2xl border border-border bg-card p-4">
           <h2 className="text-lg font-semibold">Desktop expanded</h2>
           <div className="mt-4 h-[480px] overflow-hidden rounded-xl border border-border">
-            <SidebarNav items={longList} title="Preview" subtitle="Desktop expanded" collapsed={false} />
+            <SidebarNav items={longList} title="Preview" subtitle="Desktop expanded" />
           </div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4">
           <h2 className="text-lg font-semibold">Desktop collapsed</h2>
           <div className="mt-4 h-[480px] overflow-hidden rounded-xl border border-border">
-            <SidebarNav items={longList} title="Preview" subtitle="Desktop collapsed" collapsed />
+            <SidebarNav items={longList} title="Preview" subtitle="Desktop dense" />
           </div>
         </article>
       </section>

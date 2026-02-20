@@ -104,10 +104,12 @@ export function AppHeader({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isAccountMenuOpen]);
 
+  const resolvedTitle = typeof centerContent === "string" ? centerContent : "GymStack";
+
   return (
     <TopBar
-      title={centerContent}
-      leftSlot={(
+      title={resolvedTitle}
+      left={(
         <>
           {showMenuToggle ? (
             <button
@@ -127,7 +129,7 @@ export function AppHeader({
           )}
         </>
       )}
-      rightSlot={(
+      right={(
         <>
           <button
             ref={triggerRef}
