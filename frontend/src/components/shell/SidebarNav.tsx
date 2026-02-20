@@ -8,8 +8,10 @@ import type { AppNavItem } from "./nav-config";
 type SidebarNavProps = {
   items: AppNavItem[];
   collapsed?: boolean;
+  mobileOpen?: boolean;
+  onClose?: () => void;
   onNavigate?: () => void;
-  title: string;
+  title?: string;
   subtitle?: string;
   className?: string;
 };
@@ -33,11 +35,13 @@ function isActivePath(href: string, pathname: string): boolean {
   return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
-export function SidebarNavContent({
+export function SidebarContent({
   items,
   collapsed = false,
+  mobileOpen: _mobileOpen,
+  onClose,
   onNavigate,
-  title,
+  title = "Navigation",
   subtitle,
   className = "",
 }: SidebarNavProps): ReactNode {
@@ -63,7 +67,10 @@ export function SidebarNavContent({
                 key={item.href}
                 href={item.href}
                 prefetch
-                onClick={() => onNavigate?.()}
+                onClick={() => {
+                  onNavigate?.();
+                  onClose?.();
+                }}
                 className={[
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
                   "hover:bg-accent/40",
@@ -81,8 +88,10 @@ export function SidebarNavContent({
   );
 }
 
-export function SidebarNav(props: SidebarNavProps): ReactNode {
-  return <SidebarNavContent {...props} />;
+export function SidebarNavContent(props: SidebarNavProps): ReactNode {
+  return <SidebarContent {...props} />;
 }
 
-export { SidebarNavContent as SidebarContent };
+export function SidebarNav(props: SidebarNavProps): ReactNode {
+  return <SidebarContent {...props} />;
+}
