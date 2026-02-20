@@ -61,20 +61,20 @@ export default function ClassesPage() {
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-6">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Class Templates</h1>
-            <p className="mt-1 text-sm text-slate-600">Create reusable classes for this location schedule.</p>
+            <h1 className="text-2xl font-semibold text-foreground">Class Templates</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Create reusable classes for this location schedule.</p>
           </div>
           <SupportHelpButton />
         </div>
         <form className="mt-4 grid gap-3 md:grid-cols-3" onSubmit={onCreate}>
           <input className="rounded-lg border px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Class title" required />
           <input className="rounded-lg border px-3 py-2" type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} required />
-          <button className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create Class'}</button>
+          <button className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create Class'}</button>
         </form>
-        {notice ? <p className="mt-3 text-sm text-amber-700">{notice}</p> : null}
+        {notice ? <p className="mt-3 text-sm text-muted-foreground">{notice}</p> : null}
       </section>
 
       <section className="grid gap-4">
@@ -87,10 +87,10 @@ export default function ClassesPage() {
           />
         ) : null}
         {classes.map((entry) => (
-          <article key={entry.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">{entry.title}</h2>
-            <p className="text-sm text-slate-500">Capacity {entry.capacity} · {entry.isActive ? 'Active' : 'Inactive'}</p>
-            {entry.description ? <p className="mt-2 text-sm text-slate-700">{entry.description}</p> : null}
+          <article key={entry.id} className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">{entry.title}</h2>
+            <p className="text-sm text-muted-foreground">Capacity {entry.capacity} · {entry.isActive ? 'Active' : 'Inactive'}</p>
+            {entry.description ? <p className="mt-2 text-sm text-muted-foreground">{entry.description}</p> : null}
           </article>
         ))}
       </section>

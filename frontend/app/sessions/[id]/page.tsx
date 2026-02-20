@@ -66,25 +66,25 @@ export default function SessionRosterPage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-5 p-6">
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">{roster.classTemplate.title} Roster</h1>
-            <p className="text-sm text-slate-600">Capacity {roster.bookedCount}/{roster.capacity}</p>
+            <p className="text-sm text-muted-foreground">Capacity {roster.bookedCount}/{roster.capacity}</p>
           </div>
           <SupportHelpButton />
         </div>
-        {notice ? <p className="mt-2 text-sm text-amber-600">{notice}</p> : null}
+        {notice ? <p className="mt-2 text-sm text-muted-foreground">{notice}</p> : null}
       </section>
       <section className="space-y-2">
         {roster.bookings.length === 0 ? (
           <EmptyState title="No bookings for this session" description="Invite members to book this class from the schedule." />
         ) : null}
         {roster.bookings.map((booking) => (
-          <article key={booking.id} className="flex items-center justify-between rounded-lg border bg-white px-4 py-3">
+          <article key={booking.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-card-foreground">
             <div>
-              <p className="font-medium text-slate-900">{booking.user.email}</p>
-              <p className="text-xs text-slate-500">{booking.status === 'CHECKED_IN' ? 'Checked in' : 'Booked'}</p>
+              <p className="font-medium text-foreground">{booking.user.email}</p>
+              <p className="text-xs text-muted-foreground">{booking.status === 'CHECKED_IN' ? 'Checked in' : 'Booked'}</p>
             </div>
             {booking.status !== 'CHECKED_IN' ? (
               <button className="rounded-lg border px-3 py-1 text-sm" onClick={() => void checkIn(booking.user.id)}>Check in</button>
