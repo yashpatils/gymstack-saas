@@ -50,11 +50,28 @@ export default function SidebarDrawer({
         onClick={onClose}
       />
       <aside
-        className="absolute left-0 top-0 h-full w-[320px] border-r border-border bg-background/80 backdrop-blur-xl"
+        className="absolute left-0 top-0 h-full w-full border-r border-border bg-background/80 backdrop-blur-xl sm:w-[320px]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="h-full overflow-y-auto p-3">
-          <SidebarNav items={items} onNavigate={onClose} title={title} subtitle={subtitle} className="h-full border-r-0" />
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="text-sm font-semibold">Menu</div>
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-sm hover:bg-muted"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="h-[calc(100%-49px)] overflow-y-auto p-3">
+          <SidebarNav
+            items={items}
+            onNavigate={onClose}
+            title={title}
+            subtitle={subtitle}
+            className="h-full border-r-0"
+          />
         </div>
       </aside>
     </div>
