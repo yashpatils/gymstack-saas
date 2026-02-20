@@ -1,42 +1,41 @@
-import type { HTMLAttributes } from "react";
+import * as React from "react";
 import { cn } from "./utils";
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {}
+type CardProps = React.HTMLAttributes<HTMLDivElement>;
+type CardHeaderProps = React.HTMLAttributes<HTMLDivElement>;
+type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
+type CardDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
+type CardContentProps = React.HTMLAttributes<HTMLDivElement>;
+type CardFooterProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function Card({ className, ...props }: CardProps) {
   return (
     <div
-      className={cn("rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm", className)}
+      className={cn(
+        "rounded-2xl border bg-card/60 backdrop-blur-sm shadow-sm",
+        "transition-colors",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {}
-
 export function CardHeader({ className, ...props }: CardHeaderProps) {
   return <div className={cn("flex flex-col gap-1.5 p-6", className)} {...props} />;
 }
-
-export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {}
 
 export function CardTitle({ className, ...props }: CardTitleProps) {
   return <h3 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />;
 }
 
-export interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {}
-
 export function CardDescription({ className, ...props }: CardDescriptionProps) {
-  return <p className={cn("text-sm text-slate-500", className)} {...props} />;
+  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }
-
-export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function CardContent({ className, ...props }: CardContentProps) {
   return <div className={cn("p-6 pt-0", className)} {...props} />;
 }
-
-export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function CardFooter({ className, ...props }: CardFooterProps) {
   return <div className={cn("flex items-center p-6 pt-0", className)} {...props} />;

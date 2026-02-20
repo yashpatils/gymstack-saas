@@ -6,6 +6,7 @@ import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
 import type { NavItemConfig } from "../../../../src/config/nav.config";
 import { PlatformAccountDropdown } from "../../../../src/components/platform/layout/PlatformAccountDropdown";
+import { ThemeToggle } from "../../../../src/components/theme/ThemeToggle";
 
 type LocationAppShellProps = {
   navItems: NavItemConfig[];
@@ -37,11 +38,14 @@ export function LocationAppShell({
       title="Daily Operations"
       subtitle={locationId}
       rightSlot={
-        <PlatformAccountDropdown
-          label={accountName}
-          initials={accountInitials}
-          onLogout={() => undefined}
-        />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <PlatformAccountDropdown
+            label={accountName}
+            initials={accountInitials}
+            onLogout={() => undefined}
+          />
+        </div>
       }
     >
       {children}

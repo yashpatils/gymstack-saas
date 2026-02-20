@@ -9,6 +9,7 @@
 :root,
 html[data-theme="dark"] {
   color-scheme: dark;
+  --radius: 1rem;
   --bg: #0c0f14;
   --surface-1: #131821;
   --surface-2: #181e28;
@@ -119,6 +120,10 @@ button,a,input,select,textarea { touch-action: manipulation; }
   border-radius: var(--radius-card);
   padding: 20px;
   box-shadow: var(--card-shadow);
+}
+
+.card {
+  @apply rounded-2xl;
 }
 
 .badge {
