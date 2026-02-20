@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../src/providers/AuthProvider";
-import { SidebarDrawer } from "../../../../src/components/shell/SidebarDrawer";
-import { SidebarNav } from "../../../../src/components/shell/SidebarNav";
+import SidebarDrawer from "../../../../src/components/shell/SidebarDrawer";
+import SidebarNav from "../../../../src/components/shell/SidebarNav";
 import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
 

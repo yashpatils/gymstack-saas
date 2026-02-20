@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { useThemeConfig, type ThemeMode } from "../../providers/ThemeProvider";
 import { ShellIcon } from "./ShellIcon";
-import { TopBar } from "./TopBar";
+import TopBar from "./TopBar";
 
 type AppHeaderProps = {
   onToggleMenu: () => void;

@@ -1,134 +1,64 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
-import { SidebarDrawer } from "./SidebarDrawer";
-import { SidebarNav } from "./SidebarNav";
+import * as React from "react";
+import TopBar from "./TopBar";
+import SidebarNav from "./SidebarNav";
+import SidebarDrawer from "./SidebarDrawer";
 import type { AppNavItem } from "./nav-config";
-import {
-  DESKTOP_SIDEBAR_COLLAPSED,
-  DESKTOP_SIDEBAR_EXPANDED,
-  DESKTOP_SIDEBAR_STORAGE_KEY,
-  TOPBAR_H,
-} from "./constants";
+import { DESKTOP_SIDEBAR_W, TOPBAR_H } from "./constants";
 
-export function AppShell({
-  variant,
-  navItems,
-  sidebarTitle,
-  sidebarSubtitle,
-  header,
-  footer,
+type AppShellProps = {
+  items: AppNavItem[];
+  title: string;
+  subtitle?: string;
+  rightSlot?: React.ReactNode;
+  leftSlot?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+export default function AppShell({
+  items,
+  title,
+  subtitle,
+  rightSlot,
+  leftSlot,
   children,
-}: {
-  variant: "platform" | "admin";
-  navItems: AppNavItem[];
-  sidebarTitle: string;
-  sidebarSubtitle: string;
-  header: (controls: { onToggleMenu: () => void; showMenuToggle: boolean }) => ReactNode;
-  footer?: ReactNode;
-  children: ReactNode;
-}) {
-  const pathname = usePathname();
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-    const apply = () => {
-      const desktop = mediaQuery.matches;
-      setIsDesktop(desktop);
-      if (desktop) setIsMobileDrawerOpen(false);
-    };
-
-    apply();
-    mediaQuery.addEventListener("change", apply);
-    return () => mediaQuery.removeEventListener("change", apply);
-  }, []);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY);
-    if (stored === "1") setSidebarCollapsed(true);
-  }, []);
-
-  useEffect(() => {
-    setIsMobileDrawerOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!isMobileDrawerOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isMobileDrawerOpen]);
-
-  const desktopSidebarWidth = sidebarCollapsed
-    ? DESKTOP_SIDEBAR_COLLAPSED
-    : DESKTOP_SIDEBAR_EXPANDED;
-
-  const shellStyle = useMemo(
-    () =>
-      ({
-        "--topbar-h": `${TOPBAR_H}px`,
-        "--sidebar-w": `${desktopSidebarWidth}px`,
-        "--sidebar-collapsed-w": `${DESKTOP_SIDEBAR_COLLAPSED}px`,
-      }) as CSSProperties,
-    [desktopSidebarWidth],
-  );
-
-  const onToggleCollapsed = () => {
-    setSidebarCollapsed((cur) => {
-      const next = !cur;
-      window.localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, next ? "1" : "0");
-      return next;
-    });
-  };
-
-  const onToggleMenu = () => {
-    if (isDesktop) onToggleCollapsed();
-    else setIsMobileDrawerOpen((v) => !v);
-  };
+}: AppShellProps) {
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   return (
-    <div
-      data-testid="app-shell"
-      className={`gs-shell gs-shell--${variant} min-h-screen bg-background`}
-      style={shellStyle}
-    >
-      <div className="fixed inset-x-0 top-0 z-50 h-[var(--topbar-h)]">
-        <div className="mx-auto h-full w-full max-w-[1400px]">
-          {header({ onToggleMenu, showMenuToggle: !isDesktop })}
-        </div>
-      </div>
+    <div className="min-h-dvh bg-background">
+      <TopBar
+        title={title}
+        rightSlot={rightSlot}
+        leftSlot={leftSlot}
+        onOpenMobileMenu={() => setMobileOpen(true)}
+      />
 
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[var(--sidebar-w)] pt-[var(--topbar-h)] lg:block">
-        <SidebarNav
-          items={navItems}
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={onToggleCollapsed}
-          title={sidebarTitle}
-          subtitle={sidebarSubtitle}
-        />
+      <aside
+        className="fixed left-0 top-0 hidden h-dvh border-r border-border bg-background/70 backdrop-blur-xl lg:block"
+        style={{ width: DESKTOP_SIDEBAR_W }}
+      >
+        <div style={{ paddingTop: TOPBAR_H, height: "100%" }} className="overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <SidebarNav items={items} title="Platform" subtitle={subtitle} />
+          </div>
+        </div>
       </aside>
 
-      <main key={pathname} className="min-w-0 pt-[var(--topbar-h)] lg:pl-[var(--sidebar-w)]">
-        <div className="mx-auto w-full max-w-[1400px] px-4 py-6 lg:px-8">
-          {children}
-          {footer ? <div className="mt-8">{footer}</div> : null}
+      <SidebarDrawer
+        items={items}
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        title="Platform"
+        subtitle={subtitle}
+      />
+
+      <main style={{ paddingTop: TOPBAR_H }}>
+        <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="lg:pl-[288px]">{children}</div>
         </div>
       </main>
-
-      <SidebarDrawer
-        open={isMobileDrawerOpen}
-        onClose={() => setIsMobileDrawerOpen(false)}
-        items={navItems}
-        title={sidebarTitle}
-        subtitle={sidebarSubtitle}
-      />
     </div>
   );
 }
