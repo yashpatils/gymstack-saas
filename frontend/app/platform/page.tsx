@@ -24,7 +24,7 @@ type MemberRow = {
 
 function shellCardClassName(extra?: string): string {
   return [
-    "rounded-2xl border border-border bg-white text-foreground shadow-sm transition-shadow hover:shadow-md dark:bg-card/70 dark:text-card-foreground dark:backdrop-blur-sm",
+    "rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md",
     extra,
   ]
     .filter(Boolean)
@@ -178,7 +178,7 @@ export default function PlatformPage() {
           ) : null}
 
           {!loading && gyms.length > 0 ? (
-            <div className="overflow-x-auto rounded-2xl border border-border bg-white shadow-sm dark:bg-card/70 dark:backdrop-blur-sm">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
               <table className="w-full min-w-[520px] text-left text-sm">
                 <thead className="bg-muted/40 text-muted-foreground dark:bg-muted/20">
                   <tr>
@@ -217,7 +217,7 @@ export default function PlatformPage() {
           {!loading && memberRows.length > 0 ? (
             <ul className="space-y-2">
               {memberRows.map((member) => (
-                <li key={member.id} className="flex items-center justify-between rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card/70">
+                <li key={member.id} className="flex items-center justify-between rounded-xl border border-border bg-card text-card-foreground p-3 shadow-sm">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{member.name}</p>
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
