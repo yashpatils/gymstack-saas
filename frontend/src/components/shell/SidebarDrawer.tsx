@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import type { AppNavItem } from "./nav-config";
-import SidebarNav from "./SidebarNav";
-import { TOPBAR_H } from "./constants";
+import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { SidebarNav } from "./SidebarNav";
+import { cn } from "../ui/utils";
+import { MOBILE_DRAWER_WIDTH, TOPBAR_HEIGHT } from "./shell-constants";
 
 type SidebarDrawerProps = {
   items: AppNavItem[];
@@ -20,35 +22,66 @@ export default function SidebarDrawer({
   title,
   subtitle,
 }: SidebarDrawerProps) {
-  if (!open) return null;
+  const ref = React.useRef<HTMLDivElement | null>(null);
+
+  useOnClickOutside([ref], () => {
+    if (open) onClose();
+  }, open);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   return (
-    <div className="fixed inset-0 z-[60]">
-      <button
-        aria-label="Close menu"
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity lg:hidden",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
         onClick={onClose}
-        className="absolute inset-0 bg-background/40 backdrop-blur-md"
       />
 
       <div
-        className="absolute left-0 w-[320px] max-w-[85vw] border-r border-border bg-background/70 shadow-xl backdrop-blur-xl"
+        className={cn(
+          "fixed left-0 z-50 lg:hidden",
+          "transition-transform duration-200 ease-out",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
         style={{
-          top: TOPBAR_H,
-          height: `calc(100dvh - ${TOPBAR_H}px)`,
+          top: TOPBAR_HEIGHT,
+          height: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
+          width: MOBILE_DRAWER_WIDTH,
         }}
+        aria-hidden={!open}
       >
-        <div className="h-full overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            <SidebarNav
-              items={items}
-              title={title}
-              subtitle={subtitle}
-              mobileOpen
-              onClose={onClose}
-            />
-          </div>
+        <div
+          ref={ref}
+          className="h-full w-full border-r border-border bg-background/75 shadow-xl backdrop-blur-xl"
+        >
+          <SidebarNav
+            items={items}
+            title={title}
+            subtitle={subtitle}
+            onNavigate={onClose}
+            className="h-full"
+          />
         </div>
       </div>
-    </div>
+    </>
   );
 }

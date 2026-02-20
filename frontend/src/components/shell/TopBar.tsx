@@ -1,48 +1,45 @@
 "use client";
 
 import * as React from "react";
-import { TOPBAR_H } from "./constants";
+import { cn } from "../ui/utils";
+import { TOPBAR_HEIGHT } from "./shell-constants";
 
 type TopBarProps = {
-  title: React.ReactNode;
-  rightSlot?: React.ReactNode;
-  onOpenMobileMenu?: () => void;
-  leftSlot?: React.ReactNode;
+  title: string;
+  right?: React.ReactNode;
+  left?: React.ReactNode;
+  centerSubtitle?: React.ReactNode;
 };
 
-export default function TopBar({
-  title,
-  rightSlot,
-  onOpenMobileMenu,
-  leftSlot,
-}: TopBarProps) {
+function wrapTitleTwoLines(title: string) {
+  const words = title.trim().split(/\s+/);
+  if (words.length <= 2) return title;
+  const mid = Math.ceil(words.length / 2);
+  return (
+    <>
+      <span className="block leading-tight">{words.slice(0, mid).join(" ")}</span>
+      <span className="block leading-tight">{words.slice(mid).join(" ")}</span>
+    </>
+  );
+}
+
+export default function TopBar({ title, left, right, centerSubtitle }: TopBarProps) {
   return (
     <header
-      className="sticky top-0 z-[70] w-full border-b border-border bg-background/70 backdrop-blur-xl"
-      style={{ height: TOPBAR_H }}
+      className={cn("sticky top-0 z-50 w-full border-b border-border bg-background/70 backdrop-blur-xl")}
+      style={{ height: TOPBAR_HEIGHT }}
     >
-      <div className="mx-auto flex h-full max-w-7xl flex-col justify-center px-4">
-        <div className="flex items-center justify-center py-2">
-          <div className="max-w-[75vw] break-words text-center text-sm font-semibold leading-tight text-foreground line-clamp-2">
-            {title}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 pb-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenMobileMenu}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card/50 lg:hidden"
-              aria-label="Open menu"
-            >
-              <span className="text-lg">≡</span>
-            </button>
-
-            {leftSlot}
+      <div className="mx-auto h-full max-w-[1600px] px-4">
+        <div className="grid h-full grid-rows-2 items-center gap-1 py-2">
+          <div className="relative flex items-center justify-center">
+            <div className="text-center text-sm font-semibold text-foreground/90">{wrapTitleTwoLines(title)}</div>
           </div>
 
-          <div className="ml-auto">{rightSlot}</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">{left}</div>
+            <div className="flex items-center gap-2">{centerSubtitle}</div>
+            <div className="flex items-center gap-2">{right}</div>
+          </div>
         </div>
       </div>
     </header>
