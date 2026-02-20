@@ -50,7 +50,7 @@ export function WeeklyAiBriefCard() {
   }, []);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-border bg-card p-6">
+    <section className="space-y-3 rounded-2xl border border-border bg-white p-5 shadow-sm dark:bg-card dark:text-card-foreground">
       <div>
         <h2 className="text-lg font-semibold">Weekly AI Brief</h2>
         <p className="text-sm text-muted-foreground">Operational insights generated from tenant-level aggregated metrics.</p>
@@ -91,6 +91,6 @@ export function WeeklyAiBriefCard() {
       {!loading && !brief && !error ? (
         <p className="text-sm text-muted-foreground">Insights will appear here once enough activity is available for this tenant.</p>
       ) : null}
-    </div>
+    </section>
   );
 }
