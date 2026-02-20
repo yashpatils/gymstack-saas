@@ -13,6 +13,7 @@ type AppHeaderProps = {
   showMenuToggle?: boolean;
   leftExtra?: ReactNode;
   centerContent?: ReactNode;
+  accountName?: string;
   accountInitials: string;
   accountLinks?: Array<{ href: string; label: string }>;
   onLogout?: () => void;
