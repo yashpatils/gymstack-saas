@@ -4,10 +4,10 @@ import { cn } from "./utils";
 type ToastVariant = "default" | "success" | "warning" | "destructive";
 
 const variantClasses: Record<ToastVariant, string> = {
-  default: "border-slate-200 bg-white text-slate-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  destructive: "border-red-200 bg-red-50 text-red-900",
+  default: "border-border bg-card text-foreground",
+  success: "border-border bg-emerald-500/10 text-emerald-200",
+  warning: "border-border bg-amber-500/10 text-amber-200",
+  destructive: "border-border bg-destructive/15 text-destructive-foreground",
 };
 
 export interface ToastProps extends HTMLAttributes<HTMLDivElement> {
@@ -49,7 +49,7 @@ export function Toast({
           <button
             type="button"
             aria-label="Close"
-            className="shrink-0 rounded-md p-1 text-current/70 transition hover:bg-black/5 hover:text-current"
+            className="shrink-0 rounded-md p-1 text-current/70 transition hover:bg-accent/30 hover:text-current"
             onClick={onClose}
           >
             ×
@@ -78,7 +78,7 @@ export function ToastAction({ className, type = "button", ...props }: ToastActio
     <button
       type={type}
       className={cn(
-        "inline-flex items-center rounded-md border border-current/20 px-3 py-1.5 text-xs font-medium transition hover:bg-black/5",
+        "inline-flex items-center rounded-md border border-current/20 px-3 py-1.5 text-xs font-medium transition hover:bg-accent/30",
         className,
       )}
       {...props}

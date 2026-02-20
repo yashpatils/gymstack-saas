@@ -4,10 +4,10 @@ import { cn } from "./utils";
 type AlertVariant = "default" | "success" | "warning" | "destructive";
 
 const variantClasses: Record<AlertVariant, string> = {
-  default: "border-slate-200 bg-slate-50 text-slate-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  destructive: "border-red-200 bg-red-50 text-red-900",
+  default: "border-border bg-card text-foreground",
+  success: "border-border bg-emerald-500/10 text-emerald-200",
+  warning: "border-border bg-amber-500/10 text-amber-200",
+  destructive: "border-border bg-destructive/15 text-destructive-foreground",
 };
 
 export interface AlertProps extends HTMLAttributes<HTMLDivElement> {

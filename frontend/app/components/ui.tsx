@@ -84,11 +84,11 @@ export function CardHeader({
 }
 
 export function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-lg font-semibold text-white">{children}</h3>;
+  return <h3 className="text-lg font-semibold text-foreground">{children}</h3>;
 }
 
 export function CardDescription({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-slate-300">{children}</p>;
+  return <p className="text-sm text-muted-foreground">{children}</p>;
 }
 
 export function PageShell({
@@ -151,24 +151,26 @@ export function Table({
   rows: React.ReactNode[][];
 }) {
   return (
-    <table className="table">
-      <thead>
-        <tr>
-          {headers.map((header, index) => (
-            <th key={`header-${index}`}>{header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, rowIndex) => (
-          <tr key={`row-${rowIndex}`}>
-            {row.map((cell, cellIndex) => (
-              <td key={`cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+    <div className="panel overflow-hidden">
+      <table className="table w-full">
+        <thead className="bg-muted/40">
+          <tr className="border-b border-border">
+            {headers.map((header, index) => (
+              <th key={`header-${index}`}>{header}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={`row-${rowIndex}`} className="border-b border-border/70 hover:bg-accent/30">
+              {row.map((cell, cellIndex) => (
+                <td key={`cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
