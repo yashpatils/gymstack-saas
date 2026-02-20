@@ -14,12 +14,23 @@ type SidebarNavProps = {
   className?: string;
 };
 
-function isActivePath(href: string, pathname: string): boolean {
-  if (href === "/platform") {
-    return pathname === "/platform";
+function normalizePath(path: string): string {
+  if (path.length <= 1) {
+    return path;
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return path.replace(/\/+$/, "");
+}
+
+function isActivePath(href: string, pathname: string): boolean {
+  const itemPath = normalizePath(href);
+  const currentPath = normalizePath(pathname);
+
+  if (itemPath === "/platform") {
+    return currentPath === itemPath;
+  }
+
+  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
 export function SidebarNavContent({

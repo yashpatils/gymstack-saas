@@ -120,7 +120,7 @@ export function AppShell({
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">
+        <main key={pathname} className="min-w-0 flex-1 px-4 py-6 lg:px-8">
           {children}
           {footer ? <div className="mt-8">{footer}</div> : null}
         </main>
