@@ -44,8 +44,8 @@ export function ShellClient({
       />
 
       <main style={{ paddingTop: 12, minHeight: `calc(100vh - ${TOPBAR_HEIGHT}px)` }}>
-        <div className="mx-auto max-w-[1600px] px-4 pb-8">
-          <div className="lg:pl-[296px]">{children}</div>
+        <div className="mx-auto max-w-[1600px] lg:pl-[296px]">
+          <div className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6 space-y-6">{children}</div>
         </div>
       </main>
     </div>

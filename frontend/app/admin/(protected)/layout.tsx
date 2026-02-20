@@ -5,6 +5,7 @@ import AppShell from "../../../src/components/shell/AppShell";
 import { adminNavItems } from "../../../src/components/shell/nav-config";
 import { useAuth } from "../../../src/providers/AuthProvider";
 import { PlatformAccountDropdown } from "../../../src/components/platform/layout/PlatformAccountDropdown";
+import { ThemeToggle } from "../../../src/components/theme/ThemeToggle";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -16,11 +17,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       subtitle="Admin"
       leftSlot={<span className="text-xs uppercase tracking-[0.2em] text-cyan-300">Admin</span>}
       rightSlot={
-        <PlatformAccountDropdown
-          label={user?.name ?? user?.email ?? "Admin"}
-          initials={(user?.name ?? user?.email ?? "PA").trim().slice(0, 2).toUpperCase()}
-          onLogout={logout}
-        />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <PlatformAccountDropdown
+            label={user?.name ?? user?.email ?? "Admin"}
+            initials={(user?.name ?? user?.email ?? "PA").trim().slice(0, 2).toUpperCase()}
+            onLogout={logout}
+          />
+        </div>
       }
     >
       {children}

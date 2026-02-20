@@ -14,7 +14,7 @@ type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    "bg-gradient-to-br from-violet-500 to-indigo-500 text-white shadow-[0_10px_30px_rgba(99,102,241,0.35)] hover:brightness-110 hover:shadow-[0_10px_32px_rgba(99,102,241,0.45)] focus-visible:ring-violet-300",
+    "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-violet-300",
   secondary:
     "border border-white/15 bg-white/10 text-slate-100 backdrop-blur-sm hover:bg-white/15 hover:ring-1 hover:ring-white/20 focus-visible:ring-slate-300",
   outline:
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
           className,

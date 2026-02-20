@@ -145,7 +145,7 @@ export default function PlatformPage() {
 
       {error ? <ErrorState message={error} /> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardStat label="Locations" value={String(summary?.locations ?? gyms.length)} />
         <DashboardStat label="Members" value={String(summary?.members ?? users.length)} />
         <DashboardStat label="MRR" value={mrr === null ? "—" : `$${mrr.toFixed(2)}`} hint={mrr === null ? "Not available" : "Monthly recurring revenue"} />

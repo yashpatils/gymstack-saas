@@ -4,6 +4,7 @@ import AppShell from "../../src/components/shell/AppShell";
 import { platformNavItems } from "../../src/components/shell/nav-config";
 import { NotificationBell } from "../../src/components/notifications/NotificationBell";
 import { PlatformAccountDropdown } from "../../src/components/platform/layout/PlatformAccountDropdown";
+import { ThemeToggle } from "../../src/components/theme/ThemeToggle";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 export function AppShellProvider({ children }: { children: React.ReactNode }) {
@@ -38,15 +39,18 @@ export function AppShellProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppShell
       items={navItems}
-      title={`${activeTenant?.name ?? "Gym Stack"} Organization`}
+      title={activeTenant?.name ?? "Gym Stack"}
       subtitle={activeTenant?.name ?? "GymStack workspace"}
       leftSlot={<NotificationBell />}
       rightSlot={
-        <PlatformAccountDropdown
-          label={user?.name ?? user?.email ?? "Account"}
-          initials={(user?.name ?? user?.email ?? "A").trim().slice(0, 2).toUpperCase()}
-          onLogout={logout}
-        />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <PlatformAccountDropdown
+            label={user?.name ?? user?.email ?? "Account"}
+            initials={(user?.name ?? user?.email ?? "A").trim().slice(0, 2).toUpperCase()}
+            onLogout={logout}
+          />
+        </div>
       }
     >
       {children}
