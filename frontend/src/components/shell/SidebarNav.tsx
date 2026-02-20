@@ -39,7 +39,7 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
   return (
     <nav
       className={cn(
-        "h-full bg-sidebar/80 backdrop-blur-xl border-r border-border flex flex-col",
+        "h-full border-r border-border bg-card/70 backdrop-blur-xl shadow-lg flex flex-col",
         className,
       )}
     >

@@ -54,11 +54,11 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
       </button>
 
       {isOpen ? (
-        <div ref={menuRef} role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-64 rounded-xl border border-white/15 bg-slate-900/95 p-2 shadow-xl">
-          <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-slate-100 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+        <div ref={menuRef} role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-64 rounded-xl border border-border bg-card/95 p-2 text-card-foreground shadow-xl backdrop-blur-xl">
+          <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
             Account info
           </Link>
-          <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+          <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
             Settings
           </Link>
           <button

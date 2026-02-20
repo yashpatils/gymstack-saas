@@ -10,7 +10,7 @@ export function ModeToggle({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-slate-900/40 p-1 text-xs" role="group" aria-label="View mode">
+    <div className="flex items-center gap-1 rounded-xl border border-border bg-card/80 p-1 text-xs text-card-foreground backdrop-blur-xl" role="group" aria-label="View mode">
       <button type="button" className={`button button-sm ${activeMode === "OWNER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("OWNER")} aria-pressed={activeMode === "OWNER"} disabled={disabled}>Owner</button>
       <button type="button" className={`button button-sm ${activeMode === "MANAGER" ? "secondary" : "ghost"}`} onClick={() => onSwitchMode("MANAGER")} aria-pressed={activeMode === "MANAGER"} disabled={disabled}>Manager</button>
     </div>

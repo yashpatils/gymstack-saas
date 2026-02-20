@@ -50,7 +50,7 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
       <PlatformHeader
         leftSlot={(
           <>
@@ -75,7 +75,7 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-x-0 bottom-0 top-[var(--layout-header-platform)] z-20 bg-black/50 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-[var(--layout-header-platform)] z-20 bg-black/40 backdrop-blur-[2px] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       ) : null}
@@ -83,13 +83,13 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
       <div className="mx-auto grid w-full max-w-[var(--layout-content-max-width)] grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px]">
         <aside
           id="platform-sidebar-drawer"
-          className={`fixed left-0 top-[var(--layout-header-platform)] z-30 h-[calc(100dvh-var(--layout-header-platform))] w-[280px] shrink-0 overflow-y-auto border-r border-white/10 bg-slate-950 p-[var(--space-md)] transition-transform duration-200 lg:sticky lg:block lg:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className={`fixed left-0 top-[var(--layout-header-platform)] z-30 h-[calc(100dvh-var(--layout-header-platform))] w-[280px] shrink-0 overflow-y-auto border-r border-border bg-card/80 backdrop-blur-xl shadow-xl p-[var(--space-md)] transition-transform duration-200 lg:sticky lg:block lg:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <nav className="space-y-[var(--space-xs)]" aria-label="Platform navigation">
             {navItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
-                <Link key={item.href} href={item.href} className={`block rounded-[var(--radius-md)] px-[var(--space-md)] py-[var(--space-sm)] text-sm ${active ? "bg-white/15" : "bg-white/5 hover:bg-white/10"}`}>
+                <Link key={item.href} href={item.href} className={`block rounded-[var(--radius-md)] px-[var(--space-md)] py-[var(--space-sm)] text-sm ${active ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
                   {item.label}
                 </Link>
               );
@@ -102,13 +102,13 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
           {footer ? <footer className="px-[var(--layout-content-padding)] py-[var(--space-md)] text-xs text-muted-foreground">{footer}</footer> : null}
         </div>
 
-        {rightPanel ? <aside className="hidden border-l border-white/10 p-[var(--space-md)] xl:block">{rightPanel}</aside> : null}
+        {rightPanel ? <aside className="hidden border-l border-border p-[var(--space-md)] xl:block">{rightPanel}</aside> : null}
       </div>
 
       {mobileBottomNav ? (
-        <nav className="fixed inset-x-0 bottom-0 z-[var(--z-overlay)] grid h-[var(--layout-mobile-nav-height)] grid-cols-3 gap-[var(--space-xs)] border-t border-white/10 bg-slate-900/95 p-[var(--space-sm)] md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-[var(--z-overlay)] grid h-[var(--layout-mobile-nav-height)] grid-cols-3 gap-[var(--space-xs)] border-t border-border bg-card/95 p-[var(--space-sm)] backdrop-blur-xl md:hidden">
           {navItems.slice(0, 3).map((item) => (
-            <Link key={item.href} href={item.href} className="rounded-[var(--radius-md)] border border-white/10 px-[var(--space-sm)] py-[var(--space-xs)] text-center text-xs">
+            <Link key={item.href} href={item.href} className="rounded-[var(--radius-md)] border border-border px-[var(--space-sm)] py-[var(--space-xs)] text-center text-xs">
               {item.label}
             </Link>
           ))}

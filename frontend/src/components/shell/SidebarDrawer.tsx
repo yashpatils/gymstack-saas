@@ -42,7 +42,7 @@ export default function SidebarDrawer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] lg:hidden">
+    <div className="fixed inset-0 z-50 lg:hidden">
       <button
         type="button"
         aria-label="Close menu backdrop"
@@ -50,16 +50,16 @@ export default function SidebarDrawer({
         onClick={onClose}
       />
       <aside
-        className="absolute left-0 top-0 h-full w-full border-r border-border bg-background/80 backdrop-blur-xl sm:w-[320px]"
+        className="fixed left-0 top-0 z-50 h-full w-[min(360px,100%)] border-r border-border bg-card/80 shadow-xl backdrop-blur-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="text-sm font-semibold">Menu</div>
+          <div className="text-sm font-semibold text-foreground">Menu</div>
           <button
             type="button"
             aria-label="Close menu"
             onClick={onClose}
-            className="rounded-md px-2 py-1 text-sm hover:bg-muted"
+            className="rounded-md px-2 py-1 text-sm text-foreground hover:bg-muted"
           >
             ✕
           </button>
