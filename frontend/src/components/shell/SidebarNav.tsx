@@ -68,9 +68,9 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
                 prefetch
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  active && "bg-primary/10 text-primary font-medium",
+                  "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all",
+                  "hover:bg-accent hover:text-accent-foreground [&_span]:text-inherit [&_svg]:text-inherit",
+                  active && "bg-indigo-600 text-white font-medium [&_span]:!text-white [&_svg]:!text-white",
                 )}
                 aria-current={active ? "page" : undefined}
               >
