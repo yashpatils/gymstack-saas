@@ -72,19 +72,33 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
       />
 
       {mobileNavOpen ? (
-        <button
-          type="button"
-          aria-label="Close menu"
-          className="fixed inset-x-0 bottom-0 top-[var(--layout-header-platform)] z-20 bg-black/40 backdrop-blur-[2px] lg:hidden"
-          onClick={() => setMobileNavOpen(false)}
-        />
+        <div className="fixed inset-x-0 bottom-0 top-[var(--layout-header-platform)] z-[9999] lg:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside
+            id="platform-sidebar-drawer"
+            className="absolute left-0 top-0 h-full w-[280px] shrink-0 overflow-y-auto border-r border-border bg-card shadow-xl p-[var(--space-md)]"
+          >
+            <nav className="space-y-[var(--space-xs)]" aria-label="Platform navigation">
+              {navItems.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link key={item.href} href={item.href} className={`block rounded-[var(--radius-md)] px-[var(--space-md)] py-[var(--space-sm)] text-sm ${active ? "bg-primary text-primary-foreground hover:bg-primary" : "text-foreground hover:bg-muted"}`}>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
       ) : null}
 
       <div className="mx-auto grid w-full max-w-[var(--layout-content-max-width)] grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px]">
-        <aside
-          id="platform-sidebar-drawer"
-          className={`fixed left-0 top-[var(--layout-header-platform)] z-30 h-[calc(100dvh-var(--layout-header-platform))] w-[280px] shrink-0 overflow-y-auto border-r border-border bg-card/80 backdrop-blur-xl shadow-xl p-[var(--space-md)] transition-transform duration-200 lg:sticky lg:block lg:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
-        >
+        <aside className="sticky top-[var(--layout-header-platform)] hidden h-[calc(100dvh-var(--layout-header-platform))] w-[280px] shrink-0 overflow-y-auto border-r border-border bg-card p-[var(--space-md)] lg:block">
           <nav className="space-y-[var(--space-xs)]" aria-label="Platform navigation">
             {navItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

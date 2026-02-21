@@ -154,7 +154,7 @@ export function AppHeader({
                   ref={accountMenuRef}
                   role="menu"
                   style={menuStyle}
-                  className="z-[9999] overflow-y-auto rounded-xl border border-border bg-popover/95 p-2 text-popover-foreground shadow-xl backdrop-blur-md"
+                  className="gs-account-dropdown z-[9999] overflow-y-auto rounded-xl p-2"
                   onClick={(event) => event.stopPropagation()}
                 >
                   {qaBypass ? (
@@ -186,7 +186,7 @@ export function AppHeader({
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-background/60"
+                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-current hover:bg-white/10"
                       onClick={() => setIsAccountMenuOpen(false)}
                     >
                       {link.label}
@@ -195,7 +195,7 @@ export function AppHeader({
                   {onLogout ? (
                     <button
                       type="button"
-                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--danger-600)] hover:bg-rose-500/20"
+                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/20"
                       onClick={() => {
                         setIsAccountMenuOpen(false);
                         onLogout();
