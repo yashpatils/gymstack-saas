@@ -32,6 +32,7 @@ export async function refreshAccessToken(): Promise<string | null> {
       const data = await apiFetch<{ accessToken: string; refreshToken: string; me: AuthMeResponse }>('/api/auth/refresh', {
         method: 'POST',
         body: JSON.stringify({ refreshToken }),
+        skipAuthRetry: true,
         headers: {
           'Content-Type': 'application/json',
         },
