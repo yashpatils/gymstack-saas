@@ -78,6 +78,14 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const authDebugEnabled = process.env.NEXT_PUBLIC_AUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+  const authDebugLog = useCallback((event: string, detail?: Record<string, unknown>) => {
+    if (!authDebugEnabled) {
+      return;
+    }
+    console.debug(`[auth] ${event}`, detail ?? {});
+  }, [authDebugEnabled]);
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(() => (typeof window === 'undefined' ? null : getToken()));
   const [isLoading, setIsLoading] = useState(true);
@@ -214,38 +222,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [normalizeMemberships, normalizePermissions]);
 
   const hydrateFromMe = useCallback(async () => {
+    authDebugLog('me:start');
     try {
       const meResponse = await getMe();
       applyMeResponse(meResponse);
+      authDebugLog('me:success', {
+        userId: meResponse.user.id,
+        memberships: Array.isArray(meResponse.memberships) ? meResponse.memberships.length : undefined,
+      });
       return meResponse;
     } catch (error) {
       if (error instanceof ApiFetchError && error.statusCode === 403) {
         setMeStatus(403);
         setAuthIssue('INSUFFICIENT_PERMISSIONS');
+        authDebugLog('me:forbidden');
+      }
+      if (error instanceof ApiFetchError && error.statusCode === 401) {
+        authDebugLog('me:unauthorized');
       }
       throw error;
     }
-  }, [applyMeResponse]);
+  }, [applyMeResponse, authDebugLog]);
 
   const hydrateWithRecovery = useCallback(async () => {
     try {
       return await hydrateFromMe();
     } catch (error) {
       if (error instanceof ApiFetchError && error.statusCode === 401) {
+        authDebugLog('refresh:attempt');
         const nextToken = await refreshAccessToken();
         if (!nextToken) {
           setMeStatus(401);
           setAuthIssue('SESSION_EXPIRED');
+          authDebugLog('refresh:failed');
           throw error;
         }
 
         setToken(nextToken);
+        authDebugLog('refresh:success');
         try {
           return await hydrateFromMe();
         } catch (retryError) {
           if (retryError instanceof ApiFetchError && retryError.statusCode === 401) {
             setMeStatus(401);
             setAuthIssue('SESSION_EXPIRED');
+            authDebugLog('me:retry-unauthorized');
           }
           throw retryError;
         }
@@ -253,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       throw error;
     }
-  }, [hydrateFromMe]);
+  }, [authDebugLog, hydrateFromMe]);
 
   useEffect(() => {
     initFrontendMonitoring();
@@ -281,26 +302,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
-
     const loadUser = async () => {
+      authDebugLog('hydrate:start');
       setAuthState('hydrating');
       setIsHydrating(true);
-      loadingTimeout = setTimeout(() => {
-        if (!isMounted) {
-          return;
-        }
-        clearAuthState();
-        setMeStatus(401);
-        setAuthIssue('SESSION_EXPIRED');
-        setIsLoading(false);
-        setIsHydrating(false);
-      }, 4000);
       const existingToken = getToken();
       if (!isMounted) return;
 
       setToken(existingToken);
       if (!existingToken) {
+        authDebugLog('hydrate:no-token');
         clearAuthState();
         setMeStatus(null);
         setAuthIssue(null);
@@ -314,39 +325,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await hydrateWithRecovery();
         if (isMounted) {
           setAuthState('authed');
+          authDebugLog('hydrate:authed');
         }
       } catch (error) {
         if (error instanceof ApiFetchError) {
           if (error.statusCode === 403) {
+            authDebugLog('hydrate:403');
             if (isMounted) {
               setUser(null);
               setMemberships([]);
               setAuthState('authed');
             }
           } else if (error.statusCode === 401) {
+            authDebugLog('hydrate:401');
             if (isMounted) {
               clearAuthState();
               setAuthState('guest');
             }
             clearToken();
           } else if (isMounted) {
+            authDebugLog('hydrate:api-error-authed', { statusCode: error.statusCode });
             setMeStatus(200);
             setAuthIssue(null);
             setAuthState('authed');
           }
         } else if (isMounted) {
+          authDebugLog('hydrate:unknown-error');
           setMeStatus(200);
           setAuthIssue(null);
           setAuthState(existingToken ? 'authed' : 'guest');
         }
       } finally {
         if (isMounted) {
-          if (loadingTimeout) {
-            clearTimeout(loadingTimeout);
-            loadingTimeout = null;
-          }
           setIsLoading(false);
           setIsHydrating(false);
+          authDebugLog('hydrate:complete', { authState: existingToken ? 'authed-or-guest' : 'guest' });
         }
       }
     };
@@ -355,19 +368,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
     };
-  }, [clearAuthState, hydrateWithRecovery]);
+  }, [authDebugLog, clearAuthState, hydrateWithRecovery]);
 
   const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => {
+    authDebugLog('login:start');
     const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password, { tenantId: options?.tenantId, tenantSlug: options?.tenantSlug });
     setToken(authToken);
     await hydrateFromMe();
+    authDebugLog('login:success', { userId: loggedInUser.id });
     await track('login_success', { role: loggedInUser.role ?? undefined });
     return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
-  }, [hydrateFromMe, normalizeMemberships]);
+  }, [authDebugLog, hydrateFromMe, normalizeMemberships]);
 
   const signup = useCallback(async (email: string, password: string, role?: SignupRole, inviteToken?: string) => {
     const { token: authToken, user: signedUpUser, memberships: nextMemberships, activeContext: nextActiveContext, emailDeliveryWarning } = await signupRequest(email, password, role, inviteToken);
@@ -398,12 +410,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyMeResponse]);
 
   const logout = useCallback(() => {
+    authDebugLog('logout');
     clearToken();
     setMeStatus(null);
     setAuthIssue(null);
     setAuthState('guest');
     clearAuthState();
-  }, [clearAuthState]);
+  }, [authDebugLog, clearAuthState]);
 
   const refreshUser = useCallback(async () => {
     const existingToken = getToken();
