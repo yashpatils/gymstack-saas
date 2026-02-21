@@ -89,7 +89,7 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
             {navItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
-                <Link key={item.href} href={item.href} className={`block rounded-[var(--radius-md)] px-[var(--space-md)] py-[var(--space-sm)] text-sm ${active ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
+                <Link key={item.href} href={item.href} className={`block rounded-[var(--radius-md)] px-[var(--space-md)] py-[var(--space-sm)] text-sm ${active ? "bg-primary text-primary-foreground hover:bg-primary" : "text-foreground hover:bg-muted"}`}>
                   {item.label}
                 </Link>
               );
@@ -107,11 +107,18 @@ export function PlatformAppShell({ navItems, header, children, rightPanel, foote
 
       {mobileBottomNav ? (
         <nav className="fixed inset-x-0 bottom-0 z-[var(--z-overlay)] grid h-[var(--layout-mobile-nav-height)] grid-cols-3 gap-[var(--space-xs)] border-t border-border bg-card/95 p-[var(--space-sm)] backdrop-blur-xl md:hidden">
-          {navItems.slice(0, 3).map((item) => (
-            <Link key={item.href} href={item.href} className="rounded-[var(--radius-md)] border border-border px-[var(--space-sm)] py-[var(--space-xs)] text-center text-xs">
-              {item.label}
-            </Link>
-          ))}
+          {navItems.slice(0, 3).map((item) => {
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`rounded-[var(--radius-md)] border px-[var(--space-sm)] py-[var(--space-xs)] text-center text-xs ${active ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground"}`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       ) : null}
     </div>
