@@ -79,7 +79,7 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
       <button
         ref={triggerRef}
         type="button"
-        className="button secondary relative z-10 flex h-10 items-center gap-2 rounded-xl px-2"
+        className="button secondary flex h-10 items-center gap-2 rounded-xl px-2"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Open account menu"
@@ -99,13 +99,13 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
               ref={menuRef}
               role="menu"
               style={menuStyle}
-              className="z-[120] overflow-y-auto rounded-2xl border border-white/10 bg-neutral-950/80 p-2 text-white shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-neutral-950/70"
+              className="gs-account-dropdown z-[9999] overflow-y-auto rounded-2xl p-2"
               onClick={(event) => event.stopPropagation()}
             >
-              <Link href="/platform/account" className="block rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5 focus:bg-white/10 focus:text-white" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+              <Link href="/platform/account" className="block rounded-xl px-3 py-2 text-sm text-current hover:bg-white/5 focus:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
                 Account info
               </Link>
-              <Link href="/platform/settings" className="mt-1 block rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5 focus:bg-white/10 focus:text-white" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+              <Link href="/platform/settings" className="mt-1 block rounded-xl px-3 py-2 text-sm text-current hover:bg-white/5 focus:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
                 Settings
               </Link>
               <button
