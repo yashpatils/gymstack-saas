@@ -75,7 +75,7 @@ type AuthContextValue = {
   resendVerification: (email: string) => Promise<{ ok: true; message: string; emailDeliveryWarning?: string }>;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
