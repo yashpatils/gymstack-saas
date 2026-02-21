@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/providers/AuthProvider";
 import { ADMIN_PORTAL_FRESH_LOGIN_URL } from "../../src/lib/adminPortal";
 
@@ -11,11 +11,27 @@ function AuthNavSkeleton() {
 
 export function AuthNav() {
   const { isLoading, isAuthenticated, user, platformRole, logout } = useAuth();
+  const [showLoadingSkeleton, setShowLoadingSkeleton] = useState(true);
 
   const email = user?.email ?? "";
   const initial = useMemo(() => email.slice(0, 1).toUpperCase(), [email]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading) {
+      setShowLoadingSkeleton(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowLoadingSkeleton(false);
+    }, 4000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isLoading]);
+
+  if (isLoading && showLoadingSkeleton) {
     return <AuthNavSkeleton />;
   }
 
