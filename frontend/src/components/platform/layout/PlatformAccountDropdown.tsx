@@ -54,7 +54,7 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
       </button>
 
       {isOpen ? (
-        <div ref={menuRef} role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-64 rounded-xl border border-border bg-card/95 p-2 text-card-foreground shadow-xl backdrop-blur-xl">
+        <div ref={menuRef} role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-[9999] w-64 rounded-xl border border-border bg-background p-2 text-foreground shadow-xl backdrop-blur-md">
           <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
             Account info
           </Link>
