@@ -68,8 +68,11 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
                 prefetch
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all",
-                  "hover:bg-accent hover:text-accent-foreground [&_span]:text-inherit [&_svg]:text-inherit",
+                  "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground transition-all",
+                  "hover:bg-indigo-600 hover:text-white focus-visible:bg-indigo-600 focus-visible:text-white focus-visible:outline-none",
+                  "[&_span]:text-inherit [&_svg]:text-inherit",
+                  "hover:[&_span]:!text-white hover:[&_svg]:!text-white",
+                  "focus-visible:[&_span]:!text-white focus-visible:[&_svg]:!text-white",
                   active && "bg-indigo-600 text-white font-medium [&_span]:!text-white [&_svg]:!text-white",
                 )}
                 aria-current={active ? "page" : undefined}
