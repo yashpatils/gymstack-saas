@@ -279,10 +279,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const loadUser = async () => {
       setAuthState('hydrating');
       setIsHydrating(true);
+      loadingTimeout = setTimeout(() => {
+        if (!isMounted) {
+          return;
+        }
+        clearAuthState();
+        setMeStatus(401);
+        setAuthIssue('SESSION_EXPIRED');
+        setIsLoading(false);
+        setIsHydrating(false);
+      }, 4000);
       const existingToken = getToken();
       if (!isMounted) return;
 
@@ -328,6 +339,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } finally {
         if (isMounted) {
+          if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+            loadingTimeout = null;
+          }
           setIsLoading(false);
           setIsHydrating(false);
         }
@@ -338,6 +353,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
     };
   }, [clearAuthState, hydrateWithRecovery]);
 

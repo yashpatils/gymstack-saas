@@ -4,11 +4,42 @@ import type { ReactNode } from "react";
 import { AppShellProvider } from "./app-shell";
 import { RequireAuth } from "../../src/components/RequireAuth";
 
-export default function PlatformLayout({ children }: { children: ReactNode }) {
-  const cookieStore = cookies();
-  const hasSession = Boolean(cookieStore.get("gymstack_token")?.value || cookieStore.get("gymstack_refresh_token")?.value);
+function getApiOrigin(): string {
+  const apiUrl = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "").trim();
+  if (apiUrl) {
+    return apiUrl.replace(/\/+$/, "");
+  }
+  return "http://localhost:3000";
+}
 
-  if (!hasSession) {
+async function hasValidSession(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const hasSessionCookie = Boolean(cookieStore.get("gymstack_token")?.value || cookieStore.get("gymstack_refresh_token")?.value);
+
+  if (!hasSessionCookie) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${getApiOrigin()}/api/auth/me`, {
+      method: "GET",
+      headers: {
+        cookie: cookieStore.toString(),
+        accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export default async function PlatformLayout({ children }: { children: ReactNode }) {
+  const validSession = await hasValidSession();
+
+  if (!validSession) {
     redirect("/login?next=/platform");
   }
 
