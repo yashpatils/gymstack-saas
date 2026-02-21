@@ -17,12 +17,12 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
   const hasAttemptedAutoSelect = useRef(false);
 
   useEffect(() => {
-    if (authState === 'hydrating' || isAuthenticated || pathname === '/login') {
+    if (authState === 'hydrating' || isHydrating || isLoading || isAuthenticated || pathname === '/login') {
       return;
     }
 
     router.replace('/login');
-  }, [authState, isAuthenticated, pathname, router]);
+  }, [authState, isAuthenticated, isHydrating, isLoading, pathname, router]);
 
   useEffect(() => {
     if (authIssue !== 'SESSION_EXPIRED') {

@@ -445,7 +445,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response;
   }, [refreshUser]);
 
-  const value = useMemo(
+  const authStatus: AuthStatus = authState === 'hydrating' || isHydrating || isLoading
+    ? 'loading'
+    : authState === 'authed' && Boolean(user)
+      ? 'authenticated'
+      : 'unauthenticated';
+
+  const value: AuthContextValue = useMemo(
     () => ({
       user,
       role: user?.role ?? null,
@@ -455,11 +461,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isHydrating,
       isAuthenticated: authState === 'authed',
       authState,
-      authStatus: authState === 'hydrating' || isHydrating || isLoading
-        ? 'loading'
-        : authState === 'authed' && Boolean(user)
-          ? 'authenticated'
-          : 'unauthenticated',
+      authStatus,
       meStatus,
       authIssue,
       memberships,
@@ -488,7 +490,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       resendVerification,
     }),
-    [user, token, isLoading, isHydrating, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, authState, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
+    [user, token, isLoading, isHydrating, meStatus, authIssue, memberships, platformRole, permissions, permissionKeys, activeContext, activeTenant, activeLocation, tenantFeatures, effectiveRole, activeMode, onboarding, ownerOperatorSettings, qaBypass, effectiveAccess, gatingStatus, authState, authStatus, login, signup, acceptInvite, chooseContext, switchMode, logout, refreshUser, verifyEmail, resendVerification],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
