@@ -15,6 +15,7 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
   const pathname = usePathname();
   const { authIssue, authState, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout, meStatus } = useAuth();
   const hasAttemptedAutoSelect = useRef(false);
+  const handledSessionExpiry = useRef(false);
 
   useEffect(() => {
     if (authState === 'hydrating' || isHydrating || isLoading || isAuthenticated || pathname === '/login') {
@@ -26,9 +27,15 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
 
   useEffect(() => {
     if (authIssue !== 'SESSION_EXPIRED') {
+      handledSessionExpiry.current = false;
       return;
     }
 
+    if (handledSessionExpiry.current) {
+      return;
+    }
+
+    handledSessionExpiry.current = true;
     logout();
     router.replace('/login?message=Session+expired.+Please+sign+in+again.');
   }, [authIssue, logout, router]);

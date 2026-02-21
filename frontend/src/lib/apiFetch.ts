@@ -17,7 +17,11 @@ let handleUnauthorized: (() => void) | null = null;
 
 let didHandleUnauthorizedRedirect = false;
 
-function handleUnauthorizedResponse(): void {
+function shouldSoftHandleUnauthorized(path: string): boolean {
+  return path.startsWith('/api/auth/me') || path.startsWith('/api/auth/refresh');
+}
+
+function handleUnauthorizedResponse(path: string): void {
   clearTokens();
   clearStoredActiveContext();
   setStoredPlatformRole(null);
@@ -27,7 +31,18 @@ function handleUnauthorizedResponse(): void {
     handleUnauthorized();
   }
 
-  if (isServer() || didHandleUnauthorizedRedirect) {
+  if (isServer()) {
+    return;
+  }
+
+  if (shouldSoftHandleUnauthorized(path)) {
+    window.dispatchEvent(new CustomEvent('gymstack:session-expired', {
+      detail: { sourcePath: path },
+    }));
+    return;
+  }
+
+  if (didHandleUnauthorizedRedirect) {
     return;
   }
 
@@ -260,7 +275,7 @@ export async function apiFetch<T>(
   }
 
   if (response.status === 401) {
-    handleUnauthorizedResponse();
+    handleUnauthorizedResponse(path);
   }
 
   const contentType = response.headers.get('content-type') ?? '';
