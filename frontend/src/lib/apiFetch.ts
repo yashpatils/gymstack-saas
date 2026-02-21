@@ -1,6 +1,6 @@
 import { clearTokens, getAccessToken } from './auth/tokenStore';
-import { getStoredActiveContext } from './auth/contextStore';
-import { getStoredPlatformRole, getSupportModeContext } from './supportMode';
+import { clearStoredActiveContext, getStoredActiveContext } from './auth/contextStore';
+import { getStoredPlatformRole, getSupportModeContext, setStoredPlatformRole, setSupportModeContext } from './supportMode';
 import { addFrontendBreadcrumb, captureFrontendApiError } from './monitoring';
 
 type ApiFetchInit = Omit<RequestInit, 'body'> & {
@@ -19,6 +19,9 @@ let didHandleUnauthorizedRedirect = false;
 
 function handleUnauthorizedResponse(): void {
   clearTokens();
+  clearStoredActiveContext();
+  setStoredPlatformRole(null);
+  setSupportModeContext(null);
 
   if (handleUnauthorized) {
     handleUnauthorized();

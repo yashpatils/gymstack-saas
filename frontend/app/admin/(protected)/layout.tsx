@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import AppShell from "../../../src/components/shell/AppShell";
-import { RequireAuth } from "../../../src/components/RequireAuth";
+import { RequireAuth } from "../../../src/components/auth/RequireAuth";
 import { PlatformAccountDropdown } from "../../../src/components/platform/layout/PlatformAccountDropdown";
 import { adminNavItems } from "../../../src/components/shell/nav-config";
 import { ThemeToggle } from "../../../src/components/theme/ThemeToggle";

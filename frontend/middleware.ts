@@ -15,7 +15,7 @@ const ADMIN_PUBLIC_ROUTES = [
   '/sitemap.xml',
 ];
 export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
-const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin'];
+const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin', '/_admin'];
 const AUTH_TOKEN_COOKIE = 'gymstack_token';
 const REFRESH_TOKEN_COOKIE = 'gymstack_refresh_token';
 
