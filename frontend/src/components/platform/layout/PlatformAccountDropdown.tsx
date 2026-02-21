@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useOnClickOutside } from "../../../hooks/useOnClickOutside";
 
 type PlatformAccountDropdownProps = {
@@ -12,6 +13,7 @@ type PlatformAccountDropdownProps = {
 
 export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformAccountDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -34,12 +36,50 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
     return () => window.removeEventListener("keydown", onEscape);
   }, [isOpen]);
 
+  useLayoutEffect(() => {
+    if (!isOpen || !triggerRef.current) {
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current) {
+        return;
+      }
+
+      const trigger = triggerRef.current.getBoundingClientRect();
+      const width = 256;
+      const viewportPadding = 12;
+      const left = Math.min(
+        Math.max(trigger.right - width, viewportPadding),
+        window.innerWidth - width - viewportPadding,
+      );
+      const top = Math.min(window.innerHeight - viewportPadding, trigger.bottom + 8);
+
+      setMenuStyle({
+        position: "fixed",
+        top,
+        left,
+        width,
+        maxHeight: `calc(100vh - ${viewportPadding * 2}px)`,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
+
   return (
-    <div className="relative">
+    <div>
       <button
         ref={triggerRef}
         type="button"
-        className="button secondary flex h-10 items-center gap-2 rounded-xl px-2"
+        className="button secondary relative z-10 flex h-10 items-center gap-2 rounded-xl px-2"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Open account menu"
@@ -53,27 +93,36 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
         <span className="text-xs">▾</span>
       </button>
 
-      {isOpen ? (
-        <div ref={menuRef} role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-[9999] w-64 rounded-xl border border-border bg-popover/95 p-2 text-popover-foreground shadow-xl backdrop-blur-md">
-          <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
-            Account info
-          </Link>
-          <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
-            Settings
-          </Link>
-          <button
-            type="button"
-            className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-rose-200 hover:bg-rose-500/20"
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsOpen(false);
-              onLogout();
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      ) : null}
+      {isOpen
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={menuStyle}
+              className="z-[100] overflow-y-auto rounded-2xl border border-black/5 bg-white/70 p-2 text-foreground shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-neutral-900/70"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Link href="/platform/account" className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+                Account info
+              </Link>
+              <Link href="/platform/settings" className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+                Settings
+              </Link>
+              <button
+                type="button"
+                className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--danger-600)] hover:bg-rose-500/20"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsOpen(false);
+                  onLogout();
+                }}
+              >
+                Logout
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
