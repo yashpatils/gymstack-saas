@@ -34,7 +34,7 @@ function redirectTo(url: string) {
 function LoginPageContent() {
   const router = useRouter();
   const pathname = usePathname();
-  const { login, loading, platformRole, user } = useAuth();
+  const { login, loading, isHydrating, authStatus, platformRole, user } = useAuth();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,25 +61,31 @@ function LoginPageContent() {
   const nextUrl = useMemo(() => getValidatedNextUrl(searchParams.get('next'), isAdminHost), [isAdminHost, searchParams]);
 
   useEffect(() => {
-    if (!loading && user) {
-      if (nextUrl) {
-        redirectTo(nextUrl);
-        return;
-      }
-
-      if (isAdminHost) {
-        if (platformRole === 'PLATFORM_ADMIN') {
-          redirectTo('/admin');
-          return;
-        }
-
-        setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
-        return;
-      }
-
-      router.replace("/platform");
+    if (isHydrating || authStatus === 'loading') {
+      return;
     }
-  }, [isAdminHost, loading, nextUrl, platformRole, router, user]);
+
+    if (authStatus !== 'authenticated' || !user) {
+      return;
+    }
+
+    if (nextUrl) {
+      redirectTo(nextUrl);
+      return;
+    }
+
+    if (isAdminHost) {
+      if (platformRole === 'PLATFORM_ADMIN') {
+        redirectTo('/admin');
+        return;
+      }
+
+      setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
+      return;
+    }
+
+    router.replace('/platform');
+  }, [authStatus, isAdminHost, isHydrating, nextUrl, platformRole, router, user]);
 
   const adminBlocked = isAdminHost && accessError === 'restricted';
 
