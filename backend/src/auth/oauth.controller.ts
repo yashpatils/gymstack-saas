@@ -11,6 +11,7 @@ import { InvitesService } from '../invites/invites.service';
 import { AuthService } from './auth.service';
 import { OAuthProfile, OAuthRequestedMode } from './oauth.types';
 import { InviteAdmissionService } from '../invites/invite-admission.service';
+import { getJwtSecret } from '../common/env.util';
 
 type RequestUser = { id: string };
 
@@ -290,7 +291,7 @@ export class OauthController {
   }
 
   private oauthStateSecret(): string {
-    return this.configService.get<string>('JWT_SECRET') ?? 'dev-secret';
+    return getJwtSecret(this.configService);
   }
 
   private required(key: string): string {

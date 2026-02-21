@@ -4,6 +4,7 @@ import { createHmac, randomUUID } from 'crypto';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.types';
+import { getJwtSecret } from '../common/env.util';
 
 const EXPORT_TTL_HOURS = 24;
 
@@ -81,7 +82,7 @@ export class DataExportService {
 
     const payload = `${job.id}:${job.expiresAt.getTime()}`;
     const token = Buffer.from(payload).toString('base64url');
-    const sig = createHmac('sha256', process.env.DATA_EXPORT_SIGNING_SECRET ?? process.env.JWT_SECRET ?? 'dev-export-secret').update(token).digest('hex');
+    const sig = createHmac('sha256', this.getSigningSecret()).update(token).digest('hex');
 
     return { url: `/api/exports/files/${token}.${sig}`, expiresAt: job.expiresAt.toISOString() };
   }
@@ -92,7 +93,7 @@ export class DataExportService {
       throw new ForbiddenException('Invalid download token');
     }
 
-    const expectedSig = createHmac('sha256', process.env.DATA_EXPORT_SIGNING_SECRET ?? process.env.JWT_SECRET ?? 'dev-export-secret').update(token).digest('hex');
+    const expectedSig = createHmac('sha256', this.getSigningSecret()).update(token).digest('hex');
     if (expectedSig !== signature) throw new ForbiddenException('Invalid download signature');
 
     const decoded = Buffer.from(token, 'base64url').toString('utf8');
@@ -111,6 +112,10 @@ export class DataExportService {
     }
 
     return this.storage.getPublicUrl(job.fileUrl);
+  }
+
+  private getSigningSecret(): string {
+    return process.env.DATA_EXPORT_SIGNING_SECRET ?? getJwtSecret();
   }
 
   async processPendingJobs(): Promise<void> {

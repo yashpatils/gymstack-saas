@@ -19,6 +19,7 @@ import { OauthController } from './oauth.controller';
 import { RefreshTokenService } from './refresh-token.service';
 import { InvitesModule } from '../invites/invites.module';
 import { BillingModule } from '../billing/billing.module';
+import { getJwtSecret } from '../common/env.util';
 
 @Module({
   imports: [
@@ -33,15 +34,8 @@ import { BillingModule } from '../billing/billing.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
-        if (!secret) {
-          throw new Error(
-            'JWT_SECRET is required and must be provided via environment variables before starting the backend.',
-          );
-        }
-
         return {
-          secret,
+          secret: getJwtSecret(configService),
           signOptions: { expiresIn: '15m' },
         };
       },

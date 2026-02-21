@@ -30,6 +30,9 @@ import { DevelopersModule } from './developers/developers.module';
 import { PublicApiModule } from './public-api/public-api.module';
 import { AiInsightsModule } from './ai-insights/ai-insights.module';
 
+const shouldEnableDebugRoutes =
+  process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ROUTES === 'true';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,7 +41,7 @@ import { AiInsightsModule } from './ai-insights/ai-insights.module';
     AuthModule,
     AuditModule,
     BillingModule,
-    DebugModule,
+    ...(shouldEnableDebugRoutes ? [DebugModule] : []),
     DomainsModule,
     GymsModule,
     InvitesModule,
