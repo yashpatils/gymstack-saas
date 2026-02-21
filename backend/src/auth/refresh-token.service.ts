@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class RefreshTokenService {
     const now = new Date();
 
     const current = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
-    if (!current || current.revokedAt || current.expiresAt <= now) {
+    if (!current || !this.hashesMatch(current.tokenHash, tokenHash) || current.revokedAt || current.expiresAt <= now) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -77,4 +77,16 @@ export class RefreshTokenService {
   private generateToken(): string {
     return randomBytes(48).toString('hex');
   }
+
+  private hashesMatch(leftHash: string, rightHash: string): boolean {
+    const left = Buffer.from(leftHash);
+    const right = Buffer.from(rightHash);
+
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    return timingSafeEqual(left, right);
+  }
 }
+
