@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppShellProvider } from "./app-shell";
-import { RequireAuth } from "../../src/components/RequireAuth";
+import { RequireAuth } from "../../src/components/auth/RequireAuth";
 
 function getApiOrigin(): string {
   const apiUrl = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "").trim();

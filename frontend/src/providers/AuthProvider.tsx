@@ -34,6 +34,7 @@ import { track } from '../lib/analytics';
 
 export type AuthIssue = 'SESSION_EXPIRED' | 'INSUFFICIENT_PERMISSIONS' | null;
 export type AuthState = 'hydrating' | 'authed' | 'guest';
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -44,6 +45,7 @@ type AuthContextValue = {
   isHydrating: boolean;
   isAuthenticated: boolean;
   authState: AuthState;
+  authStatus: AuthStatus;
   meStatus: 200 | 401 | 403 | null;
   authIssue: AuthIssue;
   memberships: Membership[];
@@ -453,6 +455,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isHydrating,
       isAuthenticated: authState === 'authed',
       authState,
+      authStatus: authState === 'hydrating' || isHydrating || isLoading
+        ? 'loading'
+        : authState === 'authed' && Boolean(user)
+          ? 'authenticated'
+          : 'unauthenticated',
       meStatus,
       authIssue,
       memberships,

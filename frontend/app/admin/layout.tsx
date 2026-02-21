@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { RequireAuth } from "../../src/components/auth/RequireAuth";
 
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
   const cookieStore = cookies();
@@ -10,5 +11,5 @@ export default function AdminRootLayout({ children }: { children: ReactNode }) {
     redirect("/login?next=/admin");
   }
 
-  return children;
+  return <RequireAuth>{children}</RequireAuth>;
 }
