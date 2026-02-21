@@ -166,15 +166,7 @@ export function logout(): void {
   clearTokens();
 }
 
-configureApiAuth(
-  refreshAccessToken,
-  () => {
-    logout();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('gymstack:session-expired'));
-    }
-  },
-);
+configureApiAuth(refreshAccessToken, () => logout());
 
 
 export const me = getMe;
