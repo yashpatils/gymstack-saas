@@ -50,7 +50,7 @@ export default function SidebarDrawer({
         onClick={onClose}
       />
       <aside
-        className="fixed left-0 top-0 z-50 h-full w-[min(360px,100%)] border-r border-border bg-card/80 shadow-xl backdrop-blur-xl"
+        className="fixed left-0 top-0 z-50 h-dvh w-[min(90vw,360px)] max-w-full border-r border-border bg-card/90 shadow-xl backdrop-blur-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -64,7 +64,7 @@ export default function SidebarDrawer({
             ✕
           </button>
         </div>
-        <div className="h-[calc(100%-49px)] overflow-y-auto p-3">
+        <div className="h-[calc(100dvh-49px)] overflow-y-auto p-3">
           <SidebarNav
             items={items}
             onNavigate={onClose}

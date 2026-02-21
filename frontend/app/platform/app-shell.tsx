@@ -36,11 +36,15 @@ export function AppShellProvider({ children }: { children: React.ReactNode }) {
     return role !== "CLIENT" || item.href === "/platform";
   });
 
+  const tenantName = activeTenant?.name
+    ? activeTenant.name.replace(/\s+Organization\s+Organization$/i, " Organization").trim()
+    : undefined;
+
   return (
     <AppShell
       items={navItems}
-      title={activeTenant?.name ?? "Gym Stack"}
-      subtitle={activeTenant?.name ?? "GymStack workspace"}
+      title={tenantName || "Gym Stack"}
+      subtitle={tenantName || "GymStack workspace"}
       leftSlot={<NotificationBell />}
       rightSlot={
         <div className="flex items-center gap-2">
