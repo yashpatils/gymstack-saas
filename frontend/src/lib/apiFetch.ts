@@ -1,4 +1,4 @@
-import { getAccessToken } from './auth/tokenStore';
+import { clearTokens, getAccessToken } from './auth/tokenStore';
 import { getStoredActiveContext } from './auth/contextStore';
 import { getStoredPlatformRole, getSupportModeContext } from './supportMode';
 import { addFrontendBreadcrumb, captureFrontendApiError } from './monitoring';
@@ -14,6 +14,27 @@ const DEV_LOCALHOST_API_URL = 'http://localhost:3000';
 
 let refreshAccessToken: (() => Promise<string | null>) | null = null;
 let handleUnauthorized: (() => void) | null = null;
+
+let didHandleUnauthorizedRedirect = false;
+
+function handleUnauthorizedResponse(): void {
+  clearTokens();
+
+  if (handleUnauthorized) {
+    handleUnauthorized();
+  }
+
+  if (isServer() || didHandleUnauthorizedRedirect) {
+    return;
+  }
+
+  didHandleUnauthorizedRedirect = true;
+  const params = new URLSearchParams({
+    message: 'Session expired. Please sign in again.',
+    next: getCurrentBrowserPath(),
+  });
+  window.location.assign(`/login?${params.toString()}`);
+}
 
 export type ApiRateLimitSnapshot = {
   limit?: number;
@@ -43,6 +64,13 @@ export class ApiFetchError extends Error {
     this.statusCode = statusCode;
     this.details = details;
     this.requestId = requestId;
+  }
+}
+
+export class ApiUnauthorizedError extends ApiFetchError {
+  constructor(details?: unknown, requestId?: string) {
+    super('Unauthorized', 401, details, requestId);
+    this.name = 'ApiUnauthorizedError';
   }
 }
 
@@ -228,8 +256,8 @@ export async function apiFetch<T>(
     }
   }
 
-  if (response.status === 401 && handleUnauthorized) {
-    handleUnauthorized();
+  if (response.status === 401) {
+    handleUnauthorizedResponse();
   }
 
   const contentType = response.headers.get('content-type') ?? '';
@@ -259,7 +287,9 @@ export async function apiFetch<T>(
             ? `API request failed: ${apiErrorCode}`
           : `Request failed with status ${response.status}`;
 
-    const apiError = new ApiFetchError(message, response.status, details, requestId);
+    const apiError = response.status === 401
+      ? new ApiUnauthorizedError(details, requestId)
+      : new ApiFetchError(message, response.status, details, requestId);
     if (response.status >= 500) {
       captureFrontendApiError(apiError, { path, method, requestId });
     }
