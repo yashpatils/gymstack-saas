@@ -30,9 +30,17 @@ async function hasValidSession(): Promise<boolean> {
       cache: "no-store",
     });
 
-    return response.ok;
+    if (response.status === 401) {
+      return false;
+    }
+
+    // Avoid a server-side redirect loop when the API is temporarily unavailable.
+    // The client-side auth guard can still handle invalid sessions deterministically.
+    return response.ok || response.status >= 500;
   } catch {
-    return false;
+    // If we have auth cookies but cannot reach the API from the server runtime,
+    // allow rendering and let the client guard finalize the session state.
+    return true;
   }
 }
 
