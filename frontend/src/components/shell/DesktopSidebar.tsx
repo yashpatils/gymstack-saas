@@ -13,12 +13,12 @@ type DesktopSidebarProps = {
 export function DesktopSidebar({ items, title, subtitle }: DesktopSidebarProps) {
   return (
     <aside
-      className="sidebar-sheen hidden lg:fixed lg:left-0 lg:z-30 lg:block lg:border-r lg:border-border lg:bg-card/70 lg:backdrop-blur-xl lg:shadow-lg"
+      className="sidebar-sheen hidden lg:flex lg:w-[296px] lg:shrink-0 lg:flex-col lg:border-r lg:border-border lg:bg-card/70 lg:backdrop-blur-xl lg:shadow-lg"
       style={{
-        top: 0,
-        height: "100vh",
         width: DESKTOP_SIDEBAR_WIDTH,
-        paddingTop: TOPBAR_HEIGHT,
+        height: `calc(100dvh - ${TOPBAR_HEIGHT}px)`,
+        position: "sticky",
+        top: TOPBAR_HEIGHT,
       }}
     >
       <SidebarNav items={items} title={title} subtitle={subtitle} className="h-full" />
