@@ -14,6 +14,7 @@ import { PrismaService } from './prisma/prisma.service';
 import { normalizeOrigin } from './common/origin.util';
 import { parsePlatformAdminEmails } from './auth/platform-admin.util';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
+import { getRequiredEnv, isProductionEnvironment } from './common/env.util';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://gymstack.club',
@@ -23,15 +24,13 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
-const DEFAULT_ALLOWED_ORIGIN_REGEXES = [
-  '^https:\\/\\/[a-z0-9-]+\.gymstack\.club$',
-  '^https:\\/\\/[a-z0-9-]+\.vercel\.app$',
-  '^http:\\/\\/localhost(?::\\d+)?$',
+const DEFAULT_ALLOWED_ORIGIN_REGEXES_NON_PROD = [
+  '^https:\/\/[a-z0-9-]+\.gymstack\.club$',
+  '^https:\/\/[a-z0-9-]+\.vercel\.app$',
+  '^http:\/\/localhost(?::\d+)?$',
 ];
 
-function isProductionEnvironment(configService: ConfigService): boolean {
-  return (configService.get<string>('NODE_ENV') ?? '').toLowerCase() === 'production';
-}
+const DEFAULT_ALLOWED_ORIGIN_REGEXES_PROD = ['^https:\/\/[a-z0-9-]+\.gymstack\.club$'];
 
 function parseEnvList(value?: string): string[] {
   return (
@@ -50,10 +49,11 @@ function getAllowedOrigins(configService: ConfigService): Set<string> {
   return new Set(allOrigins.map((origin) => normalizeOrigin(origin)).filter(Boolean));
 }
 
-function getAllowedOriginRegexes(configService: ConfigService): RegExp[] {
+function getAllowedOriginRegexes(configService: ConfigService, isProduction: boolean): RegExp[] {
   const logger = new Logger('Bootstrap');
   const configuredRegexes = parseEnvList(configService.get<string>('ALLOWED_ORIGIN_REGEXES'));
-  const regexValues = [...DEFAULT_ALLOWED_ORIGIN_REGEXES, ...configuredRegexes];
+  const defaultRegexes = isProduction ? DEFAULT_ALLOWED_ORIGIN_REGEXES_PROD : DEFAULT_ALLOWED_ORIGIN_REGEXES_NON_PROD;
+  const regexValues = [...defaultRegexes, ...configuredRegexes];
 
   return regexValues
     .map((expression) => {
@@ -68,12 +68,20 @@ function getAllowedOriginRegexes(configService: ConfigService): RegExp[] {
 }
 
 
-function hasAllowedHostname(hostname: string): boolean {
-  return (
-    hostname.endsWith('.gymstack.club') ||
-    hostname.endsWith('.vercel.app') ||
-    hostname === 'localhost'
-  );
+function hasAllowedHostname(hostname: string, options: { isProduction: boolean; allowVercelInProduction: boolean }): boolean {
+  if (hostname.endsWith('.gymstack.club')) {
+    return true;
+  }
+
+  if (!options.isProduction && (hostname.endsWith('.vercel.app') || hostname === 'localhost')) {
+    return true;
+  }
+
+  if (options.allowVercelInProduction && hostname.endsWith('.vercel.app')) {
+    return true;
+  }
+
+  return false;
 }
 
 function sanitizeErrorMessage(error: unknown): string {
@@ -145,7 +153,14 @@ function ensureRequiredEnv(configService: ConfigService) {
   // Railway (and all deployments) must provide these via environment variables.
   const required = ['DATABASE_URL', 'JWT_SECRET'] as const;
 
-  const missing = required.filter((key) => !configService.get<string>(key));
+  const missing = required.filter((key) => {
+    try {
+      getRequiredEnv(key, configService);
+      return false;
+    } catch {
+      return true;
+    }
+  });
   if (missing.length) {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}`,
@@ -191,7 +206,8 @@ async function bootstrap() {
   const prismaService = app.get(PrismaService);
   const isProduction = isProductionEnvironment(configService);
   const corsAllowlist = getAllowedOrigins(configService);
-  const allowedOriginRegexes = getAllowedOriginRegexes(configService);
+  const allowedOriginRegexes = getAllowedOriginRegexes(configService, isProduction);
+  const allowWildcardInProduction = configService.get<string>('ALLOW_WILDCARD_CORS_IN_PRODUCTION') === 'true';
   const logger = new Logger('Bootstrap');
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
@@ -217,7 +233,7 @@ async function bootstrap() {
 
       try {
         const { hostname } = new URL(normalizedOrigin);
-        if (hasAllowedHostname(hostname)) {
+        if (hasAllowedHostname(hostname, { isProduction, allowVercelInProduction: allowWildcardInProduction })) {
           return callback(null, true);
         }
       } catch {
@@ -232,6 +248,7 @@ async function bootstrap() {
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization, X-Requested-With, X-Support-Tenant-Id, X-Support-Location-Id, X-Active-Tenant-Id, X-Active-Location-Id',
+    // NOTE: credentials=true requires strict origin checks to prevent credential leakage.
     credentials: true,
     optionsSuccessStatus: 204,
   });
@@ -251,6 +268,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: false },
     }),
   );
   app.use(helmet());

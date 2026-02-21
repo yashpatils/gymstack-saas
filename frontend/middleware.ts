@@ -16,6 +16,8 @@ const ADMIN_PUBLIC_ROUTES = [
 ];
 export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
 const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin'];
+const AUTH_TOKEN_COOKIE = 'gymstack_token';
+const REFRESH_TOKEN_COOKIE = 'gymstack_refresh_token';
 
 type HostRouteResolution =
   | { type: 'next' }
@@ -79,6 +81,10 @@ function isProtectedAppPath(pathname: string): boolean {
   return PROTECTED_APP_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function hasSessionCookie(request: NextRequest): boolean {
+  return Boolean(request.cookies.get(AUTH_TOKEN_COOKIE)?.value || request.cookies.get(REFRESH_TOKEN_COOKIE)?.value);
+}
+
 export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
   if (isAdminHost(host, baseDomain)) {
     if (isSignupPath(pathname)) {
@@ -128,6 +134,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (shouldBypass(pathname)) {
     return NextResponse.next();
+  }
+
+  if (isProtectedAppPath(pathname) && !hasSessionCookie(request)) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.search = `?next=${encodeURIComponent(`${pathname}${request.nextUrl.search}`)}`;
+    return NextResponse.redirect(loginUrl);
   }
 
   const baseDomain = getBaseDomain();

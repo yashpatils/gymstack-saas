@@ -154,7 +154,7 @@ export function AppHeader({
                   ref={accountMenuRef}
                   role="menu"
                   style={menuStyle}
-                  className="z-[9999] overflow-y-auto rounded-xl border border-border bg-background p-2 text-foreground shadow-xl backdrop-blur-md"
+                  className="z-[9999] overflow-y-auto rounded-xl border border-border bg-popover/95 p-2 text-popover-foreground shadow-xl backdrop-blur-md"
                   onClick={(event) => event.stopPropagation()}
                 >
                   {qaBypass ? (

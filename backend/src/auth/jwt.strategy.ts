@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -8,6 +8,7 @@ import { resolveEffectivePermissions } from './authorization';
 import { AuditService } from '../audit/audit.service';
 import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { isQaModeEnabled, shouldApplyQaBypass } from '../common/qa-mode.util';
+import { getJwtSecret } from '../common/env.util';
 
 interface JwtPayload {
   sub: string;
@@ -36,16 +37,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
   ) {
-    const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
-
-    if (!secret) {
-      const logger = new Logger(JwtStrategy.name);
-      logger.warn('JWT_SECRET is not defined. Falling back to dev secret for local startup.');
-    }
-
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: secret ?? 'dev-secret',
+      secretOrKey: getJwtSecret(configService),
       passReqToCallback: true,
     });
 

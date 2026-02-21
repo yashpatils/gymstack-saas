@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './auth.strategy';
+import { getJwtSecret } from './common/env.util';
 
 @Module({
   imports: [
@@ -11,20 +12,10 @@ import { JwtStrategy } from './auth.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        // JWT_SECRET must come from environment variables (for Railway set it in service variables).
-        const secret = configService.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET;
-        if (!secret) {
-          throw new Error(
-            'JWT_SECRET is required and must be provided via environment variables before starting the backend.',
-          );
-        }
-
-        return {
-          secret,
-          signOptions: { expiresIn: '1h' },
-        };
-      },
+      useFactory: (configService: ConfigService) => ({
+        secret: getJwtSecret(configService),
+        signOptions: { expiresIn: '1h' },
+      }),
     }),
   ],
   controllers: [AuthController],

@@ -12,23 +12,33 @@ type RequireAuthProps = {
 
 export function RequireAuth({
   children,
-  fallback = null,
+  fallback,
   redirectTo = "/login",
 }: RequireAuthProps) {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, authState, isHydrating, isLoading } = useAuth();
+
+  const isLoadingState = authState === "hydrating" || isHydrating || isLoading;
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isLoadingState && (!user || authState === "guest")) {
       router.replace(redirectTo);
     }
-  }, [loading, redirectTo, router, user]);
+  }, [authState, isLoadingState, redirectTo, router, user]);
 
-  if (loading) {
-    return <>{fallback}</>;
+  if (isLoadingState) {
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-foreground" />
+      </div>
+    );
   }
 
-  if (!user) {
+  if (!user || authState === "guest") {
     return null;
   }
 
