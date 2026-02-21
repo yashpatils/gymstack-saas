@@ -46,11 +46,11 @@ export default function SidebarDrawer({
       <button
         type="button"
         aria-label="Close menu backdrop"
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0 z-0 bg-black/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <aside
-        className="fixed left-0 top-0 z-50 h-dvh w-[min(90vw,360px)] max-w-full border-r border-border bg-card/90 shadow-xl backdrop-blur-xl"
+        className="absolute left-0 top-0 z-10 h-dvh w-[min(90vw,360px)] max-w-full border-r border-border bg-card shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">

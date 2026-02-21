@@ -39,11 +39,11 @@ export function MobileSidebarDrawer({
   return (
     <>
       <div className="fixed inset-0 z-40 lg:hidden">
-        <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+        <button type="button" aria-label="Close menu" className="absolute inset-0 z-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       </div>
 
       <div
-        className="fixed left-0 z-40 h-[calc(100vh-var(--topbar-h))] w-[min(360px,100%)] overflow-y-auto border-r border-border bg-card/80 shadow-xl backdrop-blur-xl lg:hidden"
+        className="fixed left-0 z-50 h-[calc(100vh-var(--topbar-h))] w-[min(360px,100%)] overflow-y-auto border-r border-border bg-card shadow-2xl lg:hidden"
         style={{ top: "var(--topbar-h)" }}
         ref={panelRef}
       >
