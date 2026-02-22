@@ -39,9 +39,31 @@ describe('auth.login', () => {
       refreshToken: 'refresh-token',
     });
     expect(result).toMatchObject({
+      status: 'SUCCESS',
       token: 'access-token',
       user: { id: 'u1', email: 'test@example.com' },
       memberships: [{ id: 'm1' }],
+    });
+  });
+
+  it('does not store tokens for OTP_REQUIRED login', async () => {
+    (apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      status: 'OTP_REQUIRED',
+      challengeId: 'challenge-1',
+      channel: 'email',
+      expiresAt: '2026-01-01T00:00:00.000Z',
+      maskedEmail: 't***@example.com',
+    });
+
+    const result = await login('test@example.com', 'pw123456');
+
+    expect(setTokens).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      status: 'OTP_REQUIRED',
+      challengeId: 'challenge-1',
+      channel: 'email',
+      expiresAt: '2026-01-01T00:00:00.000Z',
+      maskedEmail: 't***@example.com',
     });
   });
 

@@ -1,10 +1,12 @@
 import { ApiFetchError, apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth/tokenStore';
 import type { ActiveContext, AuthLoginResponse, AuthLoginUnionResponse, AuthMeResponse, AuthUser } from '../types/auth';
+import type { FrontendLoginResult, LoginOptions, ResendLoginOtpResult, VerifyLoginOtpResult } from './auth.types';
 
 let refreshPromise: Promise<string | null> | null = null;
 
 export type { AuthUser, AuthMeResponse, ActiveContext };
+export type { FrontendLoginResult, LoginOptions, VerifyLoginOtpResult, ResendLoginOtpResult };
 export type SignupRole = 'OWNER' | 'ADMIN' | 'USER';
 
 type AuthTokens = { accessToken: string; refreshToken?: string };
@@ -52,25 +54,7 @@ export async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-export type FrontendLoginResult =
-  | {
-      status: 'SUCCESS';
-      token: string;
-      user: AuthUser;
-      memberships: AuthMeResponse['memberships'];
-      activeContext?: ActiveContext;
-      emailDeliveryWarning?: string;
-    }
-  | {
-      status: 'OTP_REQUIRED';
-      challengeId: string;
-      channel: 'email';
-      expiresAt: string;
-      resendAvailableAt?: string;
-      maskedEmail: string;
-    };
-
-export async function login(email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }): Promise<FrontendLoginResult> {
+export async function login(email: string, password: string, options?: LoginOptions): Promise<FrontendLoginResult> {
   const normalizedEmail = email.trim();
   const endpoint = options?.adminOnly ? '/api/auth/admin/login' : '/api/auth/login';
   const data = await apiFetch<AuthLoginResponse | AuthLoginUnionResponse>(endpoint, {
@@ -97,7 +81,7 @@ export async function login(email: string, password: string, options?: { adminOn
   };
 }
 
-export async function verifyLoginOtp(challengeId: string, otp: string): Promise<{ token: string; user: AuthUser; memberships: AuthMeResponse['memberships']; activeContext?: ActiveContext }> {
+export async function verifyLoginOtp(challengeId: string, otp: string): Promise<VerifyLoginOtpResult> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/login/otp/verify', {
     method: 'POST',
     body: JSON.stringify({ challengeId, otp }),
@@ -108,11 +92,11 @@ export async function verifyLoginOtp(challengeId: string, otp: string): Promise<
   });
 
   setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-  return { token: data.accessToken, user: data.user, memberships: data.memberships, activeContext: data.activeContext };
+  return { status: 'SUCCESS', token: data.accessToken, user: data.user, memberships: data.memberships, activeContext: data.activeContext };
 }
 
-export async function resendLoginOtp(challengeId: string): Promise<{ challengeId: string; expiresAt: string; resendAvailableAt?: string; maskedEmail: string; channel: 'email'; resent: true }> {
-  return apiFetch<{ challengeId: string; expiresAt: string; resendAvailableAt?: string; maskedEmail: string; channel: 'email'; resent: true }>('/api/auth/login/otp/resend', {
+export async function resendLoginOtp(challengeId: string): Promise<ResendLoginOtpResult> {
+  return apiFetch<ResendLoginOtpResult>('/api/auth/login/otp/resend', {
     method: 'POST',
     body: JSON.stringify({ challengeId }),
     headers: {
