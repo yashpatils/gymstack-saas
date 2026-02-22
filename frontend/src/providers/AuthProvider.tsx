@@ -22,11 +22,11 @@ import {
   resendVerification as resendVerificationRequest,
   setContext as setContextRequest,
   signup as signupRequest,
-  type FrontendLoginResult,
   type SignupRole,
   verifyEmail as verifyEmailRequest,
 } from '../lib/auth';
 import type { ActiveLocation, ActiveTenant, GatingStatus, Membership, MembershipRole, OnboardingState, OwnerOperatorSettings, PermissionFlags, TenantFeatures } from '../types/auth';
+import type { FrontendLoginResult, LoginOptions } from '../lib/auth.types';
 import { setStoredPlatformRole, setSupportModeContext } from '../lib/supportMode';
 import { ApiFetchError } from '../lib/apiFetch';
 import { clearStoredActiveContext, setStoredActiveContext } from '../lib/auth/contextStore';
@@ -65,7 +65,7 @@ type AuthContextValue = {
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatus;
   qaModeEnabled: boolean;
-  login: (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => Promise<FrontendLoginResult | { status: 'SUCCESS'; user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  login: (email: string, password: string, options?: LoginOptions) => Promise<FrontendLoginResult>;
   signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, locationId?: string, mode?: 'OWNER' | 'MANAGER') => Promise<void>;
@@ -381,7 +381,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [authDebugLog, clearAuthState, hydrateWithRecovery]);
 
-  const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => {
+  const login = useCallback(async (email: string, password: string, options?: LoginOptions): Promise<FrontendLoginResult> => {
     authDebugLog('login:start');
     const loginResult = await loginRequest(email, password, {
       adminOnly: options?.adminOnly,
@@ -398,7 +398,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await hydrateFromMe();
     authDebugLog('login:success', { userId: loggedInUser.id });
     await track('login_success', { role: loggedInUser.role ?? undefined });
-    return { status: 'SUCCESS' as const, user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
+    return { ...loginResult, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [authDebugLog, hydrateFromMe, normalizeMemberships]);
 
   const signup = useCallback(async (email: string, password: string, role?: SignupRole, inviteToken?: string) => {
