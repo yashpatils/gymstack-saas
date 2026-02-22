@@ -56,8 +56,8 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
             const active = isActivePath(pathname, item.href);
             const content = (
               <>
-                {item.icon ? <span className="h-4 w-4 shrink-0 opacity-90">{item.icon}</span> : null}
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {item.icon ? <span className="h-4 w-4 shrink-0 text-current opacity-90 [&_svg]:text-current">{item.icon}</span> : null}
+                <span className="min-w-0 flex-1 truncate text-current">{item.label}</span>
               </>
             );
 
@@ -70,10 +70,7 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
                 className={cn(
                   "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground transition-all",
                   "hover:bg-indigo-600 hover:text-white focus-visible:bg-indigo-600 focus-visible:text-white focus-visible:outline-none",
-                  "[&_span]:text-inherit [&_svg]:text-inherit",
-                  "hover:[&_span]:!text-white hover:[&_svg]:!text-white",
-                  "focus-visible:[&_span]:!text-white focus-visible:[&_svg]:!text-white",
-                  active && "bg-indigo-600 text-white font-medium [&_span]:!text-white [&_svg]:!text-white",
+                  active && "bg-indigo-600 text-white font-medium",
                 )}
                 aria-current={active ? "page" : undefined}
               >
