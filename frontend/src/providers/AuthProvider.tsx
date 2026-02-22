@@ -77,6 +77,9 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+
+const AUTH_HYDRATION_TIMEOUT_MS = 5000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const authDebugEnabled = process.env.NEXT_PUBLIC_AUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development';
   const authDebugLog = useCallback((event: string, detail?: Record<string, unknown>) => {
@@ -279,6 +282,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     initFrontendMonitoring();
   }, []);
+
+  useEffect(() => {
+    if (!isHydrating || !token || typeof window === 'undefined') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      authDebugLog('hydrate:timeout', { timeoutMs: AUTH_HYDRATION_TIMEOUT_MS });
+      clearAuthState();
+      setMeStatus(401);
+      setAuthIssue('SESSION_EXPIRED');
+      setIsLoading(false);
+      setIsHydrating(false);
+    }, AUTH_HYDRATION_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [authDebugLog, clearAuthState, isHydrating, token]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

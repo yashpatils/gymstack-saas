@@ -73,6 +73,7 @@ export function getLastApiRequestId(): string | null {
 
 export class ApiFetchError extends Error {
   statusCode: number;
+  status: number;
   details?: unknown;
   requestId?: string;
 
@@ -80,6 +81,7 @@ export class ApiFetchError extends Error {
     super(message);
     this.name = 'ApiFetchError';
     this.statusCode = statusCode;
+    this.status = statusCode;
     this.details = details;
     this.requestId = requestId;
   }
