@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateOrganizationSettingsDto } from './dto/update-organization-settings.dto';
+import { UpdateLocationSettingsDto } from './dto/update-location-settings.dto';
 
 export type FeatureFlags = {
   enableBilling: boolean;
@@ -59,5 +63,98 @@ export class SettingsService {
     );
 
     return this.getSettings();
+  }
+
+  getMyProfile(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, twoStepEmailEnabled: true },
+    });
+  }
+
+  updateMyProfile(userId: string, payload: UpdateProfileDto) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: payload.name,
+      },
+      select: { id: true, name: true, email: true, twoStepEmailEnabled: true },
+    });
+  }
+
+  async changeMyPassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const passwordMatches = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatches) {
+      throw new ForbiddenException('Unable to update password');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { password: passwordHash } });
+
+    return { ok: true };
+  }
+
+  getOrganizationSettings(organizationId: string) {
+    return this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        id: true,
+        name: true,
+        whiteLabelEnabled: true,
+        billingProvider: true,
+        billingCountry: true,
+        billingCurrency: true,
+      },
+    });
+  }
+
+  updateOrganizationSettings(organizationId: string, payload: UpdateOrganizationSettingsDto) {
+    return this.prisma.organization.update({
+      where: { id: organizationId },
+      data: {
+        name: payload.name,
+        whiteLabelEnabled: payload.whiteLabelEnabled,
+        billingCountry: payload.billingCountry,
+        billingCurrency: payload.billingCurrency,
+      },
+      select: {
+        id: true,
+        name: true,
+        whiteLabelEnabled: true,
+        billingProvider: true,
+        billingCountry: true,
+        billingCurrency: true,
+      },
+    });
+  }
+
+  getLocationSettings(locationId: string) {
+    return this.prisma.gym.findUnique({
+      where: { id: locationId },
+      select: { id: true, name: true, timezone: true, contactEmail: true, phone: true, address: true },
+    });
+  }
+
+  updateLocationSettings(locationId: string, payload: UpdateLocationSettingsDto) {
+    return this.prisma.gym.update({
+      where: { id: locationId },
+      data: {
+        name: payload.name,
+        timezone: payload.timezone,
+        contactEmail: payload.contactEmail,
+        phone: payload.phone,
+        address: payload.address,
+      },
+      select: { id: true, name: true, timezone: true, contactEmail: true, phone: true, address: true },
+    });
   }
 }
