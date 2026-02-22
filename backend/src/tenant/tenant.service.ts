@@ -1,11 +1,14 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { AuditActorType, InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
+import { AuditActorType, InviteStatus, MembershipRole, MembershipStatus, PendingChangeTargetType, PendingChangeType } from '@prisma/client';
+import { createHash, randomInt } from 'crypto';
 import { InvitesService } from '../invites/invites.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
 import { CreateInviteDto } from '../invites/dto/create-invite.dto';
 import { AuditService } from '../audit/audit.service';
+import { EmailService } from '../email/email.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { SecurityErrors } from '../common/errors/security-errors';
 import { validateTenantSlug } from '../common/slug.util';
 import { SlugAvailabilityQueryDto, SlugAvailabilityResponseDto } from './dto/slug-availability.dto';
 import { RequestTenantSlugChangeDto, RequestTenantSlugChangeResponseDto } from './dto/request-tenant-slug-change.dto';
@@ -19,11 +22,33 @@ export type RequestContextMeta = {
 
 @Injectable()
 export class TenantService {
+  private static readonly OTP_EXPIRY_SECONDS = 10 * 60;
+  private static readonly RESEND_COOLDOWN_SECONDS = 60;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly invitesService: InvitesService,
     private readonly auditService: AuditService,
+    private readonly emailService: EmailService,
   ) {}
+
+  private generateOtp(): string {
+    return randomInt(100000, 1000000).toString();
+  }
+
+  private hashOtp(otp: string): string {
+    return createHash('sha256').update(otp).digest('hex');
+  }
+
+  private async requireOwnerMembership(requesterId: string, tenantId: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId: requesterId, orgId: tenantId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw SecurityErrors.forbidden();
+    }
+  }
 
   private async requireTenantRole(requester: User, tenantId: string) {
     const memberships = await this.prisma.membership.findMany({ where: { userId: requester.id, orgId: tenantId, status: MembershipStatus.ACTIVE } });
@@ -156,29 +181,223 @@ export class TenantService {
   }
 
   async requestTenantSlugChange(
-    _requester: { id: string; email: string },
-    _tenantId: string,
-    _dto: RequestTenantSlugChangeDto,
-    _meta: RequestContextMeta,
+    requester: { id: string; email: string },
+    tenantId: string,
+    dto: RequestTenantSlugChangeDto,
+    meta: RequestContextMeta,
   ): Promise<RequestTenantSlugChangeResponseDto> {
-    throw new Error('Not implemented');
+    await this.requireOwnerMembership(requester.id, tenantId);
+
+    const validation = validateTenantSlug(dto.newSlug ?? '');
+    if (!validation.ok) {
+      if (validation.reason.toLowerCase().includes('reserved')) {
+        throw SecurityErrors.slugReserved();
+      }
+      throw SecurityErrors.slugInvalid(validation.reason);
+    }
+
+    const normalizedSlug = validation.slug;
+    const location = await this.prisma.gym.findFirst({
+      where: { orgId: tenantId },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, slug: true },
+    });
+    if (!location) {
+      throw new BadRequestException('No location found for this tenant');
+    }
+
+    if (location.slug === normalizedSlug) {
+      throw new BadRequestException('This slug is already active');
+    }
+
+    const existing = await this.prisma.gym.findUnique({ where: { slug: normalizedSlug }, select: { id: true } });
+    if (existing && existing.id !== location.id) {
+      throw SecurityErrors.slugTaken();
+    }
+
+    const now = new Date();
+    const otp = this.generateOtp();
+    const expiresAt = new Date(now.getTime() + TenantService.OTP_EXPIRY_SECONDS * 1000);
+    const resendAvailableAt = new Date(now.getTime() + TenantService.RESEND_COOLDOWN_SECONDS * 1000);
+
+    await this.prisma.pendingSensitiveChange.updateMany({
+      where: {
+        userId: requester.id,
+        tenantId,
+        changeType: PendingChangeType.TENANT_SLUG,
+        consumedAt: null,
+        cancelledAt: null,
+      },
+      data: { cancelledAt: now },
+    });
+
+    const challenge = await this.prisma.pendingSensitiveChange.create({
+      data: {
+        userId: requester.id,
+        tenantId,
+        targetType: PendingChangeTargetType.TENANT_SETTINGS,
+        changeType: PendingChangeType.TENANT_SLUG,
+        payloadJson: { gymId: location.id, oldSlug: location.slug, newSlug: normalizedSlug },
+        otpHash: this.hashOtp(otp),
+        otpExpiresAt: expiresAt,
+        resendAvailableAt,
+        lastSentAt: now,
+        requestedFromIp: meta.ip,
+        requestedUserAgent: meta.userAgent,
+      },
+    });
+
+    await this.emailService.sendTemplatedActionEmail({
+      to: requester.email,
+      template: 'tenant_slug_change_otp',
+      subject: 'Confirm your Gymstack slug change',
+      title: 'Confirm slug change',
+      intro: `Use this one-time code to confirm your new slug: ${otp}. It expires in ${Math.floor(TenantService.OTP_EXPIRY_SECONDS / 60)} minutes.`,
+      buttonLabel: 'Open settings',
+      link: '/platform/settings',
+    });
+
+    return {
+      challengeId: challenge.id,
+      expiresAt: expiresAt.toISOString(),
+      resendAvailableAt: resendAvailableAt.toISOString(),
+      pendingChangeType: 'TENANT_SLUG',
+      normalizedSlug,
+    };
   }
 
   async verifyTenantSlugChange(
-    _requester: { id: string; email: string },
-    _tenantId: string,
-    _dto: VerifyTenantSlugChangeDto,
+    requester: { id: string; email: string },
+    tenantId: string,
+    dto: VerifyTenantSlugChangeDto,
     _meta: RequestContextMeta,
   ): Promise<VerifyTenantSlugChangeResponseDto> {
-    throw new Error('Not implemented');
+    await this.requireOwnerMembership(requester.id, tenantId);
+    const challenge = await this.prisma.pendingSensitiveChange.findFirst({
+      where: {
+        id: dto.challengeId,
+        userId: requester.id,
+        tenantId,
+        changeType: PendingChangeType.TENANT_SLUG,
+        consumedAt: null,
+        cancelledAt: null,
+      },
+    });
+
+    if (!challenge) {
+      throw SecurityErrors.challengeNotFound();
+    }
+
+    const now = new Date();
+    if (challenge.otpExpiresAt <= now) {
+      throw SecurityErrors.otpExpired();
+    }
+
+    if (challenge.attempts >= challenge.maxAttempts) {
+      throw SecurityErrors.otpAttemptsExceeded();
+    }
+
+    if (this.hashOtp(dto.otp) !== challenge.otpHash) {
+      await this.prisma.pendingSensitiveChange.update({
+        where: { id: challenge.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw SecurityErrors.otpInvalid();
+    }
+
+    const payload = challenge.payloadJson as { gymId?: string; oldSlug?: string; newSlug?: string };
+    if (!payload?.gymId || !payload?.newSlug || !payload?.oldSlug) {
+      throw SecurityErrors.challengeNotFound();
+    }
+
+    const changedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const duplicate = await tx.gym.findUnique({ where: { slug: payload.newSlug! }, select: { id: true } });
+      if (duplicate && duplicate.id !== payload.gymId) {
+        throw SecurityErrors.slugTaken();
+      }
+
+      const location = await tx.gym.findFirst({ where: { id: payload.gymId, orgId: tenantId }, select: { id: true } });
+      if (!location) {
+        throw SecurityErrors.challengeNotFound();
+      }
+
+      await tx.gym.update({ where: { id: payload.gymId }, data: { slug: payload.newSlug } });
+      await tx.pendingSensitiveChange.update({ where: { id: challenge.id }, data: { consumedAt: changedAt } });
+    });
+
+    return {
+      success: true,
+      tenantId,
+      oldSlug: payload.oldSlug,
+      newSlug: payload.newSlug,
+      changedAt: changedAt.toISOString(),
+    };
   }
 
   async resendTenantSlugChangeOtp(
-    _requester: { id: string; email: string },
-    _tenantId: string,
-    _dto: ResendTenantSlugChangeOtpDto,
-    _meta: RequestContextMeta,
+    requester: { id: string; email: string },
+    tenantId: string,
+    dto: ResendTenantSlugChangeOtpDto,
+    meta: RequestContextMeta,
   ): Promise<ResendTenantSlugChangeOtpResponseDto> {
-    throw new Error('Not implemented');
+    await this.requireOwnerMembership(requester.id, tenantId);
+    const challenge = await this.prisma.pendingSensitiveChange.findFirst({
+      where: {
+        id: dto.challengeId,
+        userId: requester.id,
+        tenantId,
+        changeType: PendingChangeType.TENANT_SLUG,
+        consumedAt: null,
+        cancelledAt: null,
+      },
+    });
+    if (!challenge) {
+      throw SecurityErrors.challengeNotFound();
+    }
+
+    const now = new Date();
+    if (challenge.resendAvailableAt && challenge.resendAvailableAt > now) {
+      const retryAfterSeconds = Math.ceil((challenge.resendAvailableAt.getTime() - now.getTime()) / 1000);
+      throw SecurityErrors.rateLimited(retryAfterSeconds);
+    }
+
+    if (challenge.otpExpiresAt <= now) {
+      throw SecurityErrors.otpExpired();
+    }
+
+    const otp = this.generateOtp();
+    const expiresAt = new Date(now.getTime() + TenantService.OTP_EXPIRY_SECONDS * 1000);
+    const resendAvailableAt = new Date(now.getTime() + TenantService.RESEND_COOLDOWN_SECONDS * 1000);
+
+    await this.prisma.pendingSensitiveChange.update({
+      where: { id: challenge.id },
+      data: {
+        otpHash: this.hashOtp(otp),
+        otpExpiresAt: expiresAt,
+        resendAvailableAt,
+        resendCount: { increment: 1 },
+        lastSentAt: now,
+        requestedFromIp: meta.ip,
+        requestedUserAgent: meta.userAgent,
+      },
+    });
+
+    await this.emailService.sendTemplatedActionEmail({
+      to: requester.email,
+      template: 'tenant_slug_change_otp',
+      subject: 'Your new Gymstack slug change code',
+      title: 'Your new slug confirmation code',
+      intro: `Use this one-time code to confirm your new slug: ${otp}. It expires in ${Math.floor(TenantService.OTP_EXPIRY_SECONDS / 60)} minutes.`,
+      buttonLabel: 'Open settings',
+      link: '/platform/settings',
+    });
+
+    return {
+      challengeId: challenge.id,
+      expiresAt: expiresAt.toISOString(),
+      resendAvailableAt: resendAvailableAt.toISOString(),
+      resent: true,
+    };
   }
 }
