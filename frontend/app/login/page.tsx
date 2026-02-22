@@ -120,8 +120,11 @@ function LoginPageContent() {
               setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
               return;
             }
-            const hasOwnerRole = result.memberships.some((membership) => membership.role === 'TENANT_OWNER');
-            if (result.memberships.length === 0) {
+            const membershipsArray = Array.isArray(result.memberships)
+              ? result.memberships
+              : Object.values(result.memberships ?? {});
+            const hasOwnerRole = membershipsArray.some((membership) => membership.role === 'TENANT_OWNER');
+            if (membershipsArray.length === 0) {
               router.push('/platform');
               return;
             }
@@ -129,7 +132,7 @@ function LoginPageContent() {
               router.push('/platform/context');
               return;
             }
-            router.push(result.memberships.length > 1 ? '/select-workspace' : '/platform');
+            router.push(membershipsArray.length > 1 ? '/select-workspace' : '/platform');
           } catch (submitError) {
             if (submitError instanceof ApiFetchError && submitError.requestId) {
               setSupportRequestId(submitError.requestId);
