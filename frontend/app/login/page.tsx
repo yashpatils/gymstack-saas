@@ -120,9 +120,14 @@ function LoginPageContent() {
               setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
               return;
             }
-            const membershipsArray = Array.isArray(result.memberships)
-              ? result.memberships
-              : Object.values(result.memberships ?? {});
+            const membershipsArray = (
+              Array.isArray(result.memberships)
+                ? result.memberships
+                : Object.values(result.memberships ?? {}).flatMap((value) => (Array.isArray(value) ? value : [value]))
+            ).filter(
+              (membership): membership is { role: string; tenantId?: string; locationId?: string } =>
+                Boolean(membership) && typeof membership === 'object' && 'role' in membership,
+            );
             const hasOwnerRole = membershipsArray.some((membership) => membership.role === 'TENANT_OWNER');
             if (membershipsArray.length === 0) {
               router.push('/platform');
