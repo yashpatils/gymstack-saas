@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { captureBackendError } from './error-monitoring';
 import { extractExceptionMessage, sanitizeForLogs } from './logging-sanitizer';
+import { ApiErrorCode } from './api-error';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -81,18 +82,21 @@ export class HttpExceptionWithRequestIdFilter implements ExceptionFilter {
       return;
     }
 
-    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-      response.status(status).json({
-        ...(exceptionResponse as Record<string, unknown>),
-        statusCode: status,
-        requestId,
-      });
-      return;
-    }
+    const responseBody = typeof exceptionResponse === 'object' && exceptionResponse !== null
+      ? (exceptionResponse as Record<string, unknown>)
+      : {};
+
+    const code = typeof responseBody.code === 'string'
+      ? responseBody.code
+      : status === HttpStatus.UNAUTHORIZED
+        ? ApiErrorCode.UNAUTHORIZED
+        : status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? 'INTERNAL_ERROR'
+        : ApiErrorCode.FORBIDDEN;
 
     response.status(status).json({
+      code,
       message,
-      statusCode: status,
       requestId,
     });
   }

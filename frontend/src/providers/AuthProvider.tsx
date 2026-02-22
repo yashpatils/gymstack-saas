@@ -209,8 +209,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setPermissions(normalizePermissions(meResponse.permissions));
     setPermissionKeys(meResponse.permissionKeys ?? []);
-    setActiveContext(meResponse.activeContext);
-    setStoredActiveContext(meResponse.activeContext);
+    const normalizedMemberships = normalizeMemberships(meResponse.memberships);
+    const fallbackMembership = !meResponse.activeContext && normalizedMemberships.length > 0 ? normalizedMemberships[0] : null;
+    const derivedContext = meResponse.activeContext ?? (fallbackMembership
+      ? {
+          tenantId: fallbackMembership.tenantId,
+          locationId: fallbackMembership.locationId ?? fallbackMembership.gymId ?? null,
+          gymId: fallbackMembership.gymId,
+          role: fallbackMembership.role,
+        }
+      : undefined);
+
+    setActiveContext(derivedContext);
+    setStoredActiveContext(derivedContext);
     setActiveTenant(meResponse.activeTenant);
     setActiveLocation(meResponse.activeLocation);
     setTenantFeatures(meResponse.tenantFeatures);
