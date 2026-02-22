@@ -100,6 +100,11 @@ function LoginPageContent() {
           setSubmitting(true);
           try {
             const result = await login(email, password, { adminOnly: isAdminHost });
+
+            if (result.status !== 'SUCCESS') {
+              return;
+            }
+
             if (nextUrl) {
               redirectTo(nextUrl);
               return;
