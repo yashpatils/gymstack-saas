@@ -1,9 +1,10 @@
 import { apiFetch } from './apiFetch';
+import { phase1FeatureFlagDefaults } from './phase1FeatureFlags';
 
 export type EffectiveFeatureFlags = Record<string, boolean>;
 export type FeatureFlags = EffectiveFeatureFlags;
 
-export const defaultFeatureFlags: FeatureFlags = {};
+export const defaultFeatureFlags: FeatureFlags = { ...phase1FeatureFlagDefaults };
 
 export async function getEffectiveFeatureFlags(): Promise<EffectiveFeatureFlags> {
   const flags = await apiFetch<EffectiveFeatureFlags>('/api/feature-flags', { method: 'GET', cache: 'no-store' });

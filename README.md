@@ -92,6 +92,7 @@ Required environment variables:
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 - `MONITORING_WEBHOOK_URL` — Optional backend error webhook endpoint (captures unhandled 5xx metadata + request IDs). If omitted, monitoring is disabled with no startup impact.
 - `SKIP_PRISMA_MIGRATIONS_ON_START` — Optional boolean (`true`/`false`) to skip migration status/deploy during backend boot (recommended when migrations run as a separate CI/CD step).
+- Phase 1A rollout flags (stored in `FeatureFlag` records, all default to `false` when missing): `FEATURE_EMAIL_2SV`, `FEATURE_SECURE_PROFILE_UPDATES`, `FEATURE_TENANT_SLUG_EDITOR`, `FEATURE_PUBLIC_SITE_AUTOPROVISION`, and `FEATURE_ROLE_ONBOARDING_V2`.
 
 ## Resolving failed Prisma migrations (P3009)
 
