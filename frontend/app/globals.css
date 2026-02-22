@@ -218,10 +218,16 @@ textarea:focus-visible { outline: none; box-shadow: var(--focus-ring); border-co
 .sidebar-sheen {
   background: radial-gradient(1200px 600px at -20% 0%, rgba(255, 255, 255, 0.05), transparent 55%), var(--background);
 }
-.platform-nav-item { display:flex; align-items:center; border-radius: 12px; padding: 10px 12px; color: var(--text-muted); border:1px solid transparent; }
-.platform-nav-item:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.platform-nav-item { display:flex; width:100%; align-items:center; border-radius: 12px; padding: 10px 12px; color: var(--text-muted); border:1px solid transparent; }
+.platform-nav-item:hover,
+.platform-nav-item:focus-visible { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.platform-nav-item:hover svg,
+.platform-nav-item:hover span,
+.platform-nav-item:focus-visible svg,
+.platform-nav-item:focus-visible span { color: currentColor !important; }
 .platform-nav-item-active { background: var(--accent); color: #fff; border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
-.platform-nav-item-active svg { color: currentColor; }
+.platform-nav-item-active svg,
+.platform-nav-item-active span { color: #fff !important; }
 
 .gs-account-dropdown {
   background: rgba(2, 6, 23, 0.82);
