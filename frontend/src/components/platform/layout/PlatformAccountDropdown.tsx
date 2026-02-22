@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useOnClickOutside } from "../../../hooks/useOnClickOutside";
@@ -8,10 +9,11 @@ import { useOnClickOutside } from "../../../hooks/useOnClickOutside";
 type PlatformAccountDropdownProps = {
   label: string;
   initials: string;
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
 };
 
 export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformAccountDropdownProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -111,10 +113,15 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
               <button
                 type="button"
                 className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 focus:bg-red-500/15 focus:text-red-300"
-                onClick={(event) => {
+                onClick={async (event) => {
                   event.stopPropagation();
                   setIsOpen(false);
-                  onLogout();
+                  try {
+                    await onLogout();
+                  } finally {
+                    router.replace("/login");
+                    router.refresh();
+                  }
                 }}
               >
                 Logout

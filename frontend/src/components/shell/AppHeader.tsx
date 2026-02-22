@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
@@ -16,7 +17,7 @@ type AppHeaderProps = {
   accountName?: string;
   accountInitials: string;
   accountLinks?: Array<{ href: string; label: string }>;
-  onLogout?: () => void;
+  onLogout?: () => Promise<void>;
   qaBypass?: boolean;
   gatingStatusSummary?: string;
 };
@@ -59,6 +60,7 @@ export function AppHeader({
   gatingStatusSummary,
 }: AppHeaderProps) {
   const { themeMode, setThemeMode, effectiveTheme } = useThemeConfig();
+  const router = useRouter();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -196,9 +198,14 @@ export function AppHeader({
                     <button
                       type="button"
                       className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/20"
-                      onClick={() => {
+                      onClick={async () => {
                         setIsAccountMenuOpen(false);
-                        onLogout();
+                        try {
+                          await onLogout();
+                        } finally {
+                          router.replace("/login");
+                          router.refresh();
+                        }
                       }}
                     >
                       Logout

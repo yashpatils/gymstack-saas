@@ -10,10 +10,16 @@ type AuthGateProps = {
   fallback?: ReactNode;
 };
 
-export function AuthGate({ children, fallback = null }: AuthGateProps) {
+const defaultAuthLoader = (
+  <div className="flex min-h-[40vh] items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-foreground" />
+  </div>
+);
+
+export function AuthGate({ children, fallback }: AuthGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authIssue, authState, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout, meStatus } = useAuth();
+  const { authIssue, authState, isLoading, isHydrating, isAuthenticated, memberships, chooseContext, activeContext, logout } = useAuth();
   const hasAttemptedAutoSelect = useRef(false);
   const handledSessionExpiry = useRef(false);
 
@@ -36,8 +42,9 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
     }
 
     handledSessionExpiry.current = true;
-    logout();
-    router.replace('/login?message=Session+expired.+Please+sign+in+again.');
+    void logout().finally(() => {
+      router.replace('/login?message=Session+expired.+Please+sign+in+again.');
+    });
   }, [authIssue, logout, router]);
 
   useEffect(() => {
@@ -60,8 +67,8 @@ export function AuthGate({ children, fallback = null }: AuthGateProps) {
     router.replace('/select-workspace');
   }, [activeContext, isLoading, memberships.length, pathname, router]);
 
-  if (authState === 'hydrating' || isHydrating || isLoading || meStatus === null) {
-    return <>{fallback}</>;
+  if (authState === 'hydrating' || isHydrating || isLoading) {
+    return <>{fallback ?? defaultAuthLoader}</>;
   }
 
   if (!isAuthenticated) {
