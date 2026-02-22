@@ -1,19 +1,30 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+MIGRATION_DATABASE_URL="${MIGRATION_DATABASE_URL:-${DIRECT_URL:-${DATABASE_URL:-}}}"
+
+run_prisma_migrate() {
+  if [[ -n "$MIGRATION_DATABASE_URL" ]]; then
+    DATABASE_URL="$MIGRATION_DATABASE_URL" npx prisma migrate "$@"
+    return
+  fi
+
+  npx prisma migrate "$@"
+}
+
 resolve_failed_migrations() {
   local failed_migrations
   local status_output
   local status_exit_code
 
-  if [[ -z "${DATABASE_URL:-}" ]]; then
-    echo "[start-prod] Unable to check for failed migrations: DATABASE_URL is not set." >&2
+  if [[ -z "$MIGRATION_DATABASE_URL" ]]; then
+    echo "[start-prod] Unable to check for failed migrations: DATABASE_URL (or DIRECT_URL / MIGRATION_DATABASE_URL) is not set." >&2
     exit 1
   fi
 
   echo "[start-prod] Checking failed migrations via Prisma status"
   set +e
-  status_output=$(npx prisma migrate status 2>&1)
+  status_output=$(run_prisma_migrate status 2>&1)
   status_exit_code=$?
   set -e
 
@@ -37,7 +48,7 @@ resolve_failed_migrations() {
   fi
 
   failed_migrations="$({
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -c "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at;"
+    psql "$MIGRATION_DATABASE_URL" -v ON_ERROR_STOP=1 -At -c "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at;"
   } 2>/dev/null || true)"
 
   if [[ -n "$failed_migrations" ]]; then
@@ -57,43 +68,49 @@ resolve_failed_migrations() {
 echo "[start-prod] Running DB connectivity check"
 node scripts/db-check.js
 
-echo "[start-prod] Checking migration status"
-resolve_failed_migrations
+if [[ "${SKIP_PRISMA_MIGRATIONS_ON_START:-false}" == "true" ]]; then
+  echo "[start-prod] SKIP_PRISMA_MIGRATIONS_ON_START=true, skipping migration checks and deploy"
+else
+  echo "[start-prod] Checking migration status"
+  resolve_failed_migrations
 
-echo "[start-prod] Applying migrations"
-set +e
-migrate_output=$(npx prisma migrate deploy 2>&1)
-migrate_exit_code=$?
-set -e
+  echo "[start-prod] Applying migrations"
+  set +e
+  migrate_output=$(run_prisma_migrate deploy 2>&1)
+  migrate_exit_code=$?
+  set -e
 
-if [[ $migrate_exit_code -ne 0 ]]; then
-  echo "$migrate_output" >&2
-  echo "[start-prod] ERROR: prisma migrate deploy failed. Startup halted." >&2
+  if [[ $migrate_exit_code -ne 0 ]]; then
+    echo "$migrate_output" >&2
+    echo "[start-prod] ERROR: prisma migrate deploy failed. Startup halted." >&2
 
-  if [[ "$migrate_output" == *"P3009"* ]]; then
-    failed_migration=$(printf '%s\n' "$migrate_output" | sed -n 's/.*The `\([^`]*\)` migration.*/\1/p' | head -n 1)
+    if [[ "$migrate_output" == *"P3009"* ]]; then
+      failed_migration=$(printf '%s\n' "$migrate_output" | sed -n 's/.*The `\([^`]*\)` migration.*/\1/p' | head -n 1)
 
-    if [[ -n "$failed_migration" ]]; then
-      escaped_failed_migration=${failed_migration//\'/\'\'}
-      echo "[start-prod] Detected failed migration: $failed_migration" >&2
-      echo "[start-prod] Inspect Neon migration logs with this query:" >&2
-      echo "[start-prod]   SELECT migration_name, started_at, finished_at, rolled_back_at, logs FROM _prisma_migrations WHERE migration_name = '$escaped_failed_migration';" >&2
-      echo "[start-prod] Run the following commands:" >&2
-      echo "[start-prod]   npx prisma migrate resolve --rolled-back $failed_migration" >&2
-      echo "[start-prod]   npx prisma migrate resolve --applied $failed_migration" >&2
-      echo "[start-prod]   npx prisma migrate deploy" >&2
-    else
-      echo "[start-prod] Detected Prisma error code P3009." >&2
-      echo "[start-prod] Inspect Neon migration logs with this query:" >&2
-      echo "[start-prod]   SELECT migration_name, started_at, finished_at, rolled_back_at, logs FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at;" >&2
-      echo "[start-prod] Run the following commands:" >&2
-      echo "[start-prod]   npx prisma migrate resolve --rolled-back <migration>" >&2
-      echo "[start-prod]   npx prisma migrate resolve --applied <migration>" >&2
-      echo "[start-prod]   npx prisma migrate deploy" >&2
+      if [[ -n "$failed_migration" ]]; then
+        escaped_failed_migration=${failed_migration//\'/\'\'}
+        echo "[start-prod] Detected failed migration: $failed_migration" >&2
+        echo "[start-prod] Inspect Neon migration logs with this query:" >&2
+        echo "[start-prod]   SELECT migration_name, started_at, finished_at, rolled_back_at, logs FROM _prisma_migrations WHERE migration_name = '$escaped_failed_migration';" >&2
+        echo "[start-prod] Resolve with exactly one command, then redeploy:" >&2
+        echo "[start-prod]   npx prisma migrate resolve --rolled-back $failed_migration" >&2
+        echo "[start-prod]   # OR" >&2
+        echo "[start-prod]   npx prisma migrate resolve --applied $failed_migration" >&2
+        echo "[start-prod]   npx prisma migrate deploy" >&2
+      else
+        echo "[start-prod] Detected Prisma error code P3009." >&2
+        echo "[start-prod] Inspect Neon migration logs with this query:" >&2
+        echo "[start-prod]   SELECT migration_name, started_at, finished_at, rolled_back_at, logs FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at;" >&2
+        echo "[start-prod] Resolve with exactly one command, then redeploy:" >&2
+        echo "[start-prod]   npx prisma migrate resolve --rolled-back <migration>" >&2
+        echo "[start-prod]   # OR" >&2
+        echo "[start-prod]   npx prisma migrate resolve --applied <migration>" >&2
+        echo "[start-prod]   npx prisma migrate deploy" >&2
+      fi
     fi
-  fi
 
-  exit 1
+    exit 1
+  fi
 fi
 
 echo "[start-prod] Starting server"
