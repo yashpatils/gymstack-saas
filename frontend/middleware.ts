@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { RESERVED_SUBDOMAINS } from './src/lib/slug';
+import { getAdminHost, getBaseDomain } from './src/lib/domainConfig';
 
 const PUBLIC_FILE = /\.(.*)$/;
-const ADMIN_HOST = 'admin.gymstack.club';
 const ADMIN_PUBLIC_ROUTES = [
   '/admin',
   '/login',
@@ -40,12 +40,8 @@ function shouldBypass(pathname: string): boolean {
   );
 }
 
-function getBaseDomain(): string {
-  return (process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'localhost').toLowerCase();
-}
-
 function isAdminHost(host: string, baseDomain: string): boolean {
-  return host === ADMIN_HOST || host === `admin.${baseDomain}`;
+  return host === getAdminHost() || host === `admin.${baseDomain}`;
 }
 
 function isRootHost(host: string, baseDomain: string): boolean {

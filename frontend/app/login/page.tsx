@@ -8,15 +8,16 @@ import { OAuthButtons } from "../../src/components/auth/OAuthButtons";
 import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAuth";
 import { ApiFetchError } from "../../src/lib/apiFetch";
 import { me as fetchCurrentSession, resendLoginOtp, verifyLoginOtp } from "../../src/lib/auth";
+import { getAdminHost, getBaseDomain, getMainSiteUrl } from "../../src/lib/domainConfig";
 import { getAuthErrorMessage } from "../../src/lib/authErrorMessage";
 import type { FrontendLoginResult } from "../../src/lib/auth.types";
 import type { Membership } from "../../src/types/auth";
 import { Alert, Button, Input } from "../components/ui";
 import { getValidatedNextUrl } from "./next-url";
 
-const ADMIN_HOST = "admin.gymstack.club";
-const MAIN_SITE_LOGIN = "https://gymstack.club/login";
-const MAIN_SITE_PLATFORM = "https://gymstack.club/platform";
+const ADMIN_HOST = getAdminHost();
+const MAIN_SITE_LOGIN = getMainSiteUrl('/login');
+const MAIN_SITE_PLATFORM = getMainSiteUrl('/platform');
 const ADMIN_RESTRICTED_MESSAGE = "Access restricted. This portal is for Gym Stack administrators only.";
 const ADMIN_NOT_AN_ACCOUNT_MESSAGE = 'Not an admin account. Sign in on the main platform instead.';
 
@@ -93,7 +94,7 @@ function LoginPageContent() {
     }
 
     const host = window.location.hostname.toLowerCase();
-    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'gymstack.club').toLowerCase();
+    const baseDomain = getBaseDomain();
     return host === ADMIN_HOST || host === `admin.${baseDomain}`;
   }, []);
 
