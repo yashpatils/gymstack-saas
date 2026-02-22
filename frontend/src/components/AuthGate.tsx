@@ -71,10 +71,6 @@ export function AuthGate({ children, fallback }: AuthGateProps) {
     return <>{fallback ?? defaultAuthLoader}</>;
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
   if (authIssue === 'INSUFFICIENT_PERMISSIONS') {
     return (
       <main className="mx-auto flex min-h-[70vh] w-full max-w-2xl items-center justify-center p-6">
@@ -90,6 +86,10 @@ export function AuthGate({ children, fallback }: AuthGateProps) {
         </section>
       </main>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   if (memberships.length === 0) {
