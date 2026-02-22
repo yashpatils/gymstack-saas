@@ -6,6 +6,7 @@ import { User } from '../users/user.model';
 import { CreateInviteDto } from '../invites/dto/create-invite.dto';
 import { AuditService } from '../audit/audit.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { validateTenantSlug } from '../common/slug.util';
 
 @Injectable()
 export class TenantService {
@@ -105,5 +106,32 @@ export class TenantService {
       this.auditService.log({ actor: { userId: userId ?? null, type: userId ? AuditActorType.USER : AuditActorType.SYSTEM, email: email ?? null }, tenantId: invite.tenantId, locationId: invite.locationId, action: 'INVITE_CONSUMED', targetType: 'invite', targetId: invite.id, metadata: { role: invite.role, consumedByUserId: userId ?? null } });
     }
     return { ok: true, role: result.role, tenantId: result.tenantId, locationId: result.locationId || null };
+  }
+
+  async checkSlugAvailability(requester: User, slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; reason?: string }> {
+    const tenantId = requester.activeTenantId ?? requester.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const validation = validateTenantSlug(slugRaw ?? '');
+    if (!validation.ok) {
+      return {
+        slug: (slugRaw ?? '').trim().toLowerCase(),
+        available: false,
+        reserved: validation.reason.toLowerCase().includes('reserved'),
+        reason: validation.reason,
+      };
+    }
+
+    const existing = await this.prisma.gym.findUnique({ where: { slug: validation.slug }, select: { id: true, orgId: true } });
+    const available = !existing || existing.orgId === tenantId;
+
+    return {
+      slug: validation.slug,
+      available,
+      reserved: false,
+      reason: available ? undefined : 'This slug is already in use',
+    };
   }
 }

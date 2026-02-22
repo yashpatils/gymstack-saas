@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { RESERVED_SUBDOMAINS } from './src/lib/slug';
 
 const PUBLIC_FILE = /\.(.*)$/;
 const ADMIN_HOST = 'admin.gymstack.club';
@@ -14,7 +15,6 @@ const ADMIN_PUBLIC_ROUTES = [
   '/robots.txt',
   '/sitemap.xml',
 ];
-export const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app', 'static']);
 const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin', '/_admin'];
 const AUTH_TOKEN_COOKIE = 'gymstack_token';
 const REFRESH_TOKEN_COOKIE = 'gymstack_refresh_token';

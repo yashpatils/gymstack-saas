@@ -52,9 +52,10 @@ export async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-export async function login(email: string, password: string, options?: { tenantId?: string; tenantSlug?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
+export async function login(email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
   const normalizedEmail = email.trim();
-  const data = await apiFetch<AuthLoginResponse>('/api/auth/login', {
+  const endpoint = options?.adminOnly ? '/api/auth/admin/login' : '/api/auth/login';
+  const data = await apiFetch<AuthLoginResponse>(endpoint, {
     method: 'POST',
     body: JSON.stringify({ email: normalizedEmail, password, tenantId: options?.tenantId, tenantSlug: options?.tenantSlug }),
     headers: {
