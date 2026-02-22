@@ -12,6 +12,7 @@ export type LoginApiSuccessResponse = {
 
 export class LoginOtpRequiredResponseDto {
   status!: 'OTP_REQUIRED';
+  challengeRequired!: true;
   challengeId!: string;
   channel!: 'email';
   expiresAt!: string;

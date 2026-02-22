@@ -166,6 +166,31 @@ export class AuthController {
   }
 
 
+
+  @Throttle({ default: { limit: 8, ttl: 60_000 } })
+  @Post('2fa/send')
+  async sendTwoFactorOtp(
+    @Req() req: Request,
+    @Body() body: ResendLoginOtpDto,
+  ): Promise<ResendLoginOtpResponseDto> {
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    this.sensitiveRateLimitService.check(`2fa-send:${ipKey}:${body.challengeId}`, 8, 15 * 60_000);
+    return this.authService.resendLoginOtp(body, context);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('2fa/verify')
+  async verifyTwoFactorOtp(
+    @Req() req: Request,
+    @Body() body: VerifyLoginOtpDto,
+  ): Promise<LoginSuccessResponseDto> {
+    const context = getRequestContext(req);
+    const ipKey = context.ip ?? 'unknown';
+    this.sensitiveRateLimitService.check(`2fa-verify:${ipKey}:${body.challengeId}`, 12, 15 * 60_000);
+    return this.authService.verifyLoginOtp(body, context);
+  }
+
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login/otp/verify')
   async verifyLoginOtp(

@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomInt } from 'crypto';
 import { ActiveMode, AuditActorType, Membership, MembershipRole, MembershipStatus, Organization, PlanKey, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,6 +28,10 @@ const RESEND_VERIFICATION_RESPONSE = {
 };
 
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
+const TWO_FACTOR_OTP_EXPIRY_SECONDS = 10 * 60;
+const TWO_FACTOR_SEND_COOLDOWN_SECONDS = 60;
+const TWO_FACTOR_MAX_VERIFY_ATTEMPTS = 5;
+
 
 
 function generateVerificationToken(): { rawToken: string; tokenHash: string; expiresAt: Date } {
@@ -314,6 +318,30 @@ export class AuthService implements OnModuleInit {
       membershipTenants: tenantStates,
     });
     const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
+
+    if (user.twoFactorEnabled || user.twoStepEmailEnabled) {
+      const challenge = await this.createLoginOtpChallengeForUser(
+        { id: user.id, email: user.email },
+        {
+          adminOnly: false,
+          tenantId: activeContext?.tenantId ?? null,
+          tenantSlug: input.tenantSlug ?? null,
+          purpose: 'LOGIN_2SV',
+        },
+        context,
+      );
+
+      return {
+        status: 'OTP_REQUIRED',
+        challengeRequired: true,
+        challengeId: challenge.challengeId,
+        channel: 'email',
+        expiresAt: challenge.expiresAt.toISOString(),
+        resendAvailableAt: challenge.resendAvailableAt?.toISOString(),
+        maskedEmail: this.maskEmail(user.email),
+      };
+    }
+
     const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: context?.ip, userAgent: context?.userAgent });
 
     this.auditService.log({
@@ -479,25 +507,139 @@ export class AuthService implements OnModuleInit {
     return loginResponse;
   }
 
-  async verifyLoginOtp(_dto: VerifyLoginOtpDto, _meta?: { ip?: string; userAgent?: string }): Promise<LoginSuccessResponseDto> {
-    throw new Error('Not implemented');
+  async verifyLoginOtp(dto: VerifyLoginOtpDto, meta?: { ip?: string; userAgent?: string }): Promise<LoginSuccessResponseDto> {
+    const now = new Date();
+    const challenge = await this.prisma.twoFactorChallenge.findFirst({
+      where: { id: dto.challengeId, consumedAt: null },
+      include: { user: true },
+    });
+
+    if (!challenge) {
+      throw new BadRequestException({ code: 'OTP_CHALLENGE_NOT_FOUND', message: 'Challenge not found.' });
+    }
+
+    if (challenge.verifyLockedUntil && challenge.verifyLockedUntil > now) {
+      throw new ForbiddenException({ code: 'OTP_ATTEMPTS_EXCEEDED', message: 'Too many invalid attempts. Request a new code.' });
+    }
+
+    if (challenge.expiresAt <= now) {
+      throw new BadRequestException({ code: 'OTP_EXPIRED', message: 'Code expired. Request a new code.' });
+    }
+
+    if (challenge.attempts >= TWO_FACTOR_MAX_VERIFY_ATTEMPTS) {
+      await this.prisma.twoFactorChallenge.update({ where: { id: challenge.id }, data: { verifyLockedUntil: new Date(now.getTime() + 15 * 60_000) } });
+      throw new ForbiddenException({ code: 'OTP_ATTEMPTS_EXCEEDED', message: 'Too many invalid attempts. Request a new code.' });
+    }
+
+    if (this.hashOtp(dto.otp) !== challenge.otpHash) {
+      const attempts = challenge.attempts + 1;
+      await this.prisma.twoFactorChallenge.update({
+        where: { id: challenge.id },
+        data: {
+          attempts,
+          verifyLockedUntil: attempts >= TWO_FACTOR_MAX_VERIFY_ATTEMPTS ? new Date(now.getTime() + 15 * 60_000) : null,
+        },
+      });
+      throw new UnauthorizedException({ code: 'OTP_INVALID', message: 'Invalid code.' });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.twoFactorChallenge.update({ where: { id: challenge.id }, data: { consumedAt: now } }),
+      this.prisma.user.update({ where: { id: challenge.userId }, data: { lastTwoStepAt: now } }),
+    ]);
+
+    const user = challenge.user;
+    const memberships = await this.prisma.membership.findMany({ where: { userId: user.id, status: MembershipStatus.ACTIVE }, orderBy: { createdAt: 'asc' } });
+    const activeContext = await this.resolveLoginContext({ user, memberships, membershipTenants: [], tenantIdOverride: undefined, tenantSlugOverride: undefined });
+    const resolvedRole = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService)) ? Role.PLATFORM_ADMIN : user.role;
+    const refreshToken = await this.refreshTokenService.issue(user.id, { ipAddress: meta?.ip, userAgent: meta?.userAgent });
+
+    return {
+      status: 'SUCCESS',
+      accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext, ActiveMode.OWNER, user.qaBypass),
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: resolvedRole,
+        orgId: activeContext?.tenantId ?? '',
+        emailVerified: Boolean(user.emailVerifiedAt),
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+        qaBypass: user.qaBypass,
+      },
+      memberships: memberships.map((membership) => this.toMembershipDto(membership)),
+      activeContext,
+    };
   }
 
-  async resendLoginOtp(_dto: ResendLoginOtpDto, _meta?: { ip?: string; userAgent?: string }): Promise<ResendLoginOtpResponseDto> {
-    throw new Error('Not implemented');
+  async resendLoginOtp(dto: ResendLoginOtpDto, meta?: { ip?: string; userAgent?: string }): Promise<ResendLoginOtpResponseDto> {
+    const now = new Date();
+    const challenge = await this.prisma.twoFactorChallenge.findFirst({ where: { id: dto.challengeId, consumedAt: null }, include: { user: { select: { email: true } } } });
+    if (!challenge) {
+      throw new BadRequestException({ code: 'OTP_CHALLENGE_NOT_FOUND', message: 'Challenge not found.' });
+    }
+
+    if (challenge.sendLockedUntil && challenge.sendLockedUntil > now) {
+      throw new BadRequestException({ code: 'OTP_SEND_RATE_LIMITED', message: 'Please wait before requesting another code.' });
+    }
+
+    const otp = this.generateOtp();
+    const expiresAt = new Date(now.getTime() + TWO_FACTOR_OTP_EXPIRY_SECONDS * 1000);
+    const resendAvailableAt = new Date(now.getTime() + TWO_FACTOR_SEND_COOLDOWN_SECONDS * 1000);
+
+    await this.prisma.twoFactorChallenge.update({
+      where: { id: challenge.id },
+      data: {
+        otpHash: this.hashOtp(otp),
+        expiresAt,
+        sendCount: { increment: 1 },
+        sendLockedUntil: resendAvailableAt,
+        requestedFromIp: meta?.ip,
+        requestedUserAgent: meta?.userAgent,
+      },
+    });
+
+    await this.sendLoginOtpEmail(challenge.user.email, otp);
+
+    return {
+      challengeId: challenge.id,
+      expiresAt: expiresAt.toISOString(),
+      resendAvailableAt: resendAvailableAt.toISOString(),
+      channel: 'email',
+      maskedEmail: this.maskEmail(challenge.user.email),
+      resent: true,
+    };
   }
 
   private async createLoginOtpChallengeForUser(
-    _user: { id: string; email: string },
+    user: { id: string; email: string },
     _options: {
       adminOnly?: boolean;
       tenantId?: string | null;
       tenantSlug?: string | null;
       purpose: 'LOGIN_2SV' | 'ADMIN_LOGIN_2SV';
     },
-    _meta?: { ip?: string; userAgent?: string },
+    meta?: { ip?: string; userAgent?: string },
   ): Promise<{ challengeId: string; otp: string; expiresAt: Date; resendAvailableAt?: Date }> {
-    throw new Error('Not implemented');
+    const now = new Date();
+    const otp = this.generateOtp();
+    const expiresAt = new Date(now.getTime() + TWO_FACTOR_OTP_EXPIRY_SECONDS * 1000);
+    const resendAvailableAt = new Date(now.getTime() + TWO_FACTOR_SEND_COOLDOWN_SECONDS * 1000);
+
+    const challenge = await this.prisma.twoFactorChallenge.create({
+      data: {
+        userId: user.id,
+        otpHash: this.hashOtp(otp),
+        expiresAt,
+        sendCount: 0,
+        sendLockedUntil: null,
+        verifyLockedUntil: null,
+        requestedFromIp: meta?.ip,
+        requestedUserAgent: meta?.userAgent,
+      },
+    });
+
+    return { challengeId: challenge.id, otp, expiresAt, resendAvailableAt };
   }
 
   async registerWithInvite(
@@ -1097,6 +1239,34 @@ export class AuthService implements OnModuleInit {
     }
 
     return `${localPart.slice(0, 2)}***@${domain}`;
+  }
+
+
+  private generateOtp(): string {
+    return randomInt(100000, 1000000).toString();
+  }
+
+  private hashOtp(otp: string): string {
+    return createHash('sha256').update(otp).digest('hex');
+  }
+
+  private async sendLoginOtpEmail(to: string, otp: string): Promise<void> {
+    await this.emailService.sendTemplatedActionEmail({
+      to,
+      template: 'login_2fa_otp',
+      subject: 'Your Gymstack login verification code',
+      title: 'Verify your login',
+      intro: `Use this code to finish signing in: ${otp}. It expires in ${Math.floor(TWO_FACTOR_OTP_EXPIRY_SECONDS / 60)} minutes.`,
+      buttonLabel: 'Open login',
+      link: '/login',
+    });
+  }
+
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (!local || !domain) return '***';
+    if (local.length <= 2) return `${local[0] ?? '*'}***@${domain}`;
+    return `${local.slice(0, 2)}***@${domain}`;
   }
 
   private hashEmailForLogs(email: string): string {
