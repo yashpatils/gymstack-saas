@@ -82,7 +82,7 @@ export async function login(email: string, password: string, options?: LoginOpti
 }
 
 export async function verifyLoginOtp(challengeId: string, otp: string): Promise<VerifyLoginOtpResult> {
-  const data = await apiFetch<AuthLoginResponse>('/api/auth/login/otp/verify', {
+  const data = await apiFetch<AuthLoginResponse>('/api/auth/2fa/verify', {
     method: 'POST',
     body: JSON.stringify({ challengeId, otp }),
     headers: {
@@ -96,7 +96,7 @@ export async function verifyLoginOtp(challengeId: string, otp: string): Promise<
 }
 
 export async function resendLoginOtp(challengeId: string): Promise<ResendLoginOtpResult> {
-  return apiFetch<ResendLoginOtpResult>('/api/auth/login/otp/resend', {
+  return apiFetch<ResendLoginOtpResult>('/api/auth/2fa/send', {
     method: 'POST',
     body: JSON.stringify({ challengeId }),
     headers: {

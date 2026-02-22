@@ -218,6 +218,15 @@ function LoginPageContent() {
                 resendAvailableAt: result.resendAvailableAt,
               });
               setOtp('');
+              try {
+                const sent = await resendLoginOtp(result.challengeId);
+                setFlow((prev) => prev.step === 'OTP'
+                  ? { ...prev, challengeId: sent.challengeId, maskedEmail: sent.maskedEmail, expiresAt: sent.expiresAt, resendAvailableAt: sent.resendAvailableAt }
+                  : prev);
+                setOtpInfo('A verification code was sent to your email.');
+              } catch {
+                setOtpError('We could not send the verification code. Please try resend.');
+              }
               return;
             }
 

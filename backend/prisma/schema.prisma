@@ -270,6 +270,9 @@ model User {
   twoStepEmailEnabled             Boolean                  @default(false)
   twoStepEmailEnabledAt           DateTime?
   lastTwoStepAt                   DateTime?
+  twoFactorEnabled                Boolean                  @default(false)
+  twoFactorMethod                 String?
+  twoFactorEnrolledAt             DateTime?
   organization                    Organization?            @relation(fields: [orgId], references: [id], onDelete: SetNull)
   memberships                     Membership[]
   gyms                            Gym[]
@@ -303,10 +306,33 @@ model User {
   pendingEmailChanges             PendingEmailChange[]
   pendingSensitiveChanges         PendingSensitiveChange[]
   loginOtpChallenges              LoginOtpChallenge[]
+  twoFactorChallenges             TwoFactorChallenge[]
 
   @@index([orgId])
   @@index([deletedAt])
   @@index([deletionRequestedAt])
+}
+
+model TwoFactorChallenge {
+  id                 String   @id @default(cuid())
+  userId             String
+  otpHash            String   @db.VarChar(64)
+  expiresAt          DateTime
+  attempts           Int      @default(0)
+  sendCount          Int      @default(0)
+  sendLockedUntil    DateTime?
+  verifyLockedUntil  DateTime?
+  consumedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  requestedFromIp    String?  @db.VarChar(64)
+  requestedUserAgent String?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@index([consumedAt, expiresAt])
+  @@map("two_factor_challenges")
 }
 
 model PendingEmailChange {
