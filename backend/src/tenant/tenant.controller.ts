@@ -50,4 +50,10 @@ export class TenantController {
   slugAvailability(@Req() req: { user: User }, @Query('slug') slug?: string) {
     return this.tenantService.checkSlugAvailability(req.user, slug ?? '');
   }
+
+  @VerifiedEmailRequired()
+  @Get('tenants/slug-availability')
+  slugAvailabilityV2(@Req() req: { user: User }, @Query('slug') slug?: string) {
+    return this.tenantService.checkSlugAvailability(req.user, slug ?? '');
+  }
 }

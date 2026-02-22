@@ -108,7 +108,7 @@ export class TenantService {
     return { ok: true, role: result.role, tenantId: result.tenantId, locationId: result.locationId || null };
   }
 
-  async checkSlugAvailability(requester: User, slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; reason?: string }> {
+  async checkSlugAvailability(requester: User, slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; validFormat: boolean; reason?: string }> {
     const tenantId = requester.activeTenantId ?? requester.orgId;
     if (!tenantId) {
       throw new ForbiddenException('Missing tenant context');
@@ -120,6 +120,7 @@ export class TenantService {
         slug: (slugRaw ?? '').trim().toLowerCase(),
         available: false,
         reserved: validation.reason.toLowerCase().includes('reserved'),
+        validFormat: false,
         reason: validation.reason,
       };
     }
@@ -131,6 +132,7 @@ export class TenantService {
       slug: validation.slug,
       available,
       reserved: false,
+      validFormat: true,
       reason: available ? undefined : 'This slug is already in use',
     };
   }
