@@ -43,7 +43,7 @@ export function LocationAppShell({
           <PlatformAccountDropdown
             label={accountName}
             initials={accountInitials}
-            onLogout={() => undefined}
+            onLogout={async () => {}}
           />
         </div>
       }
