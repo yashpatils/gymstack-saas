@@ -11,6 +11,12 @@ import {
   SectionTitle,
 } from "../../components/ui";
 import { useBackendAction } from "../../components/use-backend-action";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { getFeatureFlags, isFeatureEnabled, type FeatureFlags } from "@/src/lib/featureFlags";
+import { TenantSlugEditor } from "@/src/components/settings/TenantSlugEditor";
+import { TwoStepEmailToggle } from "@/src/components/settings/TwoStepEmailToggle";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 
 const rolePermissions = [
   {
@@ -92,6 +98,30 @@ const auditRows = [
 
 export default function TenantSettingsPage() {
   const { backendResponse, callBackend } = useBackendAction();
+  const { activeContext, activeTenant, permissions, permissionKeys, user } = useAuth();
+  const params = useParams<{ tenant: string }>();
+  const [flags, setFlags] = useState<FeatureFlags>({});
+  const [slugOverride, setSlugOverride] = useState<string | null>(null);
+  const [twoStepEnabled, setTwoStepEnabled] = useState(false);
+
+  useEffect(() => {
+    setTwoStepEnabled(Boolean((user as { twoStepEmailEnabled?: boolean } | null)?.twoStepEmailEnabled));
+  }, [user]);
+
+  useEffect(() => {
+    void getFeatureFlags().then(setFlags).catch(() => setFlags({}));
+  }, []);
+
+  const tenantId = activeContext?.tenantId ?? activeTenant?.id ?? null;
+  const tenantSlug = slugOverride ?? (typeof params?.tenant === "string" ? params.tenant : "your-gym");
+  const canManageTenantSettings = permissions.canManageTenant || permissionKeys.includes('tenant:manage');
+  const canManageSecurity = permissionKeys.includes('security:manage') || permissions.canManageUsers || permissions.canManageTenant;
+
+  const slugFeatureEnabled = useMemo(() => (
+    isFeatureEnabled(flags, 'FEATURE_TENANT_SLUG_EDITOR') && isFeatureEnabled(flags, 'FEATURE_SECURE_PROFILE_UPDATES')
+  ), [flags]);
+
+  const twoStepFeatureEnabled = useMemo(() => isFeatureEnabled(flags, 'FEATURE_EMAIL_2SV'), [flags]);
 
   return (
     <PageShell>
@@ -112,6 +142,28 @@ export default function TenantSettingsPage() {
           </div>
         }
       />
+      {tenantId ? (
+        <section className="section">
+          <SectionTitle>Account security</SectionTitle>
+          <div className="grid gap-4">
+            <TenantSlugEditor
+              tenantId={tenantId}
+              currentSlug={tenantSlug}
+              canEdit={canManageTenantSettings}
+              featureEnabled={slugFeatureEnabled}
+              onSlugChanged={(nextSlug) => setSlugOverride(nextSlug)}
+            />
+            <TwoStepEmailToggle
+              enabled={twoStepEnabled}
+              featureEnabled={twoStepFeatureEnabled}
+              canManageSecurity={canManageSecurity}
+              emailMaskedHint={user?.email}
+              onChanged={setTwoStepEnabled}
+            />
+          </div>
+        </section>
+      ) : null}
+
       {backendResponse ? (
         <p className="text-sm text-slate-400">
           Backend response: {backendResponse}

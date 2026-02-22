@@ -33,6 +33,7 @@ export type AuthUser = {
   orgId?: string | null;
   emailVerifiedAt?: string | null;
   qaBypass?: boolean;
+  twoStepEmailEnabled?: boolean;
 };
 
 export type GatingStatus = {
