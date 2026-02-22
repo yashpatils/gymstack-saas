@@ -166,13 +166,13 @@ export function AppHeader({
                     </div>
                   ) : null}
                   <div className="mb-2 rounded-lg border border-border px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Theme</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/80">Theme</p>
                     <div className="mt-2 flex gap-1 rounded-lg bg-muted p-1">
                       {themeOptions.map((option) => (
                         <button
                           key={option.mode}
                           type="button"
-                          className={`rounded-md px-2 py-1 text-xs ${themeMode === option.mode ? "bg-primary/20 text-foreground" : "text-muted-foreground hover:bg-background/60"}`}
+                          className={`rounded-md px-2 py-1 text-xs transition-colors ${themeMode === option.mode ? "bg-indigo-600 text-white" : "text-white/80 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white"}`}
                           onClick={(event) => {
                             event.stopPropagation();
                             setThemeMode(option.mode);
@@ -182,13 +182,13 @@ export function AppHeader({
                         </button>
                       ))}
                     </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Current: {effectiveTheme}</p>
+                    <p className="mt-1 text-[11px] text-white/75">Current: {effectiveTheme}</p>
                   </div>
                   {accountLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-current hover:bg-white/10"
+                      className="mt-1 block rounded-lg px-3 py-2 text-sm text-current hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white"
                       onClick={() => setIsAccountMenuOpen(false)}
                     >
                       {link.label}
