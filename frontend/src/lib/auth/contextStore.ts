@@ -46,7 +46,7 @@ export function setStoredActiveContext(context: ActiveContext | undefined): void
   window.localStorage.setItem(ACTIVE_CONTEXT_STORAGE_KEY, JSON.stringify(context));
 
   const tenantLocationContext: TenantLocationContext = {
-    activeOrgId: context.tenantId,
+    activeOrgId: context.tenantId ?? undefined,
     activeGymId: (context.locationId ?? context.gymId) ?? undefined,
     activeRole: context.role ?? undefined,
     orgSelectedAt: new Date().toISOString(),
