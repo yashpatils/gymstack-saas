@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useAuth } from "../../../../src/providers/AuthProvider";
 import AppShell from "../../../../src/components/shell/AppShell";
 import { ShellIcon } from "../../../../src/components/shell/ShellIcon";
 import type { AppNavItem } from "../../../../src/components/shell/nav-config";
@@ -32,6 +33,8 @@ export function LocationAppShell({
   accountInitials,
   children,
 }: LocationAppShellProps) {
+  const { logout } = useAuth();
+
   return (
     <AppShell
       items={mapLocationNavItems(navItems)}
@@ -43,7 +46,7 @@ export function LocationAppShell({
           <PlatformAccountDropdown
             label={accountName}
             initials={accountInitials}
-            onLogout={async () => {}}
+            onLogout={logout}
           />
         </div>
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/src/components/common/PageHeader";
 import { SectionCard } from "@/src/components/common/SectionCard";
@@ -15,6 +16,7 @@ const helperClass = "text-sm text-slate-600 dark:text-slate-300";
 const emptyValueClass = "text-slate-400 dark:text-slate-500";
 
 export default function PlatformAccountPage() {
+  const router = useRouter();
   const { user, memberships, activeContext, platformRole, tenantFeatures, logout, refreshUser } = useAuth();
   const { pushToast } = useToast();
   const [editingName, setEditingName] = useState(false);
@@ -114,6 +116,12 @@ export default function PlatformAccountPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
+    router.refresh();
+  };
+
   return (
     <section className="space-y-6">
       <PageHeader title="Account info" subtitle="Your user profile, workspace context, and membership summary." />
@@ -176,7 +184,7 @@ export default function PlatformAccountPage() {
         <p className={helperClass}>Manage active sessions from this account center.</p>
         <div className="mt-3 flex gap-2">
           <Link href="/platform/settings" className="button secondary button-sm">Open settings</Link>
-          <button type="button" className="button button-sm" onClick={logout}>Logout</button>
+          <button type="button" className="button button-sm" onClick={() => void handleLogout()}>Logout</button>
         </div>
       </SectionCard>
 
