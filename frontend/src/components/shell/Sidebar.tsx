@@ -71,13 +71,13 @@ export function SidebarContent({ items, pathname, title, subtitle, collapsed, on
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className={`platform-nav-item ${active ? "platform-nav-item-active" : ""}`}
+                        className={`platform-nav-item group ${active ? "platform-nav-item-active" : ""}`}
                         onClick={onNavigate}
                         aria-current={active ? "page" : undefined}
                         title={collapsed ? item.label : undefined}
                       >
-                        <span aria-hidden="true" className="mr-2 inline-flex w-4 items-center justify-center text-current [&_svg]:text-current">{item.icon}</span>
-                        <span className={`${collapsed ? "sr-only" : ""} text-current`}>{item.label}</span>
+                        <span aria-hidden="true" className="relative z-10 mr-2 inline-flex w-4 items-center justify-center text-current [&_svg]:text-current">{item.icon}</span>
+                        <span className={`relative z-10 ${collapsed ? "sr-only" : ""} text-current`}>{item.label}</span>
                       </Link>
                     </li>
                   );

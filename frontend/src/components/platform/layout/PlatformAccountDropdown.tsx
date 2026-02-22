@@ -102,10 +102,10 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
               className="gs-account-dropdown z-[9999] overflow-y-auto rounded-2xl p-2"
               onClick={(event) => event.stopPropagation()}
             >
-              <Link href="/platform/account" className="block rounded-xl px-3 py-2 text-sm text-current hover:bg-white/5 focus:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+              <Link href="/platform/account" className="block rounded-xl px-3 py-2 text-sm text-current hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
                 Account info
               </Link>
-              <Link href="/platform/settings" className="mt-1 block rounded-xl px-3 py-2 text-sm text-current hover:bg-white/5 focus:bg-white/10" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+              <Link href="/platform/settings" className="mt-1 block rounded-xl px-3 py-2 text-sm text-current hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
                 Settings
               </Link>
               <button

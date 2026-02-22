@@ -68,7 +68,7 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
                 prefetch
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground transition-colors",
+                  "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-900 transition-colors dark:text-slate-100",
                   "hover:bg-indigo-600 hover:text-white focus-visible:bg-indigo-600 focus-visible:text-white focus-visible:outline-none",
                   "[&_svg]:text-current [&_span]:text-current",
                   "hover:[&_svg]:!text-white hover:[&_span]:!text-white",
