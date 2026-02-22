@@ -20,11 +20,13 @@ export default function SelectLocationPage() {
     return null;
   }
 
+  const { tenantId } = activeContext;
+
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-6 text-white">
       <h1 className="text-2xl font-semibold">Select location</h1>
-      <p className="text-sm text-slate-300">Choose your active location for {activeContext.tenantId}.</p>
-      <button className="button secondary" type="button" onClick={async () => { await chooseContext(activeContext.tenantId); router.push('/platform'); }}>
+      <p className="text-sm text-slate-300">Choose your active location for {tenantId}.</p>
+      <button className="button secondary" type="button" onClick={async () => { await chooseContext(tenantId); router.push('/platform'); }}>
         Continue without location
       </button>
       <div className="grid gap-3">
