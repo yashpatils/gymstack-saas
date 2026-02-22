@@ -54,6 +54,31 @@ export class EmailService {
   }
 
 
+
+  async sendEmailChangeOtp(payload: { to: string; otp: string; expiresInSeconds: number }): Promise<void> {
+    await this.sendTemplatedActionEmail({
+      to: payload.to,
+      template: 'email_change_otp',
+      subject: 'Your Gymstack email change code',
+      title: 'Confirm your new email',
+      intro: `Use this one-time code to confirm your new email address: ${payload.otp}. It expires in ${Math.floor(payload.expiresInSeconds / 60)} minutes.`,
+      buttonLabel: 'Open account settings',
+      link: `${this.emailConfig.appUrl}/platform/account`,
+    });
+  }
+
+  async sendEmailChangedNotice(payload: { to: string; newEmail: string }): Promise<void> {
+    await this.sendTemplatedActionEmail({
+      to: payload.to,
+      template: 'email_change_notice',
+      subject: 'Your Gymstack email was changed',
+      title: 'Email address changed',
+      intro: `Your Gymstack sign-in email was changed to ${payload.newEmail}. If this was not you, please reset your password immediately and contact support.`,
+      buttonLabel: 'Review account security',
+      link: `${this.emailConfig.appUrl}/platform/account`,
+    });
+  }
+
   async sendDeleteAccountEmail(payload: { to: string; name?: string; token: string }): Promise<void> {
     const link = `${this.emailConfig.appUrl}/confirm-delete-account?token=${encodeURIComponent(payload.token)}`;
     await this.sendTemplatedActionEmail({ to: payload.to, name: payload.name, template: 'delete_account', subject: 'Confirm your Gymstack account deletion', title: 'Confirm account deletion', intro: 'We received a request to delete your account. Confirm this action using the button below.', buttonLabel: 'Confirm deletion', link });
