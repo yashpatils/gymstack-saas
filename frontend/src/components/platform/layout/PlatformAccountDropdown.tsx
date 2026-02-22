@@ -9,7 +9,7 @@ import { useOnClickOutside } from "../../../hooks/useOnClickOutside";
 type PlatformAccountDropdownProps = {
   label: string;
   initials: string;
-  onLogout: () => Promise<void>;
+  onLogout: () => void | Promise<void>;
 };
 
 export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformAccountDropdownProps) {
