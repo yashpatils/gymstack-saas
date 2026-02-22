@@ -1,6 +1,6 @@
 import { ApiFetchError, apiFetch, buildApiUrl, configureApiAuth } from './apiFetch';
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth/tokenStore';
-import type { ActiveContext, AuthLoginResponse, AuthMeResponse, AuthUser } from '../types/auth';
+import type { ActiveContext, AuthLoginResponse, AuthLoginUnionResponse, AuthMeResponse, AuthUser } from '../types/auth';
 
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -52,10 +52,28 @@ export async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-export async function login(email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships']; emailDeliveryWarning?: string }> {
+export type FrontendLoginResult =
+  | {
+      status: 'SUCCESS';
+      token: string;
+      user: AuthUser;
+      memberships: AuthMeResponse['memberships'];
+      activeContext?: ActiveContext;
+      emailDeliveryWarning?: string;
+    }
+  | {
+      status: 'OTP_REQUIRED';
+      challengeId: string;
+      channel: 'email';
+      expiresAt: string;
+      resendAvailableAt?: string;
+      maskedEmail: string;
+    };
+
+export async function login(email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }): Promise<FrontendLoginResult> {
   const normalizedEmail = email.trim();
   const endpoint = options?.adminOnly ? '/api/auth/admin/login' : '/api/auth/login';
-  const data = await apiFetch<AuthLoginResponse>(endpoint, {
+  const data = await apiFetch<AuthLoginResponse | AuthLoginUnionResponse>(endpoint, {
     method: 'POST',
     body: JSON.stringify({ email: normalizedEmail, password, tenantId: options?.tenantId, tenantSlug: options?.tenantSlug }),
     headers: {
@@ -63,14 +81,45 @@ export async function login(email: string, password: string, options?: { adminOn
     },
   });
 
-  setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  if ('status' in data && data.status === 'OTP_REQUIRED') {
+    return data;
+  }
+
+  const successPayload = 'status' in data ? data : { ...data, status: 'SUCCESS' as const };
+  setAuthTokens({ accessToken: successPayload.accessToken, refreshToken: successPayload.refreshToken });
   return {
-    token: data.accessToken,
-    user: data.user,
-    activeContext: data.activeContext,
-    memberships: data.memberships,
-    emailDeliveryWarning: data.emailDeliveryWarning,
+    status: 'SUCCESS',
+    token: successPayload.accessToken,
+    user: successPayload.user,
+    activeContext: successPayload.activeContext,
+    memberships: successPayload.memberships,
+    emailDeliveryWarning: successPayload.emailDeliveryWarning,
   };
+}
+
+export async function verifyLoginOtp(challengeId: string, otp: string): Promise<{ token: string; user: AuthUser; memberships: AuthMeResponse['memberships']; activeContext?: ActiveContext }> {
+  const data = await apiFetch<AuthLoginResponse>('/api/auth/login/otp/verify', {
+    method: 'POST',
+    body: JSON.stringify({ challengeId, otp }),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  });
+
+  setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  return { token: data.accessToken, user: data.user, memberships: data.memberships, activeContext: data.activeContext };
+}
+
+export async function resendLoginOtp(challengeId: string): Promise<{ challengeId: string; expiresAt: string; resendAvailableAt?: string; maskedEmail: string; channel: 'email'; resent: true }> {
+  return apiFetch<{ challengeId: string; expiresAt: string; resendAvailableAt?: string; maskedEmail: string; channel: 'email'; resent: true }>('/api/auth/login/otp/resend', {
+    method: 'POST',
+    body: JSON.stringify({ challengeId }),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  });
 }
 
 

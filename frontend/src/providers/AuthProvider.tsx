@@ -22,6 +22,7 @@ import {
   resendVerification as resendVerificationRequest,
   setContext as setContextRequest,
   signup as signupRequest,
+  type FrontendLoginResult,
   type SignupRole,
   verifyEmail as verifyEmailRequest,
 } from '../lib/auth';
@@ -64,7 +65,7 @@ type AuthContextValue = {
   effectiveAccess?: boolean;
   gatingStatus?: GatingStatus;
   qaModeEnabled: boolean;
-  login: (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
+  login: (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => Promise<FrontendLoginResult | { status: 'SUCCESS'; user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   signup: (email: string, password: string, role?: SignupRole, inviteToken?: string) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext; emailDeliveryWarning?: string }>;
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, locationId?: string, mode?: 'OWNER' | 'MANAGER') => Promise<void>;
@@ -382,16 +383,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => {
     authDebugLog('login:start');
-    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password, {
+    const loginResult = await loginRequest(email, password, {
       adminOnly: options?.adminOnly,
       tenantId: options?.tenantId,
       tenantSlug: options?.tenantSlug,
     });
+
+    if (loginResult.status === 'OTP_REQUIRED') {
+      return loginResult;
+    }
+
+    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = loginResult;
     setToken(authToken);
     await hydrateFromMe();
     authDebugLog('login:success', { userId: loggedInUser.id });
     await track('login_success', { role: loggedInUser.role ?? undefined });
-    return { user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
+    return { status: 'SUCCESS' as const, user: loggedInUser, memberships: normalizeMemberships(nextMemberships), activeContext: nextActiveContext };
   }, [authDebugLog, hydrateFromMe, normalizeMemberships]);
 
   const signup = useCallback(async (email: string, password: string, role?: SignupRole, inviteToken?: string) => {

@@ -147,6 +147,30 @@ export type AuthMeResponse = {
   billing: AuthBillingSummary;
 };
 
+
+
+export type LoginApiSuccessResponse = {
+  status: 'SUCCESS';
+  accessToken: string;
+  refreshToken?: string;
+  user: AuthUser;
+  memberships: Membership[];
+  activeContext?: ActiveContext;
+  activeTenant?: ActiveTenant;
+  activeLocation?: ActiveLocation;
+  emailDeliveryWarning?: string;
+};
+
+export type LoginApiOtpRequiredResponse = {
+  status: 'OTP_REQUIRED';
+  challengeId: string;
+  channel: 'email';
+  expiresAt: string;
+  resendAvailableAt?: string;
+  maskedEmail: string;
+};
+
+export type AuthLoginUnionResponse = LoginApiSuccessResponse | LoginApiOtpRequiredResponse;
 export type AuthLoginResponse = {
   accessToken: string;
   refreshToken?: string;
