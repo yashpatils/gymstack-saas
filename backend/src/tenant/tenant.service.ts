@@ -7,6 +7,15 @@ import { CreateInviteDto } from '../invites/dto/create-invite.dto';
 import { AuditService } from '../audit/audit.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { validateTenantSlug } from '../common/slug.util';
+import { SlugAvailabilityQueryDto, SlugAvailabilityResponseDto } from './dto/slug-availability.dto';
+import { RequestTenantSlugChangeDto, RequestTenantSlugChangeResponseDto } from './dto/request-tenant-slug-change.dto';
+import { VerifyTenantSlugChangeDto, VerifyTenantSlugChangeResponseDto } from './dto/verify-tenant-slug-change.dto';
+import { ResendTenantSlugChangeOtpDto, ResendTenantSlugChangeOtpResponseDto } from './dto/resend-tenant-slug-change.dto';
+
+export type RequestContextMeta = {
+  ip?: string;
+  userAgent?: string;
+};
 
 @Injectable()
 export class TenantService {
@@ -135,5 +144,41 @@ export class TenantService {
       validFormat: true,
       reason: available ? undefined : 'This slug is already in use',
     };
+  }
+
+  async getSlugAvailability(requesterUserId: string, query: SlugAvailabilityQueryDto): Promise<SlugAvailabilityResponseDto> {
+    const requester = await this.prisma.user.findUnique({ where: { id: requesterUserId } });
+    if (!requester) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.checkSlugAvailability(requester as User, query.slug);
+  }
+
+  async requestTenantSlugChange(
+    _requester: { id: string; email: string },
+    _tenantId: string,
+    _dto: RequestTenantSlugChangeDto,
+    _meta: RequestContextMeta,
+  ): Promise<RequestTenantSlugChangeResponseDto> {
+    throw new Error('Not implemented');
+  }
+
+  async verifyTenantSlugChange(
+    _requester: { id: string; email: string },
+    _tenantId: string,
+    _dto: VerifyTenantSlugChangeDto,
+    _meta: RequestContextMeta,
+  ): Promise<VerifyTenantSlugChangeResponseDto> {
+    throw new Error('Not implemented');
+  }
+
+  async resendTenantSlugChangeOtp(
+    _requester: { id: string; email: string },
+    _tenantId: string,
+    _dto: ResendTenantSlugChangeOtpDto,
+    _meta: RequestContextMeta,
+  ): Promise<ResendTenantSlugChangeOtpResponseDto> {
+    throw new Error('Not implemented');
   }
 }

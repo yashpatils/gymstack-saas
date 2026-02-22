@@ -19,6 +19,8 @@ import { RefreshDto } from './dto/refresh.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { SensitiveRateLimitService } from '../common/sensitive-rate-limit.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
+import { ResendLoginOtpDto, ResendLoginOtpResponseDto, VerifyLoginOtpDto } from './dto/login-otp.dto';
+import { LoginResponseUnion, LoginSuccessResponseDto } from './dto/login-response.dto';
 
 function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
   const forwardedFor = req.headers['x-forwarded-for'];
@@ -127,7 +129,7 @@ export class AuthController {
     @Req() req: Request,
     @Query('tenantId') tenantId?: string,
     @Query('tenantSlug') tenantSlug?: string,
-  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+  ): Promise<LoginResponseUnion> {
     // Keep /api/auth/login usable for CLI/Postman-based admin/dev testing flows that do not set X-Requested-With.
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
@@ -150,7 +152,7 @@ export class AuthController {
   async adminLogin(
     @Body() body: LoginDto,
     @Req() req: Request,
-  ): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }; emailDeliveryWarning?: string }> {
+  ): Promise<LoginResponseUnion> {
     const context = getRequestContext(req);
     const ipKey = context.ip ?? 'unknown';
     const emailKey = hashIdentifier(body.email.trim().toLowerCase());
@@ -161,6 +163,25 @@ export class AuthController {
       this.logAuthFailure('POST /api/auth/admin/login', req, error);
       throw error;
     }
+  }
+
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('login/otp/verify')
+  async verifyLoginOtp(
+    @Req() req: Request,
+    @Body() body: VerifyLoginOtpDto,
+  ): Promise<LoginSuccessResponseDto> {
+    return this.authService.verifyLoginOtp(body, getRequestContext(req));
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('login/otp/resend')
+  async resendLoginOtp(
+    @Req() req: Request,
+    @Body() body: ResendLoginOtpDto,
+  ): Promise<ResendLoginOtpResponseDto> {
+    return this.authService.resendLoginOtp(body, getRequestContext(req));
   }
 
   @Throttle({ default: { limit: 8, ttl: 60_000 } })

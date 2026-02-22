@@ -1,3 +1,5 @@
+import { OtpResendDto, OtpVerifyDto } from '../../common/dto/otp.dto';
+
 export type LoginApiSuccessResponse = {
   status: 'SUCCESS';
   accessToken: string;
@@ -8,22 +10,31 @@ export type LoginApiSuccessResponse = {
   requiresWorkspaceSelection?: boolean;
 };
 
-export type LoginApiOtpRequiredResponse = {
-  status: 'OTP_REQUIRED';
-  challengeId: string;
-  channel: 'email';
-  expiresAt: string;
+export class LoginOtpRequiredResponseDto {
+  status!: 'OTP_REQUIRED';
+  challengeId!: string;
+  channel!: 'email';
+  expiresAt!: string;
   resendAvailableAt?: string;
-  maskedEmail: string;
-};
+  maskedEmail!: string;
+}
+
+export type LoginApiOtpRequiredResponse = LoginOtpRequiredResponseDto;
 
 export type LoginApiResponse = LoginApiSuccessResponse | LoginApiOtpRequiredResponse;
 
-export class VerifyLoginOtpBodyDto {
-  challengeId!: string;
-  otp!: string;
-}
+export class VerifyLoginOtpDto extends OtpVerifyDto {}
+export class ResendLoginOtpDto extends OtpResendDto {}
 
-export class ResendLoginOtpBodyDto {
+// Backward-compatible aliases used in existing imports/tests.
+export class VerifyLoginOtpBodyDto extends VerifyLoginOtpDto {}
+export class ResendLoginOtpBodyDto extends ResendLoginOtpDto {}
+
+export class ResendLoginOtpResponseDto {
   challengeId!: string;
+  expiresAt!: string;
+  resendAvailableAt?: string;
+  channel!: 'email';
+  maskedEmail!: string;
+  resent!: true;
 }
