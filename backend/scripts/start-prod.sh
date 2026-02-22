@@ -3,15 +3,37 @@ set -euxo pipefail
 
 resolve_failed_migrations() {
   local failed_migrations
-
-  if ! command -v psql >/dev/null 2>&1; then
-    echo "[start-prod] psql not available — skipping failed migration check"
-    return 0
-  fi
+  local status_output
+  local status_exit_code
 
   if [[ -z "${DATABASE_URL:-}" ]]; then
     echo "[start-prod] Unable to check for failed migrations: DATABASE_URL is not set." >&2
     exit 1
+  fi
+
+  echo "[start-prod] Checking failed migrations via Prisma status"
+  set +e
+  status_output=$(npx prisma migrate status 2>&1)
+  status_exit_code=$?
+  set -e
+
+  if [[ "$status_output" == *"failed migrations"* ]]; then
+    echo "[start-prod] ERROR: Failed Prisma migrations detected. Startup halted." >&2
+    printf '%s\n' "$status_output" >&2
+    return 1
+  fi
+
+  if [[ $status_exit_code -ne 0 ]]; then
+    echo "[start-prod] WARNING: prisma migrate status failed; falling back to direct DB check when possible." >&2
+    printf '%s\n' "$status_output" >&2
+  else
+    echo "[start-prod] No failed Prisma migrations detected via prisma migrate status"
+    return 0
+  fi
+
+  if ! command -v psql >/dev/null 2>&1; then
+    echo "[start-prod] psql not available and prisma migrate status failed — skipping additional failed migration check"
+    return 0
   fi
 
   failed_migrations="$({
