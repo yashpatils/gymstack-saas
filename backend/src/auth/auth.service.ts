@@ -235,6 +235,7 @@ export class AuthService implements OnModuleInit {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? null,
         role: user.role,
         orgId: activeContext?.tenantId ?? '',
         emailVerified: Boolean(user.emailVerifiedAt),
@@ -507,6 +508,7 @@ export class AuthService implements OnModuleInit {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? null,
         role: user.role,
         orgId: activeContext?.tenantId ?? '',
         emailVerified: Boolean(user.emailVerifiedAt),
@@ -876,7 +878,7 @@ export class AuthService implements OnModuleInit {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, status: true, emailVerifiedAt: true, role: true, orgId: true, qaBypass: true },
+      select: { id: true, email: true, name: true, status: true, emailVerifiedAt: true, role: true, orgId: true, qaBypass: true },
     });
     if (!user || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Invalid credentials');
@@ -935,6 +937,7 @@ export class AuthService implements OnModuleInit {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? null,
         role: user.role,
         orgId: user.orgId ?? undefined,
         emailVerified: Boolean(user.emailVerifiedAt),
