@@ -63,7 +63,7 @@ export function GymLoginForm({ tenantId, locationId }: GymLoginFormProps) {
               return;
             }
             case 'SUCCESS': {
-              const role = resolveLoginRole(result.memberships, result.activeContext?.role, result.user.role);
+              const role = resolveLoginRole(normalizeMemberships(result.memberships), result.activeContext?.role, result.user.role);
 
               if (shouldSetLocationContext && tenantId && locationId) {
                 await chooseContext(tenantId, locationId);
@@ -105,8 +105,34 @@ function resolveRoleDestination(role: MembershipRole | string | null | undefined
   return '/platform';
 }
 
+function normalizeMemberships(memberships: Membership[] | CanonicalMemberships): Membership[] {
+  if (Array.isArray(memberships)) {
+    return memberships;
+  }
+
+  const tenantMemberships: Membership[] = memberships.tenant.map((membership, index) => ({
+    id: `tenant-${membership.tenantId}-${index}`,
+    tenantId: membership.tenantId,
+    gymId: null,
+    locationId: null,
+    role: membership.role,
+    status: 'ACTIVE',
+  }));
+
+  const locationMemberships: Membership[] = memberships.location.map((membership, index) => ({
+    id: `location-${membership.locationId}-${index}`,
+    tenantId: membership.tenantId,
+    gymId: membership.locationId,
+    locationId: membership.locationId,
+    role: membership.role,
+    status: 'ACTIVE',
+  }));
+
+  return [...tenantMemberships, ...locationMemberships];
+}
+
 function resolveLoginRole(
-  memberships: Membership[] | CanonicalMemberships,
+  memberships: Membership[],
   activeRole?: MembershipRole | null,
   userRole?: string | null,
 ): MembershipRole | string | null | undefined {
@@ -114,18 +140,8 @@ function resolveLoginRole(
     return activeRole;
   }
 
-  if (Array.isArray(memberships) && memberships.length > 0) {
+  if (memberships.length > 0) {
     return memberships[0]?.role;
-  }
-
-  if (!Array.isArray(memberships)) {
-    if (memberships.location.length > 0) {
-      return memberships.location[0]?.role;
-    }
-
-    if (memberships.tenant.length > 0) {
-      return memberships.tenant[0]?.role;
-    }
   }
 
   return userRole;
