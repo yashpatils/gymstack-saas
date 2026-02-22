@@ -15,7 +15,7 @@ const ADMIN_PUBLIC_ROUTES = [
   '/robots.txt',
   '/sitemap.xml',
 ];
-const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin', '/_admin'];
+const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin', '/_admin', '/settings'];
 const AUTH_TOKEN_COOKIE = 'gymstack_token';
 const REFRESH_TOKEN_COOKIE = 'gymstack_refresh_token';
 
