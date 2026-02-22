@@ -8,7 +8,7 @@ describe('TenantService.checkSlugAvailability', () => {
     gym: { findUnique },
   } as any;
 
-  const service = new TenantService(prisma, {} as any, { log: jest.fn() } as any);
+  const service = new TenantService(prisma, {} as any, { log: jest.fn() } as any, { sendTemplatedActionEmail: jest.fn() } as any);
 
   beforeEach(() => {
     findUnique.mockReset();
@@ -26,6 +26,7 @@ describe('TenantService.checkSlugAvailability', () => {
       slug: 'sunnyvale-strength',
       available: true,
       reserved: false,
+      validFormat: true,
       reason: undefined,
     });
     expect(findUnique).toHaveBeenCalledWith({ where: { slug: 'sunnyvale-strength' }, select: { id: true, orgId: true } });
@@ -41,6 +42,7 @@ describe('TenantService.checkSlugAvailability', () => {
       slug: 'admin',
       available: false,
       reserved: true,
+      validFormat: false,
       reason: 'This slug is reserved',
     });
     expect(findUnique).not.toHaveBeenCalled();
