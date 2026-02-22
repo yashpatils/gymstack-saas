@@ -357,6 +357,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authDebugLog('hydrate:unknown-error');
         }
 
+        if (isMounted && error instanceof ApiFetchError && error.statusCode === 403) {
+          setMeStatus(403);
+          setAuthIssue('INSUFFICIENT_PERMISSIONS');
+          setAuthState('guest');
+          return;
+        }
+
         if (isMounted) {
           clearAuthState();
           setMeStatus(401);
