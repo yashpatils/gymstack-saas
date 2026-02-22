@@ -18,7 +18,11 @@ let handleUnauthorized: (() => void) | null = null;
 let didHandleUnauthorizedRedirect = false;
 
 function shouldSoftHandleUnauthorized(path: string): boolean {
-  return path.startsWith('/api/auth/me') || path.startsWith('/api/auth/refresh');
+  return path.startsWith('/api/auth/me') || path.startsWith('/api/auth/refresh') || path.startsWith('/api/auth/logout');
+}
+
+function isAuthSensitivePath(path: string): boolean {
+  return path.startsWith('/api/auth/');
 }
 
 function handleUnauthorizedResponse(path: string): void {
@@ -266,7 +270,8 @@ export async function apiFetch<T>(
     ...requestInit,
     headers,
     body: requestBody,
-    credentials: init.credentials ?? 'same-origin',
+    credentials: init.credentials ?? (isAuthSensitivePath(path) ? 'include' : 'same-origin'),
+    cache: init.cache ?? (isAuthSensitivePath(path) ? 'no-store' : undefined),
   });
 
   if (response.status === 401 && !skipAuthRetry && refreshAccessToken) {

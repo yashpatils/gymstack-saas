@@ -16,7 +16,7 @@ import {
   acceptInvite as acceptInviteRequest,
   getToken,
   login as loginRequest,
-  logout as clearToken,
+  logout as logoutRequest,
   me as getMe,
   refreshAccessToken,
   resendVerification as resendVerificationRequest,
@@ -69,7 +69,7 @@ type AuthContextValue = {
   acceptInvite: (input: { token: string; password?: string; email?: string; name?: string }) => Promise<{ user: AuthUser; memberships: Membership[]; activeContext?: ActiveContext }>;
   chooseContext: (tenantId: string, locationId?: string, mode?: 'OWNER' | 'MANAGER') => Promise<void>;
   switchMode: (tenantId: string, mode: 'OWNER' | 'MANAGER', locationId?: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<AuthUser | null>;
   verifyEmail: (token: string) => Promise<void>;
   resendVerification: (email: string) => Promise<{ ok: true; message: string; emailDeliveryWarning?: string }>;
@@ -335,8 +335,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!existingToken) {
         authDebugLog('hydrate:no-token');
         clearAuthState();
-        setMeStatus(null);
-        setAuthIssue(null);
+        setMeStatus(401);
+        setAuthIssue('SESSION_EXPIRED');
         setIsLoading(false);
         setIsHydrating(false);
         setAuthState('guest');
@@ -351,32 +351,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         if (error instanceof ApiFetchError) {
-          if (error.statusCode === 403) {
-            authDebugLog('hydrate:403');
-            if (isMounted) {
-              setUser(null);
-              setMemberships([]);
-              setAuthState('authed');
-            }
-          } else if (error.statusCode === 401) {
-            authDebugLog('hydrate:401');
-            if (isMounted) {
-              clearAuthState();
-              setAuthState('guest');
-            }
-            clearToken();
-          } else if (isMounted) {
-            authDebugLog('hydrate:api-error-authed', { statusCode: error.statusCode });
-            setMeStatus(200);
-            setAuthIssue(null);
-            setAuthState('authed');
-          }
-        } else if (isMounted) {
+          authDebugLog('hydrate:api-error', { statusCode: error.statusCode });
+        } else {
           authDebugLog('hydrate:unknown-error');
-          setMeStatus(200);
-          setAuthIssue(null);
-          setAuthState(existingToken ? 'authed' : 'guest');
         }
+
+        if (isMounted) {
+          clearAuthState();
+          setMeStatus(401);
+          setAuthIssue('SESSION_EXPIRED');
+          setAuthState('guest');
+        }
+
+        await logoutRequest();
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -435,21 +422,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     applyMeResponse(me);
   }, [applyMeResponse]);
 
-  const logout = useCallback(() => {
-    authDebugLog('logout');
-    clearToken();
-    setMeStatus(null);
-    setAuthIssue(null);
-    setAuthState('guest');
-    clearAuthState();
+  const logout = useCallback(async () => {
+    authDebugLog('logout:start');
+    try {
+      await logoutRequest();
+    } catch {
+      authDebugLog('logout:api-failed');
+    } finally {
+      clearAuthState();
+      setMeStatus(401);
+      setAuthIssue(null);
+      setAuthState('guest');
+      authDebugLog('logout:complete');
+    }
   }, [authDebugLog, clearAuthState]);
 
   const refreshUser = useCallback(async () => {
     const existingToken = getToken();
     if (!existingToken) {
       clearAuthState();
-      setMeStatus(null);
-      setAuthIssue(null);
+      setMeStatus(401);
+      setAuthIssue('SESSION_EXPIRED');
       return null;
     }
 
@@ -463,8 +456,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
         if (error.statusCode === 401) {
-          clearToken();
+          await logoutRequest();
           clearAuthState();
+          setMeStatus(401);
+          setAuthIssue('SESSION_EXPIRED');
           return null;
         }
       }

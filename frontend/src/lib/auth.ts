@@ -163,7 +163,21 @@ export async function getMe(): Promise<AuthMeResponse> {
   return apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store' });
 }
 
-export function logout(): void {
+export async function logout(refreshToken?: string): Promise<void> {
+  try {
+    await apiFetch<{ ok: true }>('/api/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      skipAuthRetry: true,
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  } catch {
+    // Best-effort logout; local session state is still cleared below.
+  }
   clearTokens();
 }
 
