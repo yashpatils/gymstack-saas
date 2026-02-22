@@ -5,6 +5,10 @@ import { VerifiedEmailRequired } from '../auth/decorators/verified-email-require
 import { User } from '../users/user.model';
 import { TenantService } from './tenant.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { SlugAvailabilityQueryDto, SlugAvailabilityResponseDto } from './dto/slug-availability.dto';
+import { RequestTenantSlugChangeDto, RequestTenantSlugChangeResponseDto } from './dto/request-tenant-slug-change.dto';
+import { VerifyTenantSlugChangeDto, VerifyTenantSlugChangeResponseDto } from './dto/verify-tenant-slug-change.dto';
+import { ResendTenantSlugChangeOtpDto, ResendTenantSlugChangeOtpResponseDto } from './dto/resend-tenant-slug-change.dto';
 
 @Controller()
 export class TenantController {
@@ -53,7 +57,46 @@ export class TenantController {
 
   @VerifiedEmailRequired()
   @Get('tenants/slug-availability')
-  slugAvailabilityV2(@Req() req: { user: User }, @Query('slug') slug?: string) {
-    return this.tenantService.checkSlugAvailability(req.user, slug ?? '');
+  slugAvailabilityV2(@Req() req: { user: User }, @Query() query: SlugAvailabilityQueryDto): Promise<SlugAvailabilityResponseDto> {
+    return this.tenantService.getSlugAvailability(req.user.id, query);
+  }
+
+  @VerifiedEmailRequired()
+  @Post('tenants/:tenantId/slug/change/request')
+  requestTenantSlugChange(
+    @Req() req: { user: User; ip?: string; headers: Record<string, string | string[] | undefined> },
+    @Param('tenantId') tenantId: string,
+    @Body() body: RequestTenantSlugChangeDto,
+  ): Promise<RequestTenantSlugChangeResponseDto> {
+    return this.tenantService.requestTenantSlugChange(req.user, tenantId, body, {
+      ip: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined,
+    });
+  }
+
+  @VerifiedEmailRequired()
+  @Post('tenants/:tenantId/slug/change/verify')
+  verifyTenantSlugChange(
+    @Req() req: { user: User; ip?: string; headers: Record<string, string | string[] | undefined> },
+    @Param('tenantId') tenantId: string,
+    @Body() body: VerifyTenantSlugChangeDto,
+  ): Promise<VerifyTenantSlugChangeResponseDto> {
+    return this.tenantService.verifyTenantSlugChange(req.user, tenantId, body, {
+      ip: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined,
+    });
+  }
+
+  @VerifiedEmailRequired()
+  @Post('tenants/:tenantId/slug/change/resend')
+  resendTenantSlugChangeOtp(
+    @Req() req: { user: User; ip?: string; headers: Record<string, string | string[] | undefined> },
+    @Param('tenantId') tenantId: string,
+    @Body() body: ResendTenantSlugChangeOtpDto,
+  ): Promise<ResendTenantSlugChangeOtpResponseDto> {
+    return this.tenantService.resendTenantSlugChangeOtp(req.user, tenantId, body, {
+      ip: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined,
+    });
   }
 }

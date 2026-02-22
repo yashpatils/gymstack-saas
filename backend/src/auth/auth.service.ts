@@ -16,6 +16,8 @@ import { permissionFlagsToKeys, resolvePermissions } from './permission-resolver
 import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { RefreshTokenService } from './refresh-token.service';
 import { RegisterWithInviteDto } from './dto/register-with-invite.dto';
+import { ResendLoginOtpDto, ResendLoginOtpResponseDto, VerifyLoginOtpDto } from './dto/login-otp.dto';
+import { LoginResponseUnion, LoginSuccessResponseDto } from './dto/login-response.dto';
 import { InviteAdmissionService } from '../invites/invite-admission.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { isQaModeEnabled, shouldApplyQaBypass } from '../common/qa-mode.util';
@@ -248,7 +250,7 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  async login(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<LoginResponseUnion> {
     const email = input.email?.trim().toLowerCase();
     const { password } = input;
     if (!email || !password) {
@@ -328,6 +330,7 @@ export class AuthService implements OnModuleInit {
 
 
     return {
+      status: 'SUCCESS',
       accessToken: this.signToken(user.id, user.email, resolvedRole, activeContext, ActiveMode.OWNER, user.qaBypass),
       refreshToken,
       user: {
@@ -460,8 +463,13 @@ export class AuthService implements OnModuleInit {
     return this.getDefaultContext(memberships);
   }
 
-  async adminLogin(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<{ accessToken: string; refreshToken: string; user: MeDto; memberships: MembershipDto[]; activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole } }> {
+  async adminLogin(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<LoginResponseUnion> {
     const loginResponse = await this.login(input, context);
+
+    if (loginResponse.status === 'OTP_REQUIRED') {
+      return loginResponse;
+    }
+
     const isAllowlisted = isPlatformAdmin(loginResponse.user.email, getPlatformAdminEmails(this.configService));
 
     if (!isAllowlisted) {
@@ -469,6 +477,27 @@ export class AuthService implements OnModuleInit {
     }
 
     return loginResponse;
+  }
+
+  async verifyLoginOtp(_dto: VerifyLoginOtpDto, _meta?: { ip?: string; userAgent?: string }): Promise<LoginSuccessResponseDto> {
+    throw new Error('Not implemented');
+  }
+
+  async resendLoginOtp(_dto: ResendLoginOtpDto, _meta?: { ip?: string; userAgent?: string }): Promise<ResendLoginOtpResponseDto> {
+    throw new Error('Not implemented');
+  }
+
+  private async createLoginOtpChallengeForUser(
+    _user: { id: string; email: string },
+    _options: {
+      adminOnly?: boolean;
+      tenantId?: string | null;
+      tenantSlug?: string | null;
+      purpose: 'LOGIN_2SV' | 'ADMIN_LOGIN_2SV';
+    },
+    _meta?: { ip?: string; userAgent?: string },
+  ): Promise<{ challengeId: string; otp: string; expiresAt: Date; resendAvailableAt?: Date }> {
+    throw new Error('Not implemented');
   }
 
   async registerWithInvite(
