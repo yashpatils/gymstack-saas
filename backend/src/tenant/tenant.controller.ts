@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { CreateInviteDto } from '../invites/dto/create-invite.dto';
 import { ValidateInviteDto } from '../invites/dto/validate-invite.dto';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
@@ -43,5 +43,11 @@ export class TenantController {
   @Post('invites/consume')
   consumeInvite(@Req() req: { user?: User }, @Body() body: ValidateInviteDto) {
     return this.tenantService.consumeInvite(body.token, req.user?.id, req.user?.email);
+  }
+
+  @VerifiedEmailRequired()
+  @Get('tenant/slug-availability')
+  slugAvailability(@Req() req: { user: User }, @Query('slug') slug?: string) {
+    return this.tenantService.checkSlugAvailability(req.user, slug ?? '');
   }
 }

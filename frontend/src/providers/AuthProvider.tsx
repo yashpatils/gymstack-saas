@@ -395,7 +395,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string, options?: { adminOnly?: boolean; tenantId?: string; tenantSlug?: string }) => {
     authDebugLog('login:start');
-    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password, { tenantId: options?.tenantId, tenantSlug: options?.tenantSlug });
+    const { token: authToken, user: loggedInUser, memberships: nextMemberships, activeContext: nextActiveContext } = await loginRequest(email, password, {
+      adminOnly: options?.adminOnly,
+      tenantId: options?.tenantId,
+      tenantSlug: options?.tenantSlug,
+    });
     setToken(authToken);
     await hydrateFromMe();
     authDebugLog('login:success', { userId: loggedInUser.id });
