@@ -57,18 +57,26 @@ export function GymLoginForm({ tenantId, locationId }: GymLoginFormProps) {
         setError(null);
         try {
           const result = await login(email, password);
-          if (result.status !== 'SUCCESS') {
-            setError('A verification code is required. Please sign in from the main login page.');
-            return;
+          switch (result.status) {
+            case 'OTP_REQUIRED': {
+              setError('A verification code is required. Please sign in from the main login page.');
+              return;
+            }
+            case 'SUCCESS': {
+              const role = result.user.role as MembershipRole | null | undefined;
+
+              if (shouldSetLocationContext && tenantId && locationId) {
+                await chooseContext(tenantId, locationId);
+              }
+
+              router.push(resolveRoleDestination(role));
+              return;
+            }
+            default: {
+              const _exhaustive: never = result;
+              throw new Error(`Unhandled login status: ${JSON.stringify(_exhaustive)}`);
+            }
           }
-
-          const role = result.user.role as MembershipRole | null | undefined;
-
-          if (shouldSetLocationContext && tenantId && locationId) {
-            await chooseContext(tenantId, locationId);
-          }
-
-          router.push(resolveRoleDestination(role));
         } catch (submitError) {
           setError(getAuthErrorMessage(submitError));
         }
