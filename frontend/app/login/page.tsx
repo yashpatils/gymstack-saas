@@ -9,6 +9,7 @@ import { OAuthPersona, shouldShowOAuth } from "../../src/lib/auth/shouldShowOAut
 import { ApiFetchError } from "../../src/lib/apiFetch";
 import { me as fetchCurrentSession } from "../../src/lib/auth";
 import { getAuthErrorMessage } from "../../src/lib/authErrorMessage";
+import type { Membership } from "../../src/types/auth";
 import { Alert, Button, Input } from "../components/ui";
 import { getValidatedNextUrl } from "./next-url";
 
@@ -120,14 +121,26 @@ function LoginPageContent() {
               setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
               return;
             }
-            const membershipsArray = (
-              Array.isArray(result.memberships)
-                ? result.memberships
-                : Object.values(result.memberships ?? {}).flatMap((value) => (Array.isArray(value) ? value : [value]))
-            ).filter(
-              (membership): membership is { role: string; tenantId?: string; locationId?: string } =>
-                Boolean(membership) && typeof membership === 'object' && 'role' in membership,
-            );
+            const membershipsArray: Membership[] = Array.isArray(result.memberships)
+              ? result.memberships
+              : [
+                ...result.memberships.tenant.map((membership, index) => ({
+                  id: `tenant-${membership.tenantId}-${index}`,
+                  tenantId: membership.tenantId,
+                  gymId: null,
+                  locationId: null,
+                  role: membership.role,
+                  status: 'ACTIVE',
+                })),
+                ...result.memberships.location.map((membership, index) => ({
+                  id: `location-${membership.locationId}-${index}`,
+                  tenantId: membership.tenantId,
+                  gymId: membership.locationId,
+                  locationId: membership.locationId,
+                  role: membership.role,
+                  status: 'ACTIVE',
+                })),
+              ];
             const hasOwnerRole = membershipsArray.some((membership) => membership.role === 'TENANT_OWNER');
             if (membershipsArray.length === 0) {
               router.push('/platform');
