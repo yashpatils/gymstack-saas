@@ -336,8 +336,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!existingToken) {
         authDebugLog('hydrate:no-token');
         clearAuthState();
-        setMeStatus(401);
-        setAuthIssue('SESSION_EXPIRED');
+        setMeStatus(null);
+        setAuthIssue(null);
         setIsLoading(false);
         setIsHydrating(false);
         setAuthState('guest');
