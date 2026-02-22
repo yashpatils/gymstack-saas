@@ -78,6 +78,10 @@ export default function PlatformProfilePage() {
   const [deletionStatus, setDeletionStatus] = useState<{ pendingDeletion: boolean; deletionRequestedAt: string | null; deletedAt: string | null } | null>(null);
 
   const isBusy = loadingProfile || submitting;
+  const titleClass = "text-slate-900 dark:text-white";
+  const labelClass = "text-slate-500 dark:text-slate-400";
+  const valueClass = "text-slate-900 dark:text-white";
+  const helperClass = "text-slate-600 dark:text-slate-300";
 
   const passwordHint = useMemo(() => {
     if (showNewPassword || showConfirmPassword || showCurrentPassword) {
@@ -203,23 +207,23 @@ export default function PlatformProfilePage() {
       </header>
 
       <div className="card space-y-4">
-        <h2 className="section-title">Account information</h2>
+        <h2 className={`section-title ${titleClass}`}>Account information</h2>
         {loadingProfile ? (
-          <p className="text-sm text-slate-300">Loading account info...</p>
+          <p className={`text-sm ${helperClass}`}>Loading account info...</p>
         ) : profileError ? (
           <p className="text-sm text-rose-300">{profileError}</p>
         ) : (
-          <dl className="space-y-2 text-sm text-slate-200">
+          <dl className={`space-y-2 text-sm ${valueClass}`}>
             <div>
-              <dt className="text-slate-400">Email</dt>
+              <dt className={labelClass}>Email</dt>
               <dd>{profile?.email ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-400">Role</dt>
+              <dt className={labelClass}>Role</dt>
               <dd>{profile?.role ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-400">Created</dt>
+              <dt className={labelClass}>Created</dt>
               <dd>{formatDate(profile?.createdAt)}</dd>
             </div>
           </dl>
@@ -227,18 +231,18 @@ export default function PlatformProfilePage() {
       </div>
 
       <div className="card space-y-4">
-        <h2 className="section-title">Change password</h2>
-        <p className="text-sm text-slate-300">{passwordHint}</p>
+        <h2 className={`section-title ${titleClass}`}>Change password</h2>
+        <p className={`text-sm ${helperClass}`}>{passwordHint}</p>
 
         <form className="space-y-4" onSubmit={handleSubmit} noValidate>
           <div className="space-y-1">
-            <label className="text-sm text-slate-200" htmlFor="currentPassword">Current password</label>
+            <label className={`text-sm ${labelClass}`} htmlFor="currentPassword">Current password</label>
             <div className="flex items-center gap-2">
               <input
                 id="currentPassword"
                 name="currentPassword"
                 type={showCurrentPassword ? "text" : "password"}
-                className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none ring-indigo-400 transition focus:ring"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-indigo-400 transition focus:ring dark:border-white/10 dark:bg-slate-900 dark:text-white"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
                 autoComplete="current-password"
@@ -255,13 +259,13 @@ export default function PlatformProfilePage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-slate-200" htmlFor="newPassword">New password</label>
+            <label className={`text-sm ${labelClass}`} htmlFor="newPassword">New password</label>
             <div className="flex items-center gap-2">
               <input
                 id="newPassword"
                 name="newPassword"
                 type={showNewPassword ? "text" : "password"}
-                className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none ring-indigo-400 transition focus:ring"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-indigo-400 transition focus:ring dark:border-white/10 dark:bg-slate-900 dark:text-white"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 autoComplete="new-password"
@@ -278,13 +282,13 @@ export default function PlatformProfilePage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-slate-200" htmlFor="confirmPassword">Confirm new password</label>
+            <label className={`text-sm ${labelClass}`} htmlFor="confirmPassword">Confirm new password</label>
             <div className="flex items-center gap-2">
               <input
                 id="confirmPassword"
                 name="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none ring-indigo-400 transition focus:ring"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-indigo-400 transition focus:ring dark:border-white/10 dark:bg-slate-900 dark:text-white"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 autoComplete="new-password"
@@ -307,8 +311,8 @@ export default function PlatformProfilePage() {
       </div>
 
       <div className="card space-y-4 border-rose-500/40">
-        <h2 className="section-title text-rose-200">Delete account</h2>
-        <p className="text-sm text-slate-300">Request account deletion. You will receive an email confirmation link before anything is removed.</p>
+        <h2 className={`section-title text-rose-700 dark:text-rose-200`}>Delete account</h2>
+        <p className={`text-sm ${helperClass}`}>Request account deletion. You will receive an email confirmation link before anything is removed.</p>
         {deletionStatus?.pendingDeletion ? (
           <div className="rounded-md border border-amber-300/40 bg-amber-500/10 p-3 text-sm text-amber-100">
             <p>Deletion pending since {formatDate(deletionStatus.deletionRequestedAt ?? undefined)}. Scheduled finalization: {formatDate(deletionStatus.deletedAt ?? undefined)}.</p>
@@ -327,12 +331,12 @@ export default function PlatformProfilePage() {
         ) : null}
         <form className="space-y-3" onSubmit={handleDeleteRequest}>
           <div className="space-y-1">
-            <label className="text-sm text-slate-200" htmlFor="deletePassword">Confirm password</label>
+            <label className={`text-sm ${labelClass}`} htmlFor="deletePassword">Confirm password</label>
             <input
               id="deletePassword"
               name="deletePassword"
               type="password"
-              className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none ring-indigo-400 transition focus:ring"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-indigo-400 transition focus:ring dark:border-white/10 dark:bg-slate-900 dark:text-white"
               value={deletePassword}
               onChange={(event) => setDeletePassword(event.target.value)}
               autoComplete="current-password"
