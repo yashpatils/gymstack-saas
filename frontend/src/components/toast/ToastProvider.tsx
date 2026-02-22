@@ -26,8 +26,13 @@ type ToastPayload = {
   variant?: ToastVariant;
 };
 
+type LegacyToastPayload = Omit<ToastPayload, "variant"> & {
+  variant?: ToastPayload["variant"] | "error";
+};
+
 type ToastContextValue = {
   showToast: (payload: ToastPayload) => void;
+  pushToast: (payload: LegacyToastPayload) => void;
   success: (title: string, description?: string) => void;
   error: (title: string, description?: string) => void;
 };
@@ -60,6 +65,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ToastContextValue>(
     () => ({
       showToast,
+      pushToast: ({ variant, ...payload }: LegacyToastPayload) =>
+        showToast({
+          ...payload,
+          variant: variant === "error" ? "destructive" : variant,
+        }),
       success: (title: string, description?: string) =>
         showToast({ title, description, variant: "success" }),
       error: (title: string, description?: string) =>
