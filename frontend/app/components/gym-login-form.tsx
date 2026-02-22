@@ -57,6 +57,11 @@ export function GymLoginForm({ tenantId, locationId }: GymLoginFormProps) {
         setError(null);
         try {
           const result = await login(email, password);
+          if (result.status !== 'SUCCESS') {
+            setError('A verification code is required. Please sign in from the main login page.');
+            return;
+          }
+
           const role = result.user.role as MembershipRole | null | undefined;
 
           if (shouldSetLocationContext && tenantId && locationId) {
