@@ -98,6 +98,28 @@ enum AuthTokenPurpose {
   OAUTH_LINK_CONFIRM
 }
 
+enum OtpChannel {
+  EMAIL
+}
+
+enum PendingChangeTargetType {
+  TENANT_SETTINGS
+  USER_SETTINGS
+}
+
+enum PendingChangeType {
+  TENANT_SLUG
+  TENANT_NAME
+  PRIMARY_EMAIL
+  ENABLE_2SV_EMAIL
+  DISABLE_2SV_EMAIL
+}
+
+enum LoginOtpChallengePurpose {
+  LOGIN_2SV
+  ADMIN_LOGIN_2SV
+}
+
 enum OAuthProvider {
   google
   apple
@@ -225,57 +247,62 @@ enum PlatformBackupType {
 }
 
 model User {
-  id                   String               @id @default(uuid())
-  email                String               @unique
-  name                 String?
-  password             String
-  role                 Role                 @default(USER)
-  orgId                String?
-  stripeCustomerId     String?              @unique
-  stripeSubscriptionId String?              @unique
-  subscriptionStatus   SubscriptionStatus   @default(FREE)
-  emailVerifiedAt      DateTime?
-  emailVerificationTokenHash String?
+  id                              String                   @id @default(uuid())
+  email                           String                   @unique
+  name                            String?
+  password                        String
+  role                            Role                     @default(USER)
+  orgId                           String?
+  stripeCustomerId                String?                  @unique
+  stripeSubscriptionId            String?                  @unique
+  subscriptionStatus              SubscriptionStatus       @default(FREE)
+  emailVerifiedAt                 DateTime?
+  emailVerificationTokenHash      String?
   emailVerificationTokenExpiresAt DateTime?
-  emailVerificationLastSentAt DateTime?
-  emailVerificationSendCount Int @default(0)
-  status               UserStatus           @default(ACTIVE)
-  deletedAt            DateTime?
-  deletionRequestedAt  DateTime?
-  deletionTokenHash    String?
-  deletionTokenExpiresAt DateTime?
-  qaBypass             Boolean              @default(false)
-  organization         Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
-  memberships          Membership[]
-  gyms                 Gym[]
-  passwordResetTokens  PasswordResetToken[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  invites              Invite[]             @relation("InviteCreator")
-  customDomains        CustomDomain[]
-  locationInvites      LocationInvite[]
-  consumedLocationInvites LocationInvite[] @relation("InviteConsumer")
-  auditLogs            AuditLog[]            @relation("LegacyAuditUser")
-  actedAuditLogs       AuditLog[]            @relation("AuditActorUser")
-  notifications        Notification[]
-  authTokens           AuthToken[]
-  authIdentities       AuthIdentity[]
-  requestedDataExportJobs DataExportJob[] @relation("DataExportRequestedBy")
-  createdPlatformBackups PlatformBackup[] @relation("PlatformBackupCreatedBy")
-  ownerOperatorSettings OwnerOperatorSetting[]
-  refreshTokens         RefreshToken[]
-  clientMemberships     ClientMembership[] @relation("ClientMembershipUser")
-  createdClientMemberships ClientMembership[] @relation("ClientMembershipCreator")
-  coachedClasses         Class[]            @relation("ClassCoach")
-  classBookings          ClassBooking[]
-  pushSubscriptions      PushSubscription[]
-  notificationMarkers    NotificationMarker[]
-  featureFlagsUpdated    FeatureFlag[] @relation("FeatureFlagUpdatedBy")
-  adminEvents            AdminEvent[]
-  feedbackItems          Feedback[]
-  supportTickets         SupportTicket[]
-  createdCampaigns       Campaign[] @relation("CampaignCreatedBy")
-  pendingEmailChanges    PendingEmailChange[]
+  emailVerificationLastSentAt     DateTime?
+  emailVerificationSendCount      Int                      @default(0)
+  status                          UserStatus               @default(ACTIVE)
+  deletedAt                       DateTime?
+  deletionRequestedAt             DateTime?
+  deletionTokenHash               String?
+  deletionTokenExpiresAt          DateTime?
+  qaBypass                        Boolean                  @default(false)
+  twoStepEmailEnabled             Boolean                  @default(false)
+  twoStepEmailEnabledAt           DateTime?
+  lastTwoStepAt                   DateTime?
+  organization                    Organization?            @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  memberships                     Membership[]
+  gyms                            Gym[]
+  passwordResetTokens             PasswordResetToken[]
+  createdAt                       DateTime                 @default(now())
+  updatedAt                       DateTime                 @updatedAt
+  invites                         Invite[]                 @relation("InviteCreator")
+  customDomains                   CustomDomain[]
+  locationInvites                 LocationInvite[]
+  consumedLocationInvites         LocationInvite[]         @relation("InviteConsumer")
+  auditLogs                       AuditLog[]               @relation("LegacyAuditUser")
+  actedAuditLogs                  AuditLog[]               @relation("AuditActorUser")
+  notifications                   Notification[]
+  authTokens                      AuthToken[]
+  authIdentities                  AuthIdentity[]
+  requestedDataExportJobs         DataExportJob[]          @relation("DataExportRequestedBy")
+  createdPlatformBackups          PlatformBackup[]         @relation("PlatformBackupCreatedBy")
+  ownerOperatorSettings           OwnerOperatorSetting[]
+  refreshTokens                   RefreshToken[]
+  clientMemberships               ClientMembership[]       @relation("ClientMembershipUser")
+  createdClientMemberships        ClientMembership[]       @relation("ClientMembershipCreator")
+  coachedClasses                  Class[]                  @relation("ClassCoach")
+  classBookings                   ClassBooking[]
+  pushSubscriptions               PushSubscription[]
+  notificationMarkers             NotificationMarker[]
+  featureFlagsUpdated             FeatureFlag[]            @relation("FeatureFlagUpdatedBy")
+  adminEvents                     AdminEvent[]
+  feedbackItems                   Feedback[]
+  supportTickets                  SupportTicket[]
+  createdCampaigns                Campaign[]               @relation("CampaignCreatedBy")
+  pendingEmailChanges             PendingEmailChange[]
+  pendingSensitiveChanges         PendingSensitiveChange[]
+  loginOtpChallenges              LoginOtpChallenge[]
 
   @@index([orgId])
   @@index([deletedAt])
@@ -283,34 +310,95 @@ model User {
 }
 
 model PendingEmailChange {
-  id             String   @id @default(cuid())
-  userId         String
-  newEmail       String
-  otpHash        String
-  expiresAt      DateTime
-  attempts       Int      @default(0)
-  requestCount   Int      @default(1)
+  id                String    @id @default(cuid())
+  userId            String
+  newEmail          String
+  otpHash           String
+  expiresAt         DateTime
+  attempts          Int       @default(0)
+  requestCount      Int       @default(1)
   resendAvailableAt DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  consumedAt     DateTime?
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  consumedAt        DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, consumedAt, expiresAt])
   @@index([newEmail, consumedAt, expiresAt])
 }
 
-model RefreshToken {
-  id                 String   @id @default(cuid())
+model PendingSensitiveChange {
+  id                 String                  @id @default(cuid())
   userId             String
-  tokenHash          String   @unique
-  expiresAt          DateTime
-  revokedAt          DateTime?
+  tenantId           String?
+  channel            OtpChannel              @default(EMAIL)
+  targetType         PendingChangeTargetType
+  changeType         PendingChangeType
+  payloadJson        Json
+  otpHash            String                  @db.VarChar(64)
+  otpExpiresAt       DateTime
+  attempts           Int                     @default(0)
+  maxAttempts        Int                     @default(5)
+  resendCount        Int                     @default(0)
+  resendAvailableAt  DateTime?
+  lastSentAt         DateTime?
+  consumedAt         DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  requestedFromIp    String?                 @db.VarChar(64)
+  requestedUserAgent String?
+  user               User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant             Organization?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([userId, consumedAt, otpExpiresAt])
+  @@index([changeType, createdAt(sort: Desc)])
+  @@index([otpExpiresAt])
+  @@map("pending_sensitive_changes")
+}
+
+model LoginOtpChallenge {
+  id                 String                   @id @default(cuid())
+  userId             String
+  channel            OtpChannel               @default(EMAIL)
+  purpose            LoginOtpChallengePurpose @default(LOGIN_2SV)
+  otpHash            String                   @db.VarChar(64)
+  otpExpiresAt       DateTime
+  attempts           Int                      @default(0)
+  maxAttempts        Int                      @default(5)
+  resendCount        Int                      @default(0)
+  resendAvailableAt  DateTime?
+  lastSentAt         DateTime?
+  consumedAt         DateTime?
+  createdAt          DateTime                 @default(now())
+  requestedFromIp    String?                  @db.VarChar(64)
+  requestedUserAgent String?
+  tenantId           String?
+  tenantSlug         String?
+  adminOnly          Boolean                  @default(false)
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant             Organization?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, consumedAt, otpExpiresAt])
+  @@index([otpExpiresAt])
+  @@index([purpose, createdAt(sort: Desc)])
+  @@map("login_otp_challenges")
+}
+
+model RefreshToken {
+  id                  String    @id @default(cuid())
+  userId              String
+  tokenHash           String    @unique
+  expiresAt           DateTime
+  revokedAt           DateTime?
   replacedByTokenHash String?
-  userAgent          String?
-  ipAddress          String?
-  createdAt          DateTime @default(now())
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent           String?
+  ipAddress           String?
+  createdAt           DateTime  @default(now())
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
 }
@@ -333,15 +421,15 @@ model AuthIdentity {
 }
 
 model OwnerOperatorSetting {
-  id                   String     @id @default(cuid())
+  id                   String       @id @default(cuid())
   userId               String
   tenantId             String
-  allowOwnerStaffLogin Boolean    @default(false)
-  defaultMode          ActiveMode @default(OWNER)
+  allowOwnerStaffLogin Boolean      @default(false)
+  defaultMode          ActiveMode   @default(OWNER)
   defaultLocationId    String?
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
-  user                 User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant               Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
@@ -350,20 +438,20 @@ model OwnerOperatorSetting {
 
 model AuthToken {
   id         String           @id @default(uuid())
-  userId      String
-  purpose     AuthTokenPurpose
-  tokenHash   String
-  expiresAt   DateTime
-  consumedAt  DateTime?
-  createdAt   DateTime         @default(now())
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  purpose    AuthTokenPurpose
+  tokenHash  String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime         @default(now())
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
   @@index([userId, purpose, consumedAt, expiresAt])
 }
 
 model AuditLog {
-  id           String        @id @default(uuid())
+  id           String         @id @default(uuid())
   actorUserId  String?
   actorEmail   String?
   actorRole    String?
@@ -381,12 +469,12 @@ model AuditLog {
   ip           String?
   ipAddress    String?
   userAgent    String?
-  createdAt    DateTime      @default(now())
-  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
-  user         User?         @relation("LegacyAuditUser", fields: [userId], references: [id], onDelete: SetNull)
-  actorUser    User?         @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
-  tenant       Organization? @relation("TenantAuditLogs", fields: [tenantId], references: [id], onDelete: SetNull)
-  location     Gym?          @relation("GymAuditLogs", fields: [locationId], references: [id], onDelete: SetNull)
+  createdAt    DateTime       @default(now())
+  organization Organization?  @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  user         User?          @relation("LegacyAuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  actorUser    User?          @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  tenant       Organization?  @relation("TenantAuditLogs", fields: [tenantId], references: [id], onDelete: SetNull)
+  location     Gym?           @relation("GymAuditLogs", fields: [locationId], references: [id], onDelete: SetNull)
 
   @@index([orgId])
   @@index([userId])
@@ -470,107 +558,109 @@ model PasswordResetToken {
 }
 
 model Gym {
-  id           String       @id @default(uuid())
-  name         String
-  slug         String       @unique
-  timezone     String       @default("UTC")
-  contactEmail String?
-  phone        String?
-  address      String?
-  logoUrl      String?
-  displayName  String?
-  accentColor  String?
-  primaryColor String?
-  accentGradient String?
-  heroTitle    String?
-  heroSubtitle String?
-  heroImageUrl String?
-  customDomain String?      @unique
-  domainVerifiedAt DateTime?
+  id                      String               @id @default(uuid())
+  name                    String
+  slug                    String               @unique
+  timezone                String               @default("UTC")
+  contactEmail            String?
+  phone                   String?
+  address                 String?
+  logoUrl                 String?
+  displayName             String?
+  accentColor             String?
+  primaryColor            String?
+  accentGradient          String?
+  heroTitle               String?
+  heroSubtitle            String?
+  heroImageUrl            String?
+  customDomain            String?              @unique
+  domainVerifiedAt        DateTime?
   domainVerificationToken String?
   verificationRequestedAt DateTime?
-  ownerId      String
-  orgId        String
-  owner        User         @relation(fields: [ownerId], references: [id])
-  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  memberships  Membership[]
-  customDomains CustomDomain[]
-  locationInvites LocationInvite[]
-  membershipPlans MembershipPlan[]
-  clientMemberships ClientMembership[]
-  classes       Class[]
-  classSessions ClassSession[]
-  classBookings ClassBooking[]
-  pushSubscriptions PushSubscription[]
-  notifications Notification[]
-  notificationMarkers NotificationMarker[]
-  auditLogs     AuditLog[]      @relation("GymAuditLogs")
-  featureFlags  FeatureFlag[]   @relation("GymFeatureFlags")
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  ownerId                 String
+  orgId                   String
+  owner                   User                 @relation(fields: [ownerId], references: [id])
+  org                     Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  memberships             Membership[]
+  customDomains           CustomDomain[]
+  locationInvites         LocationInvite[]
+  membershipPlans         MembershipPlan[]
+  clientMemberships       ClientMembership[]
+  classes                 Class[]
+  classSessions           ClassSession[]
+  classBookings           ClassBooking[]
+  pushSubscriptions       PushSubscription[]
+  notifications           Notification[]
+  notificationMarkers     NotificationMarker[]
+  auditLogs               AuditLog[]           @relation("GymAuditLogs")
+  featureFlags            FeatureFlag[]        @relation("GymFeatureFlags")
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 
   @@index([orgId])
 }
 
 model Organization {
-  id          String       @id @default(cuid())
-  name        String
-  isDisabled  Boolean      @default(false)
-  disabledAt  DateTime?
-  whiteLabelBrandingEnabled Boolean @default(false)
-  whiteLabelEnabled Boolean @default(false)
-  stripeCustomerId String? @unique
-  stripeSubscriptionId String? @unique
-  stripePriceId String?
-  planKey      PlanKey       @default(starter)
-  billingProvider BillingProvider @default(STRIPE)
-  billingCountry String?
-  billingCurrency String?
-  billingCustomerId String?
-  billingSubscriptionId String?
-  billingPriceId String?
-  subscriptionStatus SubscriptionStatus @default(FREE)
-  billingStatus TenantBillingStatus @default(ACTIVE)
-  gracePeriodEndsAt DateTime?
-  currentPeriodEnd DateTime?
-  providerMetadata Json?
-  isTrialUsed Boolean @default(false)
-  isDemo      Boolean      @default(false)
-  demoLastResetAt DateTime?
-  referralCode String? @unique
-  referredByTenantId String?
-  trialStartedAt DateTime?
-  trialEndsAt DateTime?
-  upgradedAt DateTime?
-  users       User[]
-  memberships Membership[]
-  auditLogs   AuditLog[]
-  tenantAuditLogs AuditLog[] @relation("TenantAuditLogs")
-  featureFlags FeatureFlag[]
-  invites     Invite[]
-  gyms        Gym[]
-  customDomains CustomDomain[]
-  locationInvites LocationInvite[]
-  ownerOperatorSettings OwnerOperatorSetting[]
-  adminEvents AdminEvent[]
-  supportTickets SupportTicket[] @relation("SupportTicketTenant")
-  pushSubscriptions PushSubscription[]
-  notifications Notification[]
-  jobRuns      JobRun[]
-  notificationMarkers NotificationMarker[]
-  apiKeys      ApiKey[]
-  webhookEndpoints WebhookEndpoint[]
-  referredTenants Organization[] @relation("TenantReferrals")
-  referredByTenant Organization? @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
-  trialEvents TrialEvent[]
-  feedbackItems Feedback[]
-  dataExportJobs DataExportJob[]
-  platformBackups PlatformBackup[]
-  aiInsights  AiInsight[]
-  campaigns   Campaign[]
-  planOverride TenantPlanOverride?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                        String                   @id @default(cuid())
+  name                      String
+  isDisabled                Boolean                  @default(false)
+  disabledAt                DateTime?
+  whiteLabelBrandingEnabled Boolean                  @default(false)
+  whiteLabelEnabled         Boolean                  @default(false)
+  stripeCustomerId          String?                  @unique
+  stripeSubscriptionId      String?                  @unique
+  stripePriceId             String?
+  planKey                   PlanKey                  @default(starter)
+  billingProvider           BillingProvider          @default(STRIPE)
+  billingCountry            String?
+  billingCurrency           String?
+  billingCustomerId         String?
+  billingSubscriptionId     String?
+  billingPriceId            String?
+  subscriptionStatus        SubscriptionStatus       @default(FREE)
+  billingStatus             TenantBillingStatus      @default(ACTIVE)
+  gracePeriodEndsAt         DateTime?
+  currentPeriodEnd          DateTime?
+  providerMetadata          Json?
+  isTrialUsed               Boolean                  @default(false)
+  isDemo                    Boolean                  @default(false)
+  demoLastResetAt           DateTime?
+  referralCode              String?                  @unique
+  referredByTenantId        String?
+  trialStartedAt            DateTime?
+  trialEndsAt               DateTime?
+  upgradedAt                DateTime?
+  users                     User[]
+  memberships               Membership[]
+  auditLogs                 AuditLog[]
+  tenantAuditLogs           AuditLog[]               @relation("TenantAuditLogs")
+  featureFlags              FeatureFlag[]
+  invites                   Invite[]
+  gyms                      Gym[]
+  customDomains             CustomDomain[]
+  locationInvites           LocationInvite[]
+  ownerOperatorSettings     OwnerOperatorSetting[]
+  adminEvents               AdminEvent[]
+  supportTickets            SupportTicket[]          @relation("SupportTicketTenant")
+  pushSubscriptions         PushSubscription[]
+  notifications             Notification[]
+  jobRuns                   JobRun[]
+  notificationMarkers       NotificationMarker[]
+  apiKeys                   ApiKey[]
+  webhookEndpoints          WebhookEndpoint[]
+  referredTenants           Organization[]           @relation("TenantReferrals")
+  referredByTenant          Organization?            @relation("TenantReferrals", fields: [referredByTenantId], references: [id], onDelete: SetNull)
+  trialEvents               TrialEvent[]
+  feedbackItems             Feedback[]
+  dataExportJobs            DataExportJob[]
+  platformBackups           PlatformBackup[]
+  aiInsights                AiInsight[]
+  campaigns                 Campaign[]
+  planOverride              TenantPlanOverride?
+  pendingSensitiveChanges   PendingSensitiveChange[]
+  loginOtpChallenges        LoginOtpChallenge[]
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
 
   @@index([referredByTenantId])
 }
@@ -588,13 +678,13 @@ model PlanDefinition {
 }
 
 model TenantPlanOverride {
-  id                    String   @id @default(cuid())
-  tenantId              String   @unique
+  id                    String       @id @default(cuid())
+  tenantId              String       @unique
   maxLocationsOverride  Int?
   maxStaffSeatsOverride Int?
   whiteLabelOverride    Boolean?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
   tenant                Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -612,10 +702,10 @@ model Lead {
 }
 
 model TrialEvent {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   tenantId  String
   eventType String
-  createdAt DateTime @default(now())
+  createdAt DateTime     @default(now())
   tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])
@@ -623,14 +713,14 @@ model TrialEvent {
 }
 
 model AdminEvent {
-  id          String       @id @default(cuid())
+  id          String        @id @default(cuid())
   adminUserId String
   type        String
   tenantId    String?
   metadata    Json?
   ip          String?
-  createdAt   DateTime     @default(now())
-  adminUser   User         @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  adminUser   User          @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
   tenant      Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([adminUserId, createdAt])
@@ -674,25 +764,25 @@ model CustomDomain {
 }
 
 model LocationInvite {
-  id              String           @id @default(uuid())
-  tenantId        String
-  locationId      String?
-  role            MembershipRole
-  email           String?
-  tokenHash       String           @unique
-  tokenPrefix     String
-  expiresAt       DateTime
-  status          InviteStatus     @default(PENDING)
-  consumedAt      DateTime?
+  id               String         @id @default(uuid())
+  tenantId         String
+  locationId       String?
+  role             MembershipRole
+  email            String?
+  tokenHash        String         @unique
+  tokenPrefix      String
+  expiresAt        DateTime
+  status           InviteStatus   @default(PENDING)
+  consumedAt       DateTime?
   consumedByUserId String?
-  revokedAt       DateTime?
-  createdByUserId String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  tenant          Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location        Gym?             @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  creator         User             @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
-  consumer        User?            @relation("InviteConsumer", fields: [consumedByUserId], references: [id], onDelete: SetNull)
+  revokedAt        DateTime?
+  createdByUserId  String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  tenant           Organization   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location         Gym?           @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  creator          User           @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  consumer         User?          @relation("InviteConsumer", fields: [consumedByUserId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([locationId])
@@ -745,17 +835,17 @@ model ClientMembership {
 }
 
 model Class {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   locationId  String
   title       String
   description String?
   coachUserId String?
   capacity    Int
-  isActive    Boolean @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  location    Gym      @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  coach       User?    @relation("ClassCoach", fields: [coachUserId], references: [id], onDelete: SetNull)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  location    Gym            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  coach       User?          @relation("ClassCoach", fields: [coachUserId], references: [id], onDelete: SetNull)
   sessions    ClassSession[]
 
   @@index([locationId])
@@ -763,18 +853,18 @@ model Class {
 }
 
 model ClassSession {
-  id               String @id @default(uuid())
-  classId          String
-  locationId       String
-  startsAt         DateTime
-  endsAt           DateTime
-  capacityOverride Int?
-  status           ClassSessionStatus @default(SCHEDULED)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  classTemplate    Class @relation(fields: [classId], references: [id], onDelete: Cascade)
-  location         Gym   @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  bookings         ClassBooking[]
+  id                  String               @id @default(uuid())
+  classId             String
+  locationId          String
+  startsAt            DateTime
+  endsAt              DateTime
+  capacityOverride    Int?
+  status              ClassSessionStatus   @default(SCHEDULED)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  classTemplate       Class                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  location            Gym                  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  bookings            ClassBooking[]
   notificationMarkers NotificationMarker[]
 
   @@index([classId])
@@ -783,18 +873,18 @@ model ClassSession {
 }
 
 model ClassBooking {
-  id         String @id @default(uuid())
+  id         String             @id @default(uuid())
   sessionId  String
   locationId String
   userId     String
   status     ClassBookingStatus @default(BOOKED)
-  canceledAt  DateTime?
-  bookedAt   DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  session    ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  location   Gym @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canceledAt DateTime?
+  bookedAt   DateTime           @default(now())
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  session    ClassSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  location   Gym                @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
   @@index([locationId, status])
@@ -841,36 +931,36 @@ model CampaignRecipient {
 }
 
 model PushSubscription {
-  id         String    @id @default(uuid())
+  id         String        @id @default(uuid())
   userId     String
   tenantId   String?
   locationId String?
-  endpoint   String    @unique
+  endpoint   String        @unique
   p256dh     String
   auth       String
   userAgent  String?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime      @default(now())
   revokedAt  DateTime?
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant     Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  location   Gym?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  location   Gym?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
   @@index([userId, revokedAt])
   @@index([tenantId, locationId, revokedAt])
 }
 
 model NotificationMarker {
-  id          String   @id @default(uuid())
-  userId      String
-  tenantId    String?
-  locationId  String?
-  sessionId   String?
-  markerType  String
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant      Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  location    Gym?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  session     ClassSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  id         String        @id @default(uuid())
+  userId     String
+  tenantId   String?
+  locationId String?
+  sessionId  String?
+  markerType String
+  createdAt  DateTime      @default(now())
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant     Organization? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  location   Gym?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  session    ClassSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   @@unique([markerType, userId, sessionId])
   @@index([markerType, createdAt])
@@ -894,25 +984,25 @@ model SupportTicket {
 }
 
 model JobRun {
-  id        String       @id @default(uuid())
-  tenantId  String
-  jobKey    String       @unique
-  ranAt     DateTime     @default(now())
-  status    JobRunStatus
-  error     String?
-  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id       String       @id @default(uuid())
+  tenantId String
+  jobKey   String       @unique
+  ranAt    DateTime     @default(now())
+  status   JobRunStatus
+  error    String?
+  tenant   Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, ranAt])
 }
 
 model JobLog {
-  id        String    @id @default(cuid())
-  type      String
-  status    JobStatus @default(QUEUED)
-  attempts  Int       @default(0)
-  error     String?
-  payload   Json?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  type       String
+  status     JobStatus @default(QUEUED)
+  attempts   Int       @default(0)
+  error      String?
+  payload    Json?
+  createdAt  DateTime  @default(now())
   finishedAt DateTime?
 
   @@index([createdAt])
@@ -920,14 +1010,14 @@ model JobLog {
 }
 
 model ApiKey {
-  id        String       @id @default(cuid())
-  tenantId  String
-  name      String
-  keyHash   String       @unique
+  id         String       @id @default(cuid())
+  tenantId   String
+  name       String
+  keyHash    String       @unique
   lastUsedAt DateTime?
-  revokedAt DateTime?
-  createdAt DateTime     @default(now())
-  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  revokedAt  DateTime?
+  createdAt  DateTime     @default(now())
+  tenant     Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])
   @@index([tenantId, revokedAt])
@@ -964,19 +1054,19 @@ model WebhookDelivery {
 }
 
 model Feedback {
-  id         String            @id @default(cuid())
-  tenantId   String
-  userId     String
-  message    String
-  page       String
-  priority   FeedbackPriority
-  status     FeedbackStatus    @default(open)
-  category   FeedbackCategory?
-  taskId     String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  tenant     Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String            @id @default(cuid())
+  tenantId  String
+  userId    String
+  message   String
+  page      String
+  priority  FeedbackPriority
+  status    FeedbackStatus    @default(open)
+  category  FeedbackCategory?
+  taskId    String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  tenant    Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])
   @@index([status, priority])
@@ -1001,7 +1091,6 @@ model ReleaseStatus {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 }
-
 
 model DataExportJob {
   id                String           @id @default(uuid())
@@ -1039,7 +1128,6 @@ enum InsightSeverity {
   warning
   critical
 }
-
 
 model DailyLocationMetrics {
   id                    String   @id @default(uuid())
