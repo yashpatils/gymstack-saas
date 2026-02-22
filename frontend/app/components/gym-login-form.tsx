@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { applyOAuthTokens, me } from '@/src/lib/auth';
 import { getAuthErrorMessage } from '@/src/lib/authErrorMessage';
-import type { Membership, MembershipRole } from '@/src/types/auth';
+import type { CanonicalMemberships, Membership, MembershipRole } from '@/src/types/auth';
 import { Alert, Button, Input } from './ui';
 import { OAuthButtons } from '@/src/components/auth/OAuthButtons';
 import { shouldShowOAuth } from '@/src/lib/auth/shouldShowOAuth';
@@ -106,7 +106,7 @@ function resolveRoleDestination(role: MembershipRole | string | null | undefined
 }
 
 function resolveLoginRole(
-  memberships: Membership[],
+  memberships: Membership[] | CanonicalMemberships,
   activeRole?: MembershipRole | null,
   userRole?: string | null,
 ): MembershipRole | string | null | undefined {
@@ -114,8 +114,18 @@ function resolveLoginRole(
     return activeRole;
   }
 
-  if (memberships.length > 0) {
+  if (Array.isArray(memberships) && memberships.length > 0) {
     return memberships[0]?.role;
+  }
+
+  if (!Array.isArray(memberships)) {
+    if (memberships.location.length > 0) {
+      return memberships.location[0]?.role;
+    }
+
+    if (memberships.tenant.length > 0) {
+      return memberships.tenant[0]?.role;
+    }
   }
 
   return userRole;
