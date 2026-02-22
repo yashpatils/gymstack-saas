@@ -7,6 +7,8 @@ import { useAuth } from "../../../src/providers/AuthProvider";
 import { getApiBaseUrl } from "../../../src/lib/apiFetch";
 import { apiFetch, ApiFetchError } from "@/src/lib/apiFetch";
 import { exportTenantData, oauthStartUrl } from '../../../src/lib/auth';
+import { getFeatureFlags, isFeatureEnabled, type FeatureFlags } from "@/src/lib/featureFlags";
+import { TwoStepEmailToggle } from "@/src/components/settings/TwoStepEmailToggle";
 
 type AccountInfo = {
   id?: string;
@@ -86,26 +88,18 @@ export default function PlatformSettingsPage() {
   const [whiteLabelSaving, setWhiteLabelSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [flags, setFlags] = useState<FeatureFlags>({});
+  const [twoStepEnabled, setTwoStepEnabled] = useState(false);
+  const [tenantPermissionError, setTenantPermissionError] = useState<string | null>(null);
 
   const isAdmin = (user?.role ?? account?.role ?? "") === "ADMIN";
   const canManageTenantSettings = permissions.canManageTenant
     || permissionKeys.includes('tenant:manage')
     || user?.role === 'OWNER'
     || user?.role === 'ADMIN';
+  const hasActiveTenant = Boolean(activeContext?.tenantId ?? activeTenant?.id);
   const showDebugLinks = process.env.NODE_ENV !== "production" || isAdmin;
-
-  if (!canManageTenantSettings) {
-    return (
-      <section className="page">
-        <div className="card space-y-2 border border-amber-300/30 bg-amber-500/10 text-amber-50">
-          <h1 className="section-title">Tenant settings are restricted</h1>
-          <p className="text-sm text-amber-100/90">
-            You don&apos;t have permission to manage tenant-level settings. Contact your owner/admin if this seems incorrect.
-          </p>
-        </div>
-      </section>
-    );
-  }
+  const twoStepFeatureEnabled = useMemo(() => isFeatureEnabled(flags, 'FEATURE_EMAIL_2SV'), [flags]);
 
   const apiBaseUrl = useMemo(() => {
     try {
@@ -140,8 +134,21 @@ export default function PlatformSettingsPage() {
     }
 
     async function loadDomains() {
-      const data = await apiFetch<DomainRecord[]>('/api/domains', { method: 'GET' });
-      if (isMounted) setDomains(data);
+      try {
+        const data = await apiFetch<DomainRecord[]>('/api/domains', { method: 'GET' });
+        if (isMounted) {
+          setDomains(data);
+          setTenantPermissionError(null);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          if (loadError instanceof ApiFetchError && loadError.statusCode === 403) {
+            setTenantPermissionError('You don’t have permission to manage this gym’s settings.');
+            return;
+          }
+          setTenantPermissionError(loadError instanceof Error ? loadError.message : 'Unable to load workspace settings.');
+        }
+      }
     }
 
     async function loadTenantOrg() {
@@ -157,15 +164,20 @@ export default function PlatformSettingsPage() {
       }
     }
 
+    void getFeatureFlags().then(setFlags).catch(() => setFlags({}));
+    setTwoStepEnabled(Boolean(user?.twoStepEmailEnabled));
     void loadAccountInfo();
-    void loadDomains();
-    void loadLocations();
-    void loadTenantOrg();
+
+    if (canManageTenantSettings && hasActiveTenant) {
+      void loadDomains();
+      void loadLocations();
+      void loadTenantOrg();
+    }
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [canManageTenantSettings, hasActiveTenant, user?.twoStepEmailEnabled]);
 
   const selectedBrandingLocation = locations.find((location) => location.id === brandingLocationId);
 
@@ -173,6 +185,33 @@ export default function PlatformSettingsPage() {
     <section className="page space-y-6">
       <PageHeader title="Settings" subtitle="Account preferences and environment details." breadcrumbs={[{ label: "Platform", href: "/platform" }, { label: "Settings" }]} />
 
+      <div className="card space-y-4">
+        <h2 className="section-title text-slate-900 dark:text-white">Account security</h2>
+        <TwoStepEmailToggle
+          enabled={twoStepEnabled}
+          featureEnabled={twoStepFeatureEnabled}
+          canManageSecurity
+          emailMaskedHint={account?.email ?? user?.email}
+          onChanged={setTwoStepEnabled}
+        />
+      </div>
+
+      {!hasActiveTenant ? (
+        <div className="card space-y-2 border border-amber-300/30 bg-amber-500/10 text-amber-50">
+          <h2 className="section-title">Workspace settings</h2>
+          <p className="text-sm text-amber-100/90">Select a gym/workspace to manage gym settings.</p>
+        </div>
+      ) : null}
+
+      {hasActiveTenant && !canManageTenantSettings ? (
+        <div className="card space-y-2 border border-amber-300/30 bg-amber-500/10 text-amber-50">
+          <h2 className="section-title">Workspace settings</h2>
+          <p className="text-sm text-amber-100/90">Gym settings are only available to owners/admins for the selected workspace.</p>
+        </div>
+      ) : null}
+
+      {hasActiveTenant && canManageTenantSettings ? (
+        <>
       {!tenantOrg?.whiteLabelEligible ? (
         <div className="card space-y-2 border border-indigo-400/40">
           <h2 className="section-title">Remove Gym Stack branding</h2>
@@ -210,6 +249,13 @@ export default function PlatformSettingsPage() {
           </button>
         </div>
       )}
+
+      {tenantPermissionError ? (
+        <div className="card space-y-2 border border-amber-300/30 bg-amber-500/10 text-amber-50">
+          <h2 className="section-title">Workspace settings unavailable</h2>
+          <p className="text-sm text-amber-100/90">{tenantPermissionError}</p>
+        </div>
+      ) : null}
 
       <div className="card space-y-4">
         <h2 className="section-title">Location branding</h2>
@@ -318,6 +364,8 @@ export default function PlatformSettingsPage() {
           <button className="button secondary w-fit" type="button" onClick={async () => { await apiFetch('/api/demo/reset', { method: 'POST' }); }}>Reset demo data</button>
         ) : null}
       </div>
+      </>
+      ) : null}
       <div className="card space-y-4"><h2 className="section-title text-slate-900 dark:text-white">Environment</h2><dl className="space-y-2 text-sm text-slate-900 dark:text-white"><div><dt className="text-slate-500 dark:text-slate-400">API base URL</dt><dd>{maskApiBaseUrl(apiBaseUrl)}</dd></div>{showDebugLinks ? <><div><dt className="text-slate-500 dark:text-slate-400">Backend health</dt><dd><Link href="/platform/status" className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200">Open platform status checks</Link></dd></div><div><dt className="text-slate-500 dark:text-slate-400">Diagnostics</dt><dd><Link href="/platform/diagnostics" className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200">Open deployment diagnostics</Link></dd></div></> : null}</dl></div>
     </section>
   );
