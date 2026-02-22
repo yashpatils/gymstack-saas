@@ -5,10 +5,11 @@ import { AccountController } from './account.controller';
 import { AccountService } from './account.service';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { AuditModule } from '../audit/audit.module';
+import { OtpCleanupService } from './otp-cleanup.service';
 
 @Module({
   imports: [PrismaModule, EmailModule, AuditModule],
   controllers: [AccountController],
-  providers: [AccountService, AuthTokenService],
+  providers: [AccountService, AuthTokenService, OtpCleanupService],
 })
 export class AccountModule {}
