@@ -61,7 +61,8 @@ Required environment variables:
 
 Required environment variables:
 
-- `DATABASE_URL`
+- `DATABASE_URL` — Postgres connection string for runtime app queries.
+- `DIRECT_URL` or `MIGRATION_DATABASE_URL` — direct Postgres connection for Prisma migration commands (recommended to avoid pooler-related migration issues).
 - `JWT_SECRET`
 - `ALLOWED_ORIGINS` — comma-separated exact origins for CORS allowlisting. Defaults include:
   - `https://gymstack.club`
@@ -90,6 +91,7 @@ Required environment variables:
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_ID` — Stripe billing keys used by subscription sync and admin revenue reporting.
 - `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` (optional, only needed if you automate domain attachment through Vercel API).
 - `MONITORING_WEBHOOK_URL` — Optional backend error webhook endpoint (captures unhandled 5xx metadata + request IDs). If omitted, monitoring is disabled with no startup impact.
+- `SKIP_PRISMA_MIGRATIONS_ON_START` — Optional boolean (`true`/`false`) to skip migration status/deploy during backend boot (recommended when migrations run as a separate CI/CD step).
 
 ## Resolving failed Prisma migrations (P3009)
 
@@ -111,7 +113,9 @@ WHERE migration_name = '20260308110000_audit_log_security_center';
 
 ```bash
 npx prisma migrate status
+# choose one, not both:
 npx prisma migrate resolve --rolled-back <migration>
+# OR
 npx prisma migrate resolve --applied <migration>
 npx prisma migrate deploy
 ```
