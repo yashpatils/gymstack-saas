@@ -1,5 +1,5 @@
 export const RESERVED_SLUGS = ['admin', 'www', 'api', 'app', 'static', 'assets', 'cdn', 'mail', 'support'] as const;
-export const RESERVED_SUBDOMAINS = new Set(RESERVED_SLUGS);
+export const RESERVED_SUBDOMAINS: ReadonlySet<string> = new Set(RESERVED_SLUGS);
 
 export function normalizeSlug(input: string): string {
   return input.trim().toLowerCase();
