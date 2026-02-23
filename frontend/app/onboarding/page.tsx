@@ -7,6 +7,7 @@ import { apiFetch } from "@/src/lib/apiFetch";
 import { ApiFetchError } from "../../src/lib/apiFetch";
 import { Alert, Button, Input, Spinner } from "../components/ui";
 import { createGym } from "../../src/lib/gyms";
+import { normalizeSlug } from "../../src/lib/slug";
 import type { Gym } from "../../src/types/gym";
 import { useAuth } from "../../src/providers/AuthProvider";
 
@@ -66,7 +67,9 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      await createGym({ name });
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const slug = normalizeSlug(name) || "gym";
+      await createGym({ name, timezone, slug });
       await refreshUser();
       router.replace("/platform");
     } catch (createError) {
