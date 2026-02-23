@@ -115,7 +115,6 @@ export default function TenantSettingsPage() {
   const tenantId = activeContext?.tenantId ?? activeTenant?.id ?? null;
   const tenantSlug = slugOverride ?? (typeof params?.tenant === "string" ? params.tenant : "your-gym");
   const canManageTenantSettings = permissions.canManageTenant || permissionKeys.includes('tenant:manage');
-  const canManageSecurity = permissionKeys.includes('security:manage') || permissions.canManageUsers || permissions.canManageTenant;
 
   const slugFeatureEnabled = useMemo(() => (
     isFeatureEnabled(flags, 'FEATURE_TENANT_SLUG_EDITOR') && isFeatureEnabled(flags, 'FEATURE_SECURE_PROFILE_UPDATES')
@@ -142,9 +141,22 @@ export default function TenantSettingsPage() {
           </div>
         }
       />
+      <section className="section">
+        <SectionTitle>Account security</SectionTitle>
+        <div className="grid gap-4">
+          <TwoStepEmailToggle
+            enabled={twoStepEnabled}
+            featureEnabled={twoStepFeatureEnabled}
+            canManageSecurity
+            emailMaskedHint={user?.email}
+            onChanged={setTwoStepEnabled}
+          />
+        </div>
+      </section>
+
       {tenantId ? (
         <section className="section">
-          <SectionTitle>Account security</SectionTitle>
+          <SectionTitle>Workspace settings</SectionTitle>
           <div className="grid gap-4">
             <TenantSlugEditor
               tenantId={tenantId}
@@ -152,13 +164,6 @@ export default function TenantSettingsPage() {
               canEdit={canManageTenantSettings}
               featureEnabled={slugFeatureEnabled}
               onSlugChanged={(nextSlug) => setSlugOverride(nextSlug)}
-            />
-            <TwoStepEmailToggle
-              enabled={twoStepEnabled}
-              featureEnabled={twoStepFeatureEnabled}
-              canManageSecurity={canManageSecurity}
-              emailMaskedHint={user?.email}
-              onChanged={setTwoStepEnabled}
             />
           </div>
         </section>

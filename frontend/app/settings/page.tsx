@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch, ApiFetchError } from '../../src/lib/apiFetch';
 import { useAuth } from '../../src/providers/AuthProvider';
+import { getFeatureFlags, isFeatureEnabled, type FeatureFlags } from '../../src/lib/featureFlags';
+import { TwoStepEmailToggle } from '../../src/components/settings/TwoStepEmailToggle';
 
 type SettingsTab = 'profile' | 'security';
 
@@ -10,6 +12,10 @@ type MyProfile = {
   id: string;
   name: string | null;
   email: string;
+  twoStepEmailEnabled?: boolean;
+};
+
+type AuthMe = {
   twoStepEmailEnabled?: boolean;
 };
 
@@ -22,6 +28,10 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [flags, setFlags] = useState<FeatureFlags>({});
+  const [twoStepEnabled, setTwoStepEnabled] = useState(false);
+
+  const twoStepFeatureEnabled = useMemo(() => isFeatureEnabled(flags, 'FEATURE_EMAIL_2SV'), [flags]);
 
   useEffect(() => {
     let mounted = true;
@@ -40,6 +50,35 @@ export default function SettingsPage() {
 
     if (isAuthenticated) {
       void load();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSecurityState() {
+      try {
+        const me = await apiFetch<AuthMe>('/api/auth/me', { method: 'GET' });
+        if (!mounted) {
+          return;
+        }
+        setTwoStepEnabled(Boolean(me?.twoStepEmailEnabled));
+      } catch {
+        if (!mounted) {
+          return;
+        }
+        setTwoStepEnabled(false);
+      }
+    }
+
+    void getFeatureFlags().then(setFlags).catch(() => setFlags({}));
+
+    if (isAuthenticated) {
+      void loadSecurityState();
     }
 
     return () => {
@@ -107,7 +146,13 @@ export default function SettingsPage() {
         ) : (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Security</h2>
-            <p className="text-sm text-slate-300">2-step verification placeholder (Prompt 3).</p>
+            <TwoStepEmailToggle
+              enabled={twoStepEnabled}
+              featureEnabled={twoStepFeatureEnabled}
+              canManageSecurity={isAuthenticated}
+              emailMaskedHint={profile?.email}
+              onChanged={setTwoStepEnabled}
+            />
             <input
               placeholder="Current password"
               type="password"
