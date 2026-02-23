@@ -7,6 +7,7 @@ import { NotificationBell } from "../../src/components/notifications/Notificatio
 import { ThemeToggle } from "../../src/components/theme/ThemeToggle";
 import { PlatformAccountDropdown } from "../../src/components/platform/layout/PlatformAccountDropdown";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { OrgSwitcher } from '../../src/components/shell/OrgSwitcher';
 
 export function AppShellProvider({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -15,7 +16,7 @@ export function AppShellProvider({ children }: { children: ReactNode }) {
     <AppShell
       items={platformNavItems}
       title="Platform"
-      leftSlot={<NotificationBell />}
+      leftSlot={<div className="flex items-center gap-2"><OrgSwitcher /><NotificationBell /></div>}
       rightSlot={
         <div className="flex items-center gap-2">
           <ThemeToggle />

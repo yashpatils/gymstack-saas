@@ -1,18 +1,171 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { BillingProvider, InviteStatus, MembershipRole, MembershipStatus } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { AuditActorType, BillingProvider, InviteStatus, MembershipRole, MembershipStatus, Prisma, type NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { PlanService } from '../billing/plan.service';
 import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
+import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrganizationsService {
+  private readonly logger = new Logger(OrganizationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionGatingService: SubscriptionGatingService,
     private readonly planService: PlanService,
     private readonly billingLifecycleService: BillingLifecycleService,
+    private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  private async getOrgMembership(userId: string, orgId: string) {
+    return this.prisma.membership.findFirst({
+      where: { userId, orgId, status: MembershipStatus.ACTIVE },
+      select: { id: true, role: true, orgId: true },
+    });
+  }
+
+  private async createNotificationStub(input: { tenantId: string; userId: string; title: string; body: string; metadata?: Prisma.InputJsonObject }) {
+    try {
+      await this.notificationsService.createForUser({
+        tenantId: input.tenantId,
+        userId: input.userId,
+        type: 'SYSTEM' as NotificationType,
+        title: input.title,
+        body: input.body,
+        metadata: input.metadata,
+      });
+    } catch (error) {
+      this.logger.warn(`Notification stub failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  async createOrg(user: { id: string; email?: string }, name: string) {
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      throw new BadRequestException('Organization name is required');
+    }
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const org = await tx.organization.create({ data: { name: normalizedName } });
+      const membership = await tx.membership.create({
+        data: { orgId: org.id, userId: user.id, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+      });
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: { orgId: org.id },
+      });
+
+      return { org, membership };
+    });
+
+    this.auditService.log({
+      actor: { userId: user.id, email: user.email ?? null, type: AuditActorType.USER, role: MembershipRole.TENANT_OWNER },
+      tenantId: created.org.id,
+      action: 'ORG_CREATED',
+      targetType: 'organization',
+      targetId: created.org.id,
+      metadata: { membershipId: created.membership.id },
+    });
+
+    await this.createNotificationStub({
+      tenantId: created.org.id,
+      userId: user.id,
+      title: 'Organization created',
+      body: `Your organization ${created.org.name} is ready.`,
+      metadata: { orgId: created.org.id },
+    });
+
+    return { id: created.org.id, name: created.org.name, createdAt: created.org.createdAt.toISOString(), role: MembershipRole.TENANT_OWNER };
+  }
+
+  async listUserOrgs(userId: string) {
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId, status: MembershipStatus.ACTIVE },
+      select: { id: true, role: true, org: { select: { id: true, name: true, createdAt: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const seen = new Set<string>();
+    return memberships
+      .filter((m) => {
+        if (seen.has(m.org.id)) return false;
+        seen.add(m.org.id);
+        return true;
+      })
+      .map((m) => ({ id: m.org.id, name: m.org.name, createdAt: m.org.createdAt.toISOString(), role: m.role }));
+  }
+
+  async getOrgDetailForMember(userId: string, orgId: string) {
+    const membership = await this.getOrgMembership(userId, orgId);
+    if (!membership) throw new ForbiddenException('Organization access denied');
+    return this.getOrg(orgId);
+  }
+
+  async updateOrgById(user: { id: string; email?: string }, orgId: string, name: string) {
+    const membership = await this.getOrgMembership(user.id, orgId);
+    if (!membership) throw new ForbiddenException('Organization access denied');
+    if (membership.role !== MembershipRole.TENANT_OWNER && membership.role !== MembershipRole.TENANT_LOCATION_ADMIN) {
+      throw new ForbiddenException('Insufficient role');
+    }
+    const updated = await this.renameOrg(orgId, user.id, name);
+    this.auditService.log({ actor: { userId: user.id, email: user.email ?? null, type: AuditActorType.USER, role: membership.role }, tenantId: orgId, action: 'ORG_UPDATED', targetType: 'organization', targetId: orgId, metadata: { name } });
+    return updated;
+  }
+
+  async listOrgMembers(userId: string, orgId: string) {
+    const requester = await this.getOrgMembership(userId, orgId);
+    if (!requester || (requester.role !== MembershipRole.TENANT_OWNER && requester.role !== MembershipRole.TENANT_LOCATION_ADMIN)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    const members = await this.prisma.membership.findMany({
+      where: { orgId },
+      include: { user: { select: { id: true, email: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return members.map((m) => ({ id: m.id, userId: m.userId, name: m.user.name, email: m.user.email, role: m.role, status: m.status, createdAt: m.createdAt.toISOString() }));
+  }
+
+  async updateOrgMembership(
+    actor: { id: string; email?: string },
+    orgId: string,
+    membershipId: string,
+    updates: { role?: MembershipRole; status?: MembershipStatus },
+  ) {
+    const requester = await this.getOrgMembership(actor.id, orgId);
+    if (!requester || (requester.role !== MembershipRole.TENANT_OWNER && requester.role !== MembershipRole.TENANT_LOCATION_ADMIN)) {
+      throw new ForbiddenException('Role changes are only allowed by owner/admin');
+    }
+
+    const target = await this.prisma.membership.findFirst({ where: { id: membershipId, orgId } });
+    if (!target) throw new NotFoundException('Membership not found');
+
+    const updated = await this.prisma.membership.update({ where: { id: target.id }, data: { role: updates.role ?? undefined, status: updates.status ?? undefined } });
+
+    this.auditService.log({
+      actor: { userId: actor.id, email: actor.email ?? null, type: AuditActorType.USER, role: requester.role },
+      tenantId: orgId,
+      action: 'ORG_MEMBERSHIP_UPDATED',
+      targetType: 'membership',
+      targetId: target.id,
+      metadata: { previousRole: target.role, previousStatus: target.status, nextRole: updated.role, nextStatus: updated.status },
+    });
+
+    await this.createNotificationStub({
+      tenantId: orgId,
+      userId: updated.userId,
+      title: 'Organization membership updated',
+      body: 'Your role or status was updated by an organization administrator.',
+      metadata: { membershipId: updated.id, role: updated.role, status: updated.status },
+    });
+
+    return { id: updated.id, userId: updated.userId, role: updated.role, status: updated.status };
+  }
 
   async getOrg(orgId: string) {
     const organization = await this.prisma.organization.findUnique({

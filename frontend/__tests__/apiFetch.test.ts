@@ -37,6 +37,28 @@ describe('apiFetch', () => {
     expect(buildApiUrl('/api/auth/me')).toBe('https://api.example.com/api/auth/me');
   });
 
+
+
+  it('applies active tenant header from context store', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { setStoredActiveContext } = await import('../src/lib/auth/contextStore');
+    const { apiFetch } = await import('../src/lib/apiFetch');
+
+    setStoredActiveContext({ tenantId: 'org_b', locationId: null, role: 'TENANT_OWNER' as never });
+    await apiFetch('/api/orgs');
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get('X-Active-Tenant-Id')).toBe('org_b');
+  });
+
   it('throws ApiFetchError with status and payload details', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(JSON.stringify({ message: 'Unauthorized', code: 'AUTH_401' }), {
