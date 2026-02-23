@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from '../billing/subscription-gating.service';
 import { normalizeHostname } from '../domains/domain.util';
 import { PublicLocationByHostResponseDto } from './dto/public-location-by-host.dto';
-import { RESERVED_SUBDOMAINS } from '../common/slug.util';
+import { isReservedSubdomain } from '../common/slug.util';
 
 const DEFAULT_BASE_DOMAIN = 'gymstack.club';
 
@@ -131,7 +131,7 @@ export class PublicService {
     }
 
     const slug = this.extractSubdomain(hostname, baseDomain);
-    if (!slug || RESERVED_SUBDOMAINS.has(slug)) {
+    if (!slug || isReservedSubdomain(slug)) {
       return null;
     }
 
