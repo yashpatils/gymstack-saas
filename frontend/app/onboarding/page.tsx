@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "../../src/components/ProtectedRoute";
 import { apiFetch } from "@/src/lib/apiFetch";
@@ -10,6 +10,9 @@ import { checkGymSlugAvailability, createGym } from "../../src/lib/gyms";
 import { normalizeSlug } from "../../src/lib/slug";
 import type { Gym } from "../../src/types/gym";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { getApiError } from "../../src/lib/security";
+
+type SlugStatus = "idle" | "checking" | "valid" | "invalid" | "taken" | "reserved" | "error";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -18,6 +21,10 @@ export default function OnboardingPage() {
   const [gymName, setGymName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [slug, setSlug] = useState("");
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle");
+  const [slugMessage, setSlugMessage] = useState("");
+  const slugRequestSequence = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -55,11 +62,87 @@ export default function OnboardingPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    const normalized = normalizeSlug(slug);
+
+    if (!normalized) {
+      setSlugStatus("idle");
+      setSlugMessage("");
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      const sequence = ++slugRequestSequence.current;
+      setSlugStatus("checking");
+      setSlugMessage("Checking slug availability...");
+
+      try {
+        const availability = await checkGymSlugAvailability(normalized);
+        if (sequence !== slugRequestSequence.current) {
+          return;
+        }
+
+        if (!availability.validFormat) {
+          setSlugStatus(availability.reserved ? "reserved" : "invalid");
+          setSlugMessage(availability.reason ?? "Invalid slug format");
+          return;
+        }
+
+        if (availability.reserved) {
+          setSlugStatus("reserved");
+          setSlugMessage(availability.reason ?? "This slug is reserved");
+          return;
+        }
+
+        if (!availability.available) {
+          setSlugStatus("taken");
+          setSlugMessage(availability.reason ?? "This slug is already in use");
+          return;
+        }
+
+        setSlugStatus("valid");
+        setSlugMessage(`Available: ${availability.slug}`);
+      } catch {
+        if (sequence !== slugRequestSequence.current) {
+          return;
+        }
+        setSlugStatus("error");
+        setSlugMessage("Could not check slug availability.");
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [slug]);
+
+  useEffect(() => {
+    const normalizedNameSlug = normalizeSlug(gymName);
+    if (!normalizedNameSlug) {
+      return;
+    }
+
+    setSlug((currentSlug) => {
+      const normalizedCurrent = normalizeSlug(currentSlug);
+      if (!normalizedCurrent || normalizedCurrent === normalizeSlug(gymName.trim())) {
+        return normalizedNameSlug;
+      }
+      return currentSlug;
+    });
+  }, [gymName]);
+
   const handleCreateGym = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = gymName.trim();
 
-    if (!name) {
+    const normalizedSlug = normalizeSlug(slug);
+
+    if (!name || !normalizedSlug) {
+      return;
+    }
+
+    if (slugStatus !== "valid") {
+      setError(slugMessage || "Please choose an available slug before continuing.");
       return;
     }
 
@@ -68,20 +151,19 @@ export default function OnboardingPage() {
 
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      const baseSlug = normalizeSlug(name) || `gym-${Date.now()}`;
-      let slug = baseSlug;
-
-      const initialAvailability = await checkGymSlugAvailability(baseSlug);
-      if (!initialAvailability.available) {
-        slug = `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`;
-      }
-
-      await createGym({ name, timezone, slug });
+      await createGym({ name, timezone, slug: normalizedSlug });
       await refreshUser();
       router.replace("/platform");
     } catch (createError) {
       if (createError instanceof ApiFetchError && createError.statusCode === 403) {
         setError("You already belong to a tenant and do not have permission to create another gym.");
+      } else if (createError instanceof ApiFetchError) {
+        const apiError = getApiError(createError);
+        if (apiError.code === "SLUG_TAKEN" || apiError.code === "SLUG_RESERVED" || apiError.code === "SLUG_INVALID") {
+          setError(apiError.message);
+        } else {
+          setError(createError.message);
+        }
       } else {
         setError(createError instanceof Error ? createError.message : "Unable to create gym.");
       }
@@ -117,7 +199,16 @@ export default function OnboardingPage() {
                   onChange={(event) => setGymName(event.target.value)}
                   required
                 />
-                <Button type="submit" disabled={creating}>
+                <Input
+                  label="Gym URL slug"
+                  name="slug"
+                  value={slug}
+                  onChange={(event) => setSlug(event.target.value)}
+                  helperText={slugMessage || "Used in your gym URL. Lowercase letters, numbers, and hyphens only."}
+                  error={slugStatus === "invalid" || slugStatus === "reserved" || slugStatus === "taken" ? slugMessage : undefined}
+                  required
+                />
+                <Button type="submit" disabled={creating || slugStatus !== "valid"}>
                   {creating ? (
                     <>
                       <Spinner />

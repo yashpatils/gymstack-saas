@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, PlanKey, Prisma, Role, SubscriptionStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
@@ -27,6 +27,8 @@ function isSlugUniqueConstraintError(error: unknown): boolean {
 
 @Injectable()
 export class GymsService {
+  private readonly logger = new Logger(GymsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -51,6 +53,17 @@ export class GymsService {
       throw SecurityErrors.slugInvalid(validation.reason);
     }
 
+    if (!this.isValidTimezone(data.timezone)) {
+      throw new BadRequestException({
+        error: { code: 'TIMEZONE_INVALID', message: 'Timezone is invalid.' },
+      });
+    }
+
+    const existingGym = await this.prisma.gym.findUnique({ where: { slug: validation.slug }, select: { id: true } });
+    if (existingGym) {
+      throw SecurityErrors.slugTaken();
+    }
+
     await this.billingLifecycleService.assertCanCreateLocation(orgId);
     await this.planService.assertWithinLimits(orgId, 'createLocation', { qaBypass });
 
@@ -70,8 +83,14 @@ export class GymsService {
         },
       });
     } catch (error) {
+      this.logPrismaCreateError(error, { slug: validation.slug, orgId, ownerId, context: 'createGym' });
       if (isSlugUniqueConstraintError(error)) {
         throw SecurityErrors.slugTaken();
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+        throw new InternalServerErrorException({
+          error: { code: 'DB_SCHEMA_MISMATCH', message: 'Database schema is out of date.' },
+        });
       }
       throw error;
     }
@@ -129,6 +148,17 @@ export class GymsService {
           throw SecurityErrors.slugInvalid(validation.reason);
         }
 
+        if (!this.isValidTimezone(data.timezone)) {
+          throw new BadRequestException({
+            error: { code: 'TIMEZONE_INVALID', message: 'Timezone is invalid.' },
+          });
+        }
+
+        const existingGym = await tx.gym.findUnique({ where: { slug: validation.slug }, select: { id: true } });
+        if (existingGym) {
+          throw SecurityErrors.slugTaken();
+        }
+
         try {
           return await tx.gym.create({
             data: {
@@ -144,8 +174,14 @@ export class GymsService {
             },
           });
         } catch (error) {
+          this.logPrismaCreateError(error, { slug: validation.slug, orgId: organization.id, ownerId: user.id, context: 'createGymForUser' });
           if (isSlugUniqueConstraintError(error)) {
             throw SecurityErrors.slugTaken();
+          }
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+            throw new InternalServerErrorException({
+              error: { code: 'DB_SCHEMA_MISMATCH', message: 'Database schema is out of date.' },
+            });
           }
           throw error;
         }
@@ -220,6 +256,37 @@ export class GymsService {
       return configured;
     }
     return PlanKey.pro;
+  }
+
+  private isValidTimezone(timezoneRaw: string): boolean {
+    const timezone = timezoneRaw?.trim();
+    if (!timezone) {
+      return false;
+    }
+
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private logPrismaCreateError(
+    error: unknown,
+    context: { slug: string; orgId: string; ownerId: string; context: 'createGym' | 'createGymForUser' },
+  ): void {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return;
+    }
+
+    this.logger.error(JSON.stringify({
+      event: 'gym_create_prisma_error',
+      code: error.code,
+      meta: error.meta,
+      message: error.message,
+      ...context,
+    }));
   }
 
   private getTrialWindow(): { trialStartedAt: Date; trialEndsAt: Date } {
