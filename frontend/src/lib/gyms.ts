@@ -1,6 +1,6 @@
 import { apiFetch } from './apiFetch';
 import { track } from './analytics';
-import type { CreateGymRequest, CreateGymResponse, Gym, SlugAvailabilityResult } from '../types/gym';
+import type { CreateGymRequest, CreateGymResponse, Gym, SlugAvailabilityResult, UpdateGymRequest } from '../types/gym';
 
 export type { Gym, CreateGymRequest as GymInput };
 
@@ -27,7 +27,7 @@ export async function checkGymSlugAvailability(slug: string): Promise<SlugAvaila
   });
 }
 
-export async function updateGym(id: string, payload: CreateGymRequest): Promise<Gym> {
+export async function updateGym(id: string, payload: UpdateGymRequest): Promise<Gym> {
   return apiFetch<Gym>(`/api/gyms/${id}`, {
     method: 'PATCH',
     body: payload,

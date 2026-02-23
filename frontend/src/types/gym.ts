@@ -30,6 +30,8 @@ export type CreateGymRequest = {
   logoUrl?: string | null;
 };
 
+export type UpdateGymRequest = Partial<CreateGymRequest>;
+
 export type SlugAvailabilityResult = {
   slug: string;
   available: boolean;
