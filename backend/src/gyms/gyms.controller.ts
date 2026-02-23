@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { User, UserRole } from '../users/user.model';
 import { GymsService } from './gyms.service';
 import { CreateGymDto } from './dto/create-gym.dto';
 import { UpdateGymDto } from './dto/update-gym.dto';
+import { GymSlugAvailabilityQueryDto } from './dto/slug-availability.dto';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
@@ -41,7 +43,17 @@ export class GymsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.gymsService.createGymForUser({ ...user, orgId: user.activeTenantId ?? user.orgId }, data.name);
+    return this.gymsService.createGymForUser({ ...user, orgId: user.activeTenantId ?? user.orgId }, data);
+  }
+
+  @Get('slug-availability')
+  checkSlugAvailability(@Query() query: GymSlugAvailabilityQueryDto, @Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.gymsService.checkSlugAvailability({ ...user, orgId: user.activeTenantId ?? user.orgId }, query.slug);
   }
 
   @Get(':id')

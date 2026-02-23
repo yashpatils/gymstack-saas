@@ -20,6 +20,9 @@ import { UpgradeModal } from "../../../../src/components/common/UpgradeModal";
 
 type GymForm = {
   name: string;
+  timezone: string;
+  slug: string;
+  address: string;
 };
 
 export default function NewGymPage() {
@@ -28,6 +31,9 @@ export default function NewGymPage() {
   const toast = useToast();
   const [form, setForm] = useState<GymForm>({
     name: "",
+    timezone: "UTC",
+    slug: "",
+    address: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +73,7 @@ export default function NewGymPage() {
         await chooseContext(tenantId, createdGym.id);
       }
       toast.success("Gym created", "Entering your new gym workspace.");
-      router.push(`/platform/gyms/${createdGym.id}`);
+      router.push(`/platform/dashboard`);
     } catch (err) {
       if (err instanceof ApiFetchError) {
         const code = err.details && typeof err.details === "object" && "code" in err.details && typeof err.details.code === "string" ? err.details.code : null;
@@ -133,6 +139,35 @@ export default function NewGymPage() {
                 setForm((prev) => ({ ...prev, name: event.target.value }))
               }
               required
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300" htmlFor="gym-timezone">
+            Timezone
+            <input
+              id="gym-timezone"
+              className="input"
+              value={form.timezone}
+              onChange={(event) => setForm((prev) => ({ ...prev, timezone: event.target.value }))}
+              required
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300" htmlFor="gym-slug">
+            Slug
+            <input
+              id="gym-slug"
+              className="input"
+              value={form.slug}
+              onChange={(event) => setForm((prev) => ({ ...prev, slug: event.target.value.toLowerCase().trim() }))}
+              required
+            />
+          </label>
+          <label className="grid gap-2 text-sm text-slate-300" htmlFor="gym-address">
+            Address
+            <input
+              id="gym-address"
+              className="input"
+              value={form.address}
+              onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))}
             />
           </label>
           <div className="flex flex-wrap gap-3">

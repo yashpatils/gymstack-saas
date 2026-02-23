@@ -11,6 +11,10 @@ export class UpdateGymDto {
 
   @IsOptional()
   @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
   contactEmail?: string;
 
   @IsOptional()

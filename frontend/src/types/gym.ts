@@ -22,11 +22,20 @@ export type Gym = {
 
 export type CreateGymRequest = {
   name: string;
-  timezone?: string;
+  timezone: string;
+  slug: string;
   contactEmail?: string | null;
   phone?: string | null;
   address?: string | null;
   logoUrl?: string | null;
+};
+
+export type SlugAvailabilityResult = {
+  slug: string;
+  available: boolean;
+  reserved: boolean;
+  validFormat: boolean;
+  reason?: string;
 };
 
 export type CreateGymResponse = Gym;

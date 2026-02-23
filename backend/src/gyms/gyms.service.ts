@@ -14,9 +14,15 @@ import { createHash, randomBytes } from 'crypto';
 import { UpdateLocationBrandingDto } from './dto/update-location-branding.dto';
 import { ConfigureLocationDomainDto } from './dto/configure-location-domain.dto';
 import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
+import { SecurityErrors } from '../common/errors/security-errors';
+import { validateTenantSlug } from '../common/slug.util';
+import { CreateGymDto } from './dto/create-gym.dto';
 
-function toGymSlug(name: string): string {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'gym';
+function isSlugUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError
+    && error.code === 'P2002'
+    && Array.isArray(error.meta?.target)
+    && (error.meta?.target as string[]).includes('slug');
 }
 
 @Injectable()
@@ -36,18 +42,39 @@ export class GymsService {
     });
   }
 
-  async createGym(orgId: string, ownerId: string, name: string, qaBypass = false) {
+  async createGym(orgId: string, ownerId: string, data: CreateGymDto, qaBypass = false) {
+    const validation = validateTenantSlug(data.slug);
+    if (!validation.ok) {
+      if (validation.reason.toLowerCase().includes('reserved')) {
+        throw SecurityErrors.slugReserved();
+      }
+      throw SecurityErrors.slugInvalid(validation.reason);
+    }
+
     await this.billingLifecycleService.assertCanCreateLocation(orgId);
     await this.planService.assertWithinLimits(orgId, 'createLocation', { qaBypass });
 
-    const gym = await this.prisma.gym.create({
-      data: {
-        name,
-        slug: `${toGymSlug(name)}-${Date.now().toString().slice(-6)}`,
-        owner: { connect: { id: ownerId } },
-        org: { connect: { id: orgId } },
-      },
-    });
+    let gym;
+    try {
+      gym = await this.prisma.gym.create({
+        data: {
+          name: data.name,
+          slug: validation.slug,
+          timezone: data.timezone,
+          address: data.address,
+          contactEmail: data.contactEmail,
+          phone: data.phone,
+          logoUrl: data.logoUrl,
+          owner: { connect: { id: ownerId } },
+          org: { connect: { id: orgId } },
+        },
+      });
+    } catch (error) {
+      if (isSlugUniqueConstraintError(error)) {
+        throw SecurityErrors.slugTaken();
+      }
+      throw error;
+    }
 
     await this.auditService.log({
       orgId,
@@ -55,13 +82,13 @@ export class GymsService {
       action: 'gym.create',
       entityType: 'gym',
       entityId: gym.id,
-      metadata: { name: gym.name },
+      metadata: { name: gym.name, slug: gym.slug },
     });
 
     return gym;
   }
 
-  async createGymForUser(user: User, name: string) {
+  async createGymForUser(user: User, data: CreateGymDto) {
     const memberships = await this.prisma.membership.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'asc' },
@@ -71,7 +98,7 @@ export class GymsService {
       const createdGym = await this.prisma.$transaction(async (tx) => {
         const organization = await tx.organization.create({
           data: {
-            name: `${name} Organization`,
+            name: `${data.name} Organization`,
             subscriptionStatus: SubscriptionStatus.TRIAL,
             planKey: this.getTrialPlanKey(),
             ...this.getTrialWindow(),
@@ -94,14 +121,34 @@ export class GymsService {
           },
         });
 
-        return tx.gym.create({
-          data: {
-            name,
-            slug: `${toGymSlug(name)}-${Date.now().toString().slice(-6)}`,
-            owner: { connect: { id: user.id } },
-            org: { connect: { id: organization.id } },
-          },
-        });
+        const validation = validateTenantSlug(data.slug);
+        if (!validation.ok) {
+          if (validation.reason.toLowerCase().includes('reserved')) {
+            throw SecurityErrors.slugReserved();
+          }
+          throw SecurityErrors.slugInvalid(validation.reason);
+        }
+
+        try {
+          return await tx.gym.create({
+            data: {
+              name: data.name,
+              slug: validation.slug,
+              timezone: data.timezone,
+              address: data.address,
+              contactEmail: data.contactEmail,
+              phone: data.phone,
+              logoUrl: data.logoUrl,
+              owner: { connect: { id: user.id } },
+              org: { connect: { id: organization.id } },
+            },
+          });
+        } catch (error) {
+          if (isSlugUniqueConstraintError(error)) {
+            throw SecurityErrors.slugTaken();
+          }
+          throw error;
+        }
       });
 
       await this.auditService.log({
@@ -135,7 +182,36 @@ export class GymsService {
       throw new ForbiddenException('Only tenant owners can create additional locations');
     }
 
-    return this.createGym(orgId, user.id, name, user.qaBypass === true);
+    return this.createGym(orgId, user.id, data, user.qaBypass === true);
+  }
+
+  async checkSlugAvailability(requester: User, slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; validFormat: boolean; reason?: string }> {
+    const orgId = requester.activeTenantId ?? requester.orgId;
+    if (!orgId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const validation = validateTenantSlug(slugRaw ?? '');
+    if (!validation.ok) {
+      return {
+        slug: (slugRaw ?? '').trim().toLowerCase(),
+        available: false,
+        reserved: validation.reason.toLowerCase().includes('reserved'),
+        validFormat: false,
+        reason: validation.reason,
+      };
+    }
+
+    const existing = await this.prisma.gym.findUnique({ where: { slug: validation.slug }, select: { id: true, orgId: true } });
+    const available = !existing || existing.orgId === orgId;
+
+    return {
+      slug: validation.slug,
+      available,
+      reserved: false,
+      validFormat: true,
+      reason: available ? undefined : 'This slug is already in use',
+    };
   }
 
   private getTrialPlanKey(): PlanKey {
@@ -176,10 +252,30 @@ export class GymsService {
       throw new NotFoundException('Gym not found');
     }
 
-    const updatedGym = await this.prisma.gym.update({
-      where: { id },
-      data,
-    });
+    let payload: UpdateGymDto = data;
+    if (data.slug !== undefined) {
+      const validation = validateTenantSlug(data.slug);
+      if (!validation.ok) {
+        if (validation.reason.toLowerCase().includes('reserved')) {
+          throw SecurityErrors.slugReserved();
+        }
+        throw SecurityErrors.slugInvalid(validation.reason);
+      }
+      payload = { ...data, slug: validation.slug };
+    }
+
+    let updatedGym;
+    try {
+      updatedGym = await this.prisma.gym.update({
+        where: { id },
+        data: payload,
+      });
+    } catch (error) {
+      if (isSlugUniqueConstraintError(error)) {
+        throw SecurityErrors.slugTaken();
+      }
+      throw error;
+    }
 
     await this.auditService.log({
       orgId,
@@ -226,10 +322,30 @@ export class GymsService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const updatedGym = await this.prisma.gym.update({
-      where: { id },
-      data,
-    });
+    let payload: UpdateGymDto = data;
+    if (data.slug !== undefined) {
+      const validation = validateTenantSlug(data.slug);
+      if (!validation.ok) {
+        if (validation.reason.toLowerCase().includes('reserved')) {
+          throw SecurityErrors.slugReserved();
+        }
+        throw SecurityErrors.slugInvalid(validation.reason);
+      }
+      payload = { ...data, slug: validation.slug };
+    }
+
+    let updatedGym;
+    try {
+      updatedGym = await this.prisma.gym.update({
+        where: { id },
+        data: payload,
+      });
+    } catch (error) {
+      if (isSlugUniqueConstraintError(error)) {
+        throw SecurityErrors.slugTaken();
+      }
+      throw error;
+    }
 
     await this.auditService.log({
       orgId: user.orgId,
