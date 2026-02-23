@@ -194,7 +194,7 @@ function LoginPageContent() {
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
       <form
-        className="w-full max-w-md space-y-4 rounded-3xl border border-white/15 bg-slate-900/75 p-6 shadow-2xl backdrop-blur"
+        className="w-full max-w-md space-y-4 rounded-3xl border border-border bg-card p-6 shadow-2xl backdrop-blur"
         onSubmit={async (event) => {
           event.preventDefault();
           if (flow.step === 'OTP') {
@@ -256,8 +256,8 @@ function LoginPageContent() {
           }
         }}
       >
-        <h1 className="text-2xl font-semibold text-white">{isAdminHost ? 'Gym Stack Admin' : 'Welcome back'}</h1>
-        <p className="text-sm text-slate-300">{isAdminHost ? 'Administrator access only.' : 'Sign in to your gym workspace.'}</p>
+        <h1 className="text-2xl font-semibold text-foreground">{isAdminHost ? 'Gym Stack Admin' : 'Welcome back'}</h1>
+        <p className="text-sm text-muted-foreground">{isAdminHost ? 'Administrator access only.' : 'Sign in to your gym workspace.'}</p>
         {!isAdminHost && flow.step === 'CREDENTIALS' ? (
           <div className="grid grid-cols-2 gap-2">
             {personaOptions.map((option) => {

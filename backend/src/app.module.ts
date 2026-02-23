@@ -55,6 +55,7 @@ const shouldEnableDebugRoutes =
     AdminModule,
     AccountModule,
     OnboardingModule,
+    LocationMembershipsModule,
     LocationAppModule,
     FeatureFlagsModule,
     AnalyticsModule,
