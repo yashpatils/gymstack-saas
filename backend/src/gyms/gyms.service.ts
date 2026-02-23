@@ -69,18 +69,24 @@ export class GymsService {
 
     let gym;
     try {
-      gym = await this.prisma.gym.create({
-        data: {
-          name: data.name,
-          slug: validation.slug,
-          timezone: data.timezone,
-          address: data.address,
-          contactEmail: data.contactEmail,
-          phone: data.phone,
-          logoUrl: data.logoUrl,
-          owner: { connect: { id: ownerId } },
-          org: { connect: { id: orgId } },
-        },
+      gym = await this.prisma.$transaction(async (tx) => {
+        const createdGym = await tx.gym.create({
+          data: {
+            name: data.name,
+            slug: validation.slug,
+            timezone: data.timezone,
+            address: data.address,
+            contactEmail: data.contactEmail,
+            phone: data.phone,
+            logoUrl: data.logoUrl,
+            owner: { connect: { id: ownerId } },
+            org: { connect: { id: orgId } },
+          },
+        });
+
+        await this.ensureCreatorLocationMembership(tx, orgId, ownerId, createdGym.id);
+
+        return createdGym;
       });
     } catch (error) {
       this.logPrismaCreateError(error, { slug: validation.slug, orgId, ownerId, context: 'createGym' });
@@ -103,8 +109,6 @@ export class GymsService {
       entityId: gym.id,
       metadata: { name: gym.name, slug: gym.slug },
     });
-
-    await this.ensureCreatorLocationMembership(orgId, ownerId, gym.id);
 
     return gym;
   }
@@ -244,8 +248,8 @@ export class GymsService {
     return this.createGym(orgId, user.id, data, user.qaBypass === true);
   }
 
-  private async ensureCreatorLocationMembership(orgId: string, userId: string, gymId: string): Promise<void> {
-    await this.prisma.membership.upsert({
+  private async ensureCreatorLocationMembership(tx: Prisma.TransactionClient, orgId: string, userId: string, gymId: string): Promise<void> {
+    await tx.membership.upsert({
       where: {
         userId_orgId_gymId_role: {
           userId,
