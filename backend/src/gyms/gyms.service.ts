@@ -104,6 +104,8 @@ export class GymsService {
       metadata: { name: gym.name, slug: gym.slug },
     });
 
+    await this.ensureCreatorLocationMembership(orgId, ownerId, gym.id);
+
     return gym;
   }
 
@@ -160,7 +162,7 @@ export class GymsService {
         }
 
         try {
-          return await tx.gym.create({
+          const createdGym = await tx.gym.create({
             data: {
               name: data.name,
               slug: validation.slug,
@@ -173,6 +175,27 @@ export class GymsService {
               org: { connect: { id: organization.id } },
             },
           });
+
+          await tx.membership.upsert({
+            where: {
+              userId_orgId_gymId_role: {
+                userId: user.id,
+                orgId: organization.id,
+                gymId: createdGym.id,
+                role: MembershipRole.TENANT_LOCATION_ADMIN,
+              },
+            },
+            update: { status: MembershipStatus.ACTIVE },
+            create: {
+              orgId: organization.id,
+              userId: user.id,
+              gymId: createdGym.id,
+              role: MembershipRole.TENANT_LOCATION_ADMIN,
+              status: MembershipStatus.ACTIVE,
+            },
+          });
+
+          return createdGym;
         } catch (error) {
           this.logPrismaCreateError(error, { slug: validation.slug, orgId: organization.id, ownerId: user.id, context: 'createGymForUser' });
           if (isSlugUniqueConstraintError(error)) {
@@ -219,6 +242,27 @@ export class GymsService {
     }
 
     return this.createGym(orgId, user.id, data, user.qaBypass === true);
+  }
+
+  private async ensureCreatorLocationMembership(orgId: string, userId: string, gymId: string): Promise<void> {
+    await this.prisma.membership.upsert({
+      where: {
+        userId_orgId_gymId_role: {
+          userId,
+          orgId,
+          gymId,
+          role: MembershipRole.TENANT_LOCATION_ADMIN,
+        },
+      },
+      update: { status: MembershipStatus.ACTIVE },
+      create: {
+        orgId,
+        userId,
+        gymId,
+        role: MembershipRole.TENANT_LOCATION_ADMIN,
+        status: MembershipStatus.ACTIVE,
+      },
+    });
   }
 
   async checkSlugAvailability(requester: User, slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; validFormat: boolean; reason?: string }> {

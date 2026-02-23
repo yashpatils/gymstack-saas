@@ -8,6 +8,7 @@ import { useToast } from '../../../src/components/toast/ToastProvider';
 import { assignClientMembership, getClientMembership, listLocationPlans } from '../../../src/lib/memberships';
 import { listUsers, User } from '../../../src/lib/users';
 import { ClientMembership, MembershipPlan } from '../../../src/types/memberships';
+import { ApiFetchError } from '../../../src/lib/apiFetch';
 
 function statusBadge(status: ClientMembership['status']) {
   if (status === 'active' || status === 'trialing') {
@@ -36,7 +37,12 @@ export default function TenantMembersPage() {
       setUsers(nextUsers);
       setPlans(nextPlans);
     } catch (error) {
-      toast.error('Unable to load members', error instanceof Error ? error.message : 'Please try again.');
+      if (error instanceof ApiFetchError && error.statusCode === 403) {
+        setUsers([]);
+        toast.error('Insufficient permissions', 'Your role cannot view the full user roster for this location.');
+      } else {
+        toast.error('Unable to load members', error instanceof Error ? error.message : 'Please try again.');
+      }
     } finally {
       setLoading(false);
     }

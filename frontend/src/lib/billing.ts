@@ -22,7 +22,8 @@ export async function createCheckout(plan: Plan, userId: string): Promise<Create
 }
 
 export async function getBillingStatus(userId: string): Promise<BillingStatusResponse> {
-  return apiFetch<BillingStatusResponse>(`/api/billing/status/${userId}`, {
+  void userId;
+  return apiFetch<BillingStatusResponse>('/api/billing/status', {
     method: "GET",
   });
 }
