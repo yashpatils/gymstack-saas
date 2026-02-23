@@ -6,7 +6,9 @@ import { PageCard, PageContainer, PageHeader } from "../../../src/components/pla
 import { EmptyState, LoadingState } from "../../../src/components/platform/data";
 import { checkGymSlugAvailability, createGym, listGyms, type Gym, updateGym } from "../../../src/lib/gyms";
 import { ApiFetchError } from "../../../src/lib/apiFetch";
+import { me as getMe } from "../../../src/lib/auth";
 import { normalizeSlug } from "../../../src/lib/slug";
+import type { AuthMeResponse, Membership } from "../../../src/types/auth";
 import { useAuth } from "../../../src/providers/AuthProvider";
 
 type LocationForm = {
@@ -20,7 +22,7 @@ const initialForm: LocationForm = { name: "", timezone: "UTC", slug: "", address
 
 export default function LocationsPage() {
   const router = useRouter();
-  const { activeTenant, activeContext, chooseContext } = useAuth();
+  const { activeTenant, activeContext, chooseContext, refreshUser } = useAuth();
   const [locations, setLocations] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,32 @@ export default function LocationsPage() {
     void load();
   }, []);
 
+  const normalizeMemberships = (payload: AuthMeResponse["memberships"]): Membership[] => {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    const tenantMemberships: Membership[] = payload.tenant.map((membership, index) => ({
+      id: `tenant-${membership.tenantId}-${index}`,
+      tenantId: membership.tenantId,
+      gymId: null,
+      locationId: null,
+      role: membership.role,
+      status: "ACTIVE",
+    }));
+
+    const locationMemberships: Membership[] = payload.location.map((membership, index) => ({
+      id: `location-${membership.locationId}-${index}`,
+      tenantId: membership.tenantId,
+      gymId: membership.locationId,
+      locationId: membership.locationId,
+      role: membership.role,
+      status: "ACTIVE",
+    }));
+
+    return [...tenantMemberships, ...locationMemberships];
+  };
+
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -60,7 +88,11 @@ export default function LocationsPage() {
         await updateGym(editingId, { ...form, slug: normalized });
       } else {
         const created = await createGym({ ...form, slug: normalized });
-        const tenantId = activeTenant?.id ?? activeContext?.tenantId;
+        await refreshUser();
+        const me = await getMe();
+        const memberships = normalizeMemberships(me.memberships);
+        const locationMembership = memberships.find((membership) => (membership.locationId ?? membership.gymId) === created.id);
+        const tenantId = locationMembership?.tenantId ?? me.activeContext?.tenantId ?? me.activeTenantId ?? activeTenant?.id ?? activeContext?.tenantId;
         if (tenantId) {
           try {
             await chooseContext(tenantId, created.id);
