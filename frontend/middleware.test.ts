@@ -12,11 +12,9 @@ describe('resolveHostRoute', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/admin/tenants', baseDomain)).toEqual({ type: 'next' });
   });
 
-
   it('keeps dedicated host login route untouched', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/login', baseDomain)).toEqual({ type: 'next' });
   });
-
 
   it('redirects /admin/login alias to the dedicated login route', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/admin/login', baseDomain)).toEqual({ type: 'redirect', pathname: '/login', search: '?next=/admin' });
@@ -25,7 +23,6 @@ describe('resolveHostRoute', () => {
   it('redirects admin signup to login', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/signup', baseDomain)).toEqual({ type: 'redirect', pathname: '/login' });
   });
-
 
   it('keeps admin next and api routes untouched', () => {
     expect(resolveHostRoute('admin.gymstack.club', '/_next/static/chunk.js', baseDomain)).toEqual({ type: 'next' });
@@ -53,6 +50,15 @@ describe('resolveHostRoute', () => {
       type: 'rewrite',
       pathname: '/_custom/tenant-brand.com/join',
     });
+  });
+
+  it('uses ADMIN_HOST from env for admin previews', () => {
+    process.env.ADMIN_HOST = 'preview-admin.vercel.app';
+    expect(resolveHostRoute('preview-admin.vercel.app', '/', baseDomain)).toEqual({
+      type: 'redirect',
+      pathname: '/admin',
+    });
+    delete process.env.ADMIN_HOST;
   });
 
   it('does not rewrite protected app routes on custom domains', () => {
