@@ -1,6 +1,6 @@
 import { apiFetch } from './apiFetch';
 import { track } from './analytics';
-import type { CreateGymRequest, CreateGymResponse, Gym } from '../types/gym';
+import type { CreateGymRequest, CreateGymResponse, Gym, SlugAvailabilityResult } from '../types/gym';
 
 export type { Gym, CreateGymRequest as GymInput };
 
@@ -19,6 +19,12 @@ export async function createGym(payload: CreateGymRequest): Promise<CreateGymRes
   });
   await track('create_location', { pageName: 'locations' });
   return result;
+}
+
+export async function checkGymSlugAvailability(slug: string): Promise<SlugAvailabilityResult> {
+  return apiFetch<SlugAvailabilityResult>(`/api/gyms/slug-availability?slug=${encodeURIComponent(slug)}`, {
+    method: 'GET',
+  });
 }
 
 export async function updateGym(id: string, payload: CreateGymRequest): Promise<Gym> {

@@ -10,6 +10,7 @@ describe('GymsController', () => {
     updateGymForUser: jest.fn(),
     updateGym: jest.fn(),
     deleteGymForUser: jest.fn(),
+    checkSlugAvailability: jest.fn(),
   };
 
   let controller: GymsController;
@@ -33,16 +34,27 @@ describe('GymsController', () => {
 
     await expect(
       controller.createGym(
-        { name: 'Pulse Fitness' },
+        { name: 'Pulse Fitness', slug: 'pulse-fitness', timezone: 'America/Los_Angeles' },
         { user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' } },
       ),
     ).resolves.toEqual({ id: 'gym-1' });
   });
 
   it('throws when creating a gym without a user', () => {
-    expect(() => controller.createGym({ name: 'Pulse Fitness' }, {})).toThrow(
+    expect(() => controller.createGym({ name: 'Pulse Fitness', slug: 'pulse-fitness', timezone: 'America/Los_Angeles' }, {})).toThrow(
       ForbiddenException,
     );
+  });
+
+  it('checks gym slug availability', async () => {
+    gymsService.checkSlugAvailability = jest.fn().mockResolvedValue({ available: true, slug: 'pulse-fitness' });
+
+    await expect(
+      controller.checkSlugAvailability(
+        { slug: 'pulse-fitness' },
+        { user: { id: 'user-1', email: 'owner@example.com', role: UserRole.Owner, orgId: 'org-1' } },
+      ),
+    ).resolves.toEqual({ available: true, slug: 'pulse-fitness' });
   });
 
   it('gets a gym', async () => {
