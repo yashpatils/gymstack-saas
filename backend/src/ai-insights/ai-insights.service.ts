@@ -82,15 +82,24 @@ export class AiInsightsService {
   }
 
   async getOrGenerateWeeklyBrief(tenantId: string, range: BriefRange): Promise<{ cached: boolean; insight: WeeklyBriefContent }> {
-    const cached = await this.prisma.aiInsight.findFirst({
-      where: {
-        tenantId,
-        range,
-        generatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      },
-      orderBy: { generatedAt: 'desc' },
-      select: { content: true },
-    });
+    let cached: { content: Prisma.JsonValue } | null = null;
+    try {
+      cached = await this.prisma.aiInsight.findFirst({
+        where: {
+          tenantId,
+          range,
+          generatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+        orderBy: { generatedAt: 'desc' },
+        select: { content: true },
+      });
+    } catch (error) {
+      if (this.isAiInsightTableMissingError(error)) {
+        this.logger.warn('AiInsight table is missing; returning non-cached weekly brief fallback payload. Run migrations to enable persistence.');
+        return this.buildTableMissingFallback(tenantId);
+      }
+      throw error;
+    }
 
     if (cached?.content) {
       return { cached: true, insight: cached.content as WeeklyBriefContent };
@@ -120,6 +129,11 @@ export class AiInsightsService {
 
       return { cached: false, insight };
     } catch (error) {
+      if (this.isAiInsightTableMissingError(error)) {
+        this.logger.warn('AiInsight table is missing during persistence; returning non-cached weekly brief fallback payload.');
+        return this.buildTableMissingFallback(tenantId);
+      }
+
       const message = error instanceof Error ? error.message : 'weekly brief generation failed';
       await this.prisma.jobRun.create({
         data: {
@@ -131,6 +145,19 @@ export class AiInsightsService {
       });
       throw error;
     }
+  }
+
+  private isAiInsightTableMissingError(error: unknown): boolean {
+    return error instanceof Prisma.PrismaClientKnownRequestError
+      && error.code === 'P2021'
+      && typeof error.message === 'string'
+      && error.message.includes('AiInsight');
+  }
+
+  private async buildTableMissingFallback(tenantId: string): Promise<{ cached: boolean; insight: WeeklyBriefContent }> {
+    const metrics = await this.collectWeeklyMetrics(tenantId);
+    const insight = await this.generateInsightFromMetrics(metrics);
+    return { cached: false, insight };
   }
 
   private async collectWeeklyMetrics(tenantId: string): Promise<WeeklyBriefData> {

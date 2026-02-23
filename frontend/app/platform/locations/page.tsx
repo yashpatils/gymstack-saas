@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PageCard, PageContainer, PageHeader } from "../../../src/components/platform/page/primitives";
 import { EmptyState, LoadingState } from "../../../src/components/platform/data";
 import { checkGymSlugAvailability, createGym, listGyms, type Gym, updateGym } from "../../../src/lib/gyms";
+import { ApiFetchError } from "../../../src/lib/apiFetch";
 import { normalizeSlug } from "../../../src/lib/slug";
 import { useAuth } from "../../../src/providers/AuthProvider";
 
@@ -61,7 +62,16 @@ export default function LocationsPage() {
         const created = await createGym({ ...form, slug: normalized });
         const tenantId = activeTenant?.id ?? activeContext?.tenantId;
         if (tenantId) {
-          await chooseContext(tenantId, created.id);
+          try {
+            await chooseContext(tenantId, created.id);
+          } catch (contextError) {
+            if (contextError instanceof ApiFetchError && contextError.statusCode === 403) {
+              await load();
+              setError("Location created, but we could not switch context automatically. Select it from the context menu.");
+              return;
+            }
+            throw contextError;
+          }
         }
         router.push("/platform/dashboard");
         return;

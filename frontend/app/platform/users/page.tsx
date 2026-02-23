@@ -19,6 +19,7 @@ import {
   updateUser,
 } from "../../../src/lib/users";
 import { useAuth } from "../../../src/providers/AuthProvider";
+import { ApiFetchError } from "../../../src/lib/apiFetch";
 
 function formatDate(value?: string) {
   if (!value) {
@@ -49,7 +50,12 @@ export default function UsersPage() {
       const data = await listUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load users.");
+      if (err instanceof ApiFetchError && err.statusCode === 403) {
+        setUsers([]);
+        setError("Insufficient permissions to view users.");
+      } else {
+        setError(err instanceof Error ? err.message : "Unable to load users.");
+      }
     } finally {
       setLoading(false);
     }
