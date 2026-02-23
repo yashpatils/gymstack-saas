@@ -30,6 +30,19 @@ type PublicLocationContext = {
   tenant: PublicTenant;
 };
 
+export type PublicGymProfile = {
+  slug: string;
+  displayName: string;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  address: string | null;
+  timezone: string;
+  contact: {
+    email: string | null;
+    phone: string | null;
+  };
+};
+
 @Injectable()
 export class PublicService {
   constructor(
@@ -263,6 +276,40 @@ export class PublicService {
         whiteLabelEnabled: resolved.tenant.whiteLabelEnabled,
       },
       tenantDisabled: false,
+    };
+  }
+
+  async getPublicGymBySlug(slug: string): Promise<PublicGymProfile> {
+    const gym = await this.prisma.gym.findUnique({
+      where: { slug },
+      select: {
+        slug: true,
+        displayName: true,
+        name: true,
+        heroTitle: true,
+        heroSubtitle: true,
+        address: true,
+        timezone: true,
+        contactEmail: true,
+        phone: true,
+      },
+    });
+
+    if (!gym) {
+      throw new NotFoundException('Gym not found');
+    }
+
+    return {
+      slug: gym.slug,
+      displayName: gym.displayName ?? gym.name ?? gym.slug,
+      heroTitle: gym.heroTitle,
+      heroSubtitle: gym.heroSubtitle,
+      address: gym.address,
+      timezone: gym.timezone,
+      contact: {
+        email: gym.contactEmail,
+        phone: gym.phone,
+      },
     };
   }
 

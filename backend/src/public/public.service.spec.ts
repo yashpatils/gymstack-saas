@@ -125,6 +125,41 @@ describe('PublicService', () => {
     await expect(service.getLocationByHost('missing.gymstack.club')).resolves.toEqual({
       location: null,
       tenant: null,
+      tenantDisabled: false,
     });
   });
+
+  it('throws when public gym slug does not exist', async () => {
+    gym.findUnique.mockResolvedValue(null);
+
+    await expect(service.getPublicGymBySlug('missing')).rejects.toThrow('Gym not found');
+  });
+
+  it('returns safe public gym fields for slug', async () => {
+    gym.findUnique.mockResolvedValue({
+      slug: 'downtown',
+      name: 'Downtown Gym',
+      displayName: 'Downtown',
+      heroTitle: 'Train downtown',
+      heroSubtitle: 'All levels welcome',
+      address: '123 Main St',
+      timezone: 'America/New_York',
+      contactEmail: 'hello@example.com',
+      phone: '+1-555-1234',
+    });
+
+    await expect(service.getPublicGymBySlug('downtown')).resolves.toEqual({
+      slug: 'downtown',
+      displayName: 'Downtown',
+      heroTitle: 'Train downtown',
+      heroSubtitle: 'All levels welcome',
+      address: '123 Main St',
+      timezone: 'America/New_York',
+      contact: {
+        email: 'hello@example.com',
+        phone: '+1-555-1234',
+      },
+    });
+  });
+
 });

@@ -5,11 +5,11 @@ function stripProtocolAndPath(value: string): string {
 }
 
 export function getBaseDomain(): string {
-  return (process.env.NEXT_PUBLIC_BASE_DOMAIN ?? DEFAULT_BASE_DOMAIN).toLowerCase();
+  return (process.env.BASE_DOMAIN ?? process.env.NEXT_PUBLIC_BASE_DOMAIN ?? DEFAULT_BASE_DOMAIN).toLowerCase();
 }
 
 export function getAdminHost(): string {
-  const configuredAdminHost = (process.env.NEXT_PUBLIC_ADMIN_HOST ?? '').trim().toLowerCase();
+  const configuredAdminHost = (process.env.ADMIN_HOST ?? process.env.NEXT_PUBLIC_ADMIN_HOST ?? '').trim().toLowerCase();
   if (configuredAdminHost) {
     return stripProtocolAndPath(configuredAdminHost);
   }
