@@ -1,8 +1,12 @@
 export const RESERVED_SLUGS = ['admin', 'www', 'api', 'app', 'static', 'assets', 'cdn', 'mail', 'support'] as const;
-export const RESERVED_SUBDOMAINS = new Set(RESERVED_SLUGS);
+export const RESERVED_SUBDOMAINS: ReadonlySet<string> = new Set<string>(RESERVED_SLUGS);
 
 export function normalizeSlug(input: string): string {
   return input.trim().toLowerCase();
+}
+
+export function isReservedSubdomain(slug: string): boolean {
+  return RESERVED_SUBDOMAINS.has(normalizeSlug(slug));
 }
 
 export function isValidSlugFormat(slug: string): boolean {
@@ -20,7 +24,7 @@ export function validateTenantSlug(slugRaw: string): { ok: true; slug: string } 
     return { ok: false, reason: 'Use 3–63 chars: lowercase letters, numbers, hyphens' };
   }
 
-  if (RESERVED_SUBDOMAINS.has(slug)) {
+  if (isReservedSubdomain(slug)) {
     return { ok: false, reason: 'This slug is reserved' };
   }
 
