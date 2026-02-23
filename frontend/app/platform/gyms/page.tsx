@@ -30,12 +30,24 @@ export default function GymsPage() {
 
   const columns: DataTableColumn<Gym>[] = [
     { id: "name", header: "Name", cell: (gym) => gym.name, sortable: true, sortValue: (gym) => gym.name },
-    { id: "domain", header: "Domain", cell: (gym) => `${gym.id.slice(0, 8)}.gymstack.club` },
+    { id: "domain", header: "Domain", cell: (gym) => gym.customDomain ?? `${gym.slug}.gymstack.club` },
     { id: "timezone", header: "Timezone", cell: (gym) => gym.timezone ?? "UTC" },
     { id: "open", header: "", cell: (gym) => <Link href={`/platform/gyms/${gym.id}`} className="button secondary">Open</Link> },
   ];
 
-  const newest = useMemo(() => gyms[0]?.name ?? "No locations", [gyms]);
+  const newest = useMemo(() => {
+    if (gyms.length === 0) {
+      return "No locations";
+    }
+
+    const sorted = [...gyms].sort((a, b) => {
+      const left = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const right = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return right - left;
+    });
+
+    return sorted[0]?.name ?? "No locations";
+  }, [gyms]);
 
   return (
     <PageContainer>

@@ -33,6 +33,7 @@ export default function BillingPage() {
   const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? "";
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<"starter" | "pro" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const currentPlanName = useMemo(() => {
@@ -58,6 +59,38 @@ export default function BillingPage() {
   }
 
   useEffect(() => { void loadStatus(); }, []);
+
+  async function startCheckout(plan: "starter" | "pro") {
+    const priceId = plan === "starter" ? starterPriceId : proPriceId;
+    if (!priceId) {
+      setMessage(`${PLAN_NAMES[plan]} plan is not currently available.`);
+      return;
+    }
+
+    setCheckoutLoading(plan);
+    setMessage(null);
+    try {
+      const response = await apiFetch<{ url?: string; checkoutUrl?: string; sessionId?: string }>('/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({
+          priceId,
+          successUrl: `${window.location.origin}/platform/billing?checkout=success`,
+          cancelUrl: `${window.location.origin}/platform/billing?checkout=canceled`,
+        }),
+      });
+
+      const redirectUrl = response.url ?? response.checkoutUrl;
+      if (!redirectUrl) {
+        throw new Error('Checkout session was created without a redirect URL.');
+      }
+
+      window.location.href = redirectUrl;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not start checkout.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }
 
   async function openPortal() {
     try {
@@ -86,13 +119,13 @@ export default function BillingPage() {
 
       <PageCard title="Plan options">
         <FormActions>
-          <button type="button" className="button secondary" disabled={!starterPriceId}>Starter</button>
-          <button type="button" className="button" disabled={!proPriceId}>Pro</button>
+          <button type="button" className="button secondary" disabled={checkoutLoading !== null} onClick={() => void startCheckout("starter")}>{checkoutLoading === "starter" ? "Starting..." : "Starter"}</button>
+          <button type="button" className="button" disabled={checkoutLoading !== null} onClick={() => void startCheckout("pro")}>{checkoutLoading === "pro" ? "Starting..." : "Pro"}</button>
           <button type="button" className="button secondary" onClick={() => void openPortal()}>Update card</button>
           <button type="button" className="button" onClick={() => void openPortal()}>Retry payment</button>
         </FormActions>
-        <p className="mt-3 text-xs text-slate-400">White-label enabled: {status?.whiteLabelEnabled ? "Yes" : "No"}</p>
-        <p className="mt-2 inline-flex rounded-full border border-white/20 px-2 py-1 text-xs">Current status: {status?.billingStatus ?? "ACTIVE"}</p>
+        <p className="mt-3 text-xs text-muted-foreground">White-label enabled: {status?.whiteLabelEnabled ? "Yes" : "No"}</p>
+        <p className="mt-2 inline-flex rounded-full border border-border px-2 py-1 text-xs text-foreground">Current status: {status?.billingStatus ?? "ACTIVE"}</p>
       </PageCard>
     </PageContainer>
   );

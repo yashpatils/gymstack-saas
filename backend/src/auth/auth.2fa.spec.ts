@@ -10,7 +10,7 @@ describe('AuthService 2FA login', () => {
       user: { findUnique: jest.fn(), update: jest.fn() },
       membership: { findMany: jest.fn() },
       organization: { findMany: jest.fn(), findFirst: jest.fn() },
-      twoFactorChallenge: { create: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
+      loginOtpChallenge: { create: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
       $transaction: jest.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
       gym: { findMany: jest.fn() },
     };
@@ -55,7 +55,7 @@ describe('AuthService 2FA login', () => {
     });
     prisma.membership.findMany.mockResolvedValue([{ orgId: 'org-1', gymId: null, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE, createdAt: new Date() }]);
     prisma.organization.findMany.mockResolvedValue([{ id: 'org-1', name: 'Tenant', isDisabled: false, createdAt: new Date() }]);
-    prisma.twoFactorChallenge.create.mockResolvedValue({ id: 'challenge-1' });
+    prisma.loginOtpChallenge.create.mockResolvedValue({ id: 'challenge-1' });
 
     const result = await service.login({ email: 'otp@example.com', password: 'Password123!' });
 
@@ -65,12 +65,16 @@ describe('AuthService 2FA login', () => {
 
   it('authenticates after OTP verification', async () => {
     const { service, prisma, refreshTokenService } = createService();
-    prisma.twoFactorChallenge.findFirst.mockResolvedValue({
+    prisma.loginOtpChallenge.findFirst.mockResolvedValue({
       id: 'challenge-1',
       userId: 'user-1',
       otpHash: require('crypto').createHash('sha256').update('123456').digest('hex'),
-      expiresAt: new Date(Date.now() + 60_000),
+      otpExpiresAt: new Date(Date.now() + 60_000),
       attempts: 0,
+      maxAttempts: 5,
+      adminOnly: false,
+      tenantId: null,
+      tenantSlug: null,
       consumedAt: null,
       user: {
         id: 'user-1', email: 'otp@example.com', role: Role.USER, orgId: 'org-1', qaBypass: false, emailVerifiedAt: null,
@@ -83,5 +87,28 @@ describe('AuthService 2FA login', () => {
     expect(result.status).toBe('SUCCESS');
     expect(result.accessToken).toBe('access-token');
     expect(refreshTokenService.issue).toHaveBeenCalled();
+  });
+
+  it('rejects admin-only OTP completion for non-platform-admin users', async () => {
+    const { service, prisma } = createService();
+    prisma.loginOtpChallenge.findFirst.mockResolvedValue({
+      id: 'challenge-1',
+      userId: 'user-1',
+      otpHash: require('crypto').createHash('sha256').update('123456').digest('hex'),
+      otpExpiresAt: new Date(Date.now() + 60_000),
+      attempts: 0,
+      maxAttempts: 5,
+      adminOnly: true,
+      tenantId: null,
+      tenantSlug: null,
+      consumedAt: null,
+      user: {
+        id: 'user-1', email: 'member@example.com', role: Role.USER, orgId: 'org-1', qaBypass: false, emailVerifiedAt: null,
+      },
+    });
+
+    await expect(service.verifyLoginOtp({ challengeId: 'challenge-1', otp: '123456' })).rejects.toMatchObject({
+      response: { code: 'AUTH_ADMIN_REQUIRED' },
+    });
   });
 });
