@@ -6,7 +6,7 @@ import { ProtectedRoute } from "../../src/components/ProtectedRoute";
 import { apiFetch } from "@/src/lib/apiFetch";
 import { ApiFetchError } from "../../src/lib/apiFetch";
 import { Alert, Button, Input, Spinner } from "../components/ui";
-import { createGym } from "../../src/lib/gyms";
+import { checkGymSlugAvailability, createGym } from "../../src/lib/gyms";
 import { normalizeSlug } from "../../src/lib/slug";
 import type { Gym } from "../../src/types/gym";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -68,7 +68,14 @@ export default function OnboardingPage() {
 
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      const slug = normalizeSlug(name) || "gym";
+      const baseSlug = normalizeSlug(name) || `gym-${Date.now()}`;
+      let slug = baseSlug;
+
+      const initialAvailability = await checkGymSlugAvailability(baseSlug);
+      if (!initialAvailability.available) {
+        slug = `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+
       await createGym({ name, timezone, slug });
       await refreshUser();
       router.replace("/platform");
