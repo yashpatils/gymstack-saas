@@ -26,6 +26,9 @@ describe('GymsService slug handling', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(async (handler: (tx: any) => Promise<unknown>) => handler(prisma));
+    prisma.gym.create.mockResolvedValue({ id: 'gym-1', name: 'Pulse', slug: 'pulse', timezone: 'UTC' });
+    prisma.membership.upsert = jest.fn().mockResolvedValue({ id: 'membership-1' });
   });
 
   it('returns reserved false/available true for a free slug', async () => {

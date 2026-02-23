@@ -45,8 +45,9 @@ export async function createCheckoutSession(payload: CreateCheckoutPayload) {
   });
 }
 
-export async function getSubscriptionStatus(userId: string) {
-  return apiFetch<SubscriptionStatusResponse>(`/billing/status/${userId}`);
+export async function getSubscriptionStatus(userId?: string) {
+  void userId;
+  return apiFetch<SubscriptionStatusResponse>("/billing/status");
 }
 
 export async function createSubscription(payload: CreateSubscriptionPayload) {
