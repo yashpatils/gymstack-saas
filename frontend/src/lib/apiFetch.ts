@@ -66,9 +66,10 @@ export type ApiRateLimitSnapshot = {
 };
 
 let lastRequestId: string | null = null;
+let lastRateLimitSnapshot: ApiRateLimitSnapshot | null = null;
 
 export function getLastApiRateLimitSnapshot(): ApiRateLimitSnapshot | null {
-  return null;
+  return lastRateLimitSnapshot;
 }
 
 export function getLastApiRequestId(): string | null {
@@ -289,6 +290,21 @@ export async function apiFetch<T>(
   const isJson = contentType.includes('application/json');
   const requestId = response.headers.get('x-request-id') ?? undefined;
   lastRequestId = requestId ?? null;
+
+  const limitHeader = response.headers.get('x-ratelimit-limit');
+  const remainingHeader = response.headers.get('x-ratelimit-remaining');
+  const retryAfterHeader = response.headers.get('retry-after');
+  const parseHeaderNumber = (value: string | null): number | undefined => {
+    if (!value) return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  lastRateLimitSnapshot = {
+    limit: parseHeaderNumber(limitHeader),
+    remaining: parseHeaderNumber(remainingHeader),
+    retryAfterSeconds: parseHeaderNumber(retryAfterHeader),
+    observedAtIso: new Date().toISOString(),
+  };
 
   if (!response.ok) {
     const details = isJson ? await response.json() : await response.text();

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { ClassBookingStatus, ClientMembershipStatus, MembershipRole, MembershipStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
@@ -90,6 +90,16 @@ export class AnalyticsService {
 
   private toDateKey(value: Date): string {
     return value.toISOString().slice(0, 10);
+  }
+
+  private normalizeLocationId(locationId?: string): string | null {
+    if (!locationId) return null;
+    const trimmed = locationId.trim();
+    if (!trimmed) return null;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)) {
+      throw new BadRequestException('Invalid locationId');
+    }
+    return trimmed;
   }
 
   async getOverview(user: User, range: AnalyticsRange): Promise<{
@@ -358,16 +368,18 @@ export class AnalyticsService {
     const tenantId = this.resolveTenantId(user);
     await this.assertOwnerOrAdmin(user, tenantId);
 
-    const locationFilter = locationId ? `AND dlm."locationId" = '${locationId}'` : '';
+    const normalizedLocationId = this.normalizeLocationId(locationId);
     const rows = await this.prisma.$queryRawUnsafe<DbRow[]>(
       `SELECT dlm."locationId", dlm."date", dlm."checkinsCount", dlm."bookingsCount", dlm."canceledBookingsCount", dmm."canceledMemberships"
        FROM "DailyLocationMetrics" dlm
        LEFT JOIN "DailyMembershipMetrics" dmm
          ON dmm."locationId" = dlm."locationId" AND dmm."date" = dlm."date"
-       WHERE dlm."tenantId" = $1 ${locationFilter}
+       WHERE dlm."tenantId" = $1
+         AND ($2::text IS NULL OR dlm."locationId" = $2::text)
        ORDER BY dlm."date" DESC
        LIMIT 30`,
       tenantId,
+      normalizedLocationId,
     );
 
     const insights: InsightResponse[] = [];
@@ -422,7 +434,7 @@ export class AnalyticsService {
     }
 
     const utilizationRows = await this.prisma.classSession.findMany({
-      where: { locationId: locationId, status: 'SCHEDULED' },
+      where: { locationId: normalizedLocationId ?? undefined, status: 'SCHEDULED' },
       include: {
         classTemplate: { select: { title: true, capacity: true } },
         _count: { select: { bookings: { where: { status: { in: ['BOOKED', 'CHECKED_IN'] } } } } },
@@ -507,7 +519,7 @@ export class AnalyticsService {
     const question = body.question.toLowerCase();
 
     if (question.includes('attendance')) {
-      const rows = await this.getAttendanceTrend(tenantId, body.scope === AskScope.LOCATION ? body.locationId : undefined);
+      const rows = await this.getAttendanceTrend(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
       return {
         answer: `Attendance trend is based on pre-aggregated daily check-ins. Total for selected range: ${rows.reduce((sum, row) => sum + row.value, 0)}.`,
         data: { series: rows },
@@ -516,7 +528,7 @@ export class AnalyticsService {
     }
 
     if (question.includes('popular') || question.includes('top classes')) {
-      const rows = await this.getTopClasses(tenantId, body.scope === AskScope.LOCATION ? body.locationId : undefined);
+      const rows = await this.getTopClasses(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
       return {
         answer: 'These are the most booked classes in the selected scope.',
         data: { classes: rows },
@@ -525,7 +537,7 @@ export class AnalyticsService {
     }
 
     if (question.includes('cancellation') || question.includes('churn')) {
-      const rows = await this.getMembershipChanges(tenantId, body.scope === AskScope.LOCATION ? body.locationId : undefined);
+      const rows = await this.getMembershipChanges(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
       return {
         answer: `Membership changes show ${rows.newMemberships} new and ${rows.canceledMemberships} canceled memberships over the last 30 days.`,
         data: rows,
@@ -533,7 +545,7 @@ export class AnalyticsService {
       };
     }
 
-    const noShowRate = await this.getNoShowRate(tenantId, body.scope === AskScope.LOCATION ? body.locationId : undefined);
+    const noShowRate = await this.getNoShowRate(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
     return {
       answer: `No-show rate is ${Math.round(noShowRate.rate * 100)}% for the selected scope and period.`,
       data: noShowRate,
