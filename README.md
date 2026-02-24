@@ -137,6 +137,10 @@ The backend uses strict allowlisting with credentials enabled (no `*` wildcard):
 
 Additional origins/patterns can be appended via `ALLOWED_ORIGINS` and `ALLOWED_ORIGIN_REGEXES`.
 
+## Codex prompt hardening checklist
+
+For long-form Codex implementation/audit prompts, use the hardening addendum checklist in `docs/codex-mega-prompt-hardening-additions.md` to catch route/permission parity, API drift, rollback reliability, and observability gaps early.
+
 ## Notes
 
 - Sensitive auth endpoints enforce `X-Requested-With: XMLHttpRequest` and layered rate limits (IP + hashed email where applicable).
