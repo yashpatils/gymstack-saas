@@ -10,11 +10,27 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { OrgSwitcher } from '../../src/components/shell/OrgSwitcher';
 
 export function AppShellProvider({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, platformRole } = useAuth();
+
+  const visibleNavItems = platformNavItems.filter((item) => {
+    if (item.debugOnly && process.env.NODE_ENV === 'production') {
+      return false;
+    }
+
+    if (!item.requiresRole) {
+      return true;
+    }
+
+    if (item.requiresRole === 'PLATFORM_ADMIN') {
+      return platformRole === 'PLATFORM_ADMIN';
+    }
+
+    return user?.role === item.requiresRole;
+  });
 
   return (
     <AppShell
-      items={platformNavItems}
+      items={visibleNavItems}
       title="Platform"
       leftSlot={<div className="flex items-center gap-2"><OrgSwitcher /><NotificationBell /></div>}
       rightSlot={
