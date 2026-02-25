@@ -72,8 +72,32 @@ describe('resolveHostRoute', () => {
     delete process.env.BASE_DOMAIN;
   });
 
+
+  it('redirects admin route to admin host from root host', () => {
+    expect(resolveHostRoute('gymstack.club', '/admin/tenants', baseDomain)).toEqual({
+      type: 'redirect',
+      pathname: '/admin/tenants',
+      host: 'admin.gymstack.club',
+      protocol: 'https',
+    });
+  });
+
+  it('redirects platform path away from admin host', () => {
+    expect(resolveHostRoute('admin.gymstack.club', '/platform', baseDomain)).toEqual({
+      type: 'redirect',
+      pathname: '/platform',
+      host: 'gymstack.club',
+      protocol: 'https',
+    });
+  });
+
   it('does not rewrite protected app routes on custom domains', () => {
     expect(resolveHostRoute('tenant-brand.com', '/platform', baseDomain)).toEqual({ type: 'next' });
-    expect(resolveHostRoute('tenant-brand.com', '/admin', baseDomain)).toEqual({ type: 'next' });
+    expect(resolveHostRoute('tenant-brand.com', '/admin', baseDomain)).toEqual({
+      type: 'redirect',
+      pathname: '/admin',
+      host: 'admin.gymstack.club',
+      protocol: 'https',
+    });
   });
 });

@@ -22,6 +22,7 @@ vi.mock('../src/providers/AuthProvider', () => ({
     authStatus: 'unauthenticated',
     platformRole: null,
     user: null,
+    memberships: [],
   }),
 }));
 

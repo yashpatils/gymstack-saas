@@ -20,7 +20,7 @@ const PROTECTED_APP_PATH_PREFIXES = ['/platform', '/admin', '/_admin', '/setting
 type HostRouteResolution =
   | { type: 'next' }
   | { type: 'rewrite'; pathname: string }
-  | { type: 'redirect'; pathname: string; search?: string };
+  | { type: 'redirect'; pathname: string; search?: string; host?: string; protocol?: 'http' | 'https' };
 
 function stripPort(host: string): string {
   return host.split(':')[0] ?? host;
@@ -75,8 +75,21 @@ function isProtectedAppPath(pathname: string): boolean {
   return PROTECTED_APP_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function prefersSecureProtocol(host: string): 'http' | 'https' {
+  return host.includes('localhost') ? 'http' : 'https';
+}
+
 export function resolveHostRoute(host: string, pathname: string, baseDomain: string): HostRouteResolution {
   if (isAdminHost(host, baseDomain)) {
+    if (pathname === '/platform' || pathname.startsWith('/platform/') || pathname === '/select-workspace' || pathname.startsWith('/select-workspace/') || pathname === '/onboarding' || pathname.startsWith('/onboarding/')) {
+      return {
+        type: 'redirect',
+        pathname,
+        host: baseDomain,
+        protocol: prefersSecureProtocol(baseDomain),
+      };
+    }
+
     if (isSignupPath(pathname)) {
       return { type: 'redirect', pathname: '/login' };
     }
@@ -98,6 +111,15 @@ export function resolveHostRoute(host: string, pathname: string, baseDomain: str
 
   if (pathname.startsWith('/_sites') || pathname.startsWith('/_custom')) {
     return { type: 'next' };
+  }
+
+  if (pathname === '/admin' || pathname.startsWith('/admin/') || pathname === '/_admin' || pathname.startsWith('/_admin/')) {
+    return {
+      type: 'redirect',
+      pathname,
+      host: getAdminHost(),
+      protocol: prefersSecureProtocol(getAdminHost()),
+    };
   }
 
   if (isProtectedAppPath(pathname)) {
@@ -136,8 +158,17 @@ export function middleware(request: NextRequest) {
 
   if (resolution.type === 'redirect') {
     const redirectUrl = request.nextUrl.clone();
+    if (resolution.host) {
+      redirectUrl.host = resolution.host;
+      redirectUrl.protocol = `${resolution.protocol ?? 'https'}:`;
+    }
     redirectUrl.pathname = resolution.pathname;
     redirectUrl.search = resolution.search ?? '';
+
+    if (redirectUrl.toString() === request.nextUrl.toString()) {
+      return NextResponse.next();
+    }
+
     return NextResponse.redirect(redirectUrl);
   }
 

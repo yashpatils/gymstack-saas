@@ -83,4 +83,22 @@ describe('apiFetch', () => {
       }
     }
   });
+
+
+  it('does not attempt refresh retry for auth-sensitive endpoints', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ message: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { apiFetch, configureApiAuth } = await import('../src/lib/apiFetch');
+    const refreshFn = vi.fn(async () => 'new-token');
+    configureApiAuth(refreshFn);
+
+    await expect(apiFetch('/api/auth/refresh')).rejects.toBeDefined();
+    expect(refreshFn).not.toHaveBeenCalled();
+  });
 });
