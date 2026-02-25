@@ -25,6 +25,28 @@ export class CreateSessionDto {
   capacityOverride?: number;
 }
 
+export class UpdateSessionDto {
+  @IsOptional()
+  @IsDateString()
+  startsAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endsAt?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  capacityOverride?: number;
+}
+
+export class BookSessionDto {
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+}
+
 export class CheckInDto {
   @IsUUID()
   userId!: string;
