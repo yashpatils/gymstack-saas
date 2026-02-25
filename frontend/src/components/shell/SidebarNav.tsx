@@ -21,6 +21,10 @@ function normalizePath(path: string) {
   return url;
 }
 
+function isExternalHref(href: string) {
+  return /^https?:\/\//.test(href);
+}
+
 function isActivePath(pathname: string, href?: string) {
   if (!href) return false;
   const current = normalizePath(pathname);
@@ -53,7 +57,8 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
           {items.map((item) => {
-            const active = isActivePath(pathname, item.href);
+            const isExternal = isExternalHref(item.href);
+            const active = isExternal ? false : isActivePath(pathname, item.href);
             const content = (
               <>
                 {item.icon ? <span className="h-4 w-4 shrink-0 text-current opacity-90 [&_svg]:text-current">{item.icon}</span> : null}
@@ -65,15 +70,17 @@ export function SidebarNav({ items, title, subtitle, onNavigate, className }: Si
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch
+                prefetch={!isExternal}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noreferrer" : undefined}
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-900 transition-colors dark:text-slate-100",
-                  "hover:bg-indigo-600 hover:text-white focus-visible:bg-indigo-600 focus-visible:text-white focus-visible:outline-none",
+                  "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground transition-colors",
+                  "hover:bg-primary hover:text-primary-foreground focus-visible:bg-primary focus-visible:text-primary-foreground focus-visible:outline-none",
                   "[&_svg]:text-current [&_span]:text-current",
-                  "hover:[&_svg]:!text-white hover:[&_span]:!text-white",
-                  "focus-visible:[&_svg]:!text-white focus-visible:[&_span]:!text-white",
-                  active && "bg-indigo-600 text-white font-medium [&_svg]:!text-white [&_span]:!text-white",
+                  "hover:[&_svg]:!text-primary-foreground hover:[&_span]:!text-primary-foreground",
+                  "focus-visible:[&_svg]:!text-primary-foreground focus-visible:[&_span]:!text-primary-foreground",
+                  active && "bg-primary text-primary-foreground font-medium [&_svg]:!text-primary-foreground [&_span]:!text-primary-foreground",
                 )}
                 aria-current={active ? "page" : undefined}
               >

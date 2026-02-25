@@ -10,12 +10,20 @@ import { useAuth } from "../../../src/providers/AuthProvider";
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
 
+  const visibleNavItems = adminNavItems.filter((item) => {
+    if (!item.requiresRole) return true;
+    if (item.requiresRole === "PLATFORM_ADMIN") {
+      return user?.isPlatformAdmin === true || user?.role === "PLATFORM_ADMIN";
+    }
+    return user?.role === item.requiresRole;
+  });
+
   return (
     <AppShell
-        items={adminNavItems}
+        items={visibleNavItems}
         title="Platform Console"
         subtitle="Admin"
-        leftSlot={<span className="text-xs uppercase tracking-[0.2em] text-cyan-300">Admin</span>}
+        leftSlot={<span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Admin</span>}
         rightSlot={
           <div className="flex items-center gap-2">
             <ThemeToggle />
