@@ -1,0 +1,16 @@
+{
+  "generatedBy": "codex",
+  "focus": [
+    "compile/typecheck/build interactions",
+    "route permission and nav parity",
+    "schema drift checks",
+    "leftover debug route exposure"
+  ],
+  "status": {
+    "navParityManifests": "complete",
+    "adminGuardFailClosed": "complete",
+    "authRedirectLoopCoverage": "complete",
+    "uiTokenPolish": "complete",
+    "fullWorkspaceInstall": "blocked_by_registry_policy"
+  }
+}

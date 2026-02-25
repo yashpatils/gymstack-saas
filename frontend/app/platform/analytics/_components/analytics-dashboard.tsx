@@ -42,7 +42,7 @@ function RoleGuard({ children }: { children: React.ReactNode }) {
 }
 
 function ErrorBlock({ message, requestId }: { message: string; requestId?: string }) {
-  return <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">{message} <span className="text-rose-300/90">Request ID: {requestId ?? "not available"}</span></div>;
+  return <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{message} <span className="text-destructive/80">Request ID: {requestId ?? "not available"}</span></div>;
 }
 
 export function AnalyticsOverviewView() {
@@ -109,7 +109,7 @@ export function AnalyticsOverviewView() {
                   <thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Date</th><th className="px-4 py-3">Value</th><th className="px-4 py-3">Signal</th></tr></thead>
                   <tbody>
                     {trends.map((point) => (
-                      <tr key={point.date} className="border-t border-border hover:bg-accent/30"><td className="px-4 py-3">{point.date}</td><td className="px-4 py-3">{point.value}</td><td className="px-4 py-3"><div className="h-2 rounded bg-indigo-500/30" style={{ width: `${Math.max((point.value / trendMax) * 100, 2)}%` }} /></td></tr>
+                      <tr key={point.date} className="border-t border-border hover:bg-accent/30"><td className="px-4 py-3">{point.date}</td><td className="px-4 py-3">{point.value}</td><td className="px-4 py-3"><div className="h-2 rounded bg-primary/30" style={{ width: `${Math.max((point.value / trendMax) * 100, 2)}%` }} /></td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -146,7 +146,7 @@ export function AnalyticsLocationsView() {
         <PageCard>
           <PageCardHeader title="Location analytics" action={<div className="flex gap-2"><button className={`button ${range === "7d" ? "" : "secondary"}`} onClick={() => setRange("7d")} type="button">7d</button><button className={`button ${range === "30d" ? "" : "secondary"}`} onClick={() => setRange("30d")} type="button">30d</button></div>} />
           <PageCardContent>
-            {rows.length === 0 ? <EmptyState title="No bookings yet" description="Location metrics will appear after classes start receiving bookings." /> : <div className="overflow-x-auto rounded-xl border border-border overflow-hidden"><table className="w-full text-sm"><thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Location</th><th className="px-4 py-3">Bookings</th><th className="px-4 py-3">Check-ins</th><th className="px-4 py-3">Active memberships</th><th className="px-4 py-3">Utilization</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-border hover:bg-accent/30" key={row.locationId}><td className="px-4 py-3">{row.name}</td><td className="px-4 py-3">{row.bookings}</td><td className="px-4 py-3">{row.checkins}</td><td className="px-4 py-3">{row.activeMemberships}</td><td className="px-4 py-3"><span className="rounded-full bg-indigo-500/20 px-2 py-1 text-xs text-indigo-200">{row.utilizationPct}%</span></td></tr>)}</tbody></table></div>}
+            {rows.length === 0 ? <EmptyState title="No bookings yet" description="Location metrics will appear after classes start receiving bookings." /> : <div className="overflow-x-auto rounded-xl border border-border overflow-hidden"><table className="w-full text-sm"><thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Location</th><th className="px-4 py-3">Bookings</th><th className="px-4 py-3">Check-ins</th><th className="px-4 py-3">Active memberships</th><th className="px-4 py-3">Utilization</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-border hover:bg-accent/30" key={row.locationId}><td className="px-4 py-3">{row.name}</td><td className="px-4 py-3">{row.bookings}</td><td className="px-4 py-3">{row.checkins}</td><td className="px-4 py-3">{row.activeMemberships}</td><td className="px-4 py-3"><span className="rounded-full border border-border bg-muted px-2 py-1 text-xs text-foreground">{row.utilizationPct}%</span></td></tr>)}</tbody></table></div>}
           </PageCardContent>
         </PageCard>
       </main>
@@ -173,7 +173,7 @@ export function AnalyticsClassesView() {
         <PageCard>
           <PageCardHeader title="Top classes (30d)" />
           <PageCardContent>
-            {rows.length === 0 ? <EmptyState title="No sessions yet" description="Create classes and sessions to see utilization and ranking." /> : <div className="overflow-x-auto rounded-xl border border-border overflow-hidden"><table className="w-full text-sm"><thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Class</th><th className="px-4 py-3">Sessions</th><th className="px-4 py-3">Bookings</th><th className="px-4 py-3">Avg utilization</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-border hover:bg-accent/30" key={row.classId}><td className="px-4 py-3">{row.title}</td><td className="px-4 py-3">{row.sessionsCount}</td><td className="px-4 py-3">{row.bookingsCount}</td><td className="px-4 py-3"><span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-200">{row.avgUtilizationPct}%</span></td></tr>)}</tbody></table></div>}
+            {rows.length === 0 ? <EmptyState title="No sessions yet" description="Create classes and sessions to see utilization and ranking." /> : <div className="overflow-x-auto rounded-xl border border-border overflow-hidden"><table className="w-full text-sm"><thead className="bg-muted/40 text-muted-foreground"><tr className="text-left"><th className="px-4 py-3">Class</th><th className="px-4 py-3">Sessions</th><th className="px-4 py-3">Bookings</th><th className="px-4 py-3">Avg utilization</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-border hover:bg-accent/30" key={row.classId}><td className="px-4 py-3">{row.title}</td><td className="px-4 py-3">{row.sessionsCount}</td><td className="px-4 py-3">{row.bookingsCount}</td><td className="px-4 py-3"><span className="rounded-full border border-border bg-muted px-2 py-1 text-xs text-foreground">{row.avgUtilizationPct}%</span></td></tr>)}</tbody></table></div>}
           </PageCardContent>
         </PageCard>
       </main>

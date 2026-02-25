@@ -58,4 +58,11 @@ describe('RequirePlatformAdminGuard', () => {
 
     await expect(guard.canActivate(buildContext({ id: 'tenant-user' }))).rejects.toThrow(ForbiddenException);
   });
+
+  it('fails closed when user lookup has no email', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'platform@gymstack.dev';
+    (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(guard.canActivate(buildContext({ id: 'tenant-user' }))).rejects.toThrow(ForbiddenException);
+  });
 });

@@ -1,14 +1,5 @@
 [
   {
-    "method": "GET",
-    "path": "",
-    "controller": "AppController",
-    "handler": "getRoot",
-    "sourceFile": "backend/src/app.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "POST",
     "path": "/account/cancel-deletion",
     "controller": "AccountController",
@@ -149,10 +140,7 @@
     "controller": "DataExportController",
     "handler": "listBackups",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -161,10 +149,7 @@
     "controller": "DataExportController",
     "handler": "applyRestore",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -173,22 +158,7 @@
     "controller": "DataExportController",
     "handler": "previewRestore",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "RequirePlatformAdminGuard"
-    ],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/admin/backups/tenant/:tenantId",
-    "controller": "DataExportController",
-    "handler": "createBackup",
-    "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -197,9 +167,7 @@
     "controller": "FeedbackController",
     "handler": "listAdminChangelog",
     "sourceFile": "backend/src/feedback/feedback.controller.ts",
-    "guards": [
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -208,9 +176,7 @@
     "controller": "FeedbackController",
     "handler": "createChangelog",
     "sourceFile": "backend/src/feedback/feedback.controller.ts",
-    "guards": [
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -228,9 +194,7 @@
     "controller": "FeatureFlagsController",
     "handler": "create",
     "sourceFile": "backend/src/feature-flags/feature-flags.controller.ts",
-    "guards": [
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -315,6 +279,15 @@
     "dtos": []
   },
   {
+    "method": "POST",
+    "path": "/admin/metrics/backfill",
+    "controller": "AnalyticsController",
+    "handler": "backfillMetrics",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
     "method": "GET",
     "path": "/admin/ops/migration-status",
     "controller": "AdminController",
@@ -329,10 +302,7 @@
     "controller": "AdminController",
     "handler": "overview",
     "sourceFile": "backend/src/admin/admin.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -341,10 +311,7 @@
     "controller": "AnalyticsController",
     "handler": "recomputeMetrics",
     "sourceFile": "backend/src/analytics/analytics.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "PlanGatingGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -353,9 +320,7 @@
     "controller": "FeedbackController",
     "handler": "getReleaseStatus",
     "sourceFile": "backend/src/feedback/feedback.controller.ts",
-    "guards": [
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -364,9 +329,7 @@
     "controller": "FeedbackController",
     "handler": "updateReleaseStatus",
     "sourceFile": "backend/src/feedback/feedback.controller.ts",
-    "guards": [
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -382,7 +345,7 @@
     "method": "GET",
     "path": "/admin/tenants/:tenantId",
     "controller": "AdminController",
-    "handler": "if",
+    "handler": "toggleTenantActive",
     "sourceFile": "backend/src/admin/admin.controller.ts",
     "guards": [],
     "dtos": []
@@ -415,15 +378,6 @@
     "dtos": []
   },
   {
-    "method": "POST",
-    "path": "/admin/tenants/:tenantId/toggle-active",
-    "controller": "AdminController",
-    "handler": "toggleTenantActive",
-    "sourceFile": "backend/src/admin/admin.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "GET",
     "path": "/admin/users",
     "controller": "AdminController",
@@ -435,15 +389,6 @@
   {
     "method": "GET",
     "path": "/admin/users/:id",
-    "controller": "AdminController",
-    "handler": "if",
-    "sourceFile": "backend/src/admin/admin.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/admin/users/:id/revoke-sessions",
     "controller": "AdminController",
     "handler": "revokeSessions",
     "sourceFile": "backend/src/admin/admin.controller.ts",
@@ -465,9 +410,7 @@
     "controller": "AiInsightsController",
     "handler": "getWeeklyBrief",
     "sourceFile": "backend/src/ai-insights/ai-insights.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -507,23 +450,12 @@
     "dtos": []
   },
   {
-    "method": "GET",
-    "path": "/api/campaigns",
-    "controller": "CampaignsController",
-    "handler": "list",
-    "sourceFile": "backend/src/campaigns/campaigns.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "POST",
     "path": "/api/campaigns/generate",
     "controller": "CampaignsController",
     "handler": "generate",
     "sourceFile": "backend/src/campaigns/campaigns.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -532,53 +464,6 @@
     "controller": "CampaignsController",
     "handler": "send",
     "sourceFile": "backend/src/campaigns/campaigns.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/api/health",
-    "controller": "AppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/app.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/audit",
-    "controller": "AuditController",
-    "handler": "listAuditLogs",
-    "sourceFile": "backend/src/audit/audit.controller.ts",
-    "guards": [
-      "RolesGuard"
-    ],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/2fa/send",
-    "controller": "AuthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/2fa/verify",
-    "controller": "AuthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/admin/login",
-    "controller": "AuthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -595,7 +480,7 @@
     "method": "POST",
     "path": "/auth/login",
     "controller": "AuthController",
-    "handler": "unknown",
+    "handler": "registerWithInvite",
     "sourceFile": "backend/src/auth/auth.controller.ts",
     "guards": [],
     "dtos": []
@@ -610,43 +495,12 @@
     "dtos": []
   },
   {
-    "method": "POST",
-    "path": "/auth/login/otp/resend",
-    "controller": "AuthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/login/otp/verify",
-    "controller": "AuthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/logout",
-    "controller": "AuthController",
-    "handler": "logout",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
-    "dtos": []
-  },
-  {
     "method": "GET",
     "path": "/auth/me",
     "controller": "AuthController",
-    "handler": "unknown",
+    "handler": "logout",
     "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -655,44 +509,6 @@
     "controller": "AuthController",
     "handler": "me",
     "sourceFile": "backend/src/auth.controller.ts",
-    "guards": [
-      "AuthGuard('jwt'"
-    ],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/oauth/apple/callback",
-    "controller": "OauthController",
-    "handler": "if",
-    "sourceFile": "backend/src/auth/oauth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/auth/oauth/apple/start",
-    "controller": "OauthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/oauth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/auth/oauth/google/callback",
-    "controller": "OauthController",
-    "handler": "if",
-    "sourceFile": "backend/src/auth/oauth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/auth/oauth/google/start",
-    "controller": "OauthController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/auth/oauth.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -707,18 +523,9 @@
   },
   {
     "method": "POST",
-    "path": "/auth/register-with-invite",
+    "path": "/auth/resend-verification",
     "controller": "AuthController",
-    "handler": "registerWithInvite",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/register",
-    "controller": "AuthController",
-    "handler": "requireRequestedWithHeader",
+    "handler": "resendVerification",
     "sourceFile": "backend/src/auth/auth.controller.ts",
     "guards": [],
     "dtos": []
@@ -728,17 +535,6 @@
     "path": "/auth/resend-verification-authenticated",
     "controller": "AuthController",
     "handler": "resendVerificationAuthenticated",
-    "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/auth/resend-verification",
-    "controller": "AuthController",
-    "handler": "resendVerification",
     "sourceFile": "backend/src/auth/auth.controller.ts",
     "guards": [],
     "dtos": []
@@ -758,9 +554,7 @@
     "controller": "AuthController",
     "handler": "setContext",
     "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -769,16 +563,14 @@
     "controller": "AuthController",
     "handler": "setMode",
     "sourceFile": "backend/src/auth/auth.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
     "method": "POST",
     "path": "/auth/signup",
     "controller": "AuthController",
-    "handler": "unknown",
+    "handler": "requireRequestedWithHeader",
     "sourceFile": "backend/src/auth/auth.controller.ts",
     "guards": [],
     "dtos": []
@@ -803,46 +595,19 @@
   },
   {
     "method": "POST",
-    "path": "/billing/checkout",
-    "controller": "BillingController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/billing/billing.controller.ts",
+    "path": "/bookings/:id/cancel",
+    "controller": "ScheduleV2Controller",
+    "handler": "cancelBooking",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
   {
     "method": "POST",
-    "path": "/billing/portal",
-    "controller": "BillingController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/billing/billing.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/billing/status",
-    "controller": "BillingController",
-    "handler": "if",
-    "sourceFile": "backend/src/billing/billing.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/billing/webhook/razorpay",
-    "controller": "StripeWebhookController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/billing/stripe-webhook.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/billing/webhook/stripe",
-    "controller": "StripeWebhookController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/billing/stripe-webhook.controller.ts",
+    "path": "/bookings/:id/checkin",
+    "controller": "ScheduleV2Controller",
+    "handler": "checkIn",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -856,22 +621,38 @@
     "dtos": []
   },
   {
+    "method": "PATCH",
+    "path": "/classes/:id",
+    "controller": "ScheduleV2Controller",
+    "handler": "updateClass",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/classes/:id/sessions",
+    "controller": "ScheduleV2Controller",
+    "handler": "createSession",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/client-memberships/:id",
+    "controller": "GymMembershipAdminController",
+    "handler": "updateClientMembership",
+    "sourceFile": "backend/src/location-memberships/gym-membership-admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
     "method": "GET",
     "path": "/client/me",
     "controller": "ClientPortalController",
     "handler": "getMyClientPortal",
     "sourceFile": "backend/src/client-portal/client-portal.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/db/ping",
-    "controller": "AppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/app.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -899,9 +680,7 @@
     "controller": "DemoController",
     "handler": "reset",
     "sourceFile": "backend/src/demo/demo.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -910,10 +689,7 @@
     "controller": "DeveloperController",
     "handler": "apiKeys",
     "sourceFile": "backend/src/developer/developer.controller.ts",
-    "guards": [
-      "JwtAuthGuard",
-      "PlanGatingGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -959,35 +735,6 @@
     "handler": "retry",
     "sourceFile": "backend/src/developer/developer.controller.ts",
     "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/developers",
-    "controller": "DevelopersController",
-    "handler": "getDocs",
-    "sourceFile": "backend/src/developers/developers.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/domains",
-    "controller": "DomainsController",
-    "handler": "list",
-    "sourceFile": "backend/src/domains/domains.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/domains",
-    "controller": "DomainsController",
-    "handler": "create",
-    "sourceFile": "backend/src/domains/domains.controller.ts",
-    "guards": [
-      "PlanGatingGuard"
-    ],
     "dtos": []
   },
   {
@@ -1041,9 +788,7 @@
     "controller": "DataExportController",
     "handler": "listJobs",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1052,9 +797,7 @@
     "controller": "DataExportController",
     "handler": "createJob",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1063,20 +806,16 @@
     "controller": "DataExportController",
     "handler": "download",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
     "method": "GET",
     "path": "/exports/files/:token",
     "controller": "DataExportController",
-    "handler": "unknown",
+    "handler": "createBackup",
     "sourceFile": "backend/src/data-export/data-export.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1094,26 +833,24 @@
     "controller": "FeedbackController",
     "handler": "createFeedback",
     "sourceFile": "backend/src/feedback/feedback.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
     "method": "GET",
-    "path": "/gyms",
-    "controller": "GymsController",
-    "handler": "listGyms",
-    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "path": "/gyms/:gymId/classes",
+    "controller": "ScheduleV2Controller",
+    "handler": "listClasses",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
   {
     "method": "POST",
-    "path": "/gyms",
-    "controller": "GymsController",
-    "handler": "createGym",
-    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "path": "/gyms/:gymId/classes",
+    "controller": "ScheduleV2Controller",
+    "handler": "createClass",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1137,10 +874,64 @@
   },
   {
     "method": "POST",
+    "path": "/gyms/:gymId/clients/:userId/memberships",
+    "controller": "GymMembershipAdminController",
+    "handler": "assignClientMembership",
+    "sourceFile": "backend/src/location-memberships/gym-membership-admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
     "path": "/gyms/:gymId/invites",
     "controller": "GymsController",
     "handler": "createGymInvite",
     "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/:gymId/metrics",
+    "controller": "AnalyticsController",
+    "handler": "getGymMetrics",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/:gymId/plans",
+    "controller": "GymMembershipAdminController",
+    "handler": "listPlans",
+    "sourceFile": "backend/src/location-memberships/gym-membership-admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/gyms/:gymId/plans",
+    "controller": "GymMembershipAdminController",
+    "handler": "createPlan",
+    "sourceFile": "backend/src/location-memberships/gym-membership-admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/gyms/:gymId/plans/:planId",
+    "controller": "GymMembershipAdminController",
+    "handler": "updatePlan",
+    "sourceFile": "backend/src/location-memberships/gym-membership-admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/:gymId/sessions",
+    "controller": "ScheduleV2Controller",
+    "handler": "listSessions",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1208,33 +999,6 @@
     "dtos": []
   },
   {
-    "method": "GET",
-    "path": "/health",
-    "controller": "AppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/app.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/invites",
-    "controller": "InvitesController",
-    "handler": "listInvites",
-    "sourceFile": "backend/src/invites/invites.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/invites",
-    "controller": "InvitesController",
-    "handler": "createInvite",
-    "sourceFile": "backend/src/invites/invites.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "DELETE",
     "path": "/invites/:id",
     "controller": "InvitesController",
@@ -1272,19 +1036,19 @@
   },
   {
     "method": "POST",
-    "path": "/invites/consume-auth",
-    "controller": "InvitesController",
+    "path": "/invites/consume",
+    "controller": "TenantController",
     "handler": "consumeInvite",
-    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
     "guards": [],
     "dtos": []
   },
   {
     "method": "POST",
-    "path": "/invites/consume",
-    "controller": "TenantController",
+    "path": "/invites/consume-auth",
+    "controller": "InvitesController",
     "handler": "consumeInvite",
-    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1321,24 +1085,6 @@
     "controller": "InvitesController",
     "handler": "validateInvite",
     "sourceFile": "backend/src/invites/invites.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/leads",
-    "controller": "LeadsController",
-    "handler": "create",
-    "sourceFile": "backend/src/leads/leads.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/location/attendance/today",
-    "controller": "LocationAppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/location-app/location-app.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1398,15 +1144,6 @@
   },
   {
     "method": "GET",
-    "path": "/location/me/attendance",
-    "controller": "LocationAppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/location-app/location-app.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
     "path": "/location/me/booking-access",
     "controller": "LocationMembershipsController",
     "handler": "getBookingAccess",
@@ -1425,24 +1162,6 @@
   },
   {
     "method": "GET",
-    "path": "/location/members",
-    "controller": "LocationAppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/location-app/location-app.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/location/members/:memberId/check-in",
-    "controller": "LocationAppController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/location-app/location-app.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
     "path": "/location/my-bookings",
     "controller": "ScheduleController",
     "handler": "myBookings",
@@ -1456,9 +1175,7 @@
     "controller": "LocationMembershipsController",
     "handler": "listPlans",
     "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
-    "guards": [
-      "PermissionsGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1517,18 +1234,18 @@
   },
   {
     "method": "POST",
-    "path": "/location/sessions/:sessionId/cancel-booking",
+    "path": "/location/sessions/:sessionId/cancel",
     "controller": "ScheduleController",
-    "handler": "cancelBooking",
+    "handler": "cancelSession",
     "sourceFile": "backend/src/schedule/schedule.controller.ts",
     "guards": [],
     "dtos": []
   },
   {
     "method": "POST",
-    "path": "/location/sessions/:sessionId/cancel",
+    "path": "/location/sessions/:sessionId/cancel-booking",
     "controller": "ScheduleController",
-    "handler": "cancelSession",
+    "handler": "cancelBooking",
     "sourceFile": "backend/src/schedule/schedule.controller.ts",
     "guards": [],
     "dtos": []
@@ -1557,10 +1274,7 @@
     "controller": "LocationManagersController",
     "handler": "getBranding",
     "sourceFile": "backend/src/gyms/location-managers.controller.ts",
-    "guards": [
-      "RolesGuard",
-      "PermissionsGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1618,15 +1332,6 @@
     "dtos": []
   },
   {
-    "method": "GET",
-    "path": "/notifications",
-    "controller": "NotificationsController",
-    "handler": "listNotifications",
-    "sourceFile": "backend/src/notifications/notifications.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "POST",
     "path": "/notifications/:id/read",
     "controller": "NotificationsController",
@@ -1641,24 +1346,6 @@
     "controller": "OnboardingController",
     "handler": "setOwnerOpsMode",
     "sourceFile": "backend/src/onboarding/onboarding.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/org",
-    "controller": "OrganizationsController",
-    "handler": "getOrg",
-    "sourceFile": "backend/src/organizations/organizations.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "PATCH",
-    "path": "/org",
-    "controller": "OrganizationsController",
-    "handler": "renameOrg",
-    "sourceFile": "backend/src/organizations/organizations.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1682,15 +1369,6 @@
   },
   {
     "method": "GET",
-    "path": "/org/dashboard/summary",
-    "controller": "OrganizationsController",
-    "handler": "getDashboardSummary",
-    "sourceFile": "backend/src/organizations/organizations.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
     "path": "/org/growth-status",
     "controller": "OrganizationsController",
     "handler": "getGrowthStatus",
@@ -1704,24 +1382,6 @@
     "controller": "OrganizationsController",
     "handler": "updateWhiteLabel",
     "sourceFile": "backend/src/organizations/organizations.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/orgs",
-    "controller": "OrgsController",
-    "handler": "listOrgs",
-    "sourceFile": "backend/src/organizations/orgs.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/orgs",
-    "controller": "OrgsController",
-    "handler": "createOrg",
-    "sourceFile": "backend/src/organizations/orgs.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1785,9 +1445,7 @@
     "controller": "AnalyticsController",
     "handler": "listInsights",
     "sourceFile": "backend/src/analytics/analytics.controller.ts",
-    "guards": [
-      "RequirePlatformAdminGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1859,9 +1517,7 @@
     "controller": "PublicApiController",
     "handler": "locations",
     "sourceFile": "backend/src/public-api/public-api.controller.ts",
-    "guards": [
-      "PublicApiAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -1883,24 +1539,6 @@
     "dtos": []
   },
   {
-    "method": "POST",
-    "path": "/push/subscribe",
-    "controller": "PushController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/push/push.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/push/unsubscribe",
-    "controller": "PushController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/push/push.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "GET",
     "path": "/push/vapid-public-key",
     "controller": "PushController",
@@ -1910,40 +1548,20 @@
     "dtos": []
   },
   {
-    "method": "POST",
-    "path": "/security/two-step/email/request-disable",
-    "controller": "SecurityController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/security/security.controller.ts",
+    "method": "PATCH",
+    "path": "/sessions/:id",
+    "controller": "ScheduleV2Controller",
+    "handler": "updateSession",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
   {
     "method": "POST",
-    "path": "/security/two-step/email/request-enable",
-    "controller": "SecurityController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/security/security.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/security/two-step/email/verify-disable",
-    "controller": "SecurityController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/security/security.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "POST",
-    "path": "/security/two-step/email/verify-enable",
-    "controller": "SecurityController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/security/security.controller.ts",
+    "path": "/sessions/:id/book",
+    "controller": "ScheduleV2Controller",
+    "handler": "book",
+    "sourceFile": "backend/src/schedule/schedule-v2.controller.ts",
     "guards": [],
     "dtos": []
   },
@@ -1966,15 +1584,6 @@
     "dtos": []
   },
   {
-    "method": "POST",
-    "path": "/support/ticket",
-    "controller": "SupportController",
-    "handler": "unknown",
-    "sourceFile": "backend/src/support/support.controller.ts",
-    "guards": [],
-    "dtos": []
-  },
-  {
     "method": "PATCH",
     "path": "/tenant/billing-provider",
     "controller": "TenantBillingController",
@@ -1989,9 +1598,7 @@
     "controller": "RetentionController",
     "handler": "getHealth",
     "sourceFile": "backend/src/retention/retention.controller.ts",
-    "guards": [
-      "JwtAuthGuard"
-    ],
+    "guards": [],
     "dtos": []
   },
   {
@@ -2082,17 +1689,6 @@
     "handler": "slugAvailabilityV2",
     "sourceFile": "backend/src/tenant/tenant.controller.ts",
     "guards": [],
-    "dtos": []
-  },
-  {
-    "method": "GET",
-    "path": "/users",
-    "controller": "UsersController",
-    "handler": "listUsers",
-    "sourceFile": "backend/src/users/users.controller.ts",
-    "guards": [
-      "RolesGuard"
-    ],
     "dtos": []
   },
   {
