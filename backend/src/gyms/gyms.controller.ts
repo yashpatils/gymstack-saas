@@ -20,12 +20,17 @@ import { UpdateGymDto } from './dto/update-gym.dto';
 import { GymSlugAvailabilityQueryDto } from './dto/slug-availability.dto';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
+import { InvitesService } from '../invites/invites.service';
+import { CreateGymInviteDto } from '../invites/dto/create-gym-invite.dto';
 
 @Controller('gyms')
 @VerifiedEmailRequired()
 @UseGuards(RolesGuard, PermissionsGuard)
 export class GymsController {
-  constructor(private readonly gymsService: GymsService) {}
+  constructor(
+    private readonly gymsService: GymsService,
+    private readonly invitesService: InvitesService,
+  ) {}
 
   @Get()
   listGyms(@Req() req: { user?: User }) {
@@ -54,6 +59,17 @@ export class GymsController {
     }
 
     return this.gymsService.checkSlugAvailability({ ...user, orgId: user.activeTenantId ?? user.orgId }, query.slug);
+  }
+
+
+  @Post(':gymId/invites')
+  createGymInvite(@Param('gymId') gymId: string, @Body() body: CreateGymInviteDto, @Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.invitesService.createGymInvite(user, gymId, body);
   }
 
   @Get(':id')

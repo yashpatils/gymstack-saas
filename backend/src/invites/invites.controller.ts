@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { User } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { ValidateInviteDto } from './dto/validate-invite.dto';
@@ -42,6 +42,18 @@ export class InvitesController {
   @VerifiedEmailRequired()
   consumeInvite(@Req() req: { user: User }, @Body() body: ValidateInviteDto) {
     return this.invitesService.consumeByToken(body.token, req.user.email, req.user.id);
+  }
+
+
+  @Get(':token')
+  getInviteByToken(@Param('token') token: string) {
+    return this.invitesService.getInviteByToken(token);
+  }
+
+  @Post(':token/accept')
+  @VerifiedEmailRequired()
+  acceptInviteByToken(@Req() req: { user: User }, @Param('token') token: string) {
+    return this.invitesService.acceptInviteToken(token, req.user);
   }
 
   @VerifiedEmailRequired()

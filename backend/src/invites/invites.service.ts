@@ -4,6 +4,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { CreateGymInviteDto } from './dto/create-gym-invite.dto';
 import { assertCanCreateLocationInvite } from './invite-permissions';
 import { hasSupportModeContext } from '../auth/support-mode.util';
 import { JobsService } from '../jobs/jobs.service';
@@ -84,6 +85,174 @@ export class InvitesService {
       tenantId,
       locationId: location?.id ?? undefined,
     };
+  }
+
+
+
+  async createGymInvite(requester: User, gymId: string, input: CreateGymInviteDto) {
+    const gym = await this.prisma.gym.findUnique({ where: { id: gymId }, select: { id: true, orgId: true } });
+    if (!gym) {
+      throw new BadRequestException('Invalid gymId');
+    }
+
+    const expiresAt = new Date(input.expiresAt);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException('expiresAt must be a valid future datetime');
+    }
+
+    const role = input.role === 'LOCATION_ADMIN' ? MembershipRole.TENANT_LOCATION_ADMIN : MembershipRole.GYM_STAFF_COACH;
+    await this.assertCanCreateInvite(requester, gym.orgId, gym.id, role);
+
+    await this.billingLifecycleService.assertMutableAccess(gym.orgId);
+    await this.billingLifecycleService.assertCanInviteStaff(gym.orgId);
+    await this.planService.assertWithinLimits(gym.orgId, 'inviteStaff', { qaBypass: requester.qaBypass === true });
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashToken(token);
+
+    const invite = await this.prisma.locationInvite.create({
+      data: {
+        tenantId: gym.orgId,
+        locationId: gym.id,
+        role,
+        email: input.email.toLowerCase(),
+        tokenHash,
+        tokenPrefix: token.slice(0, 8),
+        expiresAt,
+        createdByUserId: requester.id,
+        status: InviteStatus.PENDING,
+      },
+    });
+
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'http://localhost:3000'}/invite/${encodeURIComponent(token)}`;
+    await this.jobsService.enqueue('email', { action: 'location-invite', to: invite.email, inviteUrl });
+
+    return {
+      inviteId: invite.id,
+      tokenPrefix: invite.tokenPrefix,
+      inviteUrl,
+      expiresAt: invite.expiresAt.toISOString(),
+      role: invite.role,
+      gymId: gym.id,
+      tenantId: gym.orgId,
+    };
+  }
+
+  async getInviteByToken(token: string): Promise<{
+    inviteId: string;
+    status: InviteStatus;
+    role: MembershipRole;
+    tenantId: string;
+    gymId: string | null;
+    email: string | null;
+    expiresAt: string;
+  }> {
+    const invite = await this.findByToken(token);
+    if (!invite) {
+      throw new BadRequestException('Invalid invite token');
+    }
+
+    return {
+      inviteId: invite.id,
+      status: invite.status,
+      role: invite.role,
+      tenantId: invite.tenantId,
+      gymId: invite.locationId ?? null,
+      email: invite.email,
+      expiresAt: invite.expiresAt.toISOString(),
+    };
+  }
+
+  async acceptInviteToken(token: string, user: User): Promise<{ ok: true; alreadyMember: boolean; tenantId: string; gymId: string | null; role: MembershipRole }> {
+    const invite = await this.findByToken(token);
+    if (!invite) {
+      throw new BadRequestException('Invalid invite token');
+    }
+
+    if (invite.revokedAt || invite.status === InviteStatus.REVOKED) {
+      throw new BadRequestException('Invite has been revoked');
+    }
+
+    if (invite.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Invite expired');
+    }
+
+    if (invite.email && user.email && invite.email.toLowerCase() !== user.email.toLowerCase()) {
+      throw new BadRequestException('Invite email does not match this account');
+    }
+
+    const existingMembership = await this.prisma.membership.findFirst({
+      where: {
+        userId: user.id,
+        orgId: invite.tenantId,
+        gymId: invite.locationId,
+        role: invite.role,
+      },
+      select: { id: true },
+    });
+
+    if (invite.status === InviteStatus.ACCEPTED || invite.consumedAt) {
+      if (existingMembership) {
+        return { ok: true, alreadyMember: true, tenantId: invite.tenantId, gymId: invite.locationId ?? null, role: invite.role };
+      }
+      throw new BadRequestException('Invite already used');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.membership.upsert({
+        where: {
+          userId_orgId_gymId_role: {
+            userId: user.id,
+            orgId: invite.tenantId,
+            gymId: invite.locationId,
+            role: invite.role,
+          },
+        },
+        update: { status: MembershipStatus.ACTIVE },
+        create: {
+          userId: user.id,
+          orgId: invite.tenantId,
+          gymId: invite.locationId,
+          role: invite.role,
+          status: MembershipStatus.ACTIVE,
+        },
+      });
+
+      const consumed = await tx.locationInvite.updateMany({
+        where: {
+          id: invite.id,
+          status: InviteStatus.PENDING,
+          consumedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        data: {
+          status: InviteStatus.ACCEPTED,
+          consumedAt: new Date(),
+          consumedByUserId: user.id,
+        },
+      });
+
+      return consumed.count;
+    });
+
+    if (result === 0) {
+      const membershipNow = await this.prisma.membership.findFirst({
+        where: {
+          userId: user.id,
+          orgId: invite.tenantId,
+          gymId: invite.locationId,
+          role: invite.role,
+        },
+        select: { id: true },
+      });
+      if (!membershipNow) {
+        throw new BadRequestException('Invite already used');
+      }
+      return { ok: true, alreadyMember: true, tenantId: invite.tenantId, gymId: invite.locationId ?? null, role: invite.role };
+    }
+
+    return { ok: true, alreadyMember: Boolean(existingMembership), tenantId: invite.tenantId, gymId: invite.locationId ?? null, role: invite.role };
   }
 
   async validateInvite(token: string): Promise<
