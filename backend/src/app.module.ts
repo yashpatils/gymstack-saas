@@ -30,6 +30,7 @@ import { DevelopersModule } from './developers/developers.module';
 import { PublicApiModule } from './public-api/public-api.module';
 import { AiInsightsModule } from './ai-insights/ai-insights.module';
 import { SecurityModule } from './security/security.module';
+import { ClientPortalModule } from './client-portal/client-portal.module';
 
 const shouldEnableDebugRoutes =
   process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ROUTES === 'true';
@@ -65,6 +66,7 @@ const shouldEnableDebugRoutes =
     DevelopersModule,
     AiInsightsModule,
     SecurityModule,
+    ClientPortalModule,
   ],
   controllers: [AppController],
   providers: [

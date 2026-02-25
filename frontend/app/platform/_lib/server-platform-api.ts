@@ -49,6 +49,17 @@ export async function getPlatformSessionOrRedirect(): Promise<AuthMeResponse> {
     redirect('/login?next=/platform');
   }
 
+  if (!hasPlatformStaffAccess(session.session)) {
+    redirect('/client');
+  }
+
   return session.session;
 }
 
+export function hasPlatformStaffAccess(session: AuthMeResponse): boolean {
+  if (Array.isArray(session.memberships)) {
+    return session.memberships.some((membership) => membership.role === 'TENANT_OWNER' || membership.role === 'TENANT_LOCATION_ADMIN' || membership.role === 'GYM_STAFF_COACH');
+  }
+
+  return session.memberships.tenant.length > 0 || session.memberships.location.some((membership) => membership.role === 'TENANT_LOCATION_ADMIN' || membership.role === 'GYM_STAFF_COACH');
+}

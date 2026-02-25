@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes, randomInt } from 'crypto';
-import { ActiveMode, AuditActorType, LoginOtpChallengePurpose, Membership, MembershipRole, MembershipStatus, Organization, PlanKey, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
+import { ActiveMode, AuditActorType, ClientMembershipStatus, LoginOtpChallengePurpose, Membership, MembershipRole, MembershipStatus, Organization, PlanKey, Role, SubscriptionStatus, UserStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -434,6 +434,18 @@ export class AuthService implements OnModuleInit {
         }
         const fallbackTenant = await this.prisma.organization.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
         return fallbackTenant ? { tenantId: fallbackTenant.id, gymId: null, locationId: null, role: MembershipRole.TENANT_OWNER } : undefined;
+      }
+
+      const hasClientAccess = await this.prisma.clientMembership.findFirst({
+        where: {
+          userId: user.id,
+          status: { in: [ClientMembershipStatus.active, ClientMembershipStatus.trialing, ClientMembershipStatus.paused, ClientMembershipStatus.past_due] },
+        },
+        select: { id: true },
+      });
+
+      if (hasClientAccess) {
+        return undefined;
       }
 
       throw new ConflictException({

@@ -17,6 +17,8 @@ import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
 import { SecurityErrors } from '../common/errors/security-errors';
 import { validateTenantSlug } from '../common/slug.util';
 import { CreateGymDto } from './dto/create-gym.dto';
+import { CreateGymClientDto } from './dto/create-gym-client.dto';
+import { hashPassword } from '../auth/password-hasher';
 
 function isSlugUniqueConstraintError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError
@@ -42,6 +44,124 @@ export class GymsService {
     return this.prisma.gym.findMany({
       where: { orgId },
     });
+  }
+
+  async listGymClients(user: User, gymId: string) {
+    const gym = await this.assertStaffCanManageGym(user, gymId);
+
+    const memberships = await this.prisma.clientMembership.findMany({
+      where: { locationId: gymId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        plan: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      gymId: gym.id,
+      clients: memberships.map((membership) => ({
+        id: membership.user.id,
+        email: membership.user.email,
+        name: membership.user.name,
+        membership: {
+          id: membership.id,
+          status: membership.status,
+          startAt: membership.startAt.toISOString(),
+          endAt: membership.endAt?.toISOString() ?? null,
+          plan: membership.plan
+            ? {
+              id: membership.plan.id,
+              name: membership.plan.name,
+              interval: membership.plan.interval,
+            }
+            : null,
+        },
+      })),
+    };
+  }
+
+  async createGymClient(user: User, gymId: string, input: CreateGymClientDto) {
+    const gym = await this.assertStaffCanManageGym(user, gymId);
+    const email = input.email.trim().toLowerCase();
+
+    const resolvedPlanId = await this.resolvePlanId(gymId, input.planId);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const existingUser = await tx.user.findUnique({ where: { email }, select: { id: true, name: true } });
+      const clientUser = existingUser
+        ? existingUser
+        : await tx.user.create({
+          data: {
+            email,
+            name: input.name?.trim() || null,
+            password: await hashPassword(`${randomBytes(18).toString('hex')}A!1`),
+            orgId: gym.orgId,
+          },
+          select: { id: true, name: true },
+        });
+
+      const priorActive = await tx.clientMembership.findFirst({
+        where: {
+          userId: clientUser.id,
+          locationId: gymId,
+          status: { in: ['active', 'trialing'] },
+        },
+        select: { id: true },
+      });
+
+      if (priorActive) {
+        await tx.clientMembership.update({
+          where: { id: priorActive.id },
+          data: {
+            status: 'canceled',
+            canceledAt: new Date(),
+            endAt: new Date(),
+          },
+        });
+      }
+
+      const clientMembership = await tx.clientMembership.create({
+        data: {
+          userId: clientUser.id,
+          locationId: gymId,
+          planId: resolvedPlanId,
+          status: input.status ?? 'active',
+          startAt: new Date(),
+          createdByUserId: user.id,
+        },
+        include: { plan: true },
+      });
+
+      return { clientUser, clientMembership };
+    });
+
+    return {
+      gymId,
+      client: {
+        id: created.clientUser.id,
+        email,
+        name: created.clientUser.name,
+      },
+      membership: {
+        id: created.clientMembership.id,
+        status: created.clientMembership.status,
+        startAt: created.clientMembership.startAt.toISOString(),
+        plan: created.clientMembership.plan
+          ? {
+            id: created.clientMembership.plan.id,
+            name: created.clientMembership.plan.name,
+            interval: created.clientMembership.plan.interval,
+          }
+          : null,
+      },
+    };
   }
 
   async createGym(orgId: string, ownerId: string, data: CreateGymDto, qaBypass = false) {
@@ -309,6 +429,62 @@ export class GymsService {
       return configured;
     }
     return PlanKey.pro;
+  }
+
+  private async assertStaffCanManageGym(user: User, gymId: string) {
+    const tenantId = user.activeTenantId ?? user.orgId;
+    if (!tenantId) {
+      throw new ForbiddenException('Missing tenant context');
+    }
+
+    const gym = await this.prisma.gym.findFirst({
+      where: {
+        id: gymId,
+        orgId: tenantId,
+      },
+      select: { id: true, orgId: true },
+    });
+
+    if (!gym) {
+      throw new NotFoundException('Gym not found');
+    }
+
+    const staffMembership = await this.prisma.membership.findFirst({
+      where: {
+        userId: user.id,
+        orgId: tenantId,
+        status: MembershipStatus.ACTIVE,
+        OR: [
+          { role: MembershipRole.TENANT_OWNER },
+          { role: MembershipRole.TENANT_LOCATION_ADMIN, gymId },
+          { role: MembershipRole.GYM_STAFF_COACH, gymId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!staffMembership) {
+      throw new ForbiddenException('Staff/admin access is required for this location');
+    }
+
+    return gym;
+  }
+
+  private async resolvePlanId(gymId: string, planId?: string): Promise<string | null> {
+    if (!planId) {
+      return null;
+    }
+
+    const plan = await this.prisma.membershipPlan.findFirst({
+      where: { id: planId, locationId: gymId },
+      select: { id: true },
+    });
+
+    if (!plan) {
+      throw new BadRequestException('Invalid planId for this gym');
+    }
+
+    return plan.id;
   }
 
   private isValidTimezone(timezoneRaw: string): boolean {
