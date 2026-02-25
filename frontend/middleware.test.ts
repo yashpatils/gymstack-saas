@@ -61,6 +61,17 @@ describe('resolveHostRoute', () => {
     delete process.env.ADMIN_HOST;
   });
 
+  it('rewrites preview subdomains when BASE_DOMAIN comes from env', () => {
+    process.env.BASE_DOMAIN = 'preview.gymstack.dev';
+
+    expect(resolveHostRoute('east.preview.gymstack.dev', '/', process.env.BASE_DOMAIN)).toEqual({
+      type: 'rewrite',
+      pathname: '/_sites/east/',
+    });
+
+    delete process.env.BASE_DOMAIN;
+  });
+
   it('does not rewrite protected app routes on custom domains', () => {
     expect(resolveHostRoute('tenant-brand.com', '/platform', baseDomain)).toEqual({ type: 'next' });
     expect(resolveHostRoute('tenant-brand.com', '/admin', baseDomain)).toEqual({ type: 'next' });
