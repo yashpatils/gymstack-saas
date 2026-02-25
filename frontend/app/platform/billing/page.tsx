@@ -41,11 +41,14 @@ export default function BillingPage() {
     return status.planName;
   }, [status]);
 
+  const isTrialing = status?.subscriptionStatus === "TRIAL" || status?.billingStatus === "TRIALING";
+  const isPastDue = status?.subscriptionStatus === "PAST_DUE" || status?.billingStatus === "PAST_DUE";
+
   async function loadStatus() {
     setLoading(true);
     setMessage(null);
     try {
-      const nextStatus = await apiFetch<BillingStatus>("/api/billing/status", { method: "GET", cache: "no-store" });
+      const nextStatus = await apiFetch<BillingStatus>("/api/billing/org/status", { method: "GET", cache: "no-store" });
       setStatus(nextStatus);
     } catch (error) {
       if (error instanceof ApiFetchError && error.statusCode === 403) {
@@ -70,13 +73,13 @@ export default function BillingPage() {
     setCheckoutLoading(plan);
     setMessage(null);
     try {
-      const response = await apiFetch<{ url?: string; checkoutUrl?: string; sessionId?: string }>('/api/billing/checkout', {
+      const response = await apiFetch<{ url?: string; checkoutUrl?: string; sessionId?: string }>('/api/billing/org/checkout-session', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           priceId,
           successUrl: `${window.location.origin}/platform/billing?checkout=success`,
           cancelUrl: `${window.location.origin}/platform/billing?checkout=canceled`,
-        }),
+        },
       });
 
       const redirectUrl = response.url ?? response.checkoutUrl;
@@ -94,9 +97,9 @@ export default function BillingPage() {
 
   async function openPortal() {
     try {
-      const response = await apiFetch<{ url: string }>("/api/billing/portal", {
+      const response = await apiFetch<{ url: string }>("/api/billing/org/portal-session", {
         method: "POST",
-        body: JSON.stringify({ returnUrl: window.location.href }),
+        body: { returnUrl: window.location.href },
       });
       window.location.href = response.url;
     } catch (error) {
@@ -117,11 +120,14 @@ export default function BillingPage() {
         <StatCard label="Staff seats" value={status ? `${status.usage.staffSeatsUsed}/${status.usage.maxStaffSeats}` : "—"} />
       </PageGrid>
 
+      {isTrialing ? <p className="text-xs text-muted-foreground">You are currently in trial. Add a payment method to avoid interruptions.</p> : null}
+      {isPastDue ? <p className="text-xs text-destructive">Payment is past due. Access to non-billing features is restricted until payment is updated.</p> : null}
+
       <PageCard title="Plan options">
         <FormActions>
           <button type="button" className="button secondary" disabled={checkoutLoading !== null} onClick={() => void startCheckout("starter")}>{checkoutLoading === "starter" ? "Starting..." : "Starter"}</button>
           <button type="button" className="button" disabled={checkoutLoading !== null} onClick={() => void startCheckout("pro")}>{checkoutLoading === "pro" ? "Starting..." : "Pro"}</button>
-          <button type="button" className="button secondary" onClick={() => void openPortal()}>Update card</button>
+          <button type="button" className="button secondary" onClick={() => void openPortal()}>Update payment method</button>
           <button type="button" className="button" onClick={() => void openPortal()}>Retry payment</button>
         </FormActions>
         <p className="mt-3 text-xs text-muted-foreground">White-label enabled: {status?.whiteLabelEnabled ? "Yes" : "No"}</p>

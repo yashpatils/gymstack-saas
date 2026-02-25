@@ -9,6 +9,7 @@ import { AuditService } from '../audit/audit.service';
 import { getPlatformAdminEmails, isPlatformAdmin } from './platform-admin.util';
 import { isQaModeEnabled, shouldApplyQaBypass } from '../common/qa-mode.util';
 import { getJwtSecret } from '../common/env.util';
+import { shouldRestrictTenantAccess } from '../billing/org-subscription-access.util';
 
 interface JwtPayload {
   sub: string;
@@ -47,7 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(
-    request: { headers: Record<string, string | string[] | undefined>; ip?: string },
+    request: { headers: Record<string, string | string[] | undefined>; ip?: string; originalUrl?: string; url?: string },
     payload: JwtPayload,
   ): Promise<JwtPayload & { userId: string; permissions: string[]; isPlatformAdmin: boolean; supportMode?: SupportModeContext; emailVerifiedAt: Date | null; activeLocationId?: string }> {
     const user = await this.prisma.user.findUnique({
@@ -64,10 +65,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (tenantId) {
       const tenant = await this.prisma.organization.findUnique({
         where: { id: tenantId },
-        select: { isDisabled: true },
+        select: { isDisabled: true, subscriptionStatus: true },
       });
       if (tenant?.isDisabled) {
         throw new ForbiddenException({ code: 'TENANT_DISABLED', message: 'Tenant is disabled' });
+      }
+
+      if (shouldRestrictTenantAccess({
+        subscriptionStatus: tenant?.subscriptionStatus,
+        pathname: request.originalUrl ?? request.url ?? '/',
+      })) {
+        throw new ForbiddenException({
+          code: 'ORG_SUBSCRIPTION_RESTRICTED',
+          message: 'Organization subscription is restricted. Access is limited to billing and support.',
+          subscriptionStatus: tenant?.subscriptionStatus,
+          allowedPaths: ['/platform/billing', '/platform/support'],
+        });
       }
     }
 
