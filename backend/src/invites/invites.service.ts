@@ -110,12 +110,14 @@ export class InvitesService {
     const token = randomBytes(32).toString('base64url');
     const tokenHash = this.hashToken(token);
 
+    const normalizedEmail = input.email.toLowerCase();
+
     const invite = await this.prisma.locationInvite.create({
       data: {
         tenantId: gym.orgId,
         locationId: gym.id,
         role,
-        email: input.email.toLowerCase(),
+        email: normalizedEmail,
         tokenHash,
         tokenPrefix: token.slice(0, 8),
         expiresAt,
@@ -125,7 +127,7 @@ export class InvitesService {
     });
 
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'http://localhost:3000'}/invite/${encodeURIComponent(token)}`;
-    await this.jobsService.enqueue('email', { action: 'location-invite', to: invite.email, inviteUrl });
+    await this.jobsService.enqueue('email', { action: 'location-invite', to: normalizedEmail, inviteUrl });
 
     return {
       inviteId: invite.id,
@@ -199,24 +201,53 @@ export class InvitesService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      await tx.membership.upsert({
-        where: {
-          userId_orgId_gymId_role: {
+      if (invite.locationId) {
+        await tx.membership.upsert({
+          where: {
+            userId_orgId_gymId_role: {
+              userId: user.id,
+              orgId: invite.tenantId,
+              gymId: invite.locationId,
+              role: invite.role,
+            },
+          },
+          update: { status: MembershipStatus.ACTIVE },
+          create: {
             userId: user.id,
             orgId: invite.tenantId,
             gymId: invite.locationId,
             role: invite.role,
+            status: MembershipStatus.ACTIVE,
           },
-        },
-        update: { status: MembershipStatus.ACTIVE },
-        create: {
-          userId: user.id,
-          orgId: invite.tenantId,
-          gymId: invite.locationId,
-          role: invite.role,
-          status: MembershipStatus.ACTIVE,
-        },
-      });
+        });
+      } else {
+        const existingNullGymMembership = await tx.membership.findFirst({
+          where: {
+            userId: user.id,
+            orgId: invite.tenantId,
+            gymId: null,
+            role: invite.role,
+          },
+          select: { id: true },
+        });
+
+        if (existingNullGymMembership) {
+          await tx.membership.update({
+            where: { id: existingNullGymMembership.id },
+            data: { status: MembershipStatus.ACTIVE },
+          });
+        } else {
+          await tx.membership.create({
+            data: {
+              userId: user.id,
+              orgId: invite.tenantId,
+              gymId: null,
+              role: invite.role,
+              status: MembershipStatus.ACTIVE,
+            },
+          });
+        }
+      }
 
       const consumed = await tx.locationInvite.updateMany({
         where: {
