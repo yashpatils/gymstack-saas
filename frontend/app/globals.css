@@ -7,61 +7,9 @@
 *::after { box-sizing: border-box; }
 
 :root,
-html[data-theme="dark"] {
-  color-scheme: dark;
-  --radius: 1rem;
-  --bg: hsl(222 18% 8%);
-  --surface-1: hsl(222 16% 11%);
-  --surface-2: hsl(222 14% 14%);
-  --surface-3: hsl(222 12% 16%);
-  --surface-sidebar: #121923;
-  --surface-overlay: rgba(14, 19, 27, 0.86);
-  --border: hsl(222 12% 22%);
-  --text: hsl(210 20% 92%);
-  --text-muted: hsl(215 12% 70%);
-  --background: var(--bg);
-  --foreground: var(--text);
-  --card: var(--surface-1);
-  --card-foreground: var(--text);
-  --popover: var(--surface-1);
-  --popover-foreground: var(--text);
-  --secondary: var(--surface-2);
-  --secondary-foreground: var(--text);
-  --muted: var(--surface-3);
-  --muted-foreground: var(--text-muted);
-  --accent: hsl(222 14% 18%);
-  --accent-foreground: var(--text);
-  --primary: var(--accent);
-  --primary-foreground: hsl(240 10% 10%);
-  --input: var(--border);
-  --ring: hsl(250 70% 70%);
-  --destructive: hsl(0 72% 55%);
-  --destructive-foreground: hsl(0 0% 98%);
-  --shadow-soft: var(--card-shadow);
-  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --accent-strong: hsl(252 76% 62%);
-  --primary: hsl(252 76% 68%);
-  --brand-600: var(--accent);
-  --brand-700: var(--accent-strong);
-  --brand-100: rgba(124, 140, 255, 0.15);
-  --success-100: rgba(52, 211, 153, 0.18);
-  --success-600: #34d399;
-  --warning-100: rgba(251, 191, 36, 0.2);
-  --warning-600: #fbbf24;
-  --danger-100: rgba(248, 113, 113, 0.2);
-  --danger-600: #f87171;
-  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  --focus-ring: 0 0 0 2px rgba(9, 11, 16, 1), 0 0 0 4px rgba(124, 140, 255, 0.65);
-  --content-padding: 24px;
-  --radius-card: 16px;
-  --topbar-h: 56px;
-  --sidebar-w: 288px;
-  --sidebar-collapsed-w: 88px;
-  --platform-header-height: var(--topbar-h);
-}
-
 html[data-theme="light"] {
   color-scheme: light;
+  --radius: 1rem;
   --bg: #eef3fb;
   --surface-1: #ffffff;
   --surface-2: #f3f7ff;
@@ -103,6 +51,64 @@ html[data-theme="light"] {
   --card-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
   --shadow-card: var(--card-shadow);
   --focus-ring: 0 0 0 2px rgba(255, 255, 255, 1), 0 0 0 4px rgba(99, 102, 241, 0.4);
+  --content-padding: 24px;
+  --radius-card: 16px;
+  --topbar-h: 56px;
+  --sidebar-w: 288px;
+  --sidebar-collapsed-w: 88px;
+  --platform-header-height: var(--topbar-h);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --radius: 1rem;
+  --bg: hsl(222 18% 8%);
+  --surface-1: hsl(222 16% 11%);
+  --surface-2: hsl(222 14% 14%);
+  --surface-3: hsl(222 12% 16%);
+  --surface-sidebar: #121923;
+  --surface-overlay: rgba(14, 19, 27, 0.86);
+  --border: hsl(222 12% 22%);
+  --text: hsl(210 20% 92%);
+  --text-muted: hsl(215 12% 70%);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface-1);
+  --card-foreground: var(--text);
+  --popover: var(--surface-1);
+  --popover-foreground: var(--text);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-3);
+  --muted-foreground: var(--text-muted);
+  --accent: hsl(222 14% 18%);
+  --accent-foreground: var(--text);
+  --primary-foreground: hsl(240 10% 10%);
+  --input: var(--border);
+  --ring: hsl(250 70% 70%);
+  --destructive: hsl(0 72% 55%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --shadow-soft: var(--card-shadow);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --accent-strong: hsl(252 76% 62%);
+  --primary: hsl(252 76% 68%);
+  --brand-600: var(--accent);
+  --brand-700: var(--accent-strong);
+  --brand-100: rgba(124, 140, 255, 0.15);
+  --success-100: rgba(52, 211, 153, 0.18);
+  --success-600: #34d399;
+  --warning-100: rgba(251, 191, 36, 0.2);
+  --warning-600: #fbbf24;
+  --danger-100: rgba(248, 113, 113, 0.2);
+  --danger-600: #f87171;
+  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 2px rgba(9, 11, 16, 1), 0 0 0 4px rgba(124, 140, 255, 0.65);
+  --content-padding: 24px;
+  --radius-card: 16px;
+  --topbar-h: 56px;
+  --sidebar-w: 288px;
+  --sidebar-collapsed-w: 88px;
+  --platform-header-height: var(--topbar-h);
 }
 
 :root {

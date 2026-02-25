@@ -5,6 +5,14 @@ import { SensitiveRateLimitService } from './sensitive-rate-limit.service';
 
 @Injectable()
 export class TenantRateLimitGuard implements CanActivate {
+  private readonly tenantLimitCache = new Map<string, { limit: number; expiresAt: number }>();
+  private readonly overridesCacheTtlMs = 30_000;
+  private readonly tenantLimitCacheTtlMs = 60_000;
+  private overridesCache: { value: Map<string, number>; expiresAt: number } = {
+    value: new Map(),
+    expiresAt: 0,
+  };
+
   constructor(
     private readonly limiter: SensitiveRateLimitService,
     private readonly prisma: PrismaService,
@@ -20,7 +28,7 @@ export class TenantRateLimitGuard implements CanActivate {
   }
 
   private async resolveLimit(tenantId: string | null): Promise<number> {
-    const overrides = this.parseOverrides(process.env.RATE_LIMIT_OVERRIDES ?? '');
+    const overrides = this.getOverrides();
     if (tenantId && overrides.has(tenantId)) {
       return overrides.get(tenantId) ?? 240;
     }
@@ -29,12 +37,37 @@ export class TenantRateLimitGuard implements CanActivate {
       return Number.parseInt(process.env.RATE_LIMIT_PUBLIC_PER_MINUTE ?? '60', 10);
     }
 
-    const tenant = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { subscriptionStatus: true } });
-    if (tenant?.subscriptionStatus === SubscriptionStatus.ACTIVE) {
-      return Number.parseInt(process.env.RATE_LIMIT_PRO_PER_MINUTE ?? '240', 10);
+    const now = Date.now();
+    const cached = this.tenantLimitCache.get(tenantId);
+    if (cached && cached.expiresAt > now) {
+      return cached.limit;
     }
 
-    return Number.parseInt(process.env.RATE_LIMIT_STARTER_PER_MINUTE ?? '120', 10);
+    const tenant = await this.prisma.organization.findUnique({ where: { id: tenantId }, select: { subscriptionStatus: true } });
+    const limit = tenant?.subscriptionStatus === SubscriptionStatus.ACTIVE
+      ? Number.parseInt(process.env.RATE_LIMIT_PRO_PER_MINUTE ?? '240', 10)
+      : Number.parseInt(process.env.RATE_LIMIT_STARTER_PER_MINUTE ?? '120', 10);
+
+    this.tenantLimitCache.set(tenantId, {
+      limit,
+      expiresAt: now + this.tenantLimitCacheTtlMs,
+    });
+
+    return limit;
+  }
+
+  private getOverrides(): Map<string, number> {
+    const now = Date.now();
+    if (this.overridesCache.expiresAt > now) {
+      return this.overridesCache.value;
+    }
+
+    const value = this.parseOverrides(process.env.RATE_LIMIT_OVERRIDES ?? '');
+    this.overridesCache = {
+      value,
+      expiresAt: now + this.overridesCacheTtlMs,
+    };
+    return value;
   }
 
   private parseOverrides(raw: string): Map<string, number> {
