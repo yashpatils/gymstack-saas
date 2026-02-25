@@ -4,13 +4,15 @@ import {
   Logger,
   NotImplementedException,
 } from '@nestjs/common';
-import { BillingProvider } from '@prisma/client';
+import { BillingProvider, MembershipRole, MembershipStatus, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionGatingService } from './subscription-gating.service';
 import { PlanService } from './plan.service';
 import { BillingProviderRegistry } from './billing-provider.registry';
 import { TenantBillingStatusResponse } from './billing.types';
 import { BillingLifecycleService } from './billing-lifecycle.service';
+import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notifications.service';
 
 type CheckoutPayload = {
   tenantId: string;
@@ -35,6 +37,8 @@ export class BillingService {
     private readonly planService: PlanService,
     private readonly billingProviderRegistry: BillingProviderRegistry,
     private readonly billingLifecycleService: BillingLifecycleService,
+    private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private async getTenantProvider(tenantId: string) {
@@ -132,10 +136,58 @@ export class BillingService {
     return this.handleWebhook({ provider: BillingProvider.RAZORPAY, payload, signature });
   }
 
+  private extractTenantIdFromWebhookPayload(payload: unknown): string | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const data = payload as Record<string, unknown>;
+    const metadata = data.metadata as Record<string, unknown> | undefined;
+    if (typeof metadata?.tenantId === 'string') {
+      return metadata.tenantId;
+    }
+
+    const notes = data.notes as Record<string, unknown> | undefined;
+    if (typeof notes?.tenantId === 'string') {
+      return notes.tenantId;
+    }
+
+    const nestedPayload = data.payload as Record<string, unknown> | undefined;
+    const subscription = nestedPayload?.subscription as { entity?: { notes?: { tenantId?: string } } } | undefined;
+    const paymentLink = nestedPayload?.payment_link as { entity?: { notes?: { tenantId?: string } } } | undefined;
+
+    return subscription?.entity?.notes?.tenantId ?? paymentLink?.entity?.notes?.tenantId ?? null;
+  }
+
   async handleWebhook(input: WebhookPayload) {
     const provider = this.billingProviderRegistry.getProvider(input.provider);
     const event = await provider.parseWebhook(input.payload, input.signature);
     await provider.syncFromEvent(event);
+
+    const tenantId = this.extractTenantIdFromWebhookPayload(event.payload);
+    this.auditService.log({
+      tenantId,
+      action: 'BILLING_WEBHOOK_RECEIVED',
+      targetType: 'billing_webhook',
+      targetId: event.type,
+      metadata: { provider: input.provider, eventType: event.type, tenantId },
+    });
+
+    if (tenantId) {
+      const owners = await this.prisma.membership.findMany({
+        where: { orgId: tenantId, role: MembershipRole.TENANT_OWNER, status: MembershipStatus.ACTIVE },
+        select: { userId: true },
+      });
+      await Promise.all(owners.map((owner) => this.notificationService.createForUser({
+        tenantId,
+        userId: owner.userId,
+        type: NotificationType.SYSTEM,
+        title: 'Billing event received',
+        body: `Billing webhook processed: ${event.type}`,
+        metadata: { provider: input.provider, eventType: event.type },
+      })));
+    }
+
     return { received: true };
   }
 

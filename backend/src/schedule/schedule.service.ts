@@ -1,10 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { ClassBookingStatus, ClassSessionStatus, ClientMembershipStatus, MembershipRole, MembershipStatus, Prisma } from '@prisma/client';
+import { AuditActorType, ClassBookingStatus, ClassSessionStatus, ClientMembershipStatus, MembershipRole, MembershipStatus, NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { BookSessionDto, CheckInDto, CreateSessionDto, DateRangeQueryDto, UpdateSessionDto } from './dto/session.dto';
 import { PushService } from '../push/push.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
+import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notifications.service';
 
 type RequestUser = {
   id: string;
@@ -20,6 +22,8 @@ export class ScheduleService {
     private readonly prisma: PrismaService,
     private readonly pushService: PushService,
     private readonly webhooksService: WebhooksService,
+    private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private getTenantId(user: RequestUser): string {
@@ -522,6 +526,25 @@ export class ScheduleService {
       });
     }
 
+    this.auditService.log({
+      actor: { userId: user.id, type: AuditActorType.USER, role: user.activeRole ?? null },
+      tenantId,
+      locationId,
+      action: 'BOOKING_CREATED',
+      targetType: 'class_booking',
+      targetId: booking.id,
+      metadata: { sessionId, bookedForUserId: body.userId, status: booking.status },
+    });
+    await this.notificationService.createForUser({
+      tenantId,
+      locationId,
+      userId: body.userId,
+      type: NotificationType.SYSTEM,
+      title: 'Booking confirmed',
+      body: 'Your class booking has been confirmed.',
+      metadata: { bookingId: booking.id, sessionId },
+    });
+
     return booking;
   }
 
@@ -540,10 +563,31 @@ export class ScheduleService {
       return booking;
     }
 
-    return this.prisma.classBooking.update({
+    const canceled = await this.prisma.classBooking.update({
       where: { id: bookingId },
       data: { status: ClassBookingStatus.CANCELED, canceledAt: new Date() },
     });
+
+    this.auditService.log({
+      actor: { userId: user.id, type: AuditActorType.USER, role: user.activeRole ?? null },
+      tenantId,
+      locationId,
+      action: 'BOOKING_CANCELED',
+      targetType: 'class_booking',
+      targetId: canceled.id,
+      metadata: { sessionId: canceled.sessionId, canceledUserId: canceled.userId },
+    });
+    await this.notificationService.createForUser({
+      tenantId,
+      locationId,
+      userId: canceled.userId,
+      type: NotificationType.SYSTEM,
+      title: 'Booking canceled',
+      body: 'A class booking was canceled.',
+      metadata: { bookingId: canceled.id, sessionId: canceled.sessionId },
+    });
+
+    return canceled;
   }
 
   async checkInBookingById(user: RequestUser, bookingId: string) {
@@ -555,10 +599,31 @@ export class ScheduleService {
     const { tenantId, locationId } = await this.resolveGym(user, booking.session.locationId);
     await this.requireStaffMembership(user, tenantId, locationId);
 
-    return this.prisma.classBooking.update({
+    const checkedIn = await this.prisma.classBooking.update({
       where: { id: bookingId },
       data: { status: ClassBookingStatus.CHECKED_IN },
     });
+
+    this.auditService.log({
+      actor: { userId: user.id, type: AuditActorType.USER, role: user.activeRole ?? null },
+      tenantId,
+      locationId,
+      action: 'BOOKING_CHECKED_IN',
+      targetType: 'class_booking',
+      targetId: checkedIn.id,
+      metadata: { sessionId: checkedIn.sessionId, checkedInUserId: checkedIn.userId },
+    });
+    await this.notificationService.createForUser({
+      tenantId,
+      locationId,
+      userId: checkedIn.userId,
+      type: NotificationType.SYSTEM,
+      title: 'Checked in',
+      body: 'You were checked in for your class booking.',
+      metadata: { bookingId: checkedIn.id, sessionId: checkedIn.sessionId },
+    });
+
+    return checkedIn;
   }
 
   async cancelMyBooking(user: RequestUser, sessionId: string) {
@@ -575,7 +640,27 @@ export class ScheduleService {
       select: { id: true, sessionId: true, userId: true, status: true },
     });
 
-    await this.webhooksService.emitEvent(this.getTenantId(user), 'booking.canceled', canceled);
+    const tenantId = this.getTenantId(user);
+    this.auditService.log({
+      actor: { userId: user.id, type: AuditActorType.USER, role: user.activeRole ?? null },
+      tenantId,
+      locationId,
+      action: 'BOOKING_CANCELED',
+      targetType: 'class_booking',
+      targetId: canceled.id,
+      metadata: { sessionId: canceled.sessionId, canceledUserId: user.id, source: 'self_service' },
+    });
+    await this.notificationService.createForUser({
+      tenantId,
+      locationId,
+      userId: user.id,
+      type: NotificationType.SYSTEM,
+      title: 'Booking canceled',
+      body: 'You canceled your class booking.',
+      metadata: { bookingId: canceled.id, sessionId: canceled.sessionId },
+    });
+
+    await this.webhooksService.emitEvent(tenantId, 'booking.canceled', canceled);
 
     return canceled;
   }

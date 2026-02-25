@@ -17,7 +17,7 @@ export type NotificationItem = {
 };
 
 @Injectable()
-export class NotificationsService {
+export class NotificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listForUser(userId: string, tenantId: string, page = 1, pageSize = 20): Promise<{ items: NotificationItem[]; page: number; pageSize: number; total: number; unreadCount: number }> {
@@ -90,3 +90,5 @@ export class NotificationsService {
     return { ...created, metadata: (created.metadata as Record<string, unknown> | null) ?? null };
   }
 }
+
+export { NotificationService as NotificationsService };

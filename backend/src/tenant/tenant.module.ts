@@ -5,9 +5,10 @@ import { InvitesModule } from '../invites/invites.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TenantController } from './tenant.controller';
 import { TenantService } from './tenant.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, InvitesModule, AuditModule, EmailModule],
+  imports: [PrismaModule, InvitesModule, AuditModule, EmailModule, NotificationsModule],
   controllers: [TenantController],
   providers: [TenantService],
 })
