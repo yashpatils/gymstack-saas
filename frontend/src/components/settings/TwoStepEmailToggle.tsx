@@ -13,6 +13,7 @@ import {
   verifyEnableTwoStepEmail,
 } from '@/src/lib/security';
 import { useToast } from '../toast/ToastProvider';
+import { useAuth } from '@/src/providers/AuthProvider';
 
 type TwoStepEmailToggleProps = {
   enabled: boolean;
@@ -50,6 +51,7 @@ export function TwoStepEmailToggle({
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const { success } = useToast();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     setLocalEnabled(enabled);
@@ -129,6 +131,7 @@ export function TwoStepEmailToggle({
                 setChallenge(null);
                 setPendingAction(null);
                 onChanged?.(response.twoStepEmailEnabled);
+                await refreshUser();
                 success(
                   response.twoStepEmailEnabled ? 'Two-step verification enabled.' : 'Two-step verification disabled.',
                 );

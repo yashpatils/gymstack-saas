@@ -5,6 +5,8 @@ import { apiFetch, ApiFetchError } from '../../src/lib/apiFetch';
 import { useAuth } from '../../src/providers/AuthProvider';
 import { getFeatureFlags, isFeatureEnabled, type FeatureFlags } from '../../src/lib/featureFlags';
 import { TwoStepEmailToggle } from '../../src/components/settings/TwoStepEmailToggle';
+import { OtpChallengeModal } from '../../src/components/settings/OtpChallengeModal';
+import { confirmChangeIntent, createChangeIntent } from '../../src/lib/security';
 
 type SettingsTab = 'profile' | 'security';
 
@@ -20,7 +22,7 @@ type AuthMe = {
 };
 
 export default function SettingsPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refreshUser } = useAuth();
   const [tab, setTab] = useState<SettingsTab>('profile');
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [name, setName] = useState('');
@@ -30,6 +32,12 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [flags, setFlags] = useState<FeatureFlags>({});
   const [twoStepEnabled, setTwoStepEnabled] = useState(false);
+
+  const [passwordIntentId, setPasswordIntentId] = useState<string | null>(null);
+  const [passwordIntentExpiresAt, setPasswordIntentExpiresAt] = useState<string>('');
+  const [passwordIntentMaskedEmail, setPasswordIntentMaskedEmail] = useState<string>('');
+  const [verifyingPasswordIntent, setVerifyingPasswordIntent] = useState(false);
+
 
   const twoStepFeatureEnabled = useMemo(() => isFeatureEnabled(flags, 'FEATURE_EMAIL_2SV'), [flags]);
 
@@ -109,13 +117,13 @@ export default function SettingsPage() {
     setError(null);
 
     try {
-      await apiFetch<{ ok: true }>('/api/users/me/change-password', {
-        method: 'POST',
-        body: { currentPassword, newPassword },
+      const intent = await createChangeIntent({
+        type: 'PASSWORD_CHANGE',
+        payload: { currentPassword, newPassword },
       });
-      setCurrentPassword('');
-      setNewPassword('');
-      setStatus('Password updated.');
+      setPasswordIntentId(intent.id);
+      setPasswordIntentExpiresAt(intent.expiresAt);
+      setPasswordIntentMaskedEmail(intent.maskedEmail);
     } catch (passwordError) {
       if (passwordError instanceof ApiFetchError && passwordError.statusCode === 403) {
         setError('Not authorized');
@@ -171,6 +179,40 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+
+
+      {passwordIntentId ? (
+        <OtpChallengeModal
+          open
+          title="Confirm password change"
+          challengeId={passwordIntentId}
+          expiresAt={passwordIntentExpiresAt}
+          maskedEmail={passwordIntentMaskedEmail}
+          verifying={verifyingPasswordIntent}
+          onClose={() => setPasswordIntentId(null)}
+          onResend={async () => {
+            const intent = await createChangeIntent({ type: 'PASSWORD_CHANGE', payload: { currentPassword, newPassword } });
+            setPasswordIntentId(intent.id);
+            setPasswordIntentExpiresAt(intent.expiresAt);
+            setPasswordIntentMaskedEmail(intent.maskedEmail);
+            return { expiresAt: intent.expiresAt, maskedEmail: intent.maskedEmail };
+          }}
+          onVerify={async (otp) => {
+            if (!passwordIntentId) return;
+            setVerifyingPasswordIntent(true);
+            try {
+              await confirmChangeIntent(passwordIntentId, otp);
+              setPasswordIntentId(null);
+              setCurrentPassword('');
+              setNewPassword('');
+              setStatus('Password updated.');
+              await refreshUser();
+            } finally {
+              setVerifyingPasswordIntent(false);
+            }
+          }}
+        />
+      ) : null}
 
       {status ? <p className="text-sm text-emerald-300">{status}</p> : null}
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
