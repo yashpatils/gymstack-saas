@@ -19,9 +19,11 @@ import { CreateGymDto } from './dto/create-gym.dto';
 import { UpdateGymDto } from './dto/update-gym.dto';
 import { GymSlugAvailabilityQueryDto } from './dto/slug-availability.dto';
 import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 import { InvitesService } from '../invites/invites.service';
 import { CreateGymInviteDto } from '../invites/dto/create-gym-invite.dto';
+import { CreateGymClientDto } from './dto/create-gym-client.dto';
 
 @Controller('gyms')
 @VerifiedEmailRequired()
@@ -80,6 +82,32 @@ export class GymsController {
     }
 
     return this.gymsService.getGymForUser(id, { ...user, orgId: user.activeTenantId ?? user.orgId });
+  }
+
+  @Get(':gymId/clients')
+  @RequirePermission('clients:read')
+  listGymClients(@Param('gymId') gymId: string, @Req() req: { user?: User }) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.gymsService.listGymClients(user, gymId);
+  }
+
+  @Post(':gymId/clients')
+  @RequirePermission('clients:crud')
+  createGymClient(
+    @Param('gymId') gymId: string,
+    @Body() data: CreateGymClientDto,
+    @Req() req: { user?: User },
+  ) {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Missing user');
+    }
+
+    return this.gymsService.createGymClient(user, gymId, data);
   }
 
   @Patch(':id')

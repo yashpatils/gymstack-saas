@@ -45,6 +45,10 @@ function redirectTo(url: string) {
   }
 }
 
+function hasStaffMembership(memberships: Membership[]): boolean {
+  return memberships.some((membership) => membership.role === 'TENANT_OWNER' || membership.role === 'TENANT_LOCATION_ADMIN' || membership.role === 'GYM_STAFF_COACH');
+}
+
 function getOtpErrorMessage(error: unknown): string {
   if (!(error instanceof ApiFetchError)) {
     return 'Unable to verify code.';
@@ -71,7 +75,7 @@ function getOtpErrorMessage(error: unknown): string {
 function LoginPageContent() {
   const router = useRouter();
   const pathname = usePathname();
-  const { login, loading, isHydrating, authStatus, platformRole, user } = useAuth();
+  const { login, loading, isHydrating, authStatus, platformRole, user, memberships } = useAuth();
   const searchParams = useSearchParams();
   const [flow, setFlow] = useState<LoginFlowState>({ step: 'CREDENTIALS' });
   const [email, setEmail] = useState("");
@@ -127,8 +131,8 @@ function LoginPageContent() {
       return;
     }
 
-    router.replace('/platform');
-  }, [authStatus, isAdminHost, isHydrating, nextUrl, platformRole, router, user]);
+    router.replace(hasStaffMembership(memberships) ? '/platform' : '/client');
+  }, [authStatus, isAdminHost, isHydrating, memberships, nextUrl, platformRole, router, user]);
 
   const adminBlocked = isAdminHost && accessError === 'restricted';
 
@@ -171,14 +175,14 @@ function LoginPageContent() {
       ];
     const hasOwnerRole = membershipsArray.some((membership) => membership.role === 'TENANT_OWNER');
     if (membershipsArray.length === 0) {
-      router.push('/platform');
+      router.push('/client');
       return;
     }
     if (hasOwnerRole) {
       router.push('/platform/context');
       return;
     }
-    router.push(membershipsArray.length > 1 ? '/select-workspace' : '/platform');
+    router.push(hasStaffMembership(membershipsArray) ? (membershipsArray.length > 1 ? '/select-workspace' : '/platform') : '/client');
   };
 
   const canResendNow = useMemo(() => {
