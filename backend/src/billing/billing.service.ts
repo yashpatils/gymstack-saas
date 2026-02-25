@@ -19,6 +19,12 @@ type CheckoutPayload = {
   cancelUrl: string;
 };
 
+type WebhookPayload = {
+  provider: BillingProvider;
+  payload: Buffer;
+  signature?: string | string[];
+};
+
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
@@ -119,15 +125,16 @@ export class BillingService {
   }
 
   async handleStripeWebhook(payload: Buffer, signature?: string | string[]) {
-    const provider = this.billingProviderRegistry.getProvider(BillingProvider.STRIPE);
-    const event = await provider.parseWebhook(payload, signature);
-    await provider.syncFromEvent(event);
-    return { received: true };
+    return this.handleWebhook({ provider: BillingProvider.STRIPE, payload, signature });
   }
 
   async handleRazorpayWebhook(payload: Buffer, signature?: string | string[]) {
-    const provider = this.billingProviderRegistry.getProvider(BillingProvider.RAZORPAY);
-    const event = await provider.parseWebhook(payload, signature);
+    return this.handleWebhook({ provider: BillingProvider.RAZORPAY, payload, signature });
+  }
+
+  async handleWebhook(input: WebhookPayload) {
+    const provider = this.billingProviderRegistry.getProvider(input.provider);
+    const event = await provider.parseWebhook(input.payload, input.signature);
     await provider.syncFromEvent(event);
     return { received: true };
   }

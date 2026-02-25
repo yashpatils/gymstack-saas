@@ -35,6 +35,7 @@ export class BillingController {
   ) {}
 
   @Post('checkout')
+  @Post('org/checkout-session')
   async createCheckoutSession(
     @Body() body: CheckoutBody,
     @Req() req: Request & { user?: User },
@@ -73,6 +74,7 @@ export class BillingController {
   }
 
   @Post('portal')
+  @Post('org/portal-session')
   async createPortalSession(
     @Body() body: PortalBody,
     @Req() req: { user?: User },
@@ -92,6 +94,7 @@ export class BillingController {
   }
 
   @Get('status')
+  @Get('org/status')
   async getStatus(@Req() req: { user?: User }) {
     const user = req.user;
     const tenantId = user?.activeTenantId ?? user?.orgId;
