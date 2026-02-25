@@ -8,12 +8,12 @@ import { ThemeToggle } from "../../../src/components/theme/ThemeToggle";
 import { useAuth } from "../../../src/providers/AuthProvider";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, platformRole } = useAuth();
 
   const visibleNavItems = adminNavItems.filter((item) => {
     if (!item.requiresRole) return true;
     if (item.requiresRole === "PLATFORM_ADMIN") {
-      return user?.isPlatformAdmin === true || user?.role === "PLATFORM_ADMIN";
+      return platformRole === "PLATFORM_ADMIN" || user?.role === "PLATFORM_ADMIN";
     }
     return user?.role === item.requiresRole;
   });
