@@ -50,6 +50,26 @@ test('location microsite route renders by slug', async ({ page }) => {
   const slug = process.env.E2E_LOCATION_SLUG ?? 'demo-location';
   await page.goto(`/_sites/${slug}`);
   await expect(page.locator('main')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Join now' })).toBeVisible();
+});
+
+test('subdomain request rewrites to the public landing page', async ({ page }) => {
+  const slug = process.env.E2E_LOCATION_SLUG ?? 'demo-location';
+  const configuredBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? process.env.BASE_URL ?? 'http://localhost:3001';
+  const baseUrl = new URL(configuredBaseUrl);
+  const response = await page.goto(`${baseUrl.protocol}//${slug}.localhost${baseUrl.port ? `:${baseUrl.port}` : ''}/`);
+
+  expect(response?.status()).toBe(200);
+  await expect(page).toHaveURL(new RegExp(`/_sites/${slug}/?$`));
+  await expect(page.getByRole('link', { name: 'Join now' })).toBeVisible();
+});
+
+test('invalid location slug returns location 404 page', async ({ page }) => {
+  const missingSlug = `missing-${Date.now()}`;
+  const response = await page.goto(`/_sites/${missingSlug}`);
+
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole('heading', { name: 'Location not found' })).toBeVisible();
 });
 
 test('admin login page renders', async ({ page }) => {
