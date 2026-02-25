@@ -17,6 +17,20 @@ let handleUnauthorized: (() => void) | null = null;
 
 let didHandleUnauthorizedRedirect = false;
 
+
+function isAuthDebugEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_AUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+}
+
+function authDebugLog(event: string, detail?: Record<string, unknown>): void {
+  if (!isAuthDebugEnabled() || typeof window === 'undefined') {
+    return;
+  }
+
+  console.debug(`[auth:api] ${event}`, detail ?? {});
+}
+
+
 function shouldSoftHandleUnauthorized(path: string): boolean {
   return path.startsWith('/api/auth/me') || path.startsWith('/api/auth/refresh') || path.startsWith('/api/auth/logout');
 }
@@ -275,7 +289,8 @@ export async function apiFetch<T>(
     cache: init.cache ?? (isAuthSensitivePath(path) ? 'no-store' : undefined),
   });
 
-  if (response.status === 401 && !skipAuthRetry && refreshAccessToken) {
+  if (response.status === 401 && !skipAuthRetry && refreshAccessToken && !isAuthSensitivePath(path)) {
+    authDebugLog('refresh:retry', { path });
     const refreshedToken = await refreshAccessToken();
     if (refreshedToken) {
       return apiFetch<T>(path, { ...init, skipAuthRetry: true });
@@ -283,6 +298,7 @@ export async function apiFetch<T>(
   }
 
   if (response.status === 401) {
+    authDebugLog('unauthorized', { path, skipAuthRetry: Boolean(skipAuthRetry) });
     handleUnauthorizedResponse(path);
   }
 

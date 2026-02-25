@@ -3,7 +3,9 @@ import { redirect } from 'next/navigation';
 import { buildApiUrl } from '../../../src/lib/apiFetch';
 import type { AuthMeResponse } from '../../../src/types/auth';
 
-const ADMIN_HOST = 'admin.gymstack.club';
+import { getAdminHost } from '../../../src/lib/domainConfig';
+
+const ADMIN_HOST = getAdminHost();
 
 type AdminSessionState = {
   isAuthenticated: boolean;
@@ -13,7 +15,7 @@ type AdminSessionState = {
 
 function assertAdminHost(): void {
   const host = headers().get('host')?.toLowerCase() ?? '';
-  if (host && !host.startsWith(ADMIN_HOST)) {
+  if (host && host !== ADMIN_HOST) {
     redirect('/admin/access-restricted');
   }
 }

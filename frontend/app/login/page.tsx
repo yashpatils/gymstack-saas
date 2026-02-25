@@ -12,6 +12,7 @@ import { getAdminHost, getBaseDomain, getMainSiteUrl } from "../../src/lib/domai
 import { getAuthErrorMessage } from "../../src/lib/authErrorMessage";
 import type { FrontendLoginResult } from "../../src/lib/auth.types";
 import type { Membership } from "../../src/types/auth";
+import { decideAuthRoute, getDefaultAuthedLanding, normalizeRouteContext } from "../../src/lib/authRoutePolicy";
 import { Alert, Button, Input } from "../components/ui";
 import { getValidatedNextUrl } from "./next-url";
 
@@ -121,13 +122,23 @@ function LoginPageContent() {
       return;
     }
 
-    if (isAdminHost) {
-      if (platformRole === 'PLATFORM_ADMIN') {
-        redirectTo('/admin');
-        return;
-      }
+    const decision = decideAuthRoute(
+      {
+        isAuthenticated: true,
+        isPlatformAdmin: platformRole === 'PLATFORM_ADMIN',
+        membershipsCount: memberships.length,
+        hasSelectedWorkspace: memberships.length <= 1,
+      },
+      normalizeRouteContext('/login', isAdminHost),
+    );
 
+    if (isAdminHost && platformRole !== 'PLATFORM_ADMIN') {
       setError(ADMIN_NOT_AN_ACCOUNT_MESSAGE);
+      return;
+    }
+
+    if (decision.action === 'redirect') {
+      router.replace(decision.to);
       return;
     }
 
@@ -174,15 +185,22 @@ function LoginPageContent() {
         })),
       ];
     const hasOwnerRole = membershipsArray.some((membership) => membership.role === 'TENANT_OWNER');
-    if (membershipsArray.length === 0) {
+    if (!hasStaffMembership(membershipsArray)) {
       router.push('/client');
       return;
     }
-    if (hasOwnerRole) {
+
+    if (hasOwnerRole && membershipsArray.length === 1) {
       router.push('/platform/context');
       return;
     }
-    router.push(hasStaffMembership(membershipsArray) ? (membershipsArray.length > 1 ? '/select-workspace' : '/platform') : '/client');
+
+    router.push(getDefaultAuthedLanding({
+      isAuthenticated: true,
+      isPlatformAdmin: false,
+      membershipsCount: membershipsArray.length,
+      hasSelectedWorkspace: membershipsArray.length <= 1,
+    }));
   };
 
   const canResendNow = useMemo(() => {
