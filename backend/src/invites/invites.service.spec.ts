@@ -18,6 +18,8 @@ describe('InvitesService.acceptInviteToken', () => {
       { enqueue: jest.fn() } as never,
       { assertWithinLimits: jest.fn() } as never,
       { assertMutableAccess: jest.fn(), assertCanInviteStaff: jest.fn() } as never,
+      { log: jest.fn() } as never,
+      { createForUser: jest.fn() } as never,
     );
 
     jest.spyOn(service, 'findByToken').mockResolvedValue({
@@ -51,6 +53,8 @@ describe('InvitesService.acceptInviteToken', () => {
       update: { status: 'ACTIVE' },
     }));
     expect(updateMany).toHaveBeenCalled();
+    expect((service as any).auditService.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'INVITE_ACCEPTED' }));
+    expect((service as any).notificationService.createForUser).toHaveBeenCalledWith(expect.objectContaining({ title: 'Invite accepted' }));
   });
 
   it('returns idempotent success when invite already accepted and membership exists', async () => {
@@ -63,6 +67,8 @@ describe('InvitesService.acceptInviteToken', () => {
       { enqueue: jest.fn() } as never,
       { assertWithinLimits: jest.fn() } as never,
       { assertMutableAccess: jest.fn(), assertCanInviteStaff: jest.fn() } as never,
+      { log: jest.fn() } as never,
+      { createForUser: jest.fn() } as never,
     );
 
     jest.spyOn(service, 'findByToken').mockResolvedValue({

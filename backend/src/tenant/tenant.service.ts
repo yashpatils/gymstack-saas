@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { AuditActorType, InviteStatus, MembershipRole, MembershipStatus, PendingChangeTargetType, PendingChangeType } from '@prisma/client';
+import { AuditActorType, InviteStatus, MembershipRole, MembershipStatus, NotificationType, PendingChangeTargetType, PendingChangeType } from '@prisma/client';
 import { createHash, randomInt } from 'crypto';
 import { InvitesService } from '../invites/invites.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,6 +14,7 @@ import { SlugAvailabilityQueryDto, SlugAvailabilityResponseDto } from './dto/slu
 import { RequestTenantSlugChangeDto, RequestTenantSlugChangeResponseDto } from './dto/request-tenant-slug-change.dto';
 import { VerifyTenantSlugChangeDto, VerifyTenantSlugChangeResponseDto } from './dto/verify-tenant-slug-change.dto';
 import { ResendTenantSlugChangeOtpDto, ResendTenantSlugChangeOtpResponseDto } from './dto/resend-tenant-slug-change.dto';
+import { NotificationService } from '../notifications/notifications.service';
 
 export type RequestContextMeta = {
   ip?: string;
@@ -30,6 +31,7 @@ export class TenantService {
     private readonly invitesService: InvitesService,
     private readonly auditService: AuditService,
     private readonly emailService: EmailService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private generateOtp(): string {
@@ -99,6 +101,15 @@ export class TenantService {
     if (body.remove) {
       await this.prisma.membership.delete({ where: { id: member.id } });
       this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole }, tenantId, locationId: member.gymId, action: 'MEMBER_REMOVED', targetType: 'membership', targetId: member.id, metadata: { removedUserId: member.userId, removedRole: member.role } });
+      await this.notificationService.createForUser({
+        tenantId,
+        locationId: member.gymId,
+        userId: member.userId,
+        type: NotificationType.SYSTEM,
+        title: 'Membership removed',
+        body: 'Your membership access was removed.',
+        metadata: { membershipId: member.id, previousRole: member.role },
+      });
       return { ok: true };
     }
 
@@ -106,10 +117,28 @@ export class TenantService {
 
     if (body.role && body.role !== member.role) {
       this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole }, tenantId, locationId: updated.gymId, action: 'ROLE_CHANGED', targetType: 'membership', targetId: updated.id, metadata: { previousRole: member.role, nextRole: body.role } });
+      await this.notificationService.createForUser({
+        tenantId,
+        locationId: updated.gymId,
+        userId: member.userId,
+        type: NotificationType.SYSTEM,
+        title: 'Role updated',
+        body: `Your role changed from ${member.role} to ${body.role}.`,
+        metadata: { membershipId: updated.id, previousRole: member.role, nextRole: body.role },
+      });
     }
 
     if (typeof body.locationId !== 'undefined' && body.locationId !== member.gymId) {
       this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole }, tenantId, locationId: body.locationId, action: 'LOCATION_SCOPE_CHANGED', targetType: 'membership', targetId: updated.id, metadata: { previousLocationId: member.gymId, nextLocationId: body.locationId ?? null } });
+      await this.notificationService.createForUser({
+        tenantId,
+        locationId: body.locationId ?? null,
+        userId: member.userId,
+        type: NotificationType.SYSTEM,
+        title: 'Location access updated',
+        body: 'Your location scope was changed.',
+        metadata: { membershipId: updated.id, previousLocationId: member.gymId, nextLocationId: body.locationId ?? null },
+      });
     }
 
     return { ok: true };
@@ -246,6 +275,9 @@ export class TenantService {
         requestedUserAgent: meta.userAgent,
       },
     });
+
+    this.auditService.log({ actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: MembershipRole.TENANT_OWNER }, tenantId, action: 'SENSITIVE_CHANGE_INTENT_CREATED', targetType: 'pending_sensitive_change', targetId: challenge.id, metadata: { changeType: PendingChangeType.TENANT_SLUG } });
+    await this.notificationService.createForUser({ tenantId, userId: requester.id, type: NotificationType.SYSTEM, title: 'Slug change verification requested', body: 'Confirm your sensitive slug change using the OTP sent to your email.', metadata: { challengeId: challenge.id, changeType: PendingChangeType.TENANT_SLUG } });
 
     await this.emailService.sendTemplatedActionEmail({
       to: requester.email,

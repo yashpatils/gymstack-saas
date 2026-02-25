@@ -47,7 +47,7 @@ function toQueryString(filters: AuditFilters): string {
 }
 
 export async function listAuditLogs(filters: AuditFilters = {}): Promise<AuditPage> {
-  return apiFetch<AuditPage>(`/api/audit${toQueryString(filters)}`, { method: 'GET', cache: 'no-store' });
+  return apiFetch<AuditPage>(`/api/audit-logs${toQueryString(filters)}`, { method: 'GET', cache: 'no-store' });
 }
 
 export async function listAdminAuditLogs(filters: AuditFilters = {}): Promise<AuditPage> {

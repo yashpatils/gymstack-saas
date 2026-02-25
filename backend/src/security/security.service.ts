@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PendingChangeTargetType, PendingChangeType } from '@prisma/client';
+import { AuditActorType, NotificationType, PendingChangeTargetType, PendingChangeType } from '@prisma/client';
 import { createHash, randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
@@ -11,6 +11,8 @@ import {
   VerifyDisableTwoStepEmailDto,
   VerifyEnableTwoStepEmailDto,
 } from './dto/two-step-email.dto';
+import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notifications.service';
 
 export type SecurityRequestMeta = {
   ip?: string;
@@ -25,6 +27,8 @@ export class SecurityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async requestEnableTwoStepEmail(
@@ -89,6 +93,29 @@ export class SecurityService {
       },
     });
 
+    this.auditService.log({
+      actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email },
+      action: 'SENSITIVE_CHANGE_INTENT_CREATED',
+      targetType: 'pending_sensitive_change',
+      targetId: challenge.id,
+      metadata: { changeType: action },
+      ip: meta?.ip ?? null,
+      userAgent: meta?.userAgent ?? null,
+    });
+    const tenantId = (await this.prisma.membership.findFirst({ where: { userId: requester.id, status: 'ACTIVE' }, select: { orgId: true } }))?.orgId
+      ?? (await this.prisma.user.findUnique({ where: { id: requester.id }, select: { orgId: true } }))?.orgId
+      ?? null;
+    if (tenantId) {
+      await this.notificationService.createForUser({
+        tenantId,
+        userId: requester.id,
+        type: NotificationType.SYSTEM,
+        title: 'Sensitive change requested',
+        body: 'A sensitive account change requires OTP verification.',
+        metadata: { challengeId: challenge.id, changeType: action },
+      });
+    }
+
     await this.emailService.sendTemplatedActionEmail({
       to: requester.email,
       template: action === 'ENABLE_2SV_EMAIL' ? 'enable_2sv_otp' : 'disable_2sv_otp',
@@ -139,6 +166,14 @@ export class SecurityService {
         },
       }),
     ]);
+
+    this.auditService.log({
+      actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email },
+      action: 'SENSITIVE_CHANGE_COMPLETED',
+      targetType: 'pending_sensitive_change',
+      targetId: challenge.id,
+      metadata: { changeType: expected, twoStepEmailEnabled: nextEnabled },
+    });
 
     return { success: true, twoStepEmailEnabled: nextEnabled, changedAt: changedAt.toISOString() };
   }

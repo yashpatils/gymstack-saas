@@ -5,7 +5,7 @@ import { User, UserRole } from '../users/user.model';
 import { AuditService } from './audit.service';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 
-@Controller('audit')
+@Controller(['audit-logs', 'audit'])
 @VerifiedEmailRequired()
 @UseGuards(RolesGuard)
 export class AuditController {

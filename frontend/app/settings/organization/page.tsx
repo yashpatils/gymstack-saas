@@ -75,6 +75,10 @@ export default function OrganizationSettingsPage() {
           <input className="input w-full" value={name} onChange={(event) => setName(event.target.value)} />
           <button type="submit" className="button">Save</button>
           <p className="text-slate-300">White-label: {data.whiteLabelEnabled ? 'On' : 'Off'}</p>
+          <div className="pt-2">
+            <Link href="/settings/organization/audit" className="text-sm text-sky-300 underline">View organization audit log</Link>
+          </div>
+
         </form>
       ) : <p>Loading…</p>}
     </main>

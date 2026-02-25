@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { DomainStatus, InviteStatus, MembershipRole, MembershipStatus, type LocationInvite } from '@prisma/client';
+import { AuditActorType, DomainStatus, InviteStatus, MembershipRole, MembershipStatus, NotificationType, type LocationInvite } from '@prisma/client';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '../users/user.model';
@@ -10,6 +10,8 @@ import { hasSupportModeContext } from '../auth/support-mode.util';
 import { JobsService } from '../jobs/jobs.service';
 import { PlanService } from '../billing/plan.service';
 import { BillingLifecycleService } from '../billing/billing-lifecycle.service';
+import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notifications.service';
 
 @Injectable()
 export class InvitesService {
@@ -18,6 +20,8 @@ export class InvitesService {
     private readonly jobsService: JobsService,
     private readonly planService: PlanService,
     private readonly billingLifecycleService: BillingLifecycleService,
+    private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createInvite(requester: User, input: CreateInviteDto) {
@@ -75,6 +79,27 @@ export class InvitesService {
     if (invite.email) {
       await this.jobsService.enqueue('email', { action: 'location-invite', to: invite.email, inviteUrl });
     }
+
+    const requesterRole = requester.activeRole ?? requester.role;
+    this.auditService.log({
+      actor: { userId: requester.id, type: AuditActorType.USER, email: requester.email, role: requesterRole },
+      tenantId,
+      locationId: location?.id ?? null,
+      action: 'INVITE_SENT',
+      targetType: 'invite',
+      targetId: invite.id,
+      metadata: { role: input.role, email: invite.email ?? null },
+    });
+
+    await this.notificationService.createForUser({
+      tenantId,
+      locationId: location?.id ?? null,
+      userId: requester.id,
+      type: NotificationType.SYSTEM,
+      title: 'Invite sent',
+      body: `Invitation sent for ${input.role}${invite.email ? ` to ${invite.email}` : ''}.`,
+      metadata: { inviteId: invite.id, role: input.role, email: invite.email ?? null },
+    });
 
     return {
       inviteId: invite.id,
@@ -266,6 +291,32 @@ export class InvitesService {
 
       return consumed.count;
     });
+
+    this.auditService.log({
+      actor: { userId: user.id, type: AuditActorType.USER, email: user.email, role: user.role },
+      tenantId: invite.tenantId,
+      locationId: invite.locationId,
+      action: 'INVITE_ACCEPTED',
+      targetType: 'invite',
+      targetId: invite.id,
+      metadata: { role: invite.role, acceptedByUserId: user.id },
+    });
+
+    const creatorMembership = await this.prisma.membership.findFirst({
+      where: { userId: invite.createdByUserId, orgId: invite.tenantId, status: MembershipStatus.ACTIVE },
+      select: { userId: true },
+    });
+    if (creatorMembership) {
+      await this.notificationService.createForUser({
+        tenantId: invite.tenantId,
+        locationId: invite.locationId,
+        userId: invite.createdByUserId,
+        type: NotificationType.SYSTEM,
+        title: 'Invite accepted',
+        body: `${user.email} accepted an invite for ${invite.role}.`,
+        metadata: { inviteId: invite.id, acceptedByUserId: user.id, role: invite.role },
+      });
+    }
 
     if (result === 0) {
       const membershipNow = await this.prisma.membership.findFirst({

@@ -34,7 +34,7 @@ describe('ScheduleService booking capacity transaction', () => {
       }),
     };
 
-    const service = new ScheduleService(prisma as never, { sendBookingConfirmation: jest.fn() } as never, { emitEvent: jest.fn() } as never);
+    const service = new ScheduleService(prisma as never, { sendBookingConfirmation: jest.fn() } as never, { emitEvent: jest.fn() } as never, { log: jest.fn() } as never, { createForUser: jest.fn() } as never);
 
     await expect(service.bookSessionV2(baseUser, 'session-1')).rejects.toThrow('SESSION_FULL');
     expect(tx.classBooking.create).not.toHaveBeenCalled();
