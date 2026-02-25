@@ -9,6 +9,10 @@ type AuthenticatedRequestUser = {
   sub?: string;
 };
 
+function resolveUserId(user?: AuthenticatedRequestUser): string | null {
+  return user?.userId ?? user?.id ?? user?.sub ?? null;
+}
+
 @Injectable()
 export class RequirePlatformAdminGuard implements CanActivate {
   constructor(
@@ -18,7 +22,7 @@ export class RequirePlatformAdminGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{ user?: AuthenticatedRequestUser }>();
-    const userId = request.user?.userId ?? request.user?.id ?? request.user?.sub;
+    const userId = resolveUserId(request.user);
 
     if (!userId) {
       throw new UnauthorizedException('Authentication required');
@@ -29,7 +33,11 @@ export class RequirePlatformAdminGuard implements CanActivate {
       select: { email: true },
     });
 
-    const isPlatformAdmin = isAllowlistedPlatformAdminEmail(this.configService, user?.email);
+    if (!user?.email) {
+      throw new ForbiddenException({ code: 'ADMIN_ONLY', message: 'Access restricted' });
+    }
+
+    const isPlatformAdmin = isAllowlistedPlatformAdminEmail(this.configService, user.email);
     if (!isPlatformAdmin) {
       throw new ForbiddenException({ code: 'ADMIN_ONLY', message: 'Access restricted' });
     }

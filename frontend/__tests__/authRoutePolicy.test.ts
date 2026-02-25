@@ -23,4 +23,29 @@ describe('authRoutePolicy', () => {
     expect(getDefaultAuthedLanding({ isAuthenticated: true, membershipsCount: 1, hasSelectedWorkspace: true })).toBe('/platform');
     expect(getDefaultAuthedLanding({ isAuthenticated: true, isPlatformAdmin: true, membershipsCount: 0 })).toBe('/admin');
   });
+
+
+  it('does not redirect when already on required onboarding or workspace route', () => {
+    const onboardingDecision = decideAuthRoute(
+      { isAuthenticated: true, membershipsCount: 0, hasSelectedWorkspace: false },
+      normalizeRouteContext('/onboarding'),
+    );
+    expect(onboardingDecision).toEqual({ action: 'allow', reason: 'authenticated-allowed' });
+
+    const workspaceDecision = decideAuthRoute(
+      { isAuthenticated: true, membershipsCount: 3, hasSelectedWorkspace: false },
+      normalizeRouteContext('/select-workspace'),
+    );
+    expect(workspaceDecision).toEqual({ action: 'allow', reason: 'authenticated-allowed' });
+  });
+
+  it('redirects incomplete-onboarding users away from platform routes', () => {
+    const decision = decideAuthRoute(
+      { isAuthenticated: true, membershipsCount: 1, hasSelectedWorkspace: true, onboardingIncomplete: true },
+      normalizeRouteContext('/platform/analytics'),
+    );
+
+    expect(decision).toEqual({ action: 'redirect', to: '/onboarding', reason: 'workspace-or-onboarding-required' });
+  });
+
 });

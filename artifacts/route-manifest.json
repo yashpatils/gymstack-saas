@@ -1,992 +1,580 @@
-[
-  {
-    "path": "/_admin",
-    "sourceFile": "frontend/app/_admin/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/_admin/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_admin/tenants",
-    "sourceFile": "frontend/app/_admin/tenants/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/_admin/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_admin/tenants/[tenantId]",
-    "sourceFile": "frontend/app/_admin/tenants/[tenantId]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/_admin/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_custom/[host]",
-    "sourceFile": "frontend/app/_custom/[host]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_custom/[host]/join",
-    "sourceFile": "frontend/app/_custom/[host]/join/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_custom/[host]/login",
-    "sourceFile": "frontend/app/_custom/[host]/login/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_sites/[slug]",
-    "sourceFile": "frontend/app/_sites/[slug]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_sites/[slug]/join",
-    "sourceFile": "frontend/app/_sites/[slug]/join/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/_sites/[slug]/login",
-    "sourceFile": "frontend/app/_sites/[slug]/login/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]",
-    "sourceFile": "frontend/app/[tenant]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/billing",
-    "sourceFile": "frontend/app/[tenant]/billing/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/dashboard",
-    "sourceFile": "frontend/app/[tenant]/dashboard/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/members",
-    "sourceFile": "frontend/app/[tenant]/members/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/membership",
-    "sourceFile": "frontend/app/[tenant]/membership/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/plans",
-    "sourceFile": "frontend/app/[tenant]/plans/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/settings",
-    "sourceFile": "frontend/app/[tenant]/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/[tenant]/trainers",
-    "sourceFile": "frontend/app/[tenant]/trainers/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/[tenant]/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/admin",
-    "sourceFile": "frontend/app/admin/(protected)/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/access-restricted",
-    "sourceFile": "frontend/app/admin/access-restricted/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/audit",
-    "sourceFile": "frontend/app/admin/(protected)/audit/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/backups",
-    "sourceFile": "frontend/app/admin/(protected)/backups/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/feedback",
-    "sourceFile": "frontend/app/admin/(protected)/feedback/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/growth",
-    "sourceFile": "frontend/app/admin/(protected)/growth/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/leads",
-    "sourceFile": "frontend/app/admin/(protected)/leads/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/ops/backups",
-    "sourceFile": "frontend/app/admin/ops/backups/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/ops/jobs",
-    "sourceFile": "frontend/app/admin/(protected)/ops/jobs/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/ops/migrations",
-    "sourceFile": "frontend/app/admin/ops/migrations/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/tenants",
-    "sourceFile": "frontend/app/admin/(protected)/tenants/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/tenants/[tenantId]",
-    "sourceFile": "frontend/app/admin/(protected)/tenants/[tenantId]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/tenants/[tenantId]/plan",
-    "sourceFile": "frontend/app/admin/(protected)/tenants/[tenantId]/plan/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/users",
-    "sourceFile": "frontend/app/admin/(protected)/users/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/admin/users/[id]",
-    "sourceFile": "frontend/app/admin/(protected)/users/[id]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/admin/layout.tsx",
-      "frontend/app/admin/(protected)/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/app",
-    "sourceFile": "frontend/app/app/(location)/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/app/(location)/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/app/attendance",
-    "sourceFile": "frontend/app/app/(location)/attendance/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/app/(location)/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/app/members",
-    "sourceFile": "frontend/app/app/(location)/members/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/app/(location)/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/app/my-attendance",
-    "sourceFile": "frontend/app/app/(location)/my-attendance/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/app/(location)/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/app/my-membership",
-    "sourceFile": "frontend/app/app/(location)/my-membership/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/app/(location)/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/app/settings",
-    "sourceFile": "frontend/app/app/(location)/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/app/(location)/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/book-demo",
-    "sourceFile": "frontend/app/book-demo/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/classes",
-    "sourceFile": "frontend/app/classes/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/client",
-    "sourceFile": "frontend/app/client/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/confirm-delete-account",
-    "sourceFile": "frontend/app/confirm-delete-account/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/contact",
-    "sourceFile": "frontend/app/contact/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/cookies",
-    "sourceFile": "frontend/app/cookies/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/dashboard",
-    "sourceFile": "frontend/app/dashboard/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/debug",
-    "sourceFile": "frontend/app/debug/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/demo",
-    "sourceFile": "frontend/app/demo/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/developers",
-    "sourceFile": "frontend/app/developers/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/faq",
-    "sourceFile": "frontend/app/faq/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/features",
-    "sourceFile": "frontend/app/features/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/forgot-password",
-    "sourceFile": "frontend/app/forgot-password/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/invite/[token]",
-    "sourceFile": "frontend/app/invite/[token]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/join",
-    "sourceFile": "frontend/app/join/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/login",
-    "sourceFile": "frontend/app/login/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/my-bookings",
-    "sourceFile": "frontend/app/my-bookings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/onboarding",
-    "sourceFile": "frontend/app/onboarding/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/page.tsx",
-    "sourceFile": "frontend/app/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/platform",
-    "sourceFile": "frontend/app/platform/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/account",
-    "sourceFile": "frontend/app/platform/account/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/admin/settings",
-    "sourceFile": "frontend/app/platform/admin/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "PLATFORM_ADMIN"
-  },
-  {
-    "path": "/platform/analytics",
-    "sourceFile": "frontend/app/platform/analytics/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/analytics/classes",
-    "sourceFile": "frontend/app/platform/analytics/classes/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/analytics/locations",
-    "sourceFile": "frontend/app/platform/analytics/locations/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/audit",
-    "sourceFile": "frontend/app/platform/audit/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/billing",
-    "sourceFile": "frontend/app/platform/billing/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/campaigns",
-    "sourceFile": "frontend/app/platform/campaigns/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/client",
-    "sourceFile": "frontend/app/platform/client/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/coach",
-    "sourceFile": "frontend/app/platform/coach/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/context",
-    "sourceFile": "frontend/app/platform/context/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/dashboard",
-    "sourceFile": "frontend/app/platform/dashboard/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/data",
-    "sourceFile": "frontend/app/platform/data/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/dev/shell-preview",
-    "sourceFile": "frontend/app/platform/dev/shell-preview/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/developer",
-    "sourceFile": "frontend/app/platform/developer/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/diagnostics",
-    "sourceFile": "frontend/app/platform/diagnostics/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/feedback",
-    "sourceFile": "frontend/app/platform/feedback/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/gyms",
-    "sourceFile": "frontend/app/platform/gyms/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/gyms/[gymId]",
-    "sourceFile": "frontend/app/platform/gyms/[gymId]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/gyms/[gymId]/edit",
-    "sourceFile": "frontend/app/platform/gyms/[gymId]/edit/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/gyms/new",
-    "sourceFile": "frontend/app/platform/gyms/new/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/insights",
-    "sourceFile": "frontend/app/platform/insights/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/invites",
-    "sourceFile": "frontend/app/platform/invites/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/locations",
-    "sourceFile": "frontend/app/platform/locations/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/locations/[locationId]/settings",
-    "sourceFile": "frontend/app/platform/locations/[locationId]/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/locations/settings",
-    "sourceFile": "frontend/app/platform/locations/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/notifications",
-    "sourceFile": "frontend/app/platform/notifications/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/onboarding",
-    "sourceFile": "frontend/app/platform/onboarding/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/plans",
-    "sourceFile": "frontend/app/platform/plans/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/profile",
-    "sourceFile": "frontend/app/platform/profile/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/qa",
-    "sourceFile": "frontend/app/platform/qa/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/security",
-    "sourceFile": "frontend/app/platform/security/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/settings",
-    "sourceFile": "frontend/app/platform/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/status",
-    "sourceFile": "frontend/app/platform/status/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/support",
-    "sourceFile": "frontend/app/platform/support/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/team",
-    "sourceFile": "frontend/app/platform/team/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/tenants",
-    "sourceFile": "frontend/app/platform/tenants/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/users",
-    "sourceFile": "frontend/app/platform/users/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/users/[userId]",
-    "sourceFile": "frontend/app/platform/users/[userId]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/platform/users/[userId]/edit",
-    "sourceFile": "frontend/app/platform/users/[userId]/edit/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx",
-      "frontend/app/platform/layout.tsx"
-    ],
-    "suspectedAuth": "TENANT_AUTHENTICATED"
-  },
-  {
-    "path": "/pricing",
-    "sourceFile": "frontend/app/pricing/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/privacy",
-    "sourceFile": "frontend/app/privacy/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/reset-password",
-    "sourceFile": "frontend/app/reset-password/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/schedule",
-    "sourceFile": "frontend/app/schedule/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/select-location",
-    "sourceFile": "frontend/app/select-location/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/select-org",
-    "sourceFile": "frontend/app/select-org/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/select-workspace",
-    "sourceFile": "frontend/app/select-workspace/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/sessions/[id]",
-    "sourceFile": "frontend/app/sessions/[id]/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/settings",
-    "sourceFile": "frontend/app/settings/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/settings/location",
-    "sourceFile": "frontend/app/settings/location/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/settings/organization",
-    "sourceFile": "frontend/app/settings/organization/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/signup",
-    "sourceFile": "frontend/app/signup/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/status",
-    "sourceFile": "frontend/app/status/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/terms",
-    "sourceFile": "frontend/app/terms/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  },
-  {
-    "path": "/verify-email",
-    "sourceFile": "frontend/app/verify-email/page.tsx",
-    "layoutChain": [
-      "frontend/app/layout.tsx"
-    ],
-    "suspectedAuth": "PUBLIC_OR_MIXED"
-  }
-]
+{
+  "generatedAt": "2026-02-25T18:11:08.393Z",
+  "routes": [
+    {
+      "path": "/_admin",
+      "kind": "static",
+      "sourceFile": "frontend/app/_admin/page.tsx"
+    },
+    {
+      "path": "/_admin/tenants",
+      "kind": "static",
+      "sourceFile": "frontend/app/_admin/tenants/page.tsx"
+    },
+    {
+      "path": "/_admin/tenants/:tenantId",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_admin/tenants/[tenantId]/page.tsx"
+    },
+    {
+      "path": "/_custom/:host",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_custom/[host]/page.tsx"
+    },
+    {
+      "path": "/_custom/:host/join",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_custom/[host]/join/page.tsx"
+    },
+    {
+      "path": "/_custom/:host/login",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_custom/[host]/login/page.tsx"
+    },
+    {
+      "path": "/_sites/:slug",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_sites/[slug]/page.tsx"
+    },
+    {
+      "path": "/_sites/:slug/join",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_sites/[slug]/join/page.tsx"
+    },
+    {
+      "path": "/_sites/:slug/login",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/_sites/[slug]/login/page.tsx"
+    },
+    {
+      "path": "/:tenant",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/page.tsx"
+    },
+    {
+      "path": "/:tenant/billing",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/billing/page.tsx"
+    },
+    {
+      "path": "/:tenant/dashboard",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/dashboard/page.tsx"
+    },
+    {
+      "path": "/:tenant/members",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/members/page.tsx"
+    },
+    {
+      "path": "/:tenant/membership",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/membership/page.tsx"
+    },
+    {
+      "path": "/:tenant/plans",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/plans/page.tsx"
+    },
+    {
+      "path": "/:tenant/settings",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/settings/page.tsx"
+    },
+    {
+      "path": "/:tenant/trainers",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/[tenant]/trainers/page.tsx"
+    },
+    {
+      "path": "/admin",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/page.tsx"
+    },
+    {
+      "path": "/admin/access-restricted",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/access-restricted/page.tsx"
+    },
+    {
+      "path": "/admin/audit",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/audit/page.tsx"
+    },
+    {
+      "path": "/admin/backups",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/backups/page.tsx"
+    },
+    {
+      "path": "/admin/feedback",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/feedback/page.tsx"
+    },
+    {
+      "path": "/admin/growth",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/growth/page.tsx"
+    },
+    {
+      "path": "/admin/leads",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/leads/page.tsx"
+    },
+    {
+      "path": "/admin/ops/backups",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/ops/backups/page.tsx"
+    },
+    {
+      "path": "/admin/ops/jobs",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/ops/jobs/page.tsx"
+    },
+    {
+      "path": "/admin/ops/migrations",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/ops/migrations/page.tsx"
+    },
+    {
+      "path": "/admin/tenants",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/tenants/page.tsx"
+    },
+    {
+      "path": "/admin/tenants/:tenantId",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/admin/(protected)/tenants/[tenantId]/page.tsx"
+    },
+    {
+      "path": "/admin/tenants/:tenantId/plan",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/admin/(protected)/tenants/[tenantId]/plan/page.tsx"
+    },
+    {
+      "path": "/admin/users",
+      "kind": "static",
+      "sourceFile": "frontend/app/admin/(protected)/users/page.tsx"
+    },
+    {
+      "path": "/admin/users/:id",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/admin/(protected)/users/[id]/page.tsx"
+    },
+    {
+      "path": "/app",
+      "kind": "static",
+      "sourceFile": "frontend/app/app/(location)/page.tsx"
+    },
+    {
+      "path": "/app/attendance",
+      "kind": "static",
+      "sourceFile": "frontend/app/app/(location)/attendance/page.tsx"
+    },
+    {
+      "path": "/app/members",
+      "kind": "static",
+      "sourceFile": "frontend/app/app/(location)/members/page.tsx"
+    },
+    {
+      "path": "/app/my-attendance",
+      "kind": "static",
+      "sourceFile": "frontend/app/app/(location)/my-attendance/page.tsx"
+    },
+    {
+      "path": "/app/my-membership",
+      "kind": "static",
+      "sourceFile": "frontend/app/app/(location)/my-membership/page.tsx"
+    },
+    {
+      "path": "/app/settings",
+      "kind": "static",
+      "sourceFile": "frontend/app/app/(location)/settings/page.tsx"
+    },
+    {
+      "path": "/book-demo",
+      "kind": "static",
+      "sourceFile": "frontend/app/book-demo/page.tsx"
+    },
+    {
+      "path": "/classes",
+      "kind": "static",
+      "sourceFile": "frontend/app/classes/page.tsx"
+    },
+    {
+      "path": "/client",
+      "kind": "static",
+      "sourceFile": "frontend/app/client/page.tsx"
+    },
+    {
+      "path": "/client/bookings",
+      "kind": "static",
+      "sourceFile": "frontend/app/client/bookings/page.tsx"
+    },
+    {
+      "path": "/confirm-delete-account",
+      "kind": "static",
+      "sourceFile": "frontend/app/confirm-delete-account/page.tsx"
+    },
+    {
+      "path": "/contact",
+      "kind": "static",
+      "sourceFile": "frontend/app/contact/page.tsx"
+    },
+    {
+      "path": "/cookies",
+      "kind": "static",
+      "sourceFile": "frontend/app/cookies/page.tsx"
+    },
+    {
+      "path": "/dashboard",
+      "kind": "static",
+      "sourceFile": "frontend/app/dashboard/page.tsx"
+    },
+    {
+      "path": "/debug",
+      "kind": "static",
+      "sourceFile": "frontend/app/debug/page.tsx"
+    },
+    {
+      "path": "/demo",
+      "kind": "static",
+      "sourceFile": "frontend/app/demo/page.tsx"
+    },
+    {
+      "path": "/developers",
+      "kind": "static",
+      "sourceFile": "frontend/app/developers/page.tsx"
+    },
+    {
+      "path": "/faq",
+      "kind": "static",
+      "sourceFile": "frontend/app/faq/page.tsx"
+    },
+    {
+      "path": "/features",
+      "kind": "static",
+      "sourceFile": "frontend/app/features/page.tsx"
+    },
+    {
+      "path": "/forgot-password",
+      "kind": "static",
+      "sourceFile": "frontend/app/forgot-password/page.tsx"
+    },
+    {
+      "path": "/invite/:token",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/invite/[token]/page.tsx"
+    },
+    {
+      "path": "/join",
+      "kind": "static",
+      "sourceFile": "frontend/app/join/page.tsx"
+    },
+    {
+      "path": "/login",
+      "kind": "static",
+      "sourceFile": "frontend/app/login/page.tsx"
+    },
+    {
+      "path": "/my-bookings",
+      "kind": "static",
+      "sourceFile": "frontend/app/my-bookings/page.tsx"
+    },
+    {
+      "path": "/onboarding",
+      "kind": "static",
+      "sourceFile": "frontend/app/onboarding/page.tsx"
+    },
+    {
+      "path": "/platform",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/page.tsx"
+    },
+    {
+      "path": "/platform/account",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/account/page.tsx"
+    },
+    {
+      "path": "/platform/admin/settings",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/admin/settings/page.tsx"
+    },
+    {
+      "path": "/platform/analytics",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/analytics/page.tsx"
+    },
+    {
+      "path": "/platform/analytics/classes",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/analytics/classes/page.tsx"
+    },
+    {
+      "path": "/platform/analytics/locations",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/analytics/locations/page.tsx"
+    },
+    {
+      "path": "/platform/audit",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/audit/page.tsx"
+    },
+    {
+      "path": "/platform/billing",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/billing/page.tsx"
+    },
+    {
+      "path": "/platform/campaigns",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/campaigns/page.tsx"
+    },
+    {
+      "path": "/platform/client",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/client/page.tsx"
+    },
+    {
+      "path": "/platform/coach",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/coach/page.tsx"
+    },
+    {
+      "path": "/platform/context",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/context/page.tsx"
+    },
+    {
+      "path": "/platform/dashboard",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/dashboard/page.tsx"
+    },
+    {
+      "path": "/platform/data",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/data/page.tsx"
+    },
+    {
+      "path": "/platform/dev/shell-preview",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/dev/shell-preview/page.tsx"
+    },
+    {
+      "path": "/platform/developer",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/developer/page.tsx"
+    },
+    {
+      "path": "/platform/diagnostics",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/diagnostics/page.tsx"
+    },
+    {
+      "path": "/platform/feedback",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/feedback/page.tsx"
+    },
+    {
+      "path": "/platform/gyms",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/gyms/page.tsx"
+    },
+    {
+      "path": "/platform/gyms/:gymId",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/platform/gyms/[gymId]/page.tsx"
+    },
+    {
+      "path": "/platform/gyms/:gymId/edit",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/platform/gyms/[gymId]/edit/page.tsx"
+    },
+    {
+      "path": "/platform/gyms/new",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/gyms/new/page.tsx"
+    },
+    {
+      "path": "/platform/insights",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/insights/page.tsx"
+    },
+    {
+      "path": "/platform/invites",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/invites/page.tsx"
+    },
+    {
+      "path": "/platform/locations",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/locations/page.tsx"
+    },
+    {
+      "path": "/platform/locations/:locationId/settings",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/platform/locations/[locationId]/settings/page.tsx"
+    },
+    {
+      "path": "/platform/locations/settings",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/locations/settings/page.tsx"
+    },
+    {
+      "path": "/platform/notifications",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/notifications/page.tsx"
+    },
+    {
+      "path": "/platform/onboarding",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/onboarding/page.tsx"
+    },
+    {
+      "path": "/platform/plans",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/plans/page.tsx"
+    },
+    {
+      "path": "/platform/profile",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/profile/page.tsx"
+    },
+    {
+      "path": "/platform/qa",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/qa/page.tsx"
+    },
+    {
+      "path": "/platform/schedule",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/schedule/page.tsx"
+    },
+    {
+      "path": "/platform/security",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/security/page.tsx"
+    },
+    {
+      "path": "/platform/settings",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/settings/page.tsx"
+    },
+    {
+      "path": "/platform/status",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/status/page.tsx"
+    },
+    {
+      "path": "/platform/support",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/support/page.tsx"
+    },
+    {
+      "path": "/platform/team",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/team/page.tsx"
+    },
+    {
+      "path": "/platform/tenants",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/tenants/page.tsx"
+    },
+    {
+      "path": "/platform/users",
+      "kind": "static",
+      "sourceFile": "frontend/app/platform/users/page.tsx"
+    },
+    {
+      "path": "/platform/users/:userId",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/platform/users/[userId]/page.tsx"
+    },
+    {
+      "path": "/platform/users/:userId/edit",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/platform/users/[userId]/edit/page.tsx"
+    },
+    {
+      "path": "/pricing",
+      "kind": "static",
+      "sourceFile": "frontend/app/pricing/page.tsx"
+    },
+    {
+      "path": "/privacy",
+      "kind": "static",
+      "sourceFile": "frontend/app/privacy/page.tsx"
+    },
+    {
+      "path": "/reset-password",
+      "kind": "static",
+      "sourceFile": "frontend/app/reset-password/page.tsx"
+    },
+    {
+      "path": "/schedule",
+      "kind": "static",
+      "sourceFile": "frontend/app/schedule/page.tsx"
+    },
+    {
+      "path": "/select-location",
+      "kind": "static",
+      "sourceFile": "frontend/app/select-location/page.tsx"
+    },
+    {
+      "path": "/select-org",
+      "kind": "static",
+      "sourceFile": "frontend/app/select-org/page.tsx"
+    },
+    {
+      "path": "/select-workspace",
+      "kind": "static",
+      "sourceFile": "frontend/app/select-workspace/page.tsx"
+    },
+    {
+      "path": "/sessions/:id",
+      "kind": "dynamic-template",
+      "sourceFile": "frontend/app/sessions/[id]/page.tsx"
+    },
+    {
+      "path": "/settings",
+      "kind": "static",
+      "sourceFile": "frontend/app/settings/page.tsx"
+    },
+    {
+      "path": "/settings/location",
+      "kind": "static",
+      "sourceFile": "frontend/app/settings/location/page.tsx"
+    },
+    {
+      "path": "/settings/organization",
+      "kind": "static",
+      "sourceFile": "frontend/app/settings/organization/page.tsx"
+    },
+    {
+      "path": "/settings/organization/audit",
+      "kind": "static",
+      "sourceFile": "frontend/app/settings/organization/audit/page.tsx"
+    },
+    {
+      "path": "/signup",
+      "kind": "static",
+      "sourceFile": "frontend/app/signup/page.tsx"
+    },
+    {
+      "path": "/status",
+      "kind": "static",
+      "sourceFile": "frontend/app/status/page.tsx"
+    },
+    {
+      "path": "/terms",
+      "kind": "static",
+      "sourceFile": "frontend/app/terms/page.tsx"
+    },
+    {
+      "path": "/verify-email",
+      "kind": "static",
+      "sourceFile": "frontend/app/verify-email/page.tsx"
+    }
+  ]
+}

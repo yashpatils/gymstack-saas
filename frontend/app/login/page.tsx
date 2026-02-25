@@ -76,7 +76,7 @@ function getOtpErrorMessage(error: unknown): string {
 function LoginPageContent() {
   const router = useRouter();
   const pathname = usePathname();
-  const { login, loading, isHydrating, authStatus, platformRole, user, memberships } = useAuth();
+  const { login, loading, isHydrating, authStatus, platformRole, user, memberships, activeContext } = useAuth();
   const searchParams = useSearchParams();
   const [flow, setFlow] = useState<LoginFlowState>({ step: 'CREDENTIALS' });
   const [email, setEmail] = useState("");
@@ -127,7 +127,7 @@ function LoginPageContent() {
         isAuthenticated: true,
         isPlatformAdmin: platformRole === 'PLATFORM_ADMIN',
         membershipsCount: memberships.length,
-        hasSelectedWorkspace: memberships.length <= 1,
+        hasSelectedWorkspace: Boolean(activeContext?.tenantId) || memberships.length <= 1,
       },
       normalizeRouteContext('/login', isAdminHost),
     );
@@ -143,7 +143,7 @@ function LoginPageContent() {
     }
 
     router.replace(hasStaffMembership(memberships) ? '/platform' : '/client');
-  }, [authStatus, isAdminHost, isHydrating, memberships, nextUrl, platformRole, router, user]);
+  }, [activeContext?.tenantId, authStatus, isAdminHost, isHydrating, memberships, nextUrl, platformRole, router, user]);
 
   const adminBlocked = isAdminHost && accessError === 'restricted';
 
