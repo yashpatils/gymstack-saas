@@ -30,7 +30,7 @@ export function OrgSwitcher() {
   return (
     <select
       aria-label="Select organization"
-      className="input h-9 min-w-[180px] rounded-xl border-border bg-card text-sm text-card-foreground"
+      className="input h-9 w-full min-w-0 sm:min-w-[180px] rounded-xl border-border bg-card text-sm text-card-foreground"
       value={activeContext?.tenantId ?? orgs[0]?.id}
       onChange={async (event) => {
         const orgId = event.target.value;

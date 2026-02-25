@@ -186,7 +186,7 @@ export default function PlatformSettingsPage() {
       <PageHeader title="Settings" subtitle="Account preferences and environment details." breadcrumbs={[{ label: "Platform", href: "/platform" }, { label: "Settings" }]} />
 
       <div className="card space-y-4">
-        <h2 className="section-title text-slate-900 dark:text-white">Account security</h2>
+        <h2 className="section-title text-foreground">Account security</h2>
         <TwoStepEmailToggle
           enabled={twoStepEnabled}
           featureEnabled={twoStepFeatureEnabled}
@@ -215,13 +215,13 @@ export default function PlatformSettingsPage() {
       {!tenantOrg?.whiteLabelEligible ? (
         <div className="card space-y-2 border border-indigo-400/40">
           <h2 className="section-title">Remove Gym Stack branding</h2>
-          <p className="text-sm text-slate-300">Upgrade to Pro to remove branding from your location microsites and custom domains.</p>
+          <p className="text-sm text-muted-foreground">Upgrade to Pro to remove branding from your location microsites and custom domains.</p>
           <Link href="/platform/billing" className="button w-fit">Upgrade to Pro</Link>
         </div>
       ) : (
         <div className="card space-y-3 border border-emerald-400/40">
           <h2 className="section-title">White-label enabled</h2>
-          <p className="text-sm text-slate-300">Control whether Gym Stack branding is shown on custom domains.</p>
+          <p className="text-sm text-muted-foreground">Control whether Gym Stack branding is shown on custom domains.</p>
           <button className="button w-fit" type="button" disabled={whiteLabelSaving} onClick={async () => {
             if (!tenantOrg) {
               return;
@@ -278,12 +278,12 @@ export default function PlatformSettingsPage() {
             <input className="input" value={selectedBrandingLocation.heroSubtitle ?? ''} onChange={(event) => setLocations((items) => items.map((entry) => entry.id === selectedBrandingLocation.id ? { ...entry, heroSubtitle: event.target.value } : entry))} placeholder="Hero subtitle" />
             <button className="button w-fit" type="submit">Save branding</button>
           </form>
-        ) : <p className="text-sm text-slate-400">Create a location to configure branding.</p>}
+        ) : <p className="text-sm text-muted-foreground">Create a location to configure branding.</p>}
       </div>
 
       <div className="card space-y-3 border border-cyan-400/40">
         <h2 className="section-title">Data portability export</h2>
-        <p className="text-sm text-slate-300">Generate a tenant-scoped JSON export for compliance and backup verification.</p>
+        <p className="text-sm text-muted-foreground">Generate a tenant-scoped JSON export for compliance and backup verification.</p>
         <button className="button w-fit" type="button" disabled={exporting} onClick={async () => {
           setExporting(true);
           setExportMessage(null);
@@ -305,7 +305,7 @@ export default function PlatformSettingsPage() {
         }}>
           {exporting ? 'Exporting…' : 'Export data'}
         </button>
-        {exportMessage ? <p className="text-xs text-slate-300">{exportMessage}</p> : null}
+        {exportMessage ? <p className="text-xs text-muted-foreground">{exportMessage}</p> : null}
       </div>
 
       <div className="card space-y-4">
@@ -326,9 +326,9 @@ export default function PlatformSettingsPage() {
         </form>
         <ul className="space-y-2 text-sm">
           {domains.map((domain) => (
-            <li key={domain.id} className="rounded border border-white/10 p-3">
-              <div className="flex items-center justify-between"><span>{domain.hostname}</span><span className="text-slate-300">{domain.status}</span></div>
-              <p className="text-xs text-slate-400">TXT: _gymstack-verification</p>
+            <li key={domain.id} className="rounded border border-border p-3">
+              <div className="flex items-center justify-between"><span>{domain.hostname}</span><span className="text-muted-foreground">{domain.status}</span></div>
+              <p className="text-xs text-muted-foreground">TXT: _gymstack-verification</p>
               <div className="mt-2 flex gap-2">
                 <button className="button secondary" type="button" onClick={async () => {
                   await apiFetch(`/api/domains/${domain.id}/verify`, { method: 'POST' });
@@ -344,9 +344,9 @@ export default function PlatformSettingsPage() {
         </ul>
       </div>
 
-      <div className="card space-y-4"><h2 className="section-title text-slate-900 dark:text-white">Account</h2>{loading ? <p className="text-sm text-slate-600 dark:text-slate-300">Loading account info...</p> : error ? <p className="text-sm text-rose-300">{error}</p> : <dl className="space-y-2 text-sm text-slate-900 dark:text-white"><div><dt className="text-slate-500 dark:text-slate-400">Email</dt><dd>{account?.email ?? "—"}</dd></div><div><dt className="text-slate-500 dark:text-slate-400">Role</dt><dd>{account?.role ?? "—"}</dd></div><div><dt className="text-slate-500 dark:text-slate-400">User ID</dt><dd>{account?.id ?? "Not provided"}</dd></div></dl>}<button type="button" className="button secondary" onClick={logout}>Logout</button></div>
+      <div className="card space-y-4"><h2 className="section-title text-foreground">Account</h2>{loading ? <p className="text-sm text-muted-foreground">Loading account info...</p> : error ? <p className="text-sm text-destructive">{error}</p> : <dl className="space-y-2 text-sm text-foreground"><div><dt className="text-muted-foreground">Email</dt><dd>{account?.email ?? "—"}</dd></div><div><dt className="text-muted-foreground">Role</dt><dd>{account?.role ?? "—"}</dd></div><div><dt className="text-muted-foreground">User ID</dt><dd>{account?.id ?? "Not provided"}</dd></div></dl>}<button type="button" className="button secondary" onClick={logout}>Logout</button></div>
 
-      <div className="card space-y-4"><h2 className="section-title text-slate-900 dark:text-white">Linked accounts</h2><p className="text-sm text-slate-600 dark:text-slate-300">Link Google or Apple for faster login in manager/staff/client flows.</p><div className="grid gap-3 md:grid-cols-2"><button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Google</button><button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Apple</button></div></div>
+      <div className="card space-y-4"><h2 className="section-title text-foreground">Linked accounts</h2><p className="text-sm text-muted-foreground">Link Google or Apple for faster login in manager/staff/client flows.</p><div className="grid gap-3 md:grid-cols-2"><button className="button" type="button" onClick={() => { window.location.href = oauthStartUrl('google', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Google</button><button className="button secondary" type="button" onClick={() => { window.location.href = oauthStartUrl('apple', 'link', { returnTo: `${window.location.origin}/platform/settings` }); }}>Link Apple</button></div></div>
 
 
 
@@ -366,7 +366,7 @@ export default function PlatformSettingsPage() {
       </div>
       </>
       ) : null}
-      <div className="card space-y-4"><h2 className="section-title text-slate-900 dark:text-white">Environment</h2><dl className="space-y-2 text-sm text-slate-900 dark:text-white"><div><dt className="text-slate-500 dark:text-slate-400">API base URL</dt><dd>{maskApiBaseUrl(apiBaseUrl)}</dd></div>{showDebugLinks ? <><div><dt className="text-slate-500 dark:text-slate-400">Backend health</dt><dd><Link href="/platform/status" className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200">Open platform status checks</Link></dd></div><div><dt className="text-slate-500 dark:text-slate-400">Diagnostics</dt><dd><Link href="/platform/diagnostics" className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200">Open deployment diagnostics</Link></dd></div></> : null}</dl></div>
+      <div className="card space-y-4"><h2 className="section-title text-foreground">Environment</h2><dl className="space-y-2 text-sm text-foreground"><div><dt className="text-muted-foreground">API base URL</dt><dd>{maskApiBaseUrl(apiBaseUrl)}</dd></div>{showDebugLinks ? <><div><dt className="text-muted-foreground">Backend health</dt><dd><Link href="/platform/status" className="text-primary hover:text-primary/80">Open platform status checks</Link></dd></div><div><dt className="text-muted-foreground">Diagnostics</dt><dd><Link href="/platform/diagnostics" className="text-primary hover:text-primary/80">Open deployment diagnostics</Link></dd></div></> : null}</dl></div>
     </section>
   );
 }
