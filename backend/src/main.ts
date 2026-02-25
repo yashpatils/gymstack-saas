@@ -69,11 +69,7 @@ function getAllowedOriginRegexes(configService: ConfigService, isProduction: boo
 
 
 function hasAllowedHostname(hostname: string, options: { isProduction: boolean; allowVercelInProduction: boolean }): boolean {
-  if (hostname.endsWith('.gymstack.club')) {
-    return true;
-  }
-
-  if (!options.isProduction && (hostname.endsWith('.vercel.app') || hostname === 'localhost')) {
+  if (!options.isProduction && (hostname.endsWith('.gymstack.club') || hostname.endsWith('.vercel.app') || hostname === 'localhost')) {
     return true;
   }
 
