@@ -1,4 +1,4 @@
-import { adminApiFetch } from '../../../_admin/_lib/server-admin-api';
+import { adminApiFetch } from '../../_lib/server-admin-api';
 
 type MigrationStatus = {
   checkedAt: string;

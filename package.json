@@ -16,6 +16,9 @@
     "preflight:backend": "cd backend && npm ci && npm run prisma:validate && npm run build",
     "lint": "npm --prefix frontend run lint",
     "build:backend": "npm --prefix backend run build",
-    "ensure:qa-user": "npm --prefix backend run ensure:qa-user"
+    "ensure:qa-user": "npm --prefix backend run ensure:qa-user",
+    "audit:routes": "node scripts/generate-route-manifest.mjs",
+    "audit:endpoints": "node scripts/generate-endpoint-manifest.mjs",
+    "audit:nav": "npm run audit:routes && npm run audit:endpoints && node scripts/generate-nav-parity-report.mjs"
   }
 }

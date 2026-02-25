@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ExecutionContext } from '@nestjs/common/interfaces/features/execution-context.interface';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -46,5 +46,16 @@ describe('RequirePlatformAdminGuard', () => {
     (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ email: 'member@gymstack.dev' });
 
     await expect(guard.canActivate(buildContext({ id: 'user-2' }))).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects missing authenticated user identity', async () => {
+    await expect(guard.canActivate(buildContext({}))).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('rejects tenant admins who are not allowlisted platform admins', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'platform@gymstack.dev';
+    (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ email: 'tenant-owner@gymstack.dev' });
+
+    await expect(guard.canActivate(buildContext({ id: 'tenant-user' }))).rejects.toThrow(ForbiddenException);
   });
 });

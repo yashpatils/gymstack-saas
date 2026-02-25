@@ -1,0 +1,209 @@
+[
+  {
+    "section": "platform",
+    "label": "Overview",
+    "href": "/platform",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Gyms",
+    "href": "/platform/gyms",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Team",
+    "href": "/platform/team",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Invites",
+    "href": "/platform/invites",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Billing",
+    "href": "/platform/billing",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Coach",
+    "href": "/platform/coach",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Client",
+    "href": "/platform/client",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Insights",
+    "href": "/platform/insights",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Analytics",
+    "href": "/platform/analytics",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Notifications",
+    "href": "/platform/notifications",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Data export",
+    "href": "/platform/data",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Settings",
+    "href": "/platform/settings",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Developer",
+    "href": "/platform/developer",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "QA status",
+    "href": "/platform/qa",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": true,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Shell preview",
+    "href": "/platform/dev/shell-preview",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": true,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Location settings",
+    "href": "/platform/locations/settings",
+    "requiresRole": "ALL_AUTHENTICATED",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "platform",
+    "label": "Admin",
+    "href": "ADMIN_PORTAL_FRESH_LOGIN_URL",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "admin",
+    "label": "Dashboard",
+    "href": "/admin",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "admin",
+    "label": "Tenants",
+    "href": "/admin/tenants",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "admin",
+    "label": "Users",
+    "href": "/admin/users",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "admin",
+    "label": "Audit",
+    "href": "/admin/audit",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "admin",
+    "label": "Growth",
+    "href": "/admin/growth",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  },
+  {
+    "section": "admin",
+    "label": "Backups",
+    "href": "/admin/backups",
+    "requiresRole": "PLATFORM_ADMIN",
+    "debugOnly": false,
+    "featureFlag": null,
+    "sourceFile": "frontend/src/components/shell/nav-config.ts"
+  }
+]
