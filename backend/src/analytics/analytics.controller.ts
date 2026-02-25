@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { VerifiedEmailRequired } from '../auth/decorators/verified-email-required.decorator';
 import { RequirePlatformAdminGuard } from '../admin/require-platform-admin.guard';
@@ -11,6 +11,7 @@ import {
   AnalyticsTopClassesQueryDto,
   AnalyticsTrendsQueryDto,
 } from './dto/analytics-query.dto';
+import { GymMetricsQueryDto, MetricsBackfillQueryDto } from './dto/metrics.dto';
 import { PlanGatingGuard } from '../billing/plan-gating.guard';
 import { RequirePlan } from '../billing/require-plan.decorator';
 
@@ -24,6 +25,17 @@ export class AnalyticsController {
   @UseGuards(RequirePlatformAdminGuard)
   recomputeMetrics(@Body() body: { date?: string }) {
     return this.analyticsService.recomputeDailyMetrics(body.date);
+  }
+
+  @Post('admin/metrics/backfill')
+  @UseGuards(RequirePlatformAdminGuard)
+  backfillMetrics(@Query() query: MetricsBackfillQueryDto) {
+    return this.analyticsService.backfillDailyMetrics(query);
+  }
+
+  @Get('gyms/:gymId/metrics')
+  getGymMetrics(@Req() req: { user: User }, @Param('gymId') gymId: string, @Query() query: GymMetricsQueryDto) {
+    return this.analyticsService.getGymMetrics(req.user, gymId, query);
   }
 
   @Get('platform/insights')

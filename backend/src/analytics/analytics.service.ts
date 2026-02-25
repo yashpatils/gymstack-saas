@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClassBookingStatus, ClientMembershipStatus, MembershipRole, MembershipStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
@@ -29,8 +29,40 @@ type DbRow = Record<string, unknown>;
 type DateRange = { start: Date; end: Date; days: number };
 
 @Injectable()
-export class AnalyticsService {
+export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AnalyticsService.name);
+  private cronTimer: NodeJS.Timeout | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit(): void {
+    this.scheduleNextDailyRollup();
+  }
+
+  onModuleDestroy(): void {
+    if (this.cronTimer) {
+      clearInterval(this.cronTimer);
+      this.cronTimer = null;
+    }
+  }
+
+  private scheduleNextDailyRollup(): void {
+    const now = new Date();
+    const next = new Date(now);
+    next.setUTCHours(3, 0, 0, 0);
+    if (next <= now) {
+      next.setUTCDate(next.getUTCDate() + 1);
+    }
+    const delayMs = next.getTime() - now.getTime();
+
+    this.cronTimer = setTimeout(async () => {
+      try {
+        await this.handleDailyMetricsCron();
+      } finally {
+        this.scheduleNextDailyRollup();
+      }
+    }, delayMs);
+  }
 
   private resolveTenantId(user: User): string {
     const tenantId = user.supportMode?.tenantId ?? user.activeTenantId ?? user.orgId;
@@ -100,6 +132,33 @@ export class AnalyticsService {
       throw new BadRequestException('Invalid locationId');
     }
     return trimmed;
+  }
+
+  private parseIsoDate(date: string, field: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException(`${field} must be in YYYY-MM-DD format`);
+    }
+    const parsed = new Date(`${date}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+      throw new BadRequestException(`${field} must be a valid date`);
+    }
+    return date;
+  }
+
+  private enumerateDateRange(from: string, to: string): string[] {
+    const parsedFrom = new Date(`${from}T00:00:00.000Z`);
+    const parsedTo = new Date(`${to}T00:00:00.000Z`);
+    if (parsedFrom > parsedTo) {
+      throw new BadRequestException('from must be before or equal to to');
+    }
+
+    const dates: string[] = [];
+    const cursor = new Date(parsedFrom);
+    while (cursor <= parsedTo) {
+      dates.push(cursor.toISOString().slice(0, 10));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return dates;
   }
 
   async getOverview(user: User, range: AnalyticsRange): Promise<{
@@ -303,51 +362,241 @@ export class AnalyticsService {
     return process.env.AI_ANALYTICS_ENABLED === 'true';
   }
 
-  async recomputeDailyMetrics(runDate?: string): Promise<{ date: string; locationsProcessed: number }> {
-    const date = runDate ?? new Date().toISOString().slice(0, 10);
-    const start = new Date(`${date}T00:00:00.000Z`);
-    const end = new Date(`${date}T23:59:59.999Z`);
+  private async recomputeDailyMetricsForDate(date: string, gymId?: string): Promise<number> {
+    const locationScope = gymId
+      ? Prisma.sql`WHERE g."id" = ${gymId}`
+      : Prisma.empty;
 
-    const locations = await this.prisma.gym.findMany({ select: { id: true, orgId: true } });
-
-    for (const location of locations) {
-      const [bookingsCount, canceledBookingsCount, checkinsCount, uniqueClientsCount, newClientsCount, activeMemberships, canceledMemberships, newMemberships] = await Promise.all([
-        this.prisma.classBooking.count({ where: { locationId: location.id, createdAt: { gte: start, lte: end } } }),
-        this.prisma.classBooking.count({ where: { locationId: location.id, status: 'CANCELED', updatedAt: { gte: start, lte: end } } }),
-        this.prisma.classBooking.count({ where: { locationId: location.id, status: 'CHECKED_IN', updatedAt: { gte: start, lte: end } } }),
-        this.prisma.classBooking.findMany({
-          where: { locationId: location.id, createdAt: { gte: start, lte: end } },
-          distinct: ['userId'],
-          select: { userId: true },
-        }).then((items) => items.length),
-        this.prisma.membership.count({ where: { orgId: location.orgId, gymId: location.id, role: MembershipRole.CLIENT, createdAt: { gte: start, lte: end } } }),
-        this.prisma.clientMembership.count({ where: { locationId: location.id, status: 'active' } }),
-        this.prisma.clientMembership.count({ where: { locationId: location.id, canceledAt: { gte: start, lte: end } } }),
-        this.prisma.clientMembership.count({ where: { locationId: location.id, createdAt: { gte: start, lte: end } } }),
-      ]);
-
-      await this.prisma.$executeRaw(Prisma.sql`
+    const locationsProcessed = await this.prisma.$executeRaw(Prisma.sql`
+      WITH gym_scope AS (
+        SELECT g."id", g."orgId", g."timezone"
+        FROM "Gym" g
+        ${locationScope}
+      ),
+      location_rollup AS (
+        SELECT
+          gs."orgId" AS "tenantId",
+          gs."id" AS "locationId",
+          ${date}::date AS "date",
+          (
+            SELECT COUNT(*)::int
+            FROM "ClassBooking" cb
+            WHERE cb."locationId" = gs."id"
+              AND (cb."createdAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "bookingsCount",
+          (
+            SELECT COUNT(*)::int
+            FROM "ClassBooking" cb
+            WHERE cb."locationId" = gs."id"
+              AND cb."status" = 'CANCELED'
+              AND (cb."updatedAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "canceledBookingsCount",
+          (
+            SELECT COUNT(*)::int
+            FROM "ClassBooking" cb
+            WHERE cb."locationId" = gs."id"
+              AND cb."status" = 'CHECKED_IN'
+              AND (cb."updatedAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "checkinsCount",
+          (
+            SELECT COUNT(DISTINCT cb."userId")::int
+            FROM "ClassBooking" cb
+            WHERE cb."locationId" = gs."id"
+              AND (cb."createdAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "uniqueClientsCount",
+          (
+            SELECT COUNT(*)::int
+            FROM "Membership" m
+            WHERE m."gymId" = gs."id"
+              AND m."orgId" = gs."orgId"
+              AND m."role" = 'CLIENT'
+              AND (m."createdAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "newClientsCount"
+        FROM gym_scope gs
+      ),
+      membership_rollup AS (
+        SELECT
+          gs."orgId" AS "tenantId",
+          gs."id" AS "locationId",
+          ${date}::date AS "date",
+          (
+            SELECT COUNT(*)::int
+            FROM "ClientMembership" cm
+            WHERE cm."locationId" = gs."id"
+              AND cm."startAt" IS NOT NULL
+              AND (cm."startAt" AT TIME ZONE gs."timezone")::date <= ${date}::date
+              AND (
+                COALESCE(cm."canceledAt", cm."endAt") IS NULL
+                OR (COALESCE(cm."canceledAt", cm."endAt") AT TIME ZONE gs."timezone")::date > ${date}::date
+              )
+          ) AS "activeMemberships",
+          (
+            SELECT COUNT(*)::int
+            FROM "ClientMembership" cm
+            WHERE cm."locationId" = gs."id"
+              AND cm."canceledAt" IS NOT NULL
+              AND (cm."canceledAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "canceledMemberships",
+          (
+            SELECT COUNT(*)::int
+            FROM "ClientMembership" cm
+            WHERE cm."locationId" = gs."id"
+              AND (cm."createdAt" AT TIME ZONE gs."timezone")::date = ${date}::date
+          ) AS "newMemberships"
+        FROM gym_scope gs
+      ),
+      upsert_location AS (
         INSERT INTO "DailyLocationMetrics" ("id","tenantId","locationId","date","checkinsCount","bookingsCount","uniqueClientsCount","newClientsCount","canceledBookingsCount","createdAt")
-        VALUES (gen_random_uuid(), ${location.orgId}, ${location.id}, ${date}::date, ${checkinsCount}, ${bookingsCount}, ${uniqueClientsCount}, ${newClientsCount}, ${canceledBookingsCount}, NOW())
+        SELECT gen_random_uuid(), "tenantId", "locationId", "date", "checkinsCount", "bookingsCount", "uniqueClientsCount", "newClientsCount", "canceledBookingsCount", NOW()
+        FROM location_rollup
         ON CONFLICT ("locationId","date") DO UPDATE SET
+          "tenantId"=EXCLUDED."tenantId",
           "checkinsCount"=EXCLUDED."checkinsCount",
           "bookingsCount"=EXCLUDED."bookingsCount",
           "uniqueClientsCount"=EXCLUDED."uniqueClientsCount",
           "newClientsCount"=EXCLUDED."newClientsCount",
           "canceledBookingsCount"=EXCLUDED."canceledBookingsCount"
-      `);
+      )
+      INSERT INTO "DailyMembershipMetrics" ("id","tenantId","locationId","date","activeMemberships","canceledMemberships","newMemberships","createdAt")
+      SELECT gen_random_uuid(), "tenantId", "locationId", "date", "activeMemberships", "canceledMemberships", "newMemberships", NOW()
+      FROM membership_rollup
+      ON CONFLICT ("locationId","date") DO UPDATE SET
+        "tenantId"=EXCLUDED."tenantId",
+        "activeMemberships"=EXCLUDED."activeMemberships",
+        "canceledMemberships"=EXCLUDED."canceledMemberships",
+        "newMemberships"=EXCLUDED."newMemberships"
+    `);
 
-      await this.prisma.$executeRaw(Prisma.sql`
-        INSERT INTO "DailyMembershipMetrics" ("id","tenantId","locationId","date","activeMemberships","canceledMemberships","newMemberships","createdAt")
-        VALUES (gen_random_uuid(), ${location.orgId}, ${location.id}, ${date}::date, ${activeMemberships}, ${canceledMemberships}, ${newMemberships}, NOW())
-        ON CONFLICT ("locationId","date") DO UPDATE SET
-          "activeMemberships"=EXCLUDED."activeMemberships",
-          "canceledMemberships"=EXCLUDED."canceledMemberships",
-          "newMemberships"=EXCLUDED."newMemberships"
-      `);
+    return Number(locationsProcessed);
+  }
+
+  async backfillDailyMetrics(input: { from: string; to: string; gymId?: string | null }): Promise<{ from: string; to: string; daysProcessed: number; locationsProcessed: number }> {
+    const from = this.parseIsoDate(input.from, 'from');
+    const to = this.parseIsoDate(input.to, 'to');
+    const gymId = input.gymId ? this.normalizeLocationId(input.gymId) : null;
+    const dates = this.enumerateDateRange(from, to);
+
+    let locationsProcessed = 0;
+    for (const date of dates) {
+      locationsProcessed += await this.recomputeDailyMetricsForDate(date, gymId ?? undefined);
     }
 
-    return { date, locationsProcessed: locations.length };
+    return { from, to, daysProcessed: dates.length, locationsProcessed };
+  }
+
+  async recomputeDailyMetrics(runDate?: string): Promise<{ date: string; locationsProcessed: number }> {
+    const date = runDate ? this.parseIsoDate(runDate, 'date') : new Date().toISOString().slice(0, 10);
+    const locationsProcessed = await this.recomputeDailyMetricsForDate(date);
+    return { date, locationsProcessed };
+  }
+
+  async handleDailyMetricsCron(): Promise<void> {
+    const today = new Date();
+    const to = today.toISOString().slice(0, 10);
+    const fromDate = new Date(today);
+    fromDate.setUTCDate(fromDate.getUTCDate() - 1);
+    const from = fromDate.toISOString().slice(0, 10);
+
+    const result = await this.backfillDailyMetrics({ from, to });
+    this.logger.log(`Daily metrics rollup complete: ${result.locationsProcessed} rows processed across ${result.daysProcessed} day(s)`);
+  }
+
+  async getGymMetrics(user: User, gymId: string, input: { from: string; to: string }): Promise<{
+    gymId: string;
+    from: string;
+    to: string;
+    kpis: {
+      bookings: number;
+      checkins: number;
+      newClients: number;
+      churnedMemberships: number;
+      newMemberships: number;
+      latestActiveMemberships: number;
+    };
+    daily: Array<{
+      date: string;
+      bookings: number;
+      checkins: number;
+      uniqueClients: number;
+      newClients: number;
+      canceledBookings: number;
+      activeMemberships: number;
+      canceledMemberships: number;
+      newMemberships: number;
+    }>;
+  }> {
+    const tenantId = this.resolveTenantId(user);
+    await this.assertOwnerOrManager(user, tenantId);
+    const normalizedGymId = this.normalizeLocationId(gymId);
+    if (!normalizedGymId) {
+      throw new BadRequestException('Invalid gymId');
+    }
+    const from = this.parseIsoDate(input.from, 'from');
+    const to = this.parseIsoDate(input.to, 'to');
+
+    const gym = await this.prisma.gym.findFirst({ where: { id: normalizedGymId, orgId: tenantId }, select: { id: true } });
+    if (!gym) {
+      throw new ForbiddenException('Gym not found in tenant');
+    }
+
+    const rows = await this.prisma.$queryRaw<Array<{
+      date: Date;
+      bookingsCount: number;
+      checkinsCount: number;
+      uniqueClientsCount: number;
+      newClientsCount: number;
+      canceledBookingsCount: number;
+      activeMemberships: number;
+      canceledMemberships: number;
+      newMemberships: number;
+    }>>(Prisma.sql`
+      SELECT
+        dlm."date",
+        dlm."bookingsCount",
+        dlm."checkinsCount",
+        dlm."uniqueClientsCount",
+        dlm."newClientsCount",
+        dlm."canceledBookingsCount",
+        COALESCE(dmm."activeMemberships", 0) AS "activeMemberships",
+        COALESCE(dmm."canceledMemberships", 0) AS "canceledMemberships",
+        COALESCE(dmm."newMemberships", 0) AS "newMemberships"
+      FROM "DailyLocationMetrics" dlm
+      LEFT JOIN "DailyMembershipMetrics" dmm
+        ON dmm."locationId" = dlm."locationId"
+       AND dmm."date" = dlm."date"
+      WHERE dlm."locationId" = ${normalizedGymId}
+        AND dlm."tenantId" = ${tenantId}
+        AND dlm."date" >= ${from}::date
+        AND dlm."date" <= ${to}::date
+      ORDER BY dlm."date" ASC
+    `);
+
+    const daily = rows.map((row) => ({
+      date: this.toDateKey(new Date(row.date)),
+      bookings: Number(row.bookingsCount ?? 0),
+      checkins: Number(row.checkinsCount ?? 0),
+      uniqueClients: Number(row.uniqueClientsCount ?? 0),
+      newClients: Number(row.newClientsCount ?? 0),
+      canceledBookings: Number(row.canceledBookingsCount ?? 0),
+      activeMemberships: Number(row.activeMemberships ?? 0),
+      canceledMemberships: Number(row.canceledMemberships ?? 0),
+      newMemberships: Number(row.newMemberships ?? 0),
+    }));
+
+    return {
+      gymId: normalizedGymId,
+      from,
+      to,
+      kpis: {
+        bookings: daily.reduce((sum, row) => sum + row.bookings, 0),
+        checkins: daily.reduce((sum, row) => sum + row.checkins, 0),
+        newClients: daily.reduce((sum, row) => sum + row.newClients, 0),
+        churnedMemberships: daily.reduce((sum, row) => sum + row.canceledMemberships, 0),
+        newMemberships: daily.reduce((sum, row) => sum + row.newMemberships, 0),
+        latestActiveMemberships: daily.length > 0 ? daily[daily.length - 1].activeMemberships : 0,
+      },
+      daily,
+    };
   }
 
   async generateInsights(user: User, locationId?: string): Promise<InsightResponse[]> {
