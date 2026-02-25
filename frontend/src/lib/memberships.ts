@@ -16,19 +16,24 @@ type AssignClientMembershipInput = {
   trialDays?: number;
 };
 
-export function listLocationPlans(): Promise<MembershipPlan[]> {
-  return apiFetch<MembershipPlan[]>('/api/location/plans');
+type UpdateClientMembershipInput = {
+  status: ClientMembershipStatus;
+  adminOverride?: boolean;
+};
+
+export function listLocationPlans(gymId: string): Promise<MembershipPlan[]> {
+  return apiFetch<MembershipPlan[]>(`/api/gyms/${gymId}/plans`);
 }
 
-export function createLocationPlan(input: UpsertMembershipPlanInput): Promise<MembershipPlan> {
-  return apiFetch<MembershipPlan>('/api/location/plans', {
+export function createLocationPlan(gymId: string, input: UpsertMembershipPlanInput): Promise<MembershipPlan> {
+  return apiFetch<MembershipPlan>(`/api/gyms/${gymId}/plans`, {
     method: 'POST',
     body: input,
   });
 }
 
-export function updateLocationPlan(planId: string, input: Partial<UpsertMembershipPlanInput>): Promise<MembershipPlan> {
-  return apiFetch<MembershipPlan>(`/api/location/plans/${planId}`, {
+export function updateLocationPlan(gymId: string, planId: string, input: Partial<UpsertMembershipPlanInput>): Promise<MembershipPlan> {
+  return apiFetch<MembershipPlan>(`/api/gyms/${gymId}/plans/${planId}`, {
     method: 'PATCH',
     body: input,
   });
@@ -38,9 +43,16 @@ export function getClientMembership(userId: string): Promise<ClientMembership | 
   return apiFetch<ClientMembership | null>(`/api/location/clients/${userId}/membership`);
 }
 
-export function assignClientMembership(userId: string, input: AssignClientMembershipInput): Promise<ClientMembership> {
-  return apiFetch<ClientMembership>(`/api/location/clients/${userId}/membership`, {
+export function assignClientMembership(gymId: string, userId: string, input: AssignClientMembershipInput): Promise<ClientMembership> {
+  return apiFetch<ClientMembership>(`/api/gyms/${gymId}/clients/${userId}/memberships`, {
     method: 'POST',
+    body: input,
+  });
+}
+
+export function updateClientMembership(membershipId: string, input: UpdateClientMembershipInput): Promise<ClientMembership> {
+  return apiFetch<ClientMembership>(`/api/client-memberships/${membershipId}`, {
+    method: 'PATCH',
     body: input,
   });
 }

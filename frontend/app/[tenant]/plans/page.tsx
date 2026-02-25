@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Badge, Button, Card, EmptyState, Input, PageHeader, PageShell, Table } from '../../components/ui';
 import { useToast } from '../../../src/components/toast/ToastProvider';
 import { createLocationPlan, listLocationPlans, updateLocationPlan } from '../../../src/lib/memberships';
+import { useAuth } from '../../../src/providers/AuthProvider';
 import { MembershipPlan, MembershipPlanInterval } from '../../../src/types/memberships';
 
 const intervalLabels: Record<MembershipPlanInterval, string> = {
@@ -16,6 +17,8 @@ const intervalLabels: Record<MembershipPlanInterval, string> = {
 
 export default function PlansPage() {
   const toast = useToast();
+  const { activeContext } = useAuth();
+  const activeGymId = activeContext?.locationId ?? null;
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,11 @@ export default function PlansPage() {
   const loadPlans = async () => {
     try {
       setLoading(true);
-      setPlans(await listLocationPlans());
+      if (!activeGymId) {
+        setPlans([]);
+        return;
+      }
+      setPlans(await listLocationPlans(activeGymId));
     } catch (error) {
       toast.error('Unable to load plans', error instanceof Error ? error.message : 'Please try again later.');
     } finally {
@@ -37,13 +44,18 @@ export default function PlansPage() {
 
   useEffect(() => {
     void loadPlans();
-  }, []);
+  }, [activeGymId]);
 
   const onCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       setSaving(true);
-      await createLocationPlan({
+      if (!activeGymId) {
+        toast.error('Select a location', 'Choose a location context before creating plans.');
+        return;
+      }
+
+      await createLocationPlan(activeGymId, {
         name: form.name,
         description: form.description || undefined,
         interval: form.interval,
@@ -63,7 +75,12 @@ export default function PlansPage() {
   const togglePlan = async (plan: MembershipPlan) => {
     try {
       setSaving(true);
-      await updateLocationPlan(plan.id, { isActive: !plan.isActive });
+      if (!activeGymId) {
+        toast.error('Select a location', 'Choose a location context before updating plans.');
+        return;
+      }
+
+      await updateLocationPlan(activeGymId, plan.id, { isActive: !plan.isActive });
       toast.success('Plan updated', `${plan.name} is now ${plan.isActive ? 'inactive' : 'active'}.`);
       await loadPlans();
     } catch (error) {
