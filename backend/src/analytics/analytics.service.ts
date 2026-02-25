@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { ClassBookingStatus, ClientMembershipStatus, MembershipRole, MembershipStatus } from '@prisma/client';
+import { ClassBookingStatus, ClientMembershipStatus, MembershipRole, MembershipStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../users/user.model';
 import { AskAiDto, AskScope } from './dto/ask-ai.dto';
@@ -326,39 +326,25 @@ export class AnalyticsService {
         this.prisma.clientMembership.count({ where: { locationId: location.id, createdAt: { gte: start, lte: end } } }),
       ]);
 
-      await this.prisma.$executeRawUnsafe(
-        `INSERT INTO "DailyLocationMetrics" ("id","tenantId","locationId","date","checkinsCount","bookingsCount","uniqueClientsCount","newClientsCount","canceledBookingsCount","createdAt")
-         VALUES (gen_random_uuid(), $1, $2, $3::date, $4, $5, $6, $7, $8, NOW())
-         ON CONFLICT ("locationId","date") DO UPDATE SET
+      await this.prisma.$executeRaw(Prisma.sql`
+        INSERT INTO "DailyLocationMetrics" ("id","tenantId","locationId","date","checkinsCount","bookingsCount","uniqueClientsCount","newClientsCount","canceledBookingsCount","createdAt")
+        VALUES (gen_random_uuid(), ${location.orgId}, ${location.id}, ${date}::date, ${checkinsCount}, ${bookingsCount}, ${uniqueClientsCount}, ${newClientsCount}, ${canceledBookingsCount}, NOW())
+        ON CONFLICT ("locationId","date") DO UPDATE SET
           "checkinsCount"=EXCLUDED."checkinsCount",
           "bookingsCount"=EXCLUDED."bookingsCount",
           "uniqueClientsCount"=EXCLUDED."uniqueClientsCount",
           "newClientsCount"=EXCLUDED."newClientsCount",
-          "canceledBookingsCount"=EXCLUDED."canceledBookingsCount"`,
-        location.orgId,
-        location.id,
-        date,
-        checkinsCount,
-        bookingsCount,
-        uniqueClientsCount,
-        newClientsCount,
-        canceledBookingsCount,
-      );
+          "canceledBookingsCount"=EXCLUDED."canceledBookingsCount"
+      `);
 
-      await this.prisma.$executeRawUnsafe(
-        `INSERT INTO "DailyMembershipMetrics" ("id","tenantId","locationId","date","activeMemberships","canceledMemberships","newMemberships","createdAt")
-         VALUES (gen_random_uuid(), $1, $2, $3::date, $4, $5, $6, NOW())
-         ON CONFLICT ("locationId","date") DO UPDATE SET
+      await this.prisma.$executeRaw(Prisma.sql`
+        INSERT INTO "DailyMembershipMetrics" ("id","tenantId","locationId","date","activeMemberships","canceledMemberships","newMemberships","createdAt")
+        VALUES (gen_random_uuid(), ${location.orgId}, ${location.id}, ${date}::date, ${activeMemberships}, ${canceledMemberships}, ${newMemberships}, NOW())
+        ON CONFLICT ("locationId","date") DO UPDATE SET
           "activeMemberships"=EXCLUDED."activeMemberships",
           "canceledMemberships"=EXCLUDED."canceledMemberships",
-          "newMemberships"=EXCLUDED."newMemberships"`,
-        location.orgId,
-        location.id,
-        date,
-        activeMemberships,
-        canceledMemberships,
-        newMemberships,
-      );
+          "newMemberships"=EXCLUDED."newMemberships"
+      `);
     }
 
     return { date, locationsProcessed: locations.length };
@@ -369,18 +355,16 @@ export class AnalyticsService {
     await this.assertOwnerOrAdmin(user, tenantId);
 
     const normalizedLocationId = this.normalizeLocationId(locationId);
-    const rows = await this.prisma.$queryRawUnsafe<DbRow[]>(
-      `SELECT dlm."locationId", dlm."date", dlm."checkinsCount", dlm."bookingsCount", dlm."canceledBookingsCount", dmm."canceledMemberships"
+    const rows = await this.prisma.$queryRaw<DbRow[]>(Prisma.sql`
+      SELECT dlm."locationId", dlm."date", dlm."checkinsCount", dlm."bookingsCount", dlm."canceledBookingsCount", dmm."canceledMemberships"
        FROM "DailyLocationMetrics" dlm
        LEFT JOIN "DailyMembershipMetrics" dmm
          ON dmm."locationId" = dlm."locationId" AND dmm."date" = dlm."date"
-       WHERE dlm."tenantId" = $1
-         AND ($2::text IS NULL OR dlm."locationId" = $2::text)
+       WHERE dlm."tenantId" = ${tenantId}
+         AND (${normalizedLocationId}::text IS NULL OR dlm."locationId" = ${normalizedLocationId}::text)
        ORDER BY dlm."date" DESC
-       LIMIT 30`,
-      tenantId,
-      normalizedLocationId,
-    );
+       LIMIT 30
+    `);
 
     const insights: InsightResponse[] = [];
     const nowIso = new Date().toISOString();
@@ -463,19 +447,16 @@ export class AnalyticsService {
     }
 
     for (const insight of insights) {
-      await this.prisma.$executeRawUnsafe(
-        `INSERT INTO "InsightLog" ("id","tenantId","locationId","insightType","payload","createdAt") VALUES (gen_random_uuid(), $1, $2, $3, $4::jsonb, NOW())`,
-        tenantId,
-        insight.locationId,
-        insight.id,
-        JSON.stringify({
+      await this.prisma.$executeRaw(Prisma.sql`
+        INSERT INTO "InsightLog" ("id","tenantId","locationId","insightType","payload","createdAt")
+        VALUES (gen_random_uuid(), ${tenantId}, ${insight.locationId}, ${insight.id}, ${JSON.stringify({
           severity: insight.severity,
           title: insight.title,
           summary: insight.summary,
           recommendedActions: insight.recommendedActions,
           metricRefs: insight.metricRefs,
-        }),
-      );
+        })}::jsonb, NOW())
+      `);
     }
 
     return insights;
@@ -484,14 +465,12 @@ export class AnalyticsService {
   async listInsightHistory(user: User, locationId?: string): Promise<InsightResponse[]> {
     const tenantId = this.resolveTenantId(user);
     await this.assertOwnerOrAdmin(user, tenantId);
-    const rows = await this.prisma.$queryRawUnsafe<DbRow[]>(
-      `SELECT "id", "locationId", "payload", "createdAt"
+    const rows = await this.prisma.$queryRaw<DbRow[]>(Prisma.sql`
+      SELECT "id", "locationId", "payload", "createdAt"
        FROM "InsightLog"
-       WHERE "tenantId" = $1 AND ($2::text IS NULL OR "locationId" = $2::text)
-       ORDER BY "createdAt" DESC LIMIT 100`,
-      tenantId,
-      locationId ?? null,
-    );
+       WHERE "tenantId" = ${tenantId} AND (${locationId ?? null}::text IS NULL OR "locationId" = ${locationId ?? null}::text)
+       ORDER BY "createdAt" DESC LIMIT 100
+    `);
 
     return rows.map((row) => {
       const payload = typeof row.payload === 'object' && row.payload !== null ? (row.payload as Record<string, unknown>) : {};
@@ -554,16 +533,14 @@ export class AnalyticsService {
   }
 
   private async getAttendanceTrend(tenantId: string, locationId?: string): Promise<Array<{ date: string; value: number }>> {
-    const rows = await this.prisma.$queryRawUnsafe<DbRow[]>(
-      `SELECT "date", SUM("checkinsCount")::int AS value
+    const rows = await this.prisma.$queryRaw<DbRow[]>(Prisma.sql`
+      SELECT "date", SUM("checkinsCount")::int AS value
        FROM "DailyLocationMetrics"
-       WHERE "tenantId" = $1 AND ($2::text IS NULL OR "locationId" = $2::text)
+       WHERE "tenantId" = ${tenantId} AND (${locationId ?? null}::text IS NULL OR "locationId" = ${locationId ?? null}::text)
        GROUP BY "date"
        ORDER BY "date" DESC
-       LIMIT 30`,
-      tenantId,
-      locationId ?? null,
-    );
+       LIMIT 30
+    `);
 
     return rows.map((row) => ({ date: String(row.date), value: Number(row.value ?? 0) })).reverse();
   }
@@ -604,14 +581,12 @@ export class AnalyticsService {
   }
 
   private async getMembershipChanges(tenantId: string, locationId?: string): Promise<{ newMemberships: number; canceledMemberships: number }> {
-    const rows = await this.prisma.$queryRawUnsafe<DbRow[]>(
-      `SELECT COALESCE(SUM("newMemberships"),0)::int AS "newMemberships", COALESCE(SUM("canceledMemberships"),0)::int AS "canceledMemberships"
+    const rows = await this.prisma.$queryRaw<DbRow[]>(Prisma.sql`
+      SELECT COALESCE(SUM("newMemberships"),0)::int AS "newMemberships", COALESCE(SUM("canceledMemberships"),0)::int AS "canceledMemberships"
        FROM "DailyMembershipMetrics"
-       WHERE "tenantId" = $1 AND ($2::text IS NULL OR "locationId" = $2::text)
-       AND "date" >= CURRENT_DATE - INTERVAL '30 day'`,
-      tenantId,
-      locationId ?? null,
-    );
+       WHERE "tenantId" = ${tenantId} AND (${locationId ?? null}::text IS NULL OR "locationId" = ${locationId ?? null}::text)
+       AND "date" >= CURRENT_DATE - INTERVAL '30 day'
+    `);
 
     return {
       newMemberships: Number(rows[0]?.newMemberships ?? 0),

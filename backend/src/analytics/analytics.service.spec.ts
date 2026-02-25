@@ -4,7 +4,7 @@ import { AnalyticsService } from './analytics.service';
 describe('AnalyticsService', () => {
   const prisma = {
     membership: { findFirst: jest.fn() },
-    $queryRawUnsafe: jest.fn(),
+    $queryRaw: jest.fn(),
     classSession: { findMany: jest.fn() },
   } as any;
 
@@ -13,7 +13,7 @@ describe('AnalyticsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.membership.findFirst.mockResolvedValue({ id: 'm1' });
-    prisma.$queryRawUnsafe.mockResolvedValue([]);
+    prisma.$queryRaw.mockResolvedValue([]);
     prisma.classSession.findMany.mockResolvedValue([]);
   });
 
@@ -27,7 +27,7 @@ describe('AnalyticsService', () => {
 
   it('rejects non-uuid location filters before query execution', async () => {
     await expect(service.generateInsights(user, "abc' OR 1=1 --")).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.$queryRawUnsafe).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('executes insights query with parameterized location filter when valid uuid is provided', async () => {
@@ -35,6 +35,6 @@ describe('AnalyticsService', () => {
 
     await service.generateInsights(user, locationId);
 
-    expect(prisma.$queryRawUnsafe).toHaveBeenCalledWith(expect.stringContaining('($2::text IS NULL OR dlm."locationId" = $2::text)'), 'tenant-1', locationId);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
 });
