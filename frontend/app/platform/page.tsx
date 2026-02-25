@@ -15,6 +15,33 @@ type DashboardSummary = {
   invites: number;
 };
 
+type DailyMetricPoint = {
+  date: string;
+  bookings: number;
+  checkins: number;
+  uniqueClients: number;
+  newClients: number;
+  canceledBookings: number;
+  activeMemberships: number;
+  canceledMemberships: number;
+  newMemberships: number;
+};
+
+type GymMetricsResponse = {
+  gymId: string;
+  from: string;
+  to: string;
+  kpis: {
+    bookings: number;
+    checkins: number;
+    newClients: number;
+    churnedMemberships: number;
+    newMemberships: number;
+    latestActiveMemberships: number;
+  };
+  daily: DailyMetricPoint[];
+};
+
 type MemberRow = {
   id: string;
   name: string;
@@ -61,6 +88,7 @@ export default function PlatformPage() {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [metrics, setMetrics] = useState<GymMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,6 +116,27 @@ export default function PlatformPage() {
         setGyms(gymList);
         setUsers(userList);
         setSummary(dashboard);
+
+        if (gymList.length > 0) {
+          const toDate = new Date();
+          const fromDate = new Date();
+          fromDate.setDate(toDate.getDate() - 29);
+          const from = fromDate.toISOString().slice(0, 10);
+          const to = toDate.toISOString().slice(0, 10);
+
+          try {
+            const metricsResponse = await apiFetch<GymMetricsResponse>(`/api/gyms/${gymList[0].id}/metrics?from=${from}&to=${to}`, { method: "GET" });
+            if (active) {
+              setMetrics(metricsResponse);
+            }
+          } catch {
+            if (active) {
+              setMetrics(null);
+            }
+          }
+        } else {
+          setMetrics(null);
+        }
 
         const errors = [gymListResult, userListResult, dashboardResult]
           .filter((result): result is PromiseRejectedResult => result.status === "rejected")
@@ -128,6 +177,7 @@ export default function PlatformPage() {
   }, [users]);
 
   const mrr = summary?.mrr ?? null;
+  const chartMax = Math.max(...(metrics?.daily.map((item) => Math.max(item.bookings, item.checkins)) ?? [0]));
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-background px-4 pb-6 pt-4 text-foreground sm:px-6 lg:px-8">
@@ -156,6 +206,42 @@ export default function PlatformPage() {
         <DashboardStat label="Members" value={String(summary?.members ?? users.length)} />
         <DashboardStat label="MRR" value={mrr === null ? "—" : `$${mrr.toFixed(2)}`} hint={mrr === null ? "Not available" : "Monthly recurring revenue"} />
         <DashboardStat label="Invites" value={String(summary?.invites ?? 0)} hint="Pending organization invites" />
+        </section>
+
+        <section className="grid gap-3 sm:gap-4 lg:gap-6 md:grid-cols-2 xl:grid-cols-5">
+          <DashboardStat label="Bookings (30d)" value={String(metrics?.kpis.bookings ?? 0)} hint="Class bookings created" />
+          <DashboardStat label="Check-ins (30d)" value={String(metrics?.kpis.checkins ?? 0)} hint="Completed check-ins" />
+          <DashboardStat label="New clients (30d)" value={String(metrics?.kpis.newClients ?? 0)} hint="New client profiles" />
+          <DashboardStat label="Membership churn (30d)" value={String(metrics?.kpis.churnedMemberships ?? 0)} hint="Canceled memberships" />
+          <DashboardStat label="Active memberships" value={String(metrics?.kpis.latestActiveMemberships ?? 0)} hint="Latest daily snapshot" />
+        </section>
+
+        <section className={shellCardClassName("p-4 sm:p-5")}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">Bookings & check-ins trend (30d)</h2>
+          </div>
+          {!metrics || metrics.daily.length === 0 ? (
+            <EmptyState title="No metrics data yet" description="Daily location metrics will appear after bookings and check-ins are recorded." />
+          ) : (
+            <div className="space-y-3">
+              <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${metrics.daily.length}, minmax(0, 1fr))` }}>
+                {metrics.daily.map((point) => {
+                  const bookingHeight = chartMax > 0 ? Math.max(4, Math.round((point.bookings / chartMax) * 80)) : 4;
+                  const checkinHeight = chartMax > 0 ? Math.max(4, Math.round((point.checkins / chartMax) * 80)) : 4;
+                  return (
+                    <div className="flex h-24 items-end gap-0.5" key={point.date} title={`${point.date}: ${point.bookings} bookings, ${point.checkins} check-ins`}>
+                      <span className="w-1.5 rounded-sm bg-blue-500/80" style={{ height: `${bookingHeight}%` }} />
+                      <span className="w-1.5 rounded-sm bg-emerald-500/80" style={{ height: `${checkinHeight}%` }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500/80" />Bookings</span>
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500/80" />Check-ins</span>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
