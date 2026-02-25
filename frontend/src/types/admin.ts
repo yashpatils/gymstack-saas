@@ -132,3 +132,53 @@ export type AdminTenantDetail = {
     adminUserId: string;
   }>;
 };
+
+export type AdminOrgListResponse = {
+  items: Array<{
+    id: string;
+    name: string;
+    createdAt: string;
+    subscriptionStatus: string;
+    mrrCents: number;
+    gymsCount: number;
+    usersCount: number;
+    isDisabled: boolean;
+  }>;
+  total: number;
+};
+
+export type AdminOrgDetail = {
+  org: {
+    id: string;
+    name: string;
+    createdAt: string;
+    isDisabled: boolean;
+    disabledAt: string | null;
+    subscriptionStatus: string | null;
+  };
+  subscription: {
+    subscriptionStatus: string;
+    priceId: string | null;
+    mrrCents: number;
+  };
+  gyms: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    createdAt: string;
+  }>;
+  keyUsers: Array<{
+    id: string;
+    email: string;
+    role: string;
+    subscriptionStatus: string;
+    stripeSubscriptionId: string | null;
+  }>;
+  events: Array<{
+    id: string;
+    type: string;
+    metadata: unknown;
+    createdAt: string;
+    adminUserId: string;
+  }>;
+};

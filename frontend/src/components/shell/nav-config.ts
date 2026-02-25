@@ -43,9 +43,10 @@ export const platformNavItems: AppNavItem[] = [
 
 export const adminNavItems: AppNavItem[] = [
   { label: "Dashboard", href: "/admin", requiresRole: "PLATFORM_ADMIN", icon: icon("gauge"), section: "core" },
-  { label: "Tenants", href: "/admin/tenants", requiresRole: "PLATFORM_ADMIN", icon: icon("building"), section: "core" },
+  { label: "Organizations", href: "/admin/orgs", requiresRole: "PLATFORM_ADMIN", icon: icon("building"), section: "core" },
   { label: "Users", href: "/admin/users", requiresRole: "PLATFORM_ADMIN", icon: icon("users"), section: "core" },
   { label: "Audit", href: "/admin/audit", requiresRole: "PLATFORM_ADMIN", icon: icon("activity"), section: "operations" },
   { label: "Growth", href: "/admin/growth", requiresRole: "PLATFORM_ADMIN", icon: icon("chart"), section: "operations" },
+  { label: "Metrics", href: "/admin/metrics", requiresRole: "PLATFORM_ADMIN", icon: icon("pulse"), section: "operations" },
   { label: "Backups", href: "/admin/backups", requiresRole: "PLATFORM_ADMIN", icon: icon("database"), section: "operations" },
 ];
