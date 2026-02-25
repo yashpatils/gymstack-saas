@@ -62,6 +62,11 @@ export class AdminController {
     return this.adminService.listAudit({ tenantId, action, actor, from, to, limit: limit ? Number.parseInt(limit, 10) : undefined, cursor });
   }
 
+  @Get('ops/migration-status')
+  migrationStatus() {
+    return this.adminService.getMigrationStatus();
+  }
+
   @Get('users')
   users(@Query('query') query?: string) {
     return this.adminService.searchUsers(query);

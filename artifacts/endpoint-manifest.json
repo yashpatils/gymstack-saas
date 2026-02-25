@@ -1,0 +1,2170 @@
+[
+  {
+    "method": "GET",
+    "path": "",
+    "controller": "AppController",
+    "handler": "getRoot",
+    "sourceFile": "backend/src/app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/cancel-deletion",
+    "controller": "AccountController",
+    "handler": "cancelDeletion",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/confirm-delete",
+    "controller": "AccountController",
+    "handler": "confirmDelete",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/confirm-deletion",
+    "controller": "AccountController",
+    "handler": "confirmDeletion",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/account/deletion-status",
+    "controller": "AccountController",
+    "handler": "getDeletionStatus",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/account/display-name",
+    "controller": "AccountController",
+    "handler": "updateDisplayName",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/email-change/request-otp",
+    "controller": "AccountController",
+    "handler": "requestEmailChangeOtp",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/email-change/verify-otp",
+    "controller": "AccountController",
+    "handler": "verifyEmailChangeOtp",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/request-delete",
+    "controller": "AccountController",
+    "handler": "requestDelete",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/account/request-deletion",
+    "controller": "AccountController",
+    "handler": "requestDeletion",
+    "sourceFile": "backend/src/account/account.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/ai/usage",
+    "controller": "AdminController",
+    "handler": "aiUsage",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/analytics/growth",
+    "controller": "AdminController",
+    "handler": "analyticsGrowth",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/analytics/health",
+    "controller": "AdminController",
+    "handler": "analyticsHealth",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/analytics/overview",
+    "controller": "AdminController",
+    "handler": "analyticsOverview",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/analytics/usage",
+    "controller": "AdminController",
+    "handler": "analyticsUsage",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/audit",
+    "controller": "AdminController",
+    "handler": "audit",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/backups",
+    "controller": "DataExportController",
+    "handler": "listBackups",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/backups/:id/restore",
+    "controller": "DataExportController",
+    "handler": "applyRestore",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/backups/:id/restore/preview",
+    "controller": "DataExportController",
+    "handler": "previewRestore",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/backups/tenant/:tenantId",
+    "controller": "DataExportController",
+    "handler": "createBackup",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/changelog",
+    "controller": "FeedbackController",
+    "handler": "listAdminChangelog",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/changelog",
+    "controller": "FeedbackController",
+    "handler": "createChangelog",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/feature-flags",
+    "controller": "FeatureFlagsController",
+    "handler": "listAll",
+    "sourceFile": "backend/src/feature-flags/feature-flags.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/feature-flags",
+    "controller": "FeatureFlagsController",
+    "handler": "create",
+    "sourceFile": "backend/src/feature-flags/feature-flags.controller.ts",
+    "guards": [
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/feature-flags/:id",
+    "controller": "FeatureFlagsController",
+    "handler": "update",
+    "sourceFile": "backend/src/feature-flags/feature-flags.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/feedback",
+    "controller": "FeedbackController",
+    "handler": "listFeedback",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/feedback/:id",
+    "controller": "FeedbackController",
+    "handler": "updateFeedback",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/growth",
+    "controller": "AdminController",
+    "handler": "growth",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/impersonate",
+    "controller": "AdminController",
+    "handler": "impersonate",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/impersonations",
+    "controller": "AdminController",
+    "handler": "impersonations",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/integrations/api-keys",
+    "controller": "AdminController",
+    "handler": "apiKeys",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/integrations/api-keys/:id/revoke",
+    "controller": "AdminController",
+    "handler": "revokeIntegrationApiKey",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/integrations/webhook-failures",
+    "controller": "AdminController",
+    "handler": "webhookFailures",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/ops/migration-status",
+    "controller": "AdminController",
+    "handler": "migrationStatus",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/overview",
+    "controller": "AdminController",
+    "handler": "overview",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/recompute-metrics",
+    "controller": "AnalyticsController",
+    "handler": "recomputeMetrics",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "PlanGatingGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/release-status",
+    "controller": "FeedbackController",
+    "handler": "getReleaseStatus",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/release-status",
+    "controller": "FeedbackController",
+    "handler": "updateReleaseStatus",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/tenants",
+    "controller": "AdminController",
+    "handler": "tenants",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/tenants/:tenantId",
+    "controller": "AdminController",
+    "handler": "if",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/tenants/:tenantId/features",
+    "controller": "AdminController",
+    "handler": "setTenantFeatures",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/tenants/:tenantId/plan",
+    "controller": "AdminController",
+    "handler": "tenantPlan",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/tenants/:tenantId/plan",
+    "controller": "AdminController",
+    "handler": "updateTenantPlan",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/tenants/:tenantId/toggle-active",
+    "controller": "AdminController",
+    "handler": "toggleTenantActive",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/users",
+    "controller": "AdminController",
+    "handler": "users",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/admin/users/:id",
+    "controller": "AdminController",
+    "handler": "if",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/admin/users/:id/revoke-sessions",
+    "controller": "AdminController",
+    "handler": "revokeSessions",
+    "sourceFile": "backend/src/admin/admin.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/ai/ask",
+    "controller": "AnalyticsController",
+    "handler": "ask",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/ai/weekly-brief",
+    "controller": "AiInsightsController",
+    "handler": "getWeeklyBrief",
+    "sourceFile": "backend/src/ai-insights/ai-insights.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/locations",
+    "controller": "AnalyticsController",
+    "handler": "getLocations",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/overview",
+    "controller": "AnalyticsController",
+    "handler": "getOverview",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/top-classes",
+    "controller": "AnalyticsController",
+    "handler": "getTopClasses",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/trends",
+    "controller": "AnalyticsController",
+    "handler": "getTrends",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/api/campaigns",
+    "controller": "CampaignsController",
+    "handler": "list",
+    "sourceFile": "backend/src/campaigns/campaigns.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/api/campaigns/generate",
+    "controller": "CampaignsController",
+    "handler": "generate",
+    "sourceFile": "backend/src/campaigns/campaigns.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/api/campaigns/send",
+    "controller": "CampaignsController",
+    "handler": "send",
+    "sourceFile": "backend/src/campaigns/campaigns.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/api/health",
+    "controller": "AppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/audit",
+    "controller": "AuditController",
+    "handler": "listAuditLogs",
+    "sourceFile": "backend/src/audit/audit.controller.ts",
+    "guards": [
+      "RolesGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/2fa/send",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/2fa/verify",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/admin/login",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/forgot-password",
+    "controller": "AuthController",
+    "handler": "forgotPassword",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "controller": "AuthController",
+    "handler": "login",
+    "sourceFile": "backend/src/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login/otp/resend",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login/otp/verify",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/logout",
+    "controller": "AuthController",
+    "handler": "logout",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/auth/me",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/auth/me",
+    "controller": "AuthController",
+    "handler": "me",
+    "sourceFile": "backend/src/auth.controller.ts",
+    "guards": [
+      "AuthGuard('jwt'"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/oauth/apple/callback",
+    "controller": "OauthController",
+    "handler": "if",
+    "sourceFile": "backend/src/auth/oauth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/auth/oauth/apple/start",
+    "controller": "OauthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/oauth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/auth/oauth/google/callback",
+    "controller": "OauthController",
+    "handler": "if",
+    "sourceFile": "backend/src/auth/oauth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/auth/oauth/google/start",
+    "controller": "OauthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/oauth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/refresh",
+    "controller": "AuthController",
+    "handler": "refresh",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/register-with-invite",
+    "controller": "AuthController",
+    "handler": "registerWithInvite",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/register",
+    "controller": "AuthController",
+    "handler": "requireRequestedWithHeader",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/resend-verification-authenticated",
+    "controller": "AuthController",
+    "handler": "resendVerificationAuthenticated",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/resend-verification",
+    "controller": "AuthController",
+    "handler": "resendVerification",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/reset-password",
+    "controller": "AuthController",
+    "handler": "resetPassword",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/set-context",
+    "controller": "AuthController",
+    "handler": "setContext",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/set-mode",
+    "controller": "AuthController",
+    "handler": "setMode",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/signup",
+    "controller": "AuthController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/signup",
+    "controller": "AuthController",
+    "handler": "signup",
+    "sourceFile": "backend/src/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/auth/verify-email",
+    "controller": "AuthController",
+    "handler": "verifyEmail",
+    "sourceFile": "backend/src/auth/auth.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/billing/checkout",
+    "controller": "BillingController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/billing/billing.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/billing/portal",
+    "controller": "BillingController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/billing/billing.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/billing/status",
+    "controller": "BillingController",
+    "handler": "if",
+    "sourceFile": "backend/src/billing/billing.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/billing/webhook/razorpay",
+    "controller": "StripeWebhookController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/billing/stripe-webhook.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/billing/webhook/stripe",
+    "controller": "StripeWebhookController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/billing/stripe-webhook.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/changelog",
+    "controller": "FeedbackController",
+    "handler": "listChangelog",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/client/me",
+    "controller": "ClientPortalController",
+    "handler": "getMyClientPortal",
+    "sourceFile": "backend/src/client-portal/client-portal.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/db/ping",
+    "controller": "AppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/debug/routes",
+    "controller": "DebugController",
+    "handler": "getRoutes",
+    "sourceFile": "backend/src/debug/debug.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/demo/access",
+    "controller": "DemoController",
+    "handler": "access",
+    "sourceFile": "backend/src/demo/demo.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/demo/reset",
+    "controller": "DemoController",
+    "handler": "reset",
+    "sourceFile": "backend/src/demo/demo.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/developer/api-keys",
+    "controller": "DeveloperController",
+    "handler": "apiKeys",
+    "sourceFile": "backend/src/developer/developer.controller.ts",
+    "guards": [
+      "JwtAuthGuard",
+      "PlanGatingGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/developer/api-keys",
+    "controller": "DeveloperController",
+    "handler": "createApiKey",
+    "sourceFile": "backend/src/developer/developer.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/developer/api-keys/:id/revoke",
+    "controller": "DeveloperController",
+    "handler": "revokeApiKey",
+    "sourceFile": "backend/src/developer/developer.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/developer/webhooks",
+    "controller": "DeveloperController",
+    "handler": "webhooks",
+    "sourceFile": "backend/src/developer/developer.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/developer/webhooks",
+    "controller": "DeveloperController",
+    "handler": "createWebhook",
+    "sourceFile": "backend/src/developer/developer.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/developer/webhooks/deliveries/:deliveryId/retry",
+    "controller": "DeveloperController",
+    "handler": "retry",
+    "sourceFile": "backend/src/developer/developer.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/developers",
+    "controller": "DevelopersController",
+    "handler": "getDocs",
+    "sourceFile": "backend/src/developers/developers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/domains",
+    "controller": "DomainsController",
+    "handler": "list",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/domains",
+    "controller": "DomainsController",
+    "handler": "create",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [
+      "PlanGatingGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "DELETE",
+    "path": "/domains/:id",
+    "controller": "DomainsController",
+    "handler": "remove",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/domains/:id/verify",
+    "controller": "DomainsController",
+    "handler": "verify",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/domains/location/request-verification",
+    "controller": "DomainsController",
+    "handler": "requestLocationVerification",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/domains/location/set",
+    "controller": "DomainsController",
+    "handler": "setLocationDomain",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/domains/location/verify",
+    "controller": "DomainsController",
+    "handler": "verifyLocationDomain",
+    "sourceFile": "backend/src/domains/domains.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/exports",
+    "controller": "DataExportController",
+    "handler": "listJobs",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/exports",
+    "controller": "DataExportController",
+    "handler": "createJob",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/exports/:id/download",
+    "controller": "DataExportController",
+    "handler": "download",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/exports/files/:token",
+    "controller": "DataExportController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/data-export/data-export.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/feature-flags",
+    "controller": "FeatureFlagsController",
+    "handler": "getEffective",
+    "sourceFile": "backend/src/feature-flags/feature-flags.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/feedback",
+    "controller": "FeedbackController",
+    "handler": "createFeedback",
+    "sourceFile": "backend/src/feedback/feedback.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms",
+    "controller": "GymsController",
+    "handler": "listGyms",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/gyms",
+    "controller": "GymsController",
+    "handler": "createGym",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/:gymId/clients",
+    "controller": "GymsController",
+    "handler": "listGymClients",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/gyms/:gymId/clients",
+    "controller": "GymsController",
+    "handler": "createGymClient",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/gyms/:gymId/invites",
+    "controller": "GymsController",
+    "handler": "createGymInvite",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "DELETE",
+    "path": "/gyms/:id",
+    "controller": "GymsController",
+    "handler": "deleteGym",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/:id",
+    "controller": "GymsController",
+    "handler": "getGym",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/gyms/:id",
+    "controller": "GymsController",
+    "handler": "updateGym",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/gyms/:id/owner",
+    "controller": "GymsController",
+    "handler": "updateGymOwner",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/:id/settings",
+    "controller": "SettingsController",
+    "handler": "getLocationSettings",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/gyms/:id/settings",
+    "controller": "SettingsController",
+    "handler": "updateLocationSettings",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/gyms/slug-availability",
+    "controller": "GymsController",
+    "handler": "checkSlugAvailability",
+    "sourceFile": "backend/src/gyms/gyms.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/health",
+    "controller": "AppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/invites",
+    "controller": "InvitesController",
+    "handler": "listInvites",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites",
+    "controller": "InvitesController",
+    "handler": "createInvite",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "DELETE",
+    "path": "/invites/:id",
+    "controller": "InvitesController",
+    "handler": "revokeInviteById",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/invites/:token",
+    "controller": "InvitesController",
+    "handler": "getInviteByToken",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/:token/accept",
+    "controller": "InvitesController",
+    "handler": "acceptInviteByToken",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/clients",
+    "controller": "InvitesController",
+    "handler": "createClientInvite",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/consume-auth",
+    "controller": "InvitesController",
+    "handler": "consumeInvite",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/consume",
+    "controller": "TenantController",
+    "handler": "consumeInvite",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/location-staff",
+    "controller": "InvitesController",
+    "handler": "createLocationStaffInvite",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/revoke",
+    "controller": "InvitesController",
+    "handler": "revokeInvite",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/invites/validate",
+    "controller": "InvitesController",
+    "handler": "validateInviteQuery",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/invites/validate",
+    "controller": "InvitesController",
+    "handler": "validateInvite",
+    "sourceFile": "backend/src/invites/invites.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/leads",
+    "controller": "LeadsController",
+    "handler": "create",
+    "sourceFile": "backend/src/leads/leads.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/attendance/today",
+    "controller": "LocationAppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/location-app/location-app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/classes",
+    "controller": "ScheduleController",
+    "handler": "listClasses",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/classes",
+    "controller": "ScheduleController",
+    "handler": "createClass",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/location/classes/:classId",
+    "controller": "ScheduleController",
+    "handler": "updateClass",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/classes/:classId/deactivate",
+    "controller": "ScheduleController",
+    "handler": "deactivateClass",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/clients/:userId/membership",
+    "controller": "LocationMembershipsController",
+    "handler": "getClientMembership",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/clients/:userId/membership",
+    "controller": "LocationMembershipsController",
+    "handler": "assignClientMembership",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/me/attendance",
+    "controller": "LocationAppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/location-app/location-app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/me/booking-access",
+    "controller": "LocationMembershipsController",
+    "handler": "getBookingAccess",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/me/membership",
+    "controller": "LocationMembershipsController",
+    "handler": "getMyMembership",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/members",
+    "controller": "LocationAppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/location-app/location-app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/members/:memberId/check-in",
+    "controller": "LocationAppController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/location-app/location-app.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/my-bookings",
+    "controller": "ScheduleController",
+    "handler": "myBookings",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/plans",
+    "controller": "LocationMembershipsController",
+    "handler": "listPlans",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [
+      "PermissionsGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/plans",
+    "controller": "LocationMembershipsController",
+    "handler": "createPlan",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/location/plans/:planId",
+    "controller": "LocationMembershipsController",
+    "handler": "updatePlan",
+    "sourceFile": "backend/src/location-memberships/location-memberships.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/schedule",
+    "controller": "ScheduleController",
+    "handler": "browse",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/sessions",
+    "controller": "ScheduleController",
+    "handler": "listSessions",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/sessions",
+    "controller": "ScheduleController",
+    "handler": "createSession",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/sessions/:sessionId/book",
+    "controller": "ScheduleController",
+    "handler": "book",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/sessions/:sessionId/cancel-booking",
+    "controller": "ScheduleController",
+    "handler": "cancelBooking",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/sessions/:sessionId/cancel",
+    "controller": "ScheduleController",
+    "handler": "cancelSession",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/location/sessions/:sessionId/check-in",
+    "controller": "ScheduleController",
+    "handler": "checkIn",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/location/sessions/:sessionId/roster",
+    "controller": "ScheduleController",
+    "handler": "roster",
+    "sourceFile": "backend/src/schedule/schedule.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/locations/:locationId/branding",
+    "controller": "LocationManagersController",
+    "handler": "getBranding",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [
+      "RolesGuard",
+      "PermissionsGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/locations/:locationId/branding",
+    "controller": "LocationManagersController",
+    "handler": "updateBranding",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/locations/:locationId/custom-domain",
+    "controller": "LocationManagersController",
+    "handler": "configureCustomDomain",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/locations/:locationId/managers",
+    "controller": "LocationManagersController",
+    "handler": "getManagers",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/locations/:locationId/managers",
+    "controller": "LocationManagersController",
+    "handler": "addManager",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "DELETE",
+    "path": "/locations/:locationId/managers/:userId",
+    "controller": "LocationManagersController",
+    "handler": "deleteManager",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/locations/:locationId/verify-domain",
+    "controller": "LocationManagersController",
+    "handler": "verifyCustomDomain",
+    "sourceFile": "backend/src/gyms/location-managers.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/notifications",
+    "controller": "NotificationsController",
+    "handler": "listNotifications",
+    "sourceFile": "backend/src/notifications/notifications.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/notifications/:id/read",
+    "controller": "NotificationsController",
+    "handler": "markNotificationRead",
+    "sourceFile": "backend/src/notifications/notifications.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/onboarding/owner-ops-mode",
+    "controller": "OnboardingController",
+    "handler": "setOwnerOpsMode",
+    "sourceFile": "backend/src/onboarding/onboarding.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/org",
+    "controller": "OrganizationsController",
+    "handler": "getOrg",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/org",
+    "controller": "OrganizationsController",
+    "handler": "renameOrg",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/org/billing-provider",
+    "controller": "OrganizationsController",
+    "handler": "updateBillingProvider",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/org/dashboard-summary",
+    "controller": "OrganizationsController",
+    "handler": "getDashboardSummary",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/org/dashboard/summary",
+    "controller": "OrganizationsController",
+    "handler": "getDashboardSummary",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/org/growth-status",
+    "controller": "OrganizationsController",
+    "handler": "getGrowthStatus",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/org/white-label",
+    "controller": "OrganizationsController",
+    "handler": "updateWhiteLabel",
+    "sourceFile": "backend/src/organizations/organizations.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/orgs",
+    "controller": "OrgsController",
+    "handler": "listOrgs",
+    "sourceFile": "backend/src/organizations/orgs.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/orgs",
+    "controller": "OrgsController",
+    "handler": "createOrg",
+    "sourceFile": "backend/src/organizations/orgs.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/orgs/:id",
+    "controller": "OrgsController",
+    "handler": "getOrgDetail",
+    "sourceFile": "backend/src/organizations/orgs.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/orgs/:id",
+    "controller": "OrgsController",
+    "handler": "patchOrg",
+    "sourceFile": "backend/src/organizations/orgs.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/orgs/:id/members",
+    "controller": "OrgsController",
+    "handler": "getOrgMembers",
+    "sourceFile": "backend/src/organizations/orgs.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/orgs/:id/members/:membershipId",
+    "controller": "OrgsController",
+    "handler": "patchOrgMember",
+    "sourceFile": "backend/src/organizations/orgs.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/orgs/:id/settings",
+    "controller": "SettingsController",
+    "handler": "getOrganizationSettings",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/orgs/:id/settings",
+    "controller": "SettingsController",
+    "handler": "updateOrganizationSettings",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/platform/insights",
+    "controller": "AnalyticsController",
+    "handler": "listInsights",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [
+      "RequirePlatformAdminGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/platform/insights/generate",
+    "controller": "AnalyticsController",
+    "handler": "generateInsights",
+    "sourceFile": "backend/src/analytics/analytics.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/gyms/:slug",
+    "controller": "PublicController",
+    "handler": "gymBySlug",
+    "sourceFile": "backend/src/public/public.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/location-by-host",
+    "controller": "PublicController",
+    "handler": "locationByHost",
+    "sourceFile": "backend/src/public/public.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/locations/by-slug/:slug",
+    "controller": "PublicController",
+    "handler": "bySlug",
+    "sourceFile": "backend/src/public/public.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/sites/resolve",
+    "controller": "PublicController",
+    "handler": "resolve",
+    "sourceFile": "backend/src/public/public.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/public/v1/bookings",
+    "controller": "PublicApiController",
+    "handler": "createBooking",
+    "sourceFile": "backend/src/public-api/public-api.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/v1/classes",
+    "controller": "PublicApiController",
+    "handler": "classes",
+    "sourceFile": "backend/src/public-api/public-api.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/v1/locations",
+    "controller": "PublicApiController",
+    "handler": "locations",
+    "sourceFile": "backend/src/public-api/public-api.controller.ts",
+    "guards": [
+      "PublicApiAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/v1/members",
+    "controller": "PublicApiController",
+    "handler": "members",
+    "sourceFile": "backend/src/public-api/public-api.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/public/v1/sessions",
+    "controller": "PublicApiController",
+    "handler": "sessions",
+    "sourceFile": "backend/src/public-api/public-api.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/push/subscribe",
+    "controller": "PushController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/push/push.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/push/unsubscribe",
+    "controller": "PushController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/push/push.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/push/vapid-public-key",
+    "controller": "PushController",
+    "handler": "getVapidPublicKey",
+    "sourceFile": "backend/src/push/push.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/security/two-step/email/request-disable",
+    "controller": "SecurityController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/security/security.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/security/two-step/email/request-enable",
+    "controller": "SecurityController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/security/security.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/security/two-step/email/verify-disable",
+    "controller": "SecurityController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/security/security.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/security/two-step/email/verify-enable",
+    "controller": "SecurityController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/security/security.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/settings",
+    "controller": "SettingsController",
+    "handler": "getSettings",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/settings",
+    "controller": "SettingsController",
+    "handler": "updateSettings",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/support/ticket",
+    "controller": "SupportController",
+    "handler": "unknown",
+    "sourceFile": "backend/src/support/support.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/tenant/billing-provider",
+    "controller": "TenantBillingController",
+    "handler": "updateBillingProvider",
+    "sourceFile": "backend/src/organizations/tenant-billing.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/tenant/health",
+    "controller": "RetentionController",
+    "handler": "getHealth",
+    "sourceFile": "backend/src/retention/retention.controller.ts",
+    "guards": [
+      "JwtAuthGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/tenant/invites",
+    "controller": "TenantController",
+    "handler": "invites",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/tenant/invites",
+    "controller": "TenantController",
+    "handler": "createInvite",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/tenant/invites/:id/revoke",
+    "controller": "TenantController",
+    "handler": "revokeInvite",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/tenant/members",
+    "controller": "TenantController",
+    "handler": "members",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/tenant/members/:memberId",
+    "controller": "TenantController",
+    "handler": "updateMember",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/tenant/slug-availability",
+    "controller": "TenantController",
+    "handler": "slugAvailability",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/tenants/:tenantId/slug/change/request",
+    "controller": "TenantController",
+    "handler": "requestTenantSlugChange",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/tenants/:tenantId/slug/change/resend",
+    "controller": "TenantController",
+    "handler": "resendTenantSlugChangeOtp",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/tenants/:tenantId/slug/change/verify",
+    "controller": "TenantController",
+    "handler": "verifyTenantSlugChange",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/tenants/slug-availability",
+    "controller": "TenantController",
+    "handler": "slugAvailabilityV2",
+    "sourceFile": "backend/src/tenant/tenant.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/users",
+    "controller": "UsersController",
+    "handler": "listUsers",
+    "sourceFile": "backend/src/users/users.controller.ts",
+    "guards": [
+      "RolesGuard"
+    ],
+    "dtos": []
+  },
+  {
+    "method": "DELETE",
+    "path": "/users/:id",
+    "controller": "UsersController",
+    "handler": "deleteUser",
+    "sourceFile": "backend/src/users/users.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/users/:id",
+    "controller": "UsersController",
+    "handler": "getUser",
+    "sourceFile": "backend/src/users/users.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/users/:id",
+    "controller": "UsersController",
+    "handler": "updateUser",
+    "sourceFile": "backend/src/users/users.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/users/me",
+    "controller": "SettingsController",
+    "handler": "getMyProfile",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "GET",
+    "path": "/users/me",
+    "controller": "UsersController",
+    "handler": "getCurrentUser",
+    "sourceFile": "backend/src/users/users.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/users/me",
+    "controller": "SettingsController",
+    "handler": "updateMyProfile",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "POST",
+    "path": "/users/me/change-password",
+    "controller": "SettingsController",
+    "handler": "changeMyPassword",
+    "sourceFile": "backend/src/settings/settings.controller.ts",
+    "guards": [],
+    "dtos": []
+  },
+  {
+    "method": "PATCH",
+    "path": "/users/me/password",
+    "controller": "UsersController",
+    "handler": "changeMyPassword",
+    "sourceFile": "backend/src/users/users.controller.ts",
+    "guards": [],
+    "dtos": []
+  }
+]
