@@ -32,5 +32,5 @@ export function LoadingState({ message = "Loading..." }: { message?: string }) {
 }
 
 export function ErrorState({ message }: { message: string }) {
-  return <div className="rounded-[var(--radius-lg)] border border-rose-500/40 bg-rose-500/10 p-[var(--space-lg)] text-sm text-rose-700 dark:text-rose-200">{message}</div>;
+  return <div className="rounded-[var(--radius-lg)] border border-rose-500/40 bg-rose-500/10 p-[var(--space-lg)] text-sm text-destructive">{message}</div>;
 }

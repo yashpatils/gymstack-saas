@@ -266,7 +266,7 @@ export default function PlatformPage() {
           {!loading && gyms.length > 0 ? (
             <div className="overflow-x-auto rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
               <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="bg-muted/40 text-muted-foreground dark:bg-muted/20">
+                <thead className="bg-muted/40 text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-medium">Location</th>
                     <th className="px-4 py-3 font-medium">Domain</th>

@@ -32,7 +32,7 @@ export function LocationSwitcher({
     <label className="flex items-center gap-2 text-xs text-muted-foreground">
       <span className="sr-only">Active location</span>
       <select
-        className="input h-9 min-w-[180px] rounded-xl border-border bg-card text-sm text-card-foreground"
+        className="input h-9 w-full min-w-0 sm:min-w-[180px] rounded-xl border-border bg-card text-sm text-card-foreground"
         value={activeMode === "OWNER" ? "ALL" : (activeLocationId ?? "")}
         onChange={(event) => {
           void handleChange(event.target.value);

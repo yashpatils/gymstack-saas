@@ -104,15 +104,15 @@ export function PlatformAccountDropdown({ label, initials, onLogout }: PlatformA
               className="gs-account-dropdown z-[9999] overflow-y-auto rounded-2xl p-2"
               onClick={(event) => event.stopPropagation()}
             >
-              <Link href="/platform/account" className="block rounded-xl px-3 py-2 text-sm text-current hover:bg-muted focus:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+              <Link href="/platform/account" className="block rounded-xl px-3 py-2 text-sm text-foreground hover:bg-muted focus:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
                 Account info
               </Link>
-              <Link href="/platform/settings" className="mt-1 block rounded-xl px-3 py-2 text-sm text-current hover:bg-muted focus:bg-muted" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
+              <Link href="/platform/settings" className="mt-1 block rounded-xl px-3 py-2 text-sm text-foreground hover:bg-muted focus:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={(event) => { event.stopPropagation(); setIsOpen(false); }}>
                 Settings
               </Link>
               <button
                 type="button"
-                className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 focus:bg-red-500/15 focus:text-red-300"
+                className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10 focus:bg-destructive/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={async (event) => {
                   event.stopPropagation();
                   setIsOpen(false);

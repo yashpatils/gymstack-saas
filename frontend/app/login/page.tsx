@@ -289,7 +289,7 @@ function LoginPageContent() {
                   key={option.value}
                   type="button"
                   aria-pressed={isActive}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${isActive ? 'border-sky-300 bg-sky-500/20 text-sky-100 ring-2 ring-sky-300/60' : 'border-white/20 text-slate-200 hover:border-slate-300 hover:bg-white/5'}`}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${isActive ? 'border-primary/40 bg-primary/15 text-primary ring-2 ring-primary/40' : 'border-border text-foreground hover:border-primary/40 hover:bg-muted'}`}
                   onClick={() => setSelectedPersona(option.value)}
                 >
                   {option.label}
@@ -303,8 +303,8 @@ function LoginPageContent() {
         {error ? <Alert tone="error">{error}</Alert> : null}
 
         {isAdminHost && supportRequestId ? (
-          <details className="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-xs text-slate-300">
-            <summary className="cursor-pointer text-slate-200">Support info</summary>
+          <details className="rounded-xl border border-border bg-card/70 p-3 text-xs text-muted-foreground">
+            <summary className="cursor-pointer text-foreground">Support info</summary>
             <p className="mt-2">Request ID: <span className="font-mono">{supportRequestId}</span></p>
           </details>
         ) : null}
@@ -312,11 +312,11 @@ function LoginPageContent() {
         {flow.step === 'CREDENTIALS' ? (
           <>
             <Input label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            <Input label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-slate-200" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />
+            <Input label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required rightElement={<button type="button" className="rounded-lg px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>} />
             <Button type="submit" disabled={submitting || loading}>{submitting ? "Signing in..." : "Sign in"}</Button>
             {showOAuth ? <OAuthButtons returnTo={returnTo} /> : null}
-            <p className="text-sm text-slate-300">Forgot password? <Link href="/forgot-password" className="text-sky-300">Reset it</Link></p>
-            {!isAdminHost ? <p className="text-sm text-slate-300">No account? <Link href="/signup" className="text-sky-300">Create one</Link></p> : null}
+            <p className="text-sm text-muted-foreground">Forgot password? <Link href="/forgot-password" className="text-primary hover:text-primary/80">Reset it</Link></p>
+            {!isAdminHost ? <p className="text-sm text-muted-foreground">No account? <Link href="/signup" className="text-primary hover:text-primary/80">Create one</Link></p> : null}
           </>
         ) : (
           <>
@@ -397,10 +397,10 @@ function LoginPageContent() {
           </>
         )}
         {isAdminHost ? (
-          <p className="text-sm text-slate-300">Need member login? <a href={MAIN_SITE_LOGIN} className="text-sky-300">Go to gymstack.club/login</a></p>
+          <p className="text-sm text-muted-foreground">Need member login? <a href={MAIN_SITE_LOGIN} className="text-primary hover:text-primary/80">Go to gymstack.club/login</a></p>
         ) : null}
         {isAdminHost && error === ADMIN_NOT_AN_ACCOUNT_MESSAGE ? (
-          <a href={MAIN_SITE_PLATFORM} className="block text-sm text-sky-300">Continue to platform</a>
+          <a href={MAIN_SITE_PLATFORM} className="block text-sm text-primary hover:text-primary/80">Continue to platform</a>
         ) : null}
       </form>
     </main>
