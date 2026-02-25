@@ -108,7 +108,7 @@ export default async function AdminDashboardPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <TenantActions tenantId={tenant.tenantId} isDisabled={false} />
-                      <Link className="rounded-lg border border-white/20 px-2 py-1 text-xs" href={`/admin/tenants/${tenant.tenantId}`} target="_blank">View tenant</Link>
+                      <Link className="rounded-lg border border-white/20 px-2 py-1 text-xs" href={`/admin/orgs/${tenant.tenantId}`} target="_blank">View tenant</Link>
                     </div>
                   </td>
                 </tr>

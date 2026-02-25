@@ -2,9 +2,10 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { buildApiUrl } from '../../../src/lib/apiFetch';
 import type { AuthMeResponse } from '../../../src/types/auth';
+import { getMainSiteUrl } from '../../../src/lib/domainConfig';
 
-const ADMIN_LOGIN_REDIRECT = 'https://admin.gymstack.club/login?next=/';
-const ADMIN_RESTRICTED_REDIRECT = 'https://admin.gymstack.club/login?error=restricted';
+const ADMIN_LOGIN_REDIRECT = getMainSiteUrl('/login?next=/');
+const ADMIN_RESTRICTED_REDIRECT = getMainSiteUrl('/login?error=restricted');
 
 export async function getAdminSessionOrRedirect(): Promise<AuthMeResponse> {
   const token = cookies().get('gymstack_token')?.value;

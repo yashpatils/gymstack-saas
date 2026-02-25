@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import { getAdminSessionOrRedirect } from "./_lib/server-admin-api";
 
-export default async function AdminRootLayout({ children }: { children: ReactNode }) {
-  await getAdminSessionOrRedirect();
+export default function AdminRootLayout({ children }: { children: ReactNode }) {
   return children;
 }

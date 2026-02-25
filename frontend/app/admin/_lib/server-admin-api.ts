@@ -20,6 +20,14 @@ function assertAdminHost(): void {
   }
 }
 
+function toRestrictedPath(requestId?: string | null): string {
+  if (!requestId) {
+    return '/admin/access-restricted';
+  }
+
+  return `/admin/access-restricted?requestId=${encodeURIComponent(requestId)}`;
+}
+
 export async function getAdminSession(): Promise<AdminSessionState> {
   assertAdminHost();
   const token = cookies().get('gymstack_token')?.value;
@@ -95,7 +103,7 @@ export async function adminApiFetch<T>(path: string, init?: RequestInit): Promis
   }
 
   if (response.status === 403) {
-    redirect('/admin/access-restricted');
+    redirect(toRestrictedPath(response.headers.get('x-request-id')));
   }
 
   if (!response.ok) {

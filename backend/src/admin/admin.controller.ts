@@ -57,6 +57,18 @@ export class AdminController {
     return this.adminService.listTenants(page ?? 1, pageSize ?? 20, query, status);
   }
 
+  @Get('orgs')
+  orgs(@Query('search') search?: string) {
+    return this.adminService.listOrgs(search);
+  }
+
+  @Get('orgs/:id')
+  async orgDetail(@Param('id') id: string) {
+    const org = await this.adminService.getOrgDetail(id);
+    if (!org) throw new NotFoundException('Organization not found');
+    return org;
+  }
+
   @Get('audit')
   audit(@Query('tenantId') tenantId?: string, @Query('action') action?: string, @Query('actor') actor?: string, @Query('from') from?: string, @Query('to') to?: string, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
     return this.adminService.listAudit({ tenantId, action, actor, from, to, limit: limit ? Number.parseInt(limit, 10) : undefined, cursor });

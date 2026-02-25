@@ -279,6 +279,23 @@ export class AdminService {
     return { items, page: safePage, total };
   }
 
+  async listOrgs(search?: string) {
+    const list = await this.listTenants(1, 100, search);
+    return {
+      items: list.items.map((item) => ({
+        id: item.tenantId,
+        name: item.tenantName,
+        createdAt: item.createdAt,
+        subscriptionStatus: item.subscriptionStatus,
+        mrrCents: item.mrrCents,
+        gymsCount: item.locationsCount,
+        usersCount: item.usersCount,
+        isDisabled: item.isDisabled,
+      })),
+      total: list.total,
+    };
+  }
+
   async setTenantFeatures(tenantId: string, input: { whiteLabelBranding: boolean }, adminUserId: string) {
     const updated = await this.prisma.organization.update({
       where: { id: tenantId },
@@ -320,7 +337,7 @@ export class AdminService {
       where: { id: tenantId },
       include: {
         gyms: { orderBy: { createdAt: 'asc' }, select: { id: true, name: true, slug: true, createdAt: true } },
-        users: { select: { id: true, email: true, role: true, createdAt: true }, orderBy: { createdAt: 'asc' }, take: 10 },
+        users: { select: { id: true, email: true, role: true, createdAt: true, subscriptionStatus: true, stripeSubscriptionId: true }, orderBy: { createdAt: 'asc' }, take: 10 },
         adminEvents: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     });
@@ -331,13 +348,28 @@ export class AdminService {
         id: organization.id,
         name: organization.name,
         createdAt: organization.createdAt.toISOString(),
+        isDisabled: organization.isDisabled,
+        disabledAt: organization.disabledAt ? organization.disabledAt.toISOString() : null,
         subscriptionStatus: organization.subscriptionStatus ?? null,
         whiteLabelBranding: organization.whiteLabelEnabled || organization.whiteLabelBrandingEnabled,
       },
       locations: organization.gyms.map((gym) => ({ id: gym.id, name: gym.name, slug: gym.slug, createdAt: gym.createdAt.toISOString() })),
       keyUsers: organization.users,
-      billing: { subscriptionStatus: SubscriptionStatus.FREE, priceId: null, mrrCents: 0 },
+      billing: { subscriptionStatus: organization.subscriptionStatus ?? SubscriptionStatus.FREE, priceId: null, mrrCents: this.resolveMrrCents(organization.subscriptionStatus ?? SubscriptionStatus.FREE) },
       events: organization.adminEvents.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
+    };
+  }
+
+  async getOrgDetail(orgId: string) {
+    const tenant = await this.getTenant(orgId);
+    if (!tenant) return null;
+
+    return {
+      org: tenant.tenant,
+      subscription: tenant.billing,
+      gyms: tenant.locations,
+      keyUsers: tenant.keyUsers,
+      events: tenant.events,
     };
   }
 
