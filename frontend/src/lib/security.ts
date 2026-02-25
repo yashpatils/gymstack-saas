@@ -1,5 +1,22 @@
 import { apiFetch } from './apiFetch';
 
+export type ChangeIntentType =
+  | 'EMAIL_CHANGE'
+  | 'PASSWORD_CHANGE'
+  | 'ORG_SETTINGS_CHANGE'
+  | 'GYM_SETTINGS_CHANGE'
+  | 'SLUG_CHANGE'
+  | 'TWO_SV_TOGGLE'
+  | 'BILLING_EMAIL_CHANGE';
+
+export type ChangeIntentResult = {
+  id: string;
+  type: ChangeIntentType;
+  expiresAt: string;
+  status: 'PENDING' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED';
+  maskedEmail: string;
+};
+
 export type TwoStepChallengeResult = {
   challengeId: string;
   expiresAt: string;
@@ -42,30 +59,41 @@ export function getApiError(err: unknown): { code?: string; message: string } {
   return { code, message };
 }
 
-export async function requestEnableTwoStepEmail(): Promise<TwoStepChallengeResult> {
-  return apiFetch<TwoStepChallengeResult>('/api/security/two-step/email/request-enable', {
+export function createChangeIntent(input: {
+  type: ChangeIntentType;
+  payload: Record<string, unknown>;
+  orgId?: string;
+  gymId?: string;
+}): Promise<ChangeIntentResult> {
+  return apiFetch<ChangeIntentResult>('/api/security/change-intents', {
     method: 'POST',
-    body: {},
+    body: input,
   });
+}
+
+export function confirmChangeIntent(intentId: string, otp: string): Promise<{ ok: true; id: string; type: ChangeIntentType }> {
+  return apiFetch<{ ok: true; id: string; type: ChangeIntentType }>(`/api/security/change-intents/${intentId}/confirm`, {
+    method: 'POST',
+    body: { otp },
+  });
+}
+
+export async function requestEnableTwoStepEmail(): Promise<TwoStepChallengeResult> {
+  const response = await createChangeIntent({ type: 'TWO_SV_TOGGLE', payload: { enabled: true } });
+  return { challengeId: response.id, expiresAt: response.expiresAt, action: 'ENABLE_2SV_EMAIL', maskedEmail: response.maskedEmail };
 }
 
 export async function verifyEnableTwoStepEmail(challengeId: string, otp: string): Promise<TwoStepToggleResult> {
-  return apiFetch<TwoStepToggleResult>('/api/security/two-step/email/verify-enable', {
-    method: 'POST',
-    body: { challengeId, otp },
-  });
+  await confirmChangeIntent(challengeId, otp);
+  return { success: true, twoStepEmailEnabled: true, changedAt: new Date().toISOString() };
 }
 
 export async function requestDisableTwoStepEmail(): Promise<TwoStepChallengeResult> {
-  return apiFetch<TwoStepChallengeResult>('/api/security/two-step/email/request-disable', {
-    method: 'POST',
-    body: {},
-  });
+  const response = await createChangeIntent({ type: 'TWO_SV_TOGGLE', payload: { enabled: false } });
+  return { challengeId: response.id, expiresAt: response.expiresAt, action: 'DISABLE_2SV_EMAIL', maskedEmail: response.maskedEmail };
 }
 
 export async function verifyDisableTwoStepEmail(challengeId: string, otp: string): Promise<TwoStepToggleResult> {
-  return apiFetch<TwoStepToggleResult>('/api/security/two-step/email/verify-disable', {
-    method: 'POST',
-    body: { challengeId, otp },
-  });
+  await confirmChangeIntent(challengeId, otp);
+  return { success: true, twoStepEmailEnabled: false, changedAt: new Date().toISOString() };
 }

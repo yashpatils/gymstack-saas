@@ -217,7 +217,7 @@ export function TenantSlugEditor({ tenantId, currentSlug, canEdit, featureEnable
             onResend={async () => {
               setResending(true);
               try {
-                const response = await resendTenantSlugChangeOtp(tenantId, challenge.challengeId);
+                const response = await resendTenantSlugChangeOtp(tenantId, challenge.normalizedSlug);
                 setChallenge((current) => (
                   current
                     ? {

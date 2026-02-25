@@ -78,7 +78,7 @@ export class SettingsController {
       throw new BadRequestException('Unable to update password');
     }
 
-    return this.settingsService.changeMyPassword(req.user.id, body.currentPassword, body.newPassword);
+    throw new BadRequestException('Password changes require OTP confirmation. Use /api/security/change-intents.');
   }
 
   @Get('orgs/:id/settings')
@@ -104,7 +104,7 @@ export class SettingsController {
       throw new ForbiddenException('Not authorized');
     }
 
-    return this.settingsService.updateOrganizationSettings(id, body);
+    throw new BadRequestException('Organization setting changes require OTP confirmation. Use /api/security/change-intents.');
   }
 
   @Get('gyms/:id/settings')
@@ -130,6 +130,6 @@ export class SettingsController {
       throw new ForbiddenException('Not authorized');
     }
 
-    return this.settingsService.updateLocationSettings(id, body);
+    throw new BadRequestException('Location setting changes require OTP confirmation. Use /api/security/change-intents.');
   }
 }

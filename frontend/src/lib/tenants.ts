@@ -1,4 +1,5 @@
 import { apiFetch } from './apiFetch';
+import { confirmChangeIntent, createChangeIntent } from './security';
 
 export type SlugAvailabilityResult = {
   slug: string;
@@ -41,10 +42,17 @@ export async function requestTenantSlugChange(
   tenantId: string,
   newSlug: string,
 ): Promise<RequestTenantSlugChangeResult> {
-  return apiFetch<RequestTenantSlugChangeResult>(`/api/tenants/${tenantId}/slug/change/request`, {
-    method: 'POST',
-    body: { newSlug },
+  const intent = await createChangeIntent({
+    type: 'SLUG_CHANGE',
+    orgId: tenantId,
+    payload: { slug: newSlug },
   });
+  return {
+    challengeId: intent.id,
+    expiresAt: intent.expiresAt,
+    pendingChangeType: 'TENANT_SLUG',
+    normalizedSlug: newSlug,
+  };
 }
 
 export async function verifyTenantSlugChange(
@@ -52,18 +60,28 @@ export async function verifyTenantSlugChange(
   challengeId: string,
   otp: string,
 ): Promise<VerifyTenantSlugChangeResult> {
-  return apiFetch<VerifyTenantSlugChangeResult>(`/api/tenants/${tenantId}/slug/change/verify`, {
-    method: 'POST',
-    body: { challengeId, otp },
-  });
+  await confirmChangeIntent(challengeId, otp);
+  return {
+    success: true,
+    tenantId,
+    oldSlug: '',
+    newSlug: '',
+    changedAt: new Date().toISOString(),
+  };
 }
 
 export async function resendTenantSlugChangeOtp(
   tenantId: string,
-  challengeId: string,
+  normalizedSlug: string,
 ): Promise<ResendTenantSlugChangeOtpResult> {
-  return apiFetch<ResendTenantSlugChangeOtpResult>(`/api/tenants/${tenantId}/slug/change/resend`, {
-    method: 'POST',
-    body: { challengeId },
+  const intent = await createChangeIntent({
+    type: 'SLUG_CHANGE',
+    orgId: tenantId,
+    payload: { slug: normalizedSlug },
   });
+  return {
+    challengeId: intent.id,
+    expiresAt: intent.expiresAt,
+    resent: true,
+  };
 }

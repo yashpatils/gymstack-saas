@@ -102,6 +102,23 @@ enum OtpChannel {
   EMAIL
 }
 
+enum ChangeIntentType {
+  EMAIL_CHANGE
+  PASSWORD_CHANGE
+  ORG_SETTINGS_CHANGE
+  GYM_SETTINGS_CHANGE
+  SLUG_CHANGE
+  TWO_SV_TOGGLE
+  BILLING_EMAIL_CHANGE
+}
+
+enum ChangeIntentStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+  CANCELLED
+}
+
 enum PendingChangeTargetType {
   TENANT_SETTINGS
   USER_SETTINGS
@@ -305,6 +322,7 @@ model User {
   createdCampaigns                Campaign[]               @relation("CampaignCreatedBy")
   pendingEmailChanges             PendingEmailChange[]
   pendingSensitiveChanges         PendingSensitiveChange[]
+  changeIntents                   ChangeIntent[]
   loginOtpChallenges              LoginOtpChallenge[]
   twoFactorChallenges             TwoFactorChallenge[]
 
@@ -620,6 +638,7 @@ model Gym {
   notificationMarkers     NotificationMarker[]
   auditLogs               AuditLog[]           @relation("GymAuditLogs")
   featureFlags            FeatureFlag[]        @relation("GymFeatureFlags")
+  changeIntents           ChangeIntent[]
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
 
@@ -640,6 +659,7 @@ model Organization {
   billingProvider           BillingProvider          @default(STRIPE)
   billingCountry            String?
   billingCurrency           String?
+  billingEmail              String?
   billingCustomerId         String?
   billingSubscriptionId     String?
   billingPriceId            String?
@@ -684,11 +704,32 @@ model Organization {
   campaigns                 Campaign[]
   planOverride              TenantPlanOverride?
   pendingSensitiveChanges   PendingSensitiveChange[]
+  changeIntents            ChangeIntent[]
   loginOtpChallenges        LoginOtpChallenge[]
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
 
   @@index([referredByTenantId])
+}
+
+model ChangeIntent {
+  id          String             @id @default(cuid())
+  userId      String
+  orgId       String?
+  gymId       String?
+  type        ChangeIntentType
+  payloadJson Json
+  otpHash     String             @db.VarChar(64)
+  expiresAt   DateTime
+  status      ChangeIntentStatus @default(PENDING)
+  createdAt   DateTime           @default(now())
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org         Organization?      @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  gym         Gym?               @relation(fields: [gymId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, expiresAt])
+  @@index([orgId, createdAt])
+  @@index([gymId, createdAt])
 }
 
 model PlanDefinition {

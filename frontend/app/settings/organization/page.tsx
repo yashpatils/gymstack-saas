@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApiFetchError } from '../../../src/lib/apiFetch';
-import { getOrg, updateOrg } from '../../../src/lib/orgs';
+import { getOrg } from '../../../src/lib/orgs';
+import { OtpChallengeModal } from '../../../src/components/settings/OtpChallengeModal';
+import { confirmChangeIntent, createChangeIntent } from '../../../src/lib/security';
 import { useAuth } from '../../../src/providers/AuthProvider';
 
 type OrgSettings = {
@@ -19,6 +21,9 @@ export default function OrganizationSettingsPage() {
   const [data, setData] = useState<OrgSettings | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [intentId, setIntentId] = useState<string | null>(null);
+  const [intentExpiresAt, setIntentExpiresAt] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState('');
 
   const activeOrgId = activeContext?.tenantId ?? null;
   const allowed = permissions.canManageTenant;
@@ -53,7 +58,8 @@ export default function OrganizationSettingsPage() {
         <h1 className="text-2xl font-semibold">Organization settings</h1>
         <p>Organization context is required.</p>
         <Link href="/select-org?next=/settings/organization" className="button">Select organization</Link>
-      </main>
+  
+    </main>
     );
   }
 
@@ -68,8 +74,10 @@ export default function OrganizationSettingsPage() {
       {data ? (
         <form className="space-y-3" onSubmit={async (event) => {
           event.preventDefault();
-          const next = await updateOrg(activeOrgId, { name });
-          setData(next);
+          const intent = await createChangeIntent({ type: 'ORG_SETTINGS_CHANGE', orgId: activeOrgId, payload: { name } });
+          setIntentId(intent.id);
+          setIntentExpiresAt(intent.expiresAt);
+          setMaskedEmail(intent.maskedEmail);
         }}>
           <label className="block text-sm">Name</label>
           <input className="input w-full" value={name} onChange={(event) => setName(event.target.value)} />
@@ -81,6 +89,32 @@ export default function OrganizationSettingsPage() {
 
         </form>
       ) : <p>Loading…</p>}
+
+      {intentId ? (
+        <OtpChallengeModal
+          open
+          title="Confirm organization settings"
+          challengeId={intentId}
+          expiresAt={intentExpiresAt}
+          maskedEmail={maskedEmail}
+          onClose={() => setIntentId(null)}
+          onResend={async () => {
+            const intent = await createChangeIntent({ type: 'ORG_SETTINGS_CHANGE', orgId: activeOrgId, payload: { name } });
+            setIntentId(intent.id);
+            setIntentExpiresAt(intent.expiresAt);
+            setMaskedEmail(intent.maskedEmail);
+            return { expiresAt: intent.expiresAt, maskedEmail: intent.maskedEmail };
+          }}
+          onVerify={async (otp) => {
+            if (!intentId) return;
+            await confirmChangeIntent(intentId, otp);
+            setIntentId(null);
+            const org = await getOrg(activeOrgId);
+            setData(org);
+          }}
+        />
+      ) : null}
+
     </main>
   );
 }

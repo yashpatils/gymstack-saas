@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SecurityService } from './security.service';
 import {
@@ -9,11 +9,36 @@ import {
   VerifyDisableTwoStepEmailDto,
   VerifyEnableTwoStepEmailDto,
 } from './dto/two-step-email.dto';
+import { ConfirmChangeIntentDto, CreateChangeIntentDto } from './dto/change-intent.dto';
 
 @Controller('security')
 @UseGuards(JwtAuthGuard)
 export class SecurityController {
   constructor(private readonly securityService: SecurityService) {}
+
+
+  @Post('change-intents')
+  async createChangeIntent(
+    @Req() req: { user: { id: string; email: string }; ip?: string; headers: Record<string, string | string[] | undefined> },
+    @Body() dto: CreateChangeIntentDto,
+  ) {
+    return this.securityService.createChangeIntent(req.user, dto, {
+      ip: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined,
+    });
+  }
+
+  @Post('change-intents/:id/confirm')
+  async confirmChangeIntent(
+    @Req() req: { user: { id: string; email: string }; ip?: string; headers: Record<string, string | string[] | undefined> },
+    @Param('id') id: string,
+    @Body() dto: ConfirmChangeIntentDto,
+  ) {
+    return this.securityService.confirmChangeIntent(req.user, id, dto, {
+      ip: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined,
+    });
+  }
 
   @Post('two-step/email/request-enable')
   async requestEnableTwoStepEmail(
