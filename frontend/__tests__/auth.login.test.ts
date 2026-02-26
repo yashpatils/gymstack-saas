@@ -1,6 +1,6 @@
-import { login } from '../src/lib/auth';
+import { clearTokens, setTokens } from '../src/lib/auth/tokenStore';
+import { login, refreshAccessToken, setContext } from '../src/lib/auth';
 import { apiFetch } from '../src/lib/apiFetch';
-import { setTokens } from '../src/lib/auth/tokenStore';
 
 vi.mock('../src/lib/apiFetch', () => ({
   apiFetch: vi.fn(),
@@ -65,6 +65,31 @@ describe('auth.login', () => {
       expiresAt: '2026-01-01T00:00:00.000Z',
       maskedEmail: 't***@example.com',
     });
+  });
+
+
+
+  it('uses set-context response me payload immediately and stores returned access token', async () => {
+    (apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      accessToken: 'context-token',
+      me: { user: { id: 'u1', email: 'test@example.com' }, memberships: [], permissions: {}, permissionKeys: [] },
+    });
+
+    const result = await setContext('tenant_1', 'location_1', 'OWNER');
+
+    expect(setTokens).toHaveBeenCalledWith({ accessToken: 'context-token' });
+    expect(result.token).toBe('context-token');
+    expect(result.me.user.id).toBe('u1');
+  });
+
+  it('returns null on invalid refresh token and does not clear tokens itself', async () => {
+    const ApiFetchError = (await import('../src/lib/apiFetch')).ApiFetchError;
+    (apiFetch as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new ApiFetchError('Unauthorized', 401));
+
+    const refreshed = await refreshAccessToken();
+
+    expect(refreshed).toBeNull();
+    expect(clearTokens).not.toHaveBeenCalled();
   });
 
   it('uses admin login endpoint when adminOnly=true', async () => {

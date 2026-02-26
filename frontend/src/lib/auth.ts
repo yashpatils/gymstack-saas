@@ -9,12 +9,6 @@ export type { AuthUser, AuthMeResponse, ActiveContext };
 export type { FrontendLoginResult, LoginOptions, VerifyLoginOtpResult, ResendLoginOtpResult };
 export type SignupRole = 'OWNER' | 'ADMIN' | 'USER';
 
-type AuthTokens = { accessToken: string; refreshToken?: string };
-
-function setAuthTokens(tokens: AuthTokens): void {
-  setTokens(tokens);
-}
-
 export function getToken(): string | null {
   return getAccessToken();
 }
@@ -35,11 +29,12 @@ export async function refreshAccessToken(): Promise<string | null> {
         method: 'POST',
         body: JSON.stringify({ refreshToken }),
         skipAuthRetry: true,
+        suppressUnauthorizedHandler: true,
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+      setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
       return data.accessToken;
     } catch (error) {
       if (error instanceof ApiFetchError && (error.statusCode === 401 || error.statusCode === 403)) {
@@ -70,7 +65,7 @@ export async function login(email: string, password: string, options?: LoginOpti
   }
 
   const successPayload = 'status' in data ? data : { ...data, status: 'SUCCESS' as const };
-  setAuthTokens({ accessToken: successPayload.accessToken, refreshToken: successPayload.refreshToken });
+  setTokens({ accessToken: successPayload.accessToken, refreshToken: successPayload.refreshToken });
   return {
     status: 'SUCCESS',
     token: successPayload.accessToken,
@@ -91,7 +86,7 @@ export async function verifyLoginOtp(challengeId: string, otp: string): Promise<
     },
   });
 
-  setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
   return { status: 'SUCCESS', token: data.accessToken, user: data.user, memberships: data.memberships, activeContext: data.activeContext };
 }
 
@@ -118,7 +113,7 @@ export async function signup(email: string, password: string, role?: SignupRole,
     },
   });
 
-  setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
   return {
     token: data.accessToken,
     user: data.user,
@@ -152,7 +147,7 @@ export async function exportLocationData(locationId: string): Promise<unknown> {
 
 export async function acceptInvite(params: { token: string; password?: string; email?: string; name?: string }): Promise<{ token: string; user: AuthUser; activeContext?: ActiveContext; memberships: AuthMeResponse['memberships'] }> {
   const data = await apiFetch<AuthLoginResponse>('/api/auth/register-with-invite', { method: 'POST', body: JSON.stringify({ token: params.token, email: params.email, password: params.password, name: params.name }), headers: { 'Content-Type': 'application/json' } });
-  setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
   return { token: data.accessToken, user: data.user, activeContext: data.activeContext, memberships: data.memberships };
 }
 
@@ -192,8 +187,8 @@ export function applyOAuthToken(token: string): void {
   applyOAuthTokens({ accessToken: token });
 }
 
-export async function getMe(): Promise<AuthMeResponse> {
-  return apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store' });
+export async function getMe(signal?: AbortSignal): Promise<AuthMeResponse> {
+  return apiFetch<AuthMeResponse>('/api/auth/me', { method: 'GET', cache: 'no-store', signal });
 }
 
 export async function logout(refreshToken?: string): Promise<void> {
@@ -205,6 +200,7 @@ export async function logout(refreshToken?: string): Promise<void> {
         'Content-Type': 'application/json',
       },
       skipAuthRetry: true,
+      suppressUnauthorizedHandler: true,
       credentials: 'include',
       cache: 'no-store',
     });
@@ -214,7 +210,7 @@ export async function logout(refreshToken?: string): Promise<void> {
   clearTokens();
 }
 
-configureApiAuth(refreshAccessToken, () => logout());
+configureApiAuth(refreshAccessToken, clearTokens);
 
 
 export const me = getMe;
