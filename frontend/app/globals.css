@@ -226,25 +226,25 @@ textarea:focus-visible { outline: none; box-shadow: var(--focus-ring); border-co
 }
 .platform-nav-item { display:flex; position:relative; width:100%; align-items:center; border-radius: 12px; padding: 10px 12px; color: var(--text); border:1px solid transparent; }
 .platform-nav-item:hover,
-.platform-nav-item:focus-visible { background: #4f46e5; color: #fff; border-color: color-mix(in srgb, #4f46e5 60%, var(--border)); }
+.platform-nav-item:focus-visible { background: var(--accent-strong); color: var(--primary-foreground); border-color: color-mix(in srgb, var(--accent-strong) 60%, var(--border)); }
 .platform-nav-item:hover svg,
 .platform-nav-item:hover span,
 .platform-nav-item:focus-visible svg,
 .platform-nav-item:focus-visible span { color: currentColor !important; }
 .platform-nav-item:hover [class*="text-"],
-.platform-nav-item:focus-visible [class*="text-"] { color: #fff !important; }
-.platform-nav-item-active { background: var(--accent); color: #fff; border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.platform-nav-item:focus-visible [class*="text-"] { color: var(--primary-foreground) !important; }
+.platform-nav-item-active { background: var(--accent); color: var(--primary-foreground); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 .platform-nav-item-active svg,
 .platform-nav-item-active span,
-.platform-nav-item-active [class*="text-"] { color: #fff !important; }
+.platform-nav-item-active [class*="text-"] { color: var(--primary-foreground) !important; }
 
 .gs-account-dropdown {
-  background: rgba(2, 6, 23, 0.82);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--surface-overlay) 95%, transparent);
+  color: var(--text);
+  border: 1px solid var(--border);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-card);
 }
 
 .section-card-header { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 16px; }

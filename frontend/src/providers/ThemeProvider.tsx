@@ -55,19 +55,39 @@ function resolveEffectiveTheme(mode: ThemeMode): EffectiveTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function getInitialEffectiveTheme(mode: ThemeMode): EffectiveTheme {
+  if (typeof window === "undefined") {
+    return "dark";
+  }
+
+  const datasetTheme = document.documentElement.dataset.theme;
+  if (datasetTheme === "light" || datasetTheme === "dark") {
+    return datasetTheme;
+  }
+
+  return resolveEffectiveTheme(mode);
+}
+
+function applyThemeToRoot(theme: EffectiveTheme): void {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+  const themeTokens = getThemeColorTokens(theme);
+  Object.entries(themeTokens).forEach(([token, value]) => {
+    document.documentElement.style.setProperty(token, value);
+  });
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { tenantFeatures, activeTenant } = useAuth();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>(getInitialThemeMode);
-  const [effectiveTheme, setEffectiveTheme] = useState<EffectiveTheme>(() => resolveEffectiveTheme(getInitialThemeMode()));
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => getInitialThemeMode());
+  const [effectiveTheme, setEffectiveTheme] = useState<EffectiveTheme>(() => getInitialEffectiveTheme(getInitialThemeMode()));
 
   useEffect(() => {
-    const nextEffectiveTheme = resolveEffectiveTheme(themeMode);
+    const nextEffectiveTheme = themeMode === "system"
+      ? getInitialEffectiveTheme(themeMode)
+      : resolveEffectiveTheme(themeMode);
     setEffectiveTheme(nextEffectiveTheme);
-    document.documentElement.dataset.theme = nextEffectiveTheme;
-    const themeTokens = getThemeColorTokens(nextEffectiveTheme);
-    Object.entries(themeTokens).forEach(([token, value]) => {
-      document.documentElement.style.setProperty(token, value);
-    });
+    applyThemeToRoot(nextEffectiveTheme);
     window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
   }, [themeMode]);
 
@@ -80,11 +100,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const onChange = () => {
       const resolvedTheme = media.matches ? "dark" : "light";
       setEffectiveTheme(resolvedTheme);
-      document.documentElement.dataset.theme = resolvedTheme;
-      const themeTokens = getThemeColorTokens(resolvedTheme);
-      Object.entries(themeTokens).forEach(([token, value]) => {
-        document.documentElement.style.setProperty(token, value);
-      });
+      applyThemeToRoot(resolvedTheme);
     };
 
     media.addEventListener("change", onChange);
