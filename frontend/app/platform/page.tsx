@@ -6,6 +6,7 @@ import { WeeklyAiBriefCard } from "../../src/components/dashboard/WeeklyAiBrief"
 import { EmptyState, ErrorState, LoadingState } from "../../src/components/platform/data";
 import { ApiFetchError, apiFetch } from "../../src/lib/apiFetch";
 import { listGyms, type Gym } from "../../src/lib/gyms";
+import { formatDashboardMetric, mapUsersToMemberRows, type DashboardMemberRow } from "../../src/lib/platformDashboard";
 import { listUsers, type User } from "../../src/lib/users";
 
 type DashboardSummary = {
@@ -42,13 +43,6 @@ type GymMetricsResponse = {
   daily: DailyMetricPoint[];
 };
 
-type MemberRow = {
-  id: string;
-  name: string;
-  email: string;
-  status: "Active" | "Invited";
-};
-
 function shellCardClassName(extra?: string): string {
   return [
     "rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md",
@@ -68,8 +62,8 @@ function DashboardStat({ label, value, hint }: { label: string; value: string; h
   );
 }
 
-function StatusPill({ status }: { status: MemberRow["status"] }) {
-  const active = status === "Active";
+function StatusPill({ status }: { status: DashboardMemberRow["status"] }) {
+  const active = status.toLowerCase() === "active";
   return (
     <span
       className={[
@@ -167,14 +161,7 @@ export default function PlatformPage() {
     };
   }, []);
 
-  const memberRows = useMemo<MemberRow[]>(() => {
-    return users.slice(0, 10).map((user, index) => ({
-      id: user.id,
-      name: user.email?.split("@")[0] ?? `Member ${index + 1}`,
-      email: user.email,
-      status: index % 4 === 0 ? "Invited" : "Active",
-    }));
-  }, [users]);
+  const memberRows = useMemo<DashboardMemberRow[]>(() => mapUsersToMemberRows(users), [users]);
 
   const mrr = summary?.mrr ?? null;
   const chartMax = Math.max(...(metrics?.daily.map((item) => Math.max(item.bookings, item.checkins)) ?? [0]));
@@ -209,11 +196,11 @@ export default function PlatformPage() {
         </section>
 
         <section className="grid gap-3 sm:gap-4 lg:gap-6 md:grid-cols-2 xl:grid-cols-5">
-          <DashboardStat label="Bookings (30d)" value={String(metrics?.kpis.bookings ?? 0)} hint="Class bookings created" />
-          <DashboardStat label="Check-ins (30d)" value={String(metrics?.kpis.checkins ?? 0)} hint="Completed check-ins" />
-          <DashboardStat label="New clients (30d)" value={String(metrics?.kpis.newClients ?? 0)} hint="New client profiles" />
-          <DashboardStat label="Membership churn (30d)" value={String(metrics?.kpis.churnedMemberships ?? 0)} hint="Canceled memberships" />
-          <DashboardStat label="Active memberships" value={String(metrics?.kpis.latestActiveMemberships ?? 0)} hint="Latest daily snapshot" />
+          <DashboardStat label="Bookings (30d)" value={formatDashboardMetric(Boolean(metrics), metrics?.kpis.bookings)} hint={metrics ? "Class bookings created" : "No metrics have been recorded yet."} />
+          <DashboardStat label="Check-ins (30d)" value={formatDashboardMetric(Boolean(metrics), metrics?.kpis.checkins)} hint={metrics ? "Completed check-ins" : "No metrics have been recorded yet."} />
+          <DashboardStat label="New clients (30d)" value={formatDashboardMetric(Boolean(metrics), metrics?.kpis.newClients)} hint={metrics ? "New client profiles" : "No metrics have been recorded yet."} />
+          <DashboardStat label="Membership churn (30d)" value={formatDashboardMetric(Boolean(metrics), metrics?.kpis.churnedMemberships)} hint={metrics ? "Canceled memberships" : "No metrics have been recorded yet."} />
+          <DashboardStat label="Active memberships" value={formatDashboardMetric(Boolean(metrics), metrics?.kpis.latestActiveMemberships)} hint={metrics ? "Latest daily snapshot" : "No metrics have been recorded yet."} />
         </section>
 
         <section className={shellCardClassName("p-4 sm:p-5")}>
@@ -277,11 +264,19 @@ export default function PlatformPage() {
                   {gyms.slice(0, 8).map((gym) => (
                     <tr key={gym.id} className="text-foreground hover:bg-accent/30">
                       <td className="px-4 py-3">{gym.name}</td>
-                      <td className="max-w-[220px] truncate px-4 py-3 text-muted-foreground">{gym.id.slice(0, 8)}.gymstack.club</td>
+                      <td className="max-w-[220px] truncate px-4 py-3 text-muted-foreground">
+                        {gym.customDomain ?? "Not configured"}
+                      </td>
                       <td className="px-4 py-3 text-right">
-                        <Link href={`/platform/gyms/${gym.id}`} className="button button-sm secondary">
-                          Open
-                        </Link>
+                        {gym.customDomain ? (
+                          <Link href={`/platform/gyms/${gym.id}`} className="button button-sm secondary">
+                            Open
+                          </Link>
+                        ) : (
+                          <Link href={`/platform/gyms/${gym.id}/edit`} className="button button-sm secondary">
+                            Configure domain
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   ))}
