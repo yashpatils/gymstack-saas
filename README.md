@@ -234,7 +234,7 @@ Environment overrides:
 Routing is fully environment-driven (no code edits required when changing domains):
 
 - Root marketing/owner login domain: `https://gymstack.club`
-- Platform admin domain: `https://admin.gymstack.club` (rewritten internally to `/_admin/*` and reserved from tenant slug routing).
+- Platform admin domain: `https://admin.gymstack.club` (reserved from tenant slug routing; `/` redirects to `/admin`, and `/admin/*` routes are served directly on the admin host).
 - Location fallback domain (no custom domain): `https://<locationSlug>.<NEXT_PUBLIC_BASE_DOMAIN>`
 - Active custom domains override fallback domains for landing/login/join links.
 - Public host resolver endpoint: `GET /api/public/location-by-host` (reads `Host` header, strips port, returns safe `{ location, tenant }` branding context for custom domains or `<slug>.<BASE_DOMAIN>`).
@@ -257,6 +257,18 @@ Also ensure Vercel has wildcard domain support configured for `*.your-domain.com
 - Add `admin.gymstack.club` as a production domain in the Vercel frontend project.
 - Keep wildcard domain support enabled for tenant subdomains (`*.gymstack.club`).
 - `admin` is a reserved subdomain and is never treated as a tenant slug.
+- Route behavior source of truth:
+  - `https://admin.gymstack.club/` redirects to `https://admin.gymstack.club/admin`.
+  - `https://admin.gymstack.club/login` is the dedicated admin-host login page.
+  - `https://gymstack.club/admin` (or any non-admin host `/admin*`) redirects to `https://admin.gymstack.club/admin*`.
+  - Admin portal jump links should use `https://admin.gymstack.club/login?fresh=1`.
+
+#### Manual QA checklist (admin routing)
+
+- Admin host root: visit `https://admin.gymstack.club/` and confirm redirect to `/admin`.
+- Admin host login: visit `https://admin.gymstack.club/login` and confirm the login page loads without redirect loops.
+- Normal host `/admin`: visit `https://gymstack.club/admin` and confirm redirect to `https://admin.gymstack.club/admin`.
+- Admin portal jump URL: click any UI link using `ADMIN_PORTAL_FRESH_LOGIN_URL` and confirm it opens `https://admin.gymstack.club/login?fresh=1`.
 
 ## Email verification and account deletion flows
 
