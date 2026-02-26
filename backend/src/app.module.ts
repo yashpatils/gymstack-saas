@@ -21,6 +21,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { LocationMembershipsModule } from './location-memberships/location-memberships.module';
 import { SensitiveRateLimitService } from './common/sensitive-rate-limit.service';
 import { TenantRateLimitGuard } from './common/tenant-rate-limit.guard';
+import { DistributedRateLimitService } from './common/distributed-rate-limit.service';
 import { LocationAppModule } from './location-app/location-app.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -71,6 +72,7 @@ const shouldEnableDebugRoutes =
   controllers: [AppController],
   providers: [
     SensitiveRateLimitService,
+    DistributedRateLimitService,
     TenantRateLimitGuard,
     {
       provide: APP_GUARD,

@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { SensitiveRateLimitService } from './sensitive-rate-limit.service';
+import { DistributedRateLimitService } from './distributed-rate-limit.service';
 
 @Injectable()
 export class TenantRateLimitGuard implements CanActivate {
@@ -14,17 +14,45 @@ export class TenantRateLimitGuard implements CanActivate {
   };
 
   constructor(
-    private readonly limiter: SensitiveRateLimitService,
+    private readonly limiter: DistributedRateLimitService,
     private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<{ user?: { activeTenantId?: string; orgId?: string; id?: string }; ip?: string; path?: string }>();
+    const http = context.switchToHttp();
+    const req = http.getRequest<{ user?: { activeTenantId?: string; orgId?: string; id?: string }; ip?: string; path?: string }>();
+    const res = http.getResponse<{ setHeader?: (name: string, value: string) => void }>();
     const tenantId = req.user?.activeTenantId ?? req.user?.orgId ?? null;
     const key = `${tenantId ?? 'public'}:${req.ip ?? 'unknown'}:${req.path ?? 'path'}`;
     const limit = await this.resolveLimit(tenantId);
-    this.limiter.check(key, limit, 60_000);
+    const decision = await this.limiter.check(key, limit, 60_000);
+    this.applyRateLimitHeaders(res, decision.limit, decision.remaining, decision.resetAt, decision.retryAfterSeconds);
+
+    if (!decision.allowed) {
+      throw new HttpException({
+        message: 'Too many requests. Please try again later.',
+        retryAfterSeconds: decision.retryAfterSeconds,
+      }, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     return true;
+  }
+
+  private applyRateLimitHeaders(
+    response: { setHeader?: (name: string, value: string) => void } | undefined,
+    limit: number,
+    remaining: number,
+    resetAt: number,
+    retryAfterSeconds: number,
+  ): void {
+    if (!response?.setHeader) {
+      return;
+    }
+
+    response.setHeader('X-RateLimit-Limit', String(limit));
+    response.setHeader('X-RateLimit-Remaining', String(remaining));
+    response.setHeader('X-RateLimit-Reset', String(Math.floor(resetAt / 1000)));
+    response.setHeader('Retry-After', String(retryAfterSeconds));
   }
 
   private async resolveLimit(tenantId: string | null): Promise<number> {
