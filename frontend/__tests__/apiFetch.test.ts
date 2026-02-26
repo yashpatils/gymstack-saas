@@ -85,6 +85,62 @@ describe('apiFetch', () => {
   });
 
 
+
+  it('retries once with refreshed token for non-auth endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { configureApiAuth, apiFetch } = await import('../src/lib/apiFetch');
+    const refreshFn = vi.fn(async () => 'fresh-token');
+    const unauthorizedHandler = vi.fn();
+    configureApiAuth(refreshFn, unauthorizedHandler);
+
+    const response = await apiFetch<{ ok: boolean }>('/api/protected');
+
+    expect(response).toEqual({ ok: true });
+    expect(refreshFn).toHaveBeenCalledTimes(1);
+    expect(unauthorizedHandler).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('handles unauthorized once when refresh endpoint returns 401', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { configureApiAuth, apiFetch } = await import('../src/lib/apiFetch');
+    const refreshFn = vi.fn(async () => {
+      await apiFetch('/api/auth/refresh', {
+        method: 'POST',
+        skipAuthRetry: true,
+        suppressUnauthorizedHandler: true,
+      });
+      return null;
+    });
+    const unauthorizedHandler = vi.fn();
+    configureApiAuth(refreshFn, unauthorizedHandler);
+
+    await expect(apiFetch('/api/protected')).rejects.toBeDefined();
+    expect(refreshFn).toHaveBeenCalledTimes(1);
+    expect(unauthorizedHandler).toHaveBeenCalledTimes(1);
+  });
   it('does not attempt refresh retry for auth-sensitive endpoints', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(JSON.stringify({ message: 'Unauthorized' }), {

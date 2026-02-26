@@ -6,6 +6,7 @@ import { addFrontendBreadcrumb, captureFrontendApiError } from './monitoring';
 type ApiFetchInit = Omit<RequestInit, 'body'> & {
   body?: BodyInit | Record<string, unknown> | null;
   skipAuthRetry?: boolean;
+  suppressUnauthorizedHandler?: boolean;
 };
 
 type ResponseValidator<T> = (value: unknown) => value is T;
@@ -280,7 +281,7 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const { skipAuthRetry, ...requestInit } = init;
+  const { skipAuthRetry, suppressUnauthorizedHandler, ...requestInit } = init;
   const response = await fetch(buildApiUrl(path), {
     ...requestInit,
     headers,
@@ -297,7 +298,7 @@ export async function apiFetch<T>(
     }
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && !suppressUnauthorizedHandler) {
     authDebugLog('unauthorized', { path, skipAuthRetry: Boolean(skipAuthRetry) });
     handleUnauthorizedResponse(path);
   }

@@ -79,8 +79,6 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 
-const AUTH_HYDRATION_TIMEOUT_MS = 5000;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const authDebugEnabled = process.env.NEXT_PUBLIC_AUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development';
   const authDebugLog = useCallback((event: string, detail?: Record<string, unknown>) => {
@@ -236,10 +234,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthState('authed');
   }, [normalizeMemberships, normalizePermissions]);
 
-  const hydrateFromMe = useCallback(async () => {
+  const hydrateFromMe = useCallback(async (signal?: AbortSignal) => {
     authDebugLog('me:start');
     try {
-      const meResponse = await getMe();
+      const meResponse = await getMe(signal);
       applyMeResponse(meResponse);
       authDebugLog('me:success', {
         userId: meResponse.user.id,
@@ -259,9 +257,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [applyMeResponse, authDebugLog]);
 
-  const hydrateWithRecovery = useCallback(async () => {
+  const hydrateWithRecovery = useCallback(async (signal?: AbortSignal) => {
     try {
-      return await hydrateFromMe();
+      return await hydrateFromMe(signal);
     } catch (error) {
       if (error instanceof ApiFetchError && error.statusCode === 401) {
         authDebugLog('refresh:attempt');
@@ -276,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(nextToken);
         authDebugLog('refresh:success');
         try {
-          return await hydrateFromMe();
+          return await hydrateFromMe(signal);
         } catch (retryError) {
           if (retryError instanceof ApiFetchError && retryError.statusCode === 401) {
             setMeStatus(401);
@@ -295,24 +293,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initFrontendMonitoring();
   }, []);
 
-  useEffect(() => {
-    if (!isHydrating || !token || typeof window === 'undefined') {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      authDebugLog('hydrate:timeout', { timeoutMs: AUTH_HYDRATION_TIMEOUT_MS });
-      clearAuthState();
-      setMeStatus(401);
-      setAuthIssue('SESSION_EXPIRED');
-      setIsLoading(false);
-      setIsHydrating(false);
-    }, AUTH_HYDRATION_TIMEOUT_MS);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [authDebugLog, clearAuthState, isHydrating, token]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -336,6 +316,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    const hydrationController = new AbortController();
+
     const loadUser = async () => {
       authDebugLog('hydrate:start');
       setAuthState('hydrating');
@@ -356,12 +338,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        await hydrateWithRecovery();
+        await hydrateWithRecovery(hydrationController.signal);
         if (isMounted) {
           setAuthState('authed');
           authDebugLog('hydrate:authed');
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          authDebugLog('hydrate:aborted');
+          return;
+        }
+
         if (error instanceof ApiFetchError) {
           authDebugLog('hydrate:api-error', { statusCode: error.statusCode });
         } else {
@@ -396,6 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
+      hydrationController.abort();
     };
   }, [authDebugLog, clearAuthState, hydrateWithRecovery]);
 
