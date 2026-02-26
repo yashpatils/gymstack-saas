@@ -105,6 +105,54 @@ describe('TenantRateLimitGuard', () => {
     expect(headers.get('Retry-After')).toBe('42');
   });
 
+  it('uses X-Forwarded-For client ip when present so clients do not share bucket', async () => {
+    const check = jest.fn<Promise<RateLimitDecision>, [string, number, number]>().mockResolvedValue({
+      allowed: true,
+      limit: 60,
+      remaining: 59,
+      resetAt: Date.now() + 60_000,
+      retryAfterSeconds: 60,
+    });
+
+    const guard = new TenantRateLimitGuard(
+      { check } as never,
+      { organization: { findUnique: jest.fn() } } as never,
+    );
+
+    await guard.canActivate(createContext({
+      ip: '100.64.0.1',
+      path: '/public',
+      headers: { 'x-forwarded-for': '198.51.100.10, 10.0.0.2' },
+    }) as never);
+    await guard.canActivate(createContext({
+      ip: '100.64.0.1',
+      path: '/public',
+      headers: { 'x-forwarded-for': '198.51.100.11, 10.0.0.2' },
+    }) as never);
+
+    expect(check).toHaveBeenNthCalledWith(1, 'public:198.51.100.10:/public', 60, 60_000);
+    expect(check).toHaveBeenNthCalledWith(2, 'public:198.51.100.11:/public', 60, 60_000);
+  });
+
+  it('falls back to request ip when X-Forwarded-For is missing', async () => {
+    const check = jest.fn<Promise<RateLimitDecision>, [string, number, number]>().mockResolvedValue({
+      allowed: true,
+      limit: 60,
+      remaining: 59,
+      resetAt: Date.now() + 60_000,
+      retryAfterSeconds: 60,
+    });
+
+    const guard = new TenantRateLimitGuard(
+      { check } as never,
+      { organization: { findUnique: jest.fn() } } as never,
+    );
+
+    await guard.canActivate(createContext({ ip: '203.0.113.1', path: '/public' }) as never);
+
+    expect(check).toHaveBeenCalledWith('public:203.0.113.1:/public', 60, 60_000);
+  });
+
   it('refreshes tenant tier after cache ttl', async () => {
     process.env = {
       ...originalEnv,
@@ -146,7 +194,12 @@ describe('TenantRateLimitGuard', () => {
 });
 
 function createContext(
-  request: { user?: { activeTenantId?: string; orgId?: string }; ip?: string; path?: string },
+  request: {
+    user?: { activeTenantId?: string; orgId?: string };
+    ip?: string;
+    path?: string;
+    headers?: Record<string, string | string[] | undefined>;
+  },
   headers = new Map<string, string>(),
 ): { switchToHttp: () => { getRequest: () => object; getResponse: () => { setHeader: (name: string, value: string) => void } } } {
   return {

@@ -36,7 +36,7 @@ npm run build
 npm run predeploy
 ```
 
-`predeploy` runs lint + typecheck + build to gate production deploys.
+Root `predeploy` runs frontend lint/typecheck/build plus backend lint/typecheck/build to gate production deploys.
 
 ## Vercel configuration (frontend)
 
