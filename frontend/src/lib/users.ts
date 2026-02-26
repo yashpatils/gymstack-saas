@@ -4,6 +4,7 @@ export type User = {
   id: string;
   email: string;
   role?: string;
+  subscriptionStatus?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
