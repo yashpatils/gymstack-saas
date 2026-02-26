@@ -15,70 +15,7 @@ import { normalizeOrigin } from './common/origin.util';
 import { parsePlatformAdminEmails } from './auth/platform-admin.util';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { getRequiredEnv, isProductionEnvironment } from './common/env.util';
-
-const DEFAULT_ALLOWED_ORIGINS = [
-  'https://gymstack.club',
-  'https://www.gymstack.club',
-  'https://admin.gymstack.club',
-  'https://gymstack-saas.vercel.app',
-  'http://localhost:3000',
-];
-
-const DEFAULT_ALLOWED_ORIGIN_REGEXES_NON_PROD = [
-  '^https:\/\/[a-z0-9-]+\.gymstack\.club$',
-  '^https:\/\/[a-z0-9-]+\.vercel\.app$',
-  '^http:\/\/localhost(?::\d+)?$',
-];
-
-const DEFAULT_ALLOWED_ORIGIN_REGEXES_PROD = ['^https:\/\/[a-z0-9-]+\.gymstack\.club$'];
-
-function parseEnvList(value?: string): string[] {
-  return (
-    value
-      ?.split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean) ?? []
-  );
-}
-
-function getAllowedOrigins(configService: ConfigService): Set<string> {
-  const configuredOrigins = parseEnvList(configService.get<string>('ALLOWED_ORIGINS'));
-  const legacyOrigins = parseEnvList(configService.get<string>('FRONTEND_URL'));
-  const allOrigins = [...DEFAULT_ALLOWED_ORIGINS, ...legacyOrigins, ...configuredOrigins];
-
-  return new Set(allOrigins.map((origin) => normalizeOrigin(origin)).filter(Boolean));
-}
-
-function getAllowedOriginRegexes(configService: ConfigService, isProduction: boolean): RegExp[] {
-  const logger = new Logger('Bootstrap');
-  const configuredRegexes = parseEnvList(configService.get<string>('ALLOWED_ORIGIN_REGEXES'));
-  const defaultRegexes = isProduction ? DEFAULT_ALLOWED_ORIGIN_REGEXES_PROD : DEFAULT_ALLOWED_ORIGIN_REGEXES_NON_PROD;
-  const regexValues = [...defaultRegexes, ...configuredRegexes];
-
-  return regexValues
-    .map((expression) => {
-      try {
-        return new RegExp(expression);
-      } catch {
-        logger.warn(`Ignoring invalid ALLOWED_ORIGIN_REGEXES entry: ${expression}`);
-        return null;
-      }
-    })
-    .filter((regex): regex is RegExp => Boolean(regex));
-}
-
-
-function hasAllowedHostname(hostname: string, options: { isProduction: boolean; allowVercelInProduction: boolean }): boolean {
-  if (!options.isProduction && (hostname.endsWith('.gymstack.club') || hostname.endsWith('.vercel.app') || hostname === 'localhost')) {
-    return true;
-  }
-
-  if (options.allowVercelInProduction && hostname.endsWith('.vercel.app')) {
-    return true;
-  }
-
-  return false;
-}
+import { getAllowedOriginRegexes, getAllowedOrigins, isOriginAllowed } from './common/cors-policy.util';
 
 function sanitizeErrorMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error);
@@ -204,7 +141,6 @@ async function bootstrap() {
   const isProduction = isProductionEnvironment(configService);
   const corsAllowlist = getAllowedOrigins(configService);
   const allowedOriginRegexes = getAllowedOriginRegexes(configService, isProduction);
-  const allowWildcardInProduction = configService.get<string>('ALLOW_WILDCARD_CORS_IN_PRODUCTION') === 'true';
   const logger = new Logger('Bootstrap');
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
@@ -218,23 +154,10 @@ async function bootstrap() {
       }
 
       const normalizedOrigin = normalizeOrigin(origin);
+      const originAllowed = isOriginAllowed(normalizedOrigin, corsAllowlist, allowedOriginRegexes);
 
-      if (corsAllowlist.has(normalizedOrigin)) {
+      if (originAllowed) {
         return callback(null, true);
-      }
-
-      const regexMatch = allowedOriginRegexes.some((regex) => regex.test(normalizedOrigin));
-      if (regexMatch) {
-        return callback(null, true);
-      }
-
-      try {
-        const { hostname } = new URL(normalizedOrigin);
-        if (hasAllowedHostname(hostname, { isProduction, allowVercelInProduction: allowWildcardInProduction })) {
-          return callback(null, true);
-        }
-      } catch {
-        // Invalid origin value should be treated as disallowed.
       }
 
       if (!isProduction) {
