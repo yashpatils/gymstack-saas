@@ -105,6 +105,16 @@ function ensureRequiredEnv(configService: ConfigService) {
       'STRIPE_SECRET_KEY is not set. Billing endpoints will return Stripe-not-configured errors.',
     );
   }
+
+  const qaModeEnabled = String(configService.get<string>('QA_MODE') ?? '').toLowerCase() === 'true';
+  const qaSeedEnabled = String(configService.get<string>('ENABLE_QA_USER_SEED') ?? '').toLowerCase() === 'true';
+  const isProduction = isProductionEnvironment(configService);
+
+  if (isProduction && (qaModeEnabled || qaSeedEnabled)) {
+    throw new Error(
+      'Refusing to start with QA_MODE or ENABLE_QA_USER_SEED enabled in production.',
+    );
+  }
 }
 
 async function logIntegrationStatus(
@@ -142,6 +152,8 @@ async function bootstrap() {
   const corsAllowlist = getAllowedOrigins(configService);
   const allowedOriginRegexes = getAllowedOriginRegexes(configService, isProduction);
   const logger = new Logger('Bootstrap');
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.set('trust proxy', Number(configService.get<string>('TRUST_PROXY_HOPS') ?? '1'));
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
   await logIntegrationStatus(configService, prismaService);
@@ -175,7 +187,7 @@ async function bootstrap() {
 
   const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
   app.setGlobalPrefix(apiPrefix, {
-    exclude: ['', '/', 'health', 'api/health', 'debug/routes'],
+    exclude: ['', '/', 'health', 'api/health'],
   });
 
   app.use(requestIdMiddleware);
@@ -219,14 +231,16 @@ async function bootstrap() {
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port, '0.0.0.0');
 
-  const server = app.getHttpServer();
-  const routes = getRegisteredRoutes(server);
+  if (!isProduction) {
+    const server = app.getHttpServer();
+    const routes = getRegisteredRoutes(server);
 
-  if (routes.length) {
-    console.log('REGISTERED ROUTES:');
-    routes.forEach((route) => console.log(route));
-  } else {
-    console.log('Could not read Express router stack to list routes.');
+    if (routes.length) {
+      console.log('REGISTERED ROUTES:');
+      routes.forEach((route) => console.log(route));
+    } else {
+      console.log('Could not read Express router stack to list routes.');
+    }
   }
 }
 

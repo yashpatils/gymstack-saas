@@ -4,11 +4,14 @@ import { hashPassword } from '../src/auth/password-hasher';
 const prisma = new PrismaClient();
 
 const DEFAULT_QA_EMAIL = 'qa+admin@gymstack.club';
-const DEFAULT_QA_PASSWORD = 'TestPassword123!';
 
-function ensureSeedEnabled(): void {
-  if (process.env.ENABLE_QA_USER_SEED !== 'true') {
+export function assertQaSeedingAllowed(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.ENABLE_QA_USER_SEED !== 'true') {
     throw new Error('Refusing to run. Set ENABLE_QA_USER_SEED=true to continue.');
+  }
+
+  if ((env.NODE_ENV ?? '').toLowerCase() === 'production') {
+    throw new Error('Refusing to run ensure-qa-user in production.');
   }
 }
 
@@ -27,13 +30,13 @@ function makeSlug(base: string): string {
 }
 
 async function ensureQaUser(): Promise<void> {
-  ensureSeedEnabled();
+  assertQaSeedingAllowed();
 
   const email = (process.env.QA_EMAIL ?? DEFAULT_QA_EMAIL).trim().toLowerCase();
-  const password = process.env.QA_PASSWORD ?? DEFAULT_QA_PASSWORD;
+  const password = process.env.QA_PASSWORD?.trim();
 
   if (!email || !password) {
-    throw new Error('QA_EMAIL and QA_PASSWORD must be non-empty.');
+    throw new Error('QA_EMAIL and QA_PASSWORD must be non-empty. QA_PASSWORD is required.');
   }
 
   const passwordHash = await hashPassword(password);

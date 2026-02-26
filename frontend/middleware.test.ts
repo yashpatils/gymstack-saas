@@ -72,6 +72,13 @@ describe('resolveHostRoute', () => {
     delete process.env.BASE_DOMAIN;
   });
 
+  it('treats admin.localhost as admin host in local development', () => {
+    expect(resolveHostRoute('admin.localhost', '/', 'localhost')).toEqual({
+      type: 'redirect',
+      pathname: '/admin',
+    });
+  });
+
 
   it('redirects admin route to admin host from root host', () => {
     expect(resolveHostRoute('gymstack.club', '/admin/tenants', baseDomain)).toEqual({

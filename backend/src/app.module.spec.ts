@@ -2,6 +2,7 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
+import { DebugModule } from './debug/debug.module';
 import { LocationMembershipsModule } from './location-memberships/location-memberships.module';
 
 describe('AppModule', () => {
@@ -46,5 +47,23 @@ describe('AppModule', () => {
     importedModules.forEach((moduleName) => {
       expect(wiredModuleNames).toContain(moduleName);
     });
+  });
+
+  it('does not register DebugModule imports in production unless explicitly enabled', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalDebugFlag = process.env.ENABLE_DEBUG_ROUTES;
+    process.env.NODE_ENV = 'production';
+    delete process.env.ENABLE_DEBUG_ROUTES;
+
+    let imports: unknown[] = [];
+    jest.isolateModules(() => {
+      const { AppModule: IsolatedAppModule } = require('./app.module') as typeof import('./app.module');
+      imports = Reflect.getMetadata(MODULE_METADATA.IMPORTS, IsolatedAppModule) as unknown[];
+    });
+
+    expect(imports).not.toContain(DebugModule);
+
+    process.env.NODE_ENV = originalNodeEnv;
+    process.env.ENABLE_DEBUG_ROUTES = originalDebugFlag;
   });
 });

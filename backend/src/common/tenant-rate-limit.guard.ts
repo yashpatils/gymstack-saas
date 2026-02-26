@@ -20,10 +20,16 @@ export class TenantRateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const http = context.switchToHttp();
-    const req = http.getRequest<{ user?: { activeTenantId?: string; orgId?: string; id?: string }; ip?: string; path?: string }>();
+    const req = http.getRequest<{
+      user?: { activeTenantId?: string; orgId?: string; id?: string };
+      ip?: string;
+      path?: string;
+      headers?: Record<string, string | string[] | undefined>;
+    }>();
     const res = http.getResponse<{ setHeader?: (name: string, value: string) => void }>();
     const tenantId = req.user?.activeTenantId ?? req.user?.orgId ?? null;
-    const key = `${tenantId ?? 'public'}:${req.ip ?? 'unknown'}:${req.path ?? 'path'}`;
+    const clientIp = this.extractClientIp(req);
+    const key = `${tenantId ?? 'public'}:${clientIp}:${req.path ?? 'path'}`;
     const limit = await this.resolveLimit(tenantId);
     const decision = await this.limiter.check(key, limit, 60_000);
     this.applyRateLimitHeaders(res, decision.limit, decision.remaining, decision.resetAt, decision.retryAfterSeconds);
@@ -36,6 +42,17 @@ export class TenantRateLimitGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  private extractClientIp(request: {
+    ip?: string;
+    headers?: Record<string, string | string[] | undefined>;
+  }): string {
+    const forwardedFor = request.headers?.['x-forwarded-for'];
+    const forwardedValue = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+    const forwardedIp = forwardedValue?.split(',')[0]?.trim();
+
+    return forwardedIp || request.ip || 'unknown';
   }
 
   private applyRateLimitHeaders(

@@ -26,6 +26,7 @@ async function ensureMembership(userId: string, orgId: string, role: string, gym
 
 async function main() {
   const enableQaUserSeed = String(process.env.ENABLE_QA_USER_SEED ?? '').toLowerCase() === 'true';
+  const isProduction = (process.env.NODE_ENV ?? '').toLowerCase() === 'production';
   const ownerEmail = process.env.DEMO_EMAIL ?? 'owner@gymstack.dev';
   const ownerPassword = process.env.DEMO_PASSWORD ?? 'demo12345';
   const tenantName = process.env.DEMO_TENANT_NAME ?? 'GymStack Demo Tenant';
@@ -75,8 +76,15 @@ async function main() {
   await ensureMembership(owner.id, tenant.id, MembershipRole.TENANT_LOCATION_ADMIN, gym.id);
 
   if (enableQaUserSeed) {
+    if (isProduction) {
+      throw new Error('Refusing to seed QA user in production.');
+    }
+
     const qaEmail = 'qa+admin@gymstack.club';
-    const qaPassword = 'TestPassword123!';
+    const qaPassword = process.env.QA_PASSWORD?.trim();
+    if (!qaPassword) {
+      throw new Error('ENABLE_QA_USER_SEED=true requires QA_PASSWORD to be set.');
+    }
     const qaPasswordHash = await bcrypt.hash(qaPassword, 10);
 
     const qaTenant = await prisma.organization.upsert({

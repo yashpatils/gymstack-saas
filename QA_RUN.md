@@ -7,8 +7,10 @@ Backend `.env`:
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/gymstack
 JWT_SECRET=dev-secret
+NODE_ENV=development
 QA_MODE=true
 ENABLE_QA_USER_SEED=true
+QA_PASSWORD=<set-a-strong-temporary-password>
 ```
 
 Frontend `.env.local`:
@@ -25,6 +27,12 @@ npm --prefix frontend ci
 npm --prefix backend run migrate:deploy
 npm --prefix backend run db:seed
 ```
+
+> Safety guardrails:
+>
+> - QA seeding is blocked when `NODE_ENV=production`.
+> - `QA_PASSWORD` is required whenever `ENABLE_QA_USER_SEED=true`.
+> - Backend startup fails closed if `QA_MODE` or `ENABLE_QA_USER_SEED` are enabled in production.
 
 ## Start services (production mode)
 
@@ -44,7 +52,7 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 \
 PLAYWRIGHT_WEB_SERVER_COMMAND="npm run build && npm run start" \
 PLAYWRIGHT_WEB_SERVER_URL=http://127.0.0.1:3000 \
 QA_EMAIL=qa+admin@gymstack.club \
-QA_PASSWORD='TestPassword123!' \
+QA_PASSWORD='<same value as backend QA_PASSWORD>' \
 npm run qa:full
 ```
 
