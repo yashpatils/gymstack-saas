@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { AskScope } from './dto/ask-ai.dto';
 import { AnalyticsService } from './analytics.service';
 
 describe('AnalyticsService', () => {
@@ -7,6 +8,7 @@ describe('AnalyticsService', () => {
     $queryRaw: jest.fn(),
     $executeRaw: jest.fn(),
     classSession: { findMany: jest.fn() },
+    classBooking: { count: jest.fn() },
     gym: { findFirst: jest.fn() },
   } as any;
 
@@ -18,6 +20,7 @@ describe('AnalyticsService', () => {
     prisma.$queryRaw.mockResolvedValue([]);
     prisma.$executeRaw.mockResolvedValue(2);
     prisma.classSession.findMany.mockResolvedValue([]);
+    prisma.classBooking.count.mockResolvedValue(0);
     prisma.gym.findFirst.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111' });
   });
 
@@ -34,12 +37,42 @@ describe('AnalyticsService', () => {
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
-  it('executes insights query with parameterized location filter when valid uuid is provided', async () => {
-    const locationId = '11111111-1111-4111-8111-111111111111';
+  it('rejects cross-tenant location filters', async () => {
+    prisma.gym.findFirst.mockResolvedValueOnce(null);
 
-    await service.generateInsights(user, locationId);
+    await expect(service.generateInsights(user, '11111111-1111-4111-8111-111111111111')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+  });
 
+  it('returns insight history when no locationId is provided', async () => {
+    prisma.$queryRaw.mockResolvedValueOnce([
+      {
+        id: 'i-1',
+        locationId: null,
+        payload: { severity: 'info', title: 'Insight', summary: 'ok', recommendedActions: [], metricRefs: [] },
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      },
+    ]);
+
+    const result = await service.listInsightHistory(user);
+
+    expect(prisma.gym.findFirst).not.toHaveBeenCalled();
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(result).toHaveLength(1);
+  });
+
+  it('supports location-scoped AI analytics when locationId belongs to tenant', async () => {
+    const result = await service.ask(user, {
+      question: 'attendance trend',
+      scope: AskScope.LOCATION,
+      locationId: '11111111-1111-4111-8111-111111111111',
+    });
+
+    expect(prisma.gym.findFirst).toHaveBeenCalledWith({
+      where: { id: '11111111-1111-4111-8111-111111111111', orgId: 'tenant-1' },
+      select: { id: true },
+    });
+    expect(result.data).toEqual({ series: [] });
   });
 
   it('backfills a date range and runs idempotent upsert rollups per day', async () => {

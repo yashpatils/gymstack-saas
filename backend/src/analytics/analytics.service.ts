@@ -134,6 +134,24 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     return trimmed;
   }
 
+  private async validateLocationInTenant(tenantId: string, locationId?: string): Promise<string | null> {
+    const normalizedLocationId = this.normalizeLocationId(locationId);
+    if (!normalizedLocationId) {
+      return null;
+    }
+
+    const gym = await this.prisma.gym.findFirst({
+      where: { id: normalizedLocationId, orgId: tenantId },
+      select: { id: true },
+    });
+
+    if (!gym) {
+      throw new ForbiddenException('Location not found in tenant');
+    }
+
+    return normalizedLocationId;
+  }
+
   private parseIsoDate(date: string, field: string): string {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new BadRequestException(`${field} must be in YYYY-MM-DD format`);
@@ -527,17 +545,12 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   }> {
     const tenantId = this.resolveTenantId(user);
     await this.assertOwnerOrManager(user, tenantId);
-    const normalizedGymId = this.normalizeLocationId(gymId);
+    const normalizedGymId = await this.validateLocationInTenant(tenantId, gymId);
     if (!normalizedGymId) {
       throw new BadRequestException('Invalid gymId');
     }
     const from = this.parseIsoDate(input.from, 'from');
     const to = this.parseIsoDate(input.to, 'to');
-
-    const gym = await this.prisma.gym.findFirst({ where: { id: normalizedGymId, orgId: tenantId }, select: { id: true } });
-    if (!gym) {
-      throw new ForbiddenException('Gym not found in tenant');
-    }
 
     const rows = await this.prisma.$queryRaw<Array<{
       date: Date;
@@ -603,7 +616,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     const tenantId = this.resolveTenantId(user);
     await this.assertOwnerOrAdmin(user, tenantId);
 
-    const normalizedLocationId = this.normalizeLocationId(locationId);
+    const normalizedLocationId = await this.validateLocationInTenant(tenantId, locationId);
     const rows = await this.prisma.$queryRaw<DbRow[]>(Prisma.sql`
       SELECT dlm."locationId", dlm."date", dlm."checkinsCount", dlm."bookingsCount", dlm."canceledBookingsCount", dmm."canceledMemberships"
        FROM "DailyLocationMetrics" dlm
@@ -714,10 +727,11 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   async listInsightHistory(user: User, locationId?: string): Promise<InsightResponse[]> {
     const tenantId = this.resolveTenantId(user);
     await this.assertOwnerOrAdmin(user, tenantId);
+    const normalizedLocationId = await this.validateLocationInTenant(tenantId, locationId);
     const rows = await this.prisma.$queryRaw<DbRow[]>(Prisma.sql`
       SELECT "id", "locationId", "payload", "createdAt"
        FROM "InsightLog"
-       WHERE "tenantId" = ${tenantId} AND (${locationId ?? null}::text IS NULL OR "locationId" = ${locationId ?? null}::text)
+       WHERE "tenantId" = ${tenantId} AND (${normalizedLocationId}::text IS NULL OR "locationId" = ${normalizedLocationId}::text)
        ORDER BY "createdAt" DESC LIMIT 100
     `);
 
@@ -745,9 +759,12 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     await this.assertOwnerOrAdmin(user, tenantId);
 
     const question = body.question.toLowerCase();
+    const scopedLocationId = body.scope === AskScope.LOCATION
+      ? await this.validateLocationInTenant(tenantId, body.locationId)
+      : null;
 
     if (question.includes('attendance')) {
-      const rows = await this.getAttendanceTrend(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
+      const rows = await this.getAttendanceTrend(tenantId, scopedLocationId ?? undefined);
       return {
         answer: `Attendance trend is based on pre-aggregated daily check-ins. Total for selected range: ${rows.reduce((sum, row) => sum + row.value, 0)}.`,
         data: { series: rows },
@@ -756,7 +773,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (question.includes('popular') || question.includes('top classes')) {
-      const rows = await this.getTopClasses(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
+      const rows = await this.getTopClasses(tenantId, scopedLocationId ?? undefined);
       return {
         answer: 'These are the most booked classes in the selected scope.',
         data: { classes: rows },
@@ -765,7 +782,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (question.includes('cancellation') || question.includes('churn')) {
-      const rows = await this.getMembershipChanges(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
+      const rows = await this.getMembershipChanges(tenantId, scopedLocationId ?? undefined);
       return {
         answer: `Membership changes show ${rows.newMemberships} new and ${rows.canceledMemberships} canceled memberships over the last 30 days.`,
         data: rows,
@@ -773,7 +790,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       };
     }
 
-    const noShowRate = await this.getNoShowRate(tenantId, body.scope === AskScope.LOCATION ? this.normalizeLocationId(body.locationId) ?? undefined : undefined);
+    const noShowRate = await this.getNoShowRate(tenantId, scopedLocationId ?? undefined);
     return {
       answer: `No-show rate is ${Math.round(noShowRate.rate * 100)}% for the selected scope and period.`,
       data: noShowRate,
