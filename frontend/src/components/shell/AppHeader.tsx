@@ -160,9 +160,9 @@ export function AppHeader({
                   onClick={(event) => event.stopPropagation()}
                 >
                   {qaBypass ? (
-                    <div className="mb-2 rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-700 dark:text-amber-200">
+                    <div className="mb-2 rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-800">
                       <p className="font-semibold tracking-wide">QA BYPASS ON</p>
-                      <p className="mt-1 text-[11px] text-amber-700/90 dark:text-amber-200/90">Would be blocked: {gatingStatusSummary ?? "UNKNOWN"}</p>
+                      <p className="mt-1 text-[11px] text-amber-800/90">Would be blocked: {gatingStatusSummary ?? "UNKNOWN"}</p>
                     </div>
                   ) : null}
                   <div className="mb-2 rounded-lg border border-border px-3 py-2">
