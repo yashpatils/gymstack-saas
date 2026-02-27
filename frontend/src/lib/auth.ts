@@ -210,7 +210,12 @@ export async function logout(refreshToken?: string): Promise<void> {
   clearTokens();
 }
 
-configureApiAuth(refreshAccessToken, clearTokens);
+configureApiAuth(refreshAccessToken, () => {
+  clearTokens();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('gymstack:session-expired'));
+  }
+});
 
 
 export const me = getMe;
