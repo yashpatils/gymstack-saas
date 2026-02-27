@@ -57,4 +57,47 @@ describe('apiFetch unauthorized handling', () => {
 
     window.removeEventListener('gymstack:session-expired', sessionExpiredSpy);
   });
+
+  it('retries once after refreshing the access token', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onUnauthorized = vi.fn();
+    const refreshMock = vi.fn(async () => 'new-access-token');
+    const { apiFetch, configureApiAuth } = await import('./apiFetch');
+
+    configureApiAuth(refreshMock, onUnauthorized);
+
+    await expect(apiFetch<{ ok: boolean }>('/api/tenants')).resolves.toEqual({ ok: true });
+
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('calls unauthorized handler when refresh fails', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ message: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onUnauthorized = vi.fn();
+    const refreshMock = vi.fn(async () => null);
+    const { apiFetch, configureApiAuth } = await import('./apiFetch');
+    configureApiAuth(refreshMock, onUnauthorized);
+
+    await expect(apiFetch('/api/tenants')).rejects.toMatchObject({ statusCode: 401 });
+
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
 });
