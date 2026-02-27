@@ -50,7 +50,7 @@ test('location microsite route renders by slug', async ({ page }) => {
   const slug = process.env.E2E_LOCATION_SLUG ?? 'demo-location';
   await page.goto(`/_sites/${slug}`);
   await expect(page.locator('main')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Join now' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Join with invite' })).toBeVisible();
 });
 
 test('subdomain request rewrites to the public landing page', async ({ page }) => {
@@ -61,7 +61,7 @@ test('subdomain request rewrites to the public landing page', async ({ page }) =
 
   expect(response?.status()).toBe(200);
   await expect(page).toHaveURL(new RegExp(`/_sites/${slug}/?$`));
-  await expect(page.getByRole('link', { name: 'Join now' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Join with invite' })).toBeVisible();
 });
 
 test('invalid location slug returns location 404 page', async ({ page }) => {
