@@ -46,8 +46,11 @@ function handleUnauthorizedResponse(path: string): void {
   setStoredPlatformRole(null);
   setSupportModeContext(null);
 
+  let unauthorizedHandled = false;
+
   if (handleUnauthorized) {
     handleUnauthorized();
+    unauthorizedHandled = true;
   }
 
   if (isServer()) {
@@ -55,9 +58,11 @@ function handleUnauthorizedResponse(path: string): void {
   }
 
   if (shouldSoftHandleUnauthorized(path)) {
-    window.dispatchEvent(new CustomEvent('gymstack:session-expired', {
-      detail: { sourcePath: path },
-    }));
+    if (!unauthorizedHandled) {
+      window.dispatchEvent(new CustomEvent('gymstack:session-expired', {
+        detail: { sourcePath: path },
+      }));
+    }
     return;
   }
 
