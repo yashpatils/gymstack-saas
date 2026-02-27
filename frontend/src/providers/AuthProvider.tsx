@@ -506,7 +506,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: isLoading,
       isLoading,
       isHydrating,
-      isAuthenticated: authState === 'authed',
+      isAuthenticated: authState === 'authed' && Boolean(user),
       authState,
       authStatus,
       meStatus,
