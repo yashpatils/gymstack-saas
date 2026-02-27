@@ -38,3 +38,18 @@ describe('EmailConfig', () => {
     expect(config.emailDisable).toBe(true);
   });
 });
+
+it('throws when EMAIL_DISABLE is enabled in production without explicit override', () => {
+  const values: Record<string, string> = {
+    EMAIL_PROVIDER: 'RESEND',
+    RESEND_API_KEY: 're_test_key',
+    NODE_ENV: 'production',
+    EMAIL_DISABLE: 'true',
+  };
+
+  const configService = {
+    get: jest.fn((key: string) => values[key]),
+  } as unknown as ConfigService;
+
+  expect(() => new EmailConfig(configService)).toThrow('EMAIL_DISABLE=true is not allowed in production');
+});

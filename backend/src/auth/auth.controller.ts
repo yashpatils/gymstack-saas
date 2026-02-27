@@ -23,12 +23,10 @@ import { ResendLoginOtpDto, ResendLoginOtpResponseDto, VerifyLoginOtpDto } from 
 import { LoginResponseUnion, LoginSuccessResponseDto } from './dto/login-response.dto';
 
 function getRequestContext(req: Request): { ip?: string; userAgent?: string } {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  const ip = typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : req.ip;
   const userAgent = req.headers['user-agent'];
 
   return {
-    ip,
+    ip: req.ip,
     userAgent: typeof userAgent === 'string' ? userAgent : undefined,
   };
 }

@@ -15,6 +15,7 @@ describe('AuthController header requirements', () => {
     signup: jest.fn().mockResolvedValue({}),
     adminLogin: jest.fn().mockResolvedValue({}),
     registerWithInvite: jest.fn().mockResolvedValue({}),
+    login: jest.fn().mockResolvedValue({}),
   };
 
   const sensitiveRateLimitService = {
@@ -35,6 +36,19 @@ describe('AuthController header requirements', () => {
   it('allows signup without X-Requested-With header', async () => {
     await expect(controller.signup({ email: 'new@example.com', password: 'secret' }, buildRequest())).resolves.toEqual({});
     expect(authService.signup).toHaveBeenCalled();
+  });
+
+  it('uses req.ip rather than x-forwarded-for for sensitive limiter keys', async () => {
+    await controller.login(
+      { email: 'new@example.com', password: 'secret' },
+      buildRequest({ 'x-forwarded-for': '1.2.3.4' }),
+    );
+
+    expect(sensitiveRateLimitService.check).toHaveBeenCalledWith(
+      expect.stringContaining('127.0.0.1'),
+      12,
+      15 * 60_000,
+    );
   });
 
   it('keeps required header validation for protected auth endpoints', async () => {

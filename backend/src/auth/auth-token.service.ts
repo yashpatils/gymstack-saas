@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthTokenPurpose } from '@prisma/client';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -51,7 +51,7 @@ export class AuthTokenService {
     });
 
     if (!storedToken || !this.hashesMatch(storedToken.tokenHash, hashedInput)) {
-      throw new Error('INVALID_TOKEN');
+      throw new BadRequestException({ code: 'INVALID_TOKEN', message: 'Invalid or expired token.' });
     }
 
     const consumed = await this.prisma.authToken.updateMany({
@@ -64,7 +64,7 @@ export class AuthTokenService {
     });
 
     if (consumed.count !== 1) {
-      throw new Error('INVALID_TOKEN');
+      throw new BadRequestException({ code: 'INVALID_TOKEN', message: 'Invalid or expired token.' });
     }
 
     return { userId: storedToken.userId };

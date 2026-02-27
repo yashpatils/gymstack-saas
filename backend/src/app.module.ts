@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { AuditModule } from './audit/audit.module';
@@ -41,6 +43,22 @@ const shouldEnableDebugRoutes =
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const ttlMs = Number.parseInt(configService.get<string>('THROTTLE_TTL_MS') ?? '60000', 10);
+        const limit = Number.parseInt(configService.get<string>('THROTTLE_LIMIT') ?? '60', 10);
+
+        return {
+          throttlers: [
+            {
+              ttl: Number.isFinite(ttlMs) && ttlMs > 0 ? ttlMs : 60_000,
+              limit: Number.isFinite(limit) && limit > 0 ? limit : 60,
+            },
+          ],
+        };
+      },
+    }),
     AuthModule,
     AuditModule,
     BillingModule,
@@ -77,6 +95,10 @@ const shouldEnableDebugRoutes =
     {
       provide: APP_GUARD,
       useClass: TenantRateLimitGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
