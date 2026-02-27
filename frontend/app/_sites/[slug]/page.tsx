@@ -6,11 +6,8 @@ import type { SlugPageProps } from '@/src/lib/pageProps';
 export const dynamic = 'force-dynamic';
 
 function resolveAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL
-    ?? process.env.NEXT_PUBLIC_WEB_URL
-    ?? 'http://localhost:3000'
-  ).replace(/\/$/, '');
+  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_WEB_URL;
+  return configuredUrl ? configuredUrl.replace(/\/$/, '') : '';
 }
 
 export default async function SiteLandingPage({ params }: SlugPageProps) {
@@ -33,13 +30,15 @@ export default async function SiteLandingPage({ params }: SlugPageProps) {
 
   const baseUrl = resolveAppUrl();
   const title = data.branding?.heroTitle ?? data.location.displayName ?? data.location.name ?? data.location.slug;
+  const loginHref = baseUrl ? `${baseUrl}/login` : '/login';
+  const joinHref = baseUrl ? `${baseUrl}/join` : '/login';
 
   return (
     <GymLanding
       title={title}
       subtitle={data.branding?.heroSubtitle ?? null}
-      loginHref={`${baseUrl}/login`}
-      joinHref={`${baseUrl}/join`}
+      loginHref={loginHref}
+      joinHref={joinHref}
     />
   );
 }

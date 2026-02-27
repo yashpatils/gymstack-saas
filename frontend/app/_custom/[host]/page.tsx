@@ -1,49 +1,39 @@
+import { GymLanding } from '@/app/components/gym-landing';
+import { resolvePublicSite } from '@/src/lib/sites';
+import type { HostPageProps } from '@/src/lib/pageProps';
+
 export const dynamic = 'force-dynamic';
 
-import { LocationShell } from '@/src/components/location/LocationShell';
-import { getLocationByHost } from '@/src/lib/publicApi';
+function resolveAppUrl(): string {
+  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_WEB_URL;
+  return configuredUrl ? configuredUrl.replace(/\/$/, '') : '';
+}
 
-export default async function CustomDomainLandingPage() {
-  const data = await getLocationByHost();
+export default async function CustomDomainLandingPage({ params }: HostPageProps) {
+  const host = decodeURIComponent(params.host);
+  const data = await resolvePublicSite(host).catch(() => null);
 
-  if (data.tenantDisabled) {
+  if (!data || data.kind !== 'location' || !data.location) {
     return (
-      <LocationShell
-        title="Temporarily unavailable"
-        subtitle="This tenant is temporarily unavailable. Please contact support."
-        logoUrl={null}
-        primaryColor={null}
-        accentGradient={null}
-        whiteLabelEnabled={false}
-      />
+      <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-6">
+        <section className="w-full rounded-2xl border border-white/15 bg-slate-900/80 p-8">
+          <h1 className="text-3xl font-semibold text-white">Site not found</h1>
+          <p className="mt-2 text-slate-300">This domain is not connected to a Gym Stack location yet.</p>
+        </section>
+      </main>
     );
   }
 
-  if (!data.location || !data.tenant) {
-    return (
-      <LocationShell
-        title="Domain not configured"
-        subtitle="This domain is not connected to a Gym Stack location yet."
-        logoUrl={null}
-        primaryColor={null}
-        accentGradient={null}
-        whiteLabelEnabled={false}
-      />
-    );
-  }
-
-  const location = data.location;
-  const title = location.heroTitle ?? location.displayName;
-  const subtitle = location.heroSubtitle ?? 'Sign in or join with your invite.';
+  const baseUrl = resolveAppUrl();
+  const loginHref = baseUrl ? `${baseUrl}/login` : '/login';
+  const joinHref = baseUrl ? `${baseUrl}/join` : '/login';
 
   return (
-    <LocationShell
-      title={title}
-      subtitle={subtitle}
-      logoUrl={location.logoUrl}
-      primaryColor={location.primaryColor}
-      accentGradient={location.accentGradient}
-      whiteLabelEnabled={data.tenant.whiteLabelEnabled}
+    <GymLanding
+      title={data.branding.heroTitle ?? data.location.displayName ?? data.location.name}
+      subtitle={data.branding.heroSubtitle ?? null}
+      loginHref={loginHref}
+      joinHref={joinHref}
     />
   );
 }
