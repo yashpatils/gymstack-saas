@@ -4,6 +4,7 @@ import { toOptionalString } from './safe';
 export type PublicLocation = {
   id: string;
   slug: string;
+  name?: string | null;
   displayName: string;
   logoUrl?: string | null;
   primaryColor?: string | null;
@@ -20,10 +21,20 @@ export type TenantBranding = {
 export type PublicLocationResponse = {
   location: PublicLocation | null;
   tenant: TenantBranding | null;
+  tenantDisabled?: boolean;
 };
 
 type PublicLocationBySlugResponse = PublicLocationResponse & {
   tenantId: string;
+  branding?: {
+    logoUrl?: string | null;
+    primaryColor?: string | null;
+    accentGradient?: string | null;
+    heroTitle?: string | null;
+    heroSubtitle?: string | null;
+    heroImageUrl?: string | null;
+    customDomain?: string | null;
+  };
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -41,15 +52,17 @@ function parsePublicLocation(value: unknown): PublicLocation | null {
 
   const id = toOptionalString(value.id);
   const slug = toOptionalString(value.slug);
-  const displayName = toOptionalString(value.displayName);
 
-  if (!id || !slug || !displayName) {
+  if (!id || !slug) {
     throw new Error('Invalid public location payload');
   }
+
+  const displayName = toOptionalString(value.displayName) ?? slug;
 
   return {
     id,
     slug,
+    name: toOptionalString(value.name) ?? null,
     displayName,
     logoUrl: toOptionalString(value.logoUrl) ?? null,
     primaryColor: toOptionalString(value.primaryColor) ?? null,
@@ -89,6 +102,7 @@ function parsePublicLocationResponse(value: unknown): PublicLocationResponse {
   return {
     location: parsePublicLocation(value.location),
     tenant: parseTenantBranding(value.tenant),
+    tenantDisabled: typeof value.tenantDisabled === 'boolean' ? value.tenantDisabled : false,
   };
 }
 
@@ -120,7 +134,7 @@ function isPublicLocationResponse(value: unknown): value is PublicLocationRespon
 
 export async function getPublicLocationBySlug(slug: string): Promise<PublicLocationBySlugResponse> {
   return apiFetch<PublicLocationBySlugResponse>(
-    `/api/public/locations/by-slug/${encodeURIComponent(slug)}`,
+    `/api/public/location-by-slug/${encodeURIComponent(slug)}`,
     {},
     isPublicLocationBySlugResponse,
   );
