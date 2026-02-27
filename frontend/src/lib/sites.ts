@@ -18,6 +18,29 @@ export type TenantBranding = {
   whiteLabelEnabled: boolean;
 };
 
+type ResolvedSiteLocation = {
+  id: string;
+  slug: string;
+  name: string;
+  displayName: string;
+};
+
+type ResolvedSiteBranding = {
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  accentGradient?: string | null;
+  heroTitle?: string | null;
+  heroSubtitle?: string | null;
+};
+
+export type ResolvedPublicSite = {
+  kind: 'location' | 'tenant';
+  tenant: { id: string; name: string };
+  location?: ResolvedSiteLocation;
+  branding: ResolvedSiteBranding;
+  tenantFeature?: TenantBranding;
+};
+
 export type PublicLocationResponse = {
   location: PublicLocation | null;
   tenant: TenantBranding | null;
@@ -145,6 +168,39 @@ export async function getPublicLocationByHost(host?: string): Promise<PublicLoca
   return apiFetch<PublicLocationResponse>(`/api/public/location-by-host${query}`, {}, isPublicLocationResponse);
 }
 
-export async function resolvePublicSite(host: string): Promise<{ kind: 'location' | 'tenant'; tenant: { id: string; name: string }; location?: PublicLocation; branding: PublicLocation; tenantFeature?: TenantBranding }> {
-  return apiFetch(`/api/public/sites/resolve?host=${encodeURIComponent(host)}`);
+export async function resolvePublicSite(host: string): Promise<ResolvedPublicSite> {
+  return apiFetch<ResolvedPublicSite>(
+    `/api/public/sites/resolve?host=${encodeURIComponent(host)}`,
+    {},
+    (value: unknown): value is ResolvedPublicSite => {
+      if (!isRecord(value) || (value.kind !== 'location' && value.kind !== 'tenant')) {
+        return false;
+      }
+
+      if (!isRecord(value.tenant) || typeof value.tenant.id !== 'string' || typeof value.tenant.name !== 'string') {
+        return false;
+      }
+
+      if (!isRecord(value.branding)) {
+        return false;
+      }
+
+      if (value.location !== undefined && value.location !== null) {
+        if (!isRecord(value.location)) {
+          return false;
+        }
+
+        if (
+          typeof value.location.id !== 'string'
+          || typeof value.location.slug !== 'string'
+          || typeof value.location.name !== 'string'
+          || typeof value.location.displayName !== 'string'
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+  );
 }
