@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { MembershipRole, MembershipStatus, Prisma } from '@prisma/client';
 import { GymsService } from './gyms.service';
 
@@ -31,7 +31,7 @@ describe('GymsService slug handling', () => {
   it('returns reserved false/available true for a free slug', async () => {
     prisma.gym.findUnique.mockResolvedValue(null);
 
-    await expect(service.checkSlugAvailability({ orgId: 'org-1' } as any, 'new-gym')).resolves.toEqual({
+    await expect(service.checkSlugAvailability('new-gym')).resolves.toEqual({
       slug: 'new-gym',
       available: true,
       reserved: false,
@@ -41,7 +41,7 @@ describe('GymsService slug handling', () => {
   });
 
   it('returns reserved slug metadata when slug is reserved', async () => {
-    await expect(service.checkSlugAvailability({ orgId: 'org-1' } as any, 'admin')).resolves.toEqual({
+    await expect(service.checkSlugAvailability('admin')).resolves.toEqual({
       slug: 'admin',
       available: false,
       reserved: true,
@@ -60,10 +60,6 @@ describe('GymsService slug handling', () => {
         { name: 'Pulse', slug: 'admin', timezone: 'UTC' },
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('throws when checking slug availability without tenant context', async () => {
-    await expect(service.checkSlugAvailability({ orgId: null } as any, 'new-gym')).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('maps prisma unique errors to SLUG_TAKEN', async () => {
