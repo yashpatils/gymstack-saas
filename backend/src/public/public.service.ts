@@ -216,8 +216,14 @@ export class PublicService {
         accentGradient: true,
         heroTitle: true,
         heroSubtitle: true,
+        heroImageUrl: true,
         customDomain: true,
         orgId: true,
+        org: {
+          select: {
+            isDisabled: true,
+          },
+        },
       },
     });
 
@@ -245,8 +251,10 @@ export class PublicService {
         accentGradient: location.accentGradient,
         heroTitle: location.heroTitle,
         heroSubtitle: location.heroSubtitle,
+        heroImageUrl: location.heroImageUrl,
         customDomain: location.customDomain,
       },
+      tenantDisabled: location.org.isDisabled,
     };
   }
 

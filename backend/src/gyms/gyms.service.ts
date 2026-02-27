@@ -689,8 +689,10 @@ export class GymsService {
       select: {
         id: true,
         name: true,
+        slug: true,
         displayName: true,
         logoUrl: true,
+        heroImageUrl: true,
         heroTitle: true,
         heroSubtitle: true,
         primaryColor: true,
@@ -722,8 +724,10 @@ export class GymsService {
     return {
       id: location.id,
       name: location.name,
+      slug: location.slug,
       displayName: location.displayName,
       logoUrl: location.logoUrl,
+      heroImageUrl: location.heroImageUrl,
       heroTitle: location.heroTitle,
       heroSubtitle: location.heroSubtitle,
       primaryColor: location.primaryColor,
@@ -761,11 +765,30 @@ export class GymsService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
+    const nextSlug = payload.slug?.trim();
+    if (nextSlug) {
+      const availability = await this.checkSlugAvailability({ ...user, orgId: tenantId }, nextSlug);
+      if (!availability.validFormat) {
+        throw new BadRequestException(availability.reason ?? 'Slug is invalid');
+      }
+      if (availability.reserved) {
+        throw SecurityErrors.slugReserved();
+      }
+      if (!availability.available) {
+        const existing = await this.prisma.gym.findUnique({ where: { slug: availability.slug }, select: { id: true } });
+        if (existing && existing.id !== locationId) {
+          throw SecurityErrors.slugTaken();
+        }
+      }
+    }
+
     return this.prisma.gym.update({
       where: { id: locationId },
       data: {
+        slug: nextSlug,
         displayName: payload.displayName,
         logoUrl: payload.logoUrl,
+        heroImageUrl: payload.heroImageUrl,
         primaryColor: payload.primaryColor,
         accentGradient: payload.accentGradient,
         heroTitle: payload.heroTitle,
@@ -773,8 +796,10 @@ export class GymsService {
       },
       select: {
         id: true,
+        slug: true,
         displayName: true,
         logoUrl: true,
+        heroImageUrl: true,
         primaryColor: true,
         accentGradient: true,
         heroTitle: true,

@@ -7,8 +7,13 @@ import { PublicLocationByHostResponseDto } from './dto/public-location-by-host.d
 export class PublicController {
   constructor(private readonly publicService: PublicService) {}
 
+  @Get('location-by-slug/:slug')
   @Get('locations/by-slug/:slug')
-  bySlug(@Param('slug') slug: string) {
+  bySlug(
+    @Param('slug') slug: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return this.publicService.getLocationBySlug(slug);
   }
 

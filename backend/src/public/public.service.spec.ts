@@ -48,6 +48,7 @@ describe('PublicService', () => {
         id: 'tenant-1',
         whiteLabelEnabled: true,
         whiteLabelBrandingEnabled: false,
+        isDisabled: false,
       },
     });
 
@@ -65,6 +66,7 @@ describe('PublicService', () => {
       tenant: {
         id: 'tenant-1',
         whiteLabelEnabled: true,
+        isDisabled: false,
       },
     });
 
@@ -94,6 +96,7 @@ describe('PublicService', () => {
         id: 'tenant-2',
         whiteLabelEnabled: false,
         whiteLabelBrandingEnabled: true,
+        isDisabled: false,
       },
     });
 
@@ -111,6 +114,7 @@ describe('PublicService', () => {
       tenant: {
         id: 'tenant-2',
         whiteLabelEnabled: true,
+        isDisabled: false,
       },
     });
 
