@@ -325,6 +325,10 @@ model User {
   changeIntents                   ChangeIntent[]
   loginOtpChallenges              LoginOtpChallenge[]
   twoFactorChallenges             TwoFactorChallenge[]
+  coachAssignments                CoachClientAssignment[] @relation("CoachAssignments")
+  clientAssignments               CoachClientAssignment[] @relation("ClientAssignments")
+  createdCoachClientAssignments   CoachClientAssignment[] @relation("CoachClientAssignmentCreator")
+  coachClientMessages             CoachClientMessage[]
 
   @@index([orgId])
   @@index([deletedAt])
@@ -639,6 +643,7 @@ model Gym {
   auditLogs               AuditLog[]           @relation("GymAuditLogs")
   featureFlags            FeatureFlag[]        @relation("GymFeatureFlags")
   changeIntents           ChangeIntent[]
+  coachClientAssignments  CoachClientAssignment[]
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
 
@@ -706,6 +711,7 @@ model Organization {
   pendingSensitiveChanges   PendingSensitiveChange[]
   changeIntents            ChangeIntent[]
   loginOtpChallenges        LoginOtpChallenge[]
+  coachClientAssignments    CoachClientAssignment[]
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
 
@@ -899,6 +905,50 @@ model ClientMembership {
   @@index([locationId, canceledAt])
   @@index([planId])
   @@index([createdByUserId])
+}
+
+model CoachClientAssignment {
+  id              String    @id @default(uuid())
+  tenantId        String
+  locationId      String
+  coachUserId     String
+  clientUserId    String
+  createdByUserId String
+  status          String    @default("ACTIVE")
+  lastMessageAt   DateTime?
+  lastReadAtCoach DateTime?
+  lastReadAtClient DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location  Gym          @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  coach     User         @relation("CoachAssignments", fields: [coachUserId], references: [id], onDelete: Cascade)
+  client    User         @relation("ClientAssignments", fields: [clientUserId], references: [id], onDelete: Cascade)
+  createdBy User         @relation("CoachClientAssignmentCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  messages CoachClientMessage[]
+
+  @@unique([locationId, coachUserId, clientUserId])
+  @@index([tenantId, locationId])
+  @@index([coachUserId, locationId])
+  @@index([clientUserId, locationId])
+}
+
+model CoachClientMessage {
+  id           String    @id @default(uuid())
+  assignmentId String
+  senderUserId String
+  body         String
+  createdAt    DateTime  @default(now())
+  editedAt     DateTime?
+  deletedAt    DateTime?
+
+  assignment CoachClientAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  sender     User                  @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId, createdAt])
+  @@index([senderUserId, createdAt])
 }
 
 model Class {
