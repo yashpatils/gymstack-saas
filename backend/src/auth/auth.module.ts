@@ -20,6 +20,7 @@ import { RefreshTokenService } from './refresh-token.service';
 import { InvitesModule } from '../invites/invites.module';
 import { BillingModule } from '../billing/billing.module';
 import { getJwtSecret } from '../common/env.util';
+import { resolveAccessTokenTtlMinutes } from './token-ttl.util';
 
 @Module({
   imports: [
@@ -34,9 +35,11 @@ import { getJwtSecret } from '../common/env.util';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
+        const accessTokenTtlMinutes = resolveAccessTokenTtlMinutes(configService.get<string>('ACCESS_TOKEN_TTL_MINUTES'));
+
         return {
           secret: getJwtSecret(configService),
-          signOptions: { expiresIn: '15m' },
+          signOptions: { expiresIn: `${accessTokenTtlMinutes}m` },
         };
       },
     }),

@@ -153,7 +153,12 @@ async function bootstrap() {
   const allowedOriginRegexes = getAllowedOriginRegexes(configService, isProduction);
   const logger = new Logger('Bootstrap');
   const expressInstance = app.getHttpAdapter().getInstance();
-  expressInstance.set('trust proxy', Number(configService.get<string>('TRUST_PROXY_HOPS') ?? '1'));
+  const trustProxyEnabled = String(configService.get<string>('TRUST_PROXY_ENABLED') ?? 'false').toLowerCase() === 'true';
+  if (trustProxyEnabled) {
+    expressInstance.set('trust proxy', Number(configService.get<string>('TRUST_PROXY_HOPS') ?? '1'));
+  } else {
+    expressInstance.set('trust proxy', false);
+  }
   ensureRequiredEnv(configService);
   logDatabaseIdentity(configService);
   await logIntegrationStatus(configService, prismaService);

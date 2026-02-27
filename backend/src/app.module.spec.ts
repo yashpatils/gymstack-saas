@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { DebugModule } from './debug/debug.module';
 import { LocationMembershipsModule } from './location-memberships/location-memberships.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 describe('AppModule', () => {
   it('registers LocationMembershipsModule in imports', () => {
@@ -65,5 +67,11 @@ describe('AppModule', () => {
 
     process.env.NODE_ENV = originalNodeEnv;
     process.env.ENABLE_DEBUG_ROUTES = originalDebugFlag;
+  });
+
+  it('registers ThrottlerGuard as a global APP_GUARD', () => {
+    const providers = Reflect.getMetadata(MODULE_METADATA.PROVIDERS, AppModule) as Array<{ provide?: unknown; useClass?: unknown }>;
+    const throttlerProvider = providers.find((provider) => provider?.provide === APP_GUARD && provider?.useClass === ThrottlerGuard);
+    expect(throttlerProvider).toBeDefined();
   });
 });

@@ -80,11 +80,14 @@ Required environment variables:
 - `EMAIL_FROM` — Sender identity (example: `Gymstack <no-reply@gymstack.club>`).
 - `EMAIL_PROVIDER` — Email provider selector (`RESEND`).
 - `RESEND_API_KEY` — Resend API key used by backend transactional email sender. Required when `NODE_ENV=production`.
-- `EMAIL_DISABLE` — Optional boolean (`true`/`false`) to disable provider delivery while keeping logs (default: `false`).
+- `EMAIL_DISABLE` — Optional boolean (`true`/`false`) to disable provider delivery while keeping logs (default: `false`). In production this now fails fast unless `ALLOW_EMAIL_DISABLE_IN_PRODUCTION=true`.
 - `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` — legacy verification-token TTL (email verification now uses a fixed 24-hour token window on user records).
 - `DELETE_ACCOUNT_TOKEN_TTL_MINUTES` — account delete token TTL in minutes (default: `30`).
 - `ACCESS_TOKEN_TTL_MINUTES` — access token TTL in minutes (default: `15`).
 - `REFRESH_TOKEN_TTL_DAYS` — rotating refresh token TTL in days (default: `30`).
+- `THROTTLE_TTL_MS` / `THROTTLE_LIMIT` — Global Nest throttler defaults in milliseconds/requests for routes that use `@Throttle` decorators.
+- `SENSITIVE_RATE_LIMIT_MAX_BUCKETS` — Upper bound for in-memory sensitive-action buckets (default: `10000`).
+- `TRUST_PROXY_ENABLED` / `TRUST_PROXY_HOPS` — Enable Express proxy trust only when deployed behind a trusted proxy (default disabled).
 - `BASE_DOMAIN` — Same value as frontend `NEXT_PUBLIC_BASE_DOMAIN` for server-side URL generation.
 - `PLATFORM_ADMIN_EMAILS` — Comma-separated owner allowlist for platform admin access (case-insensitive), used by `/api/auth/me` and `/api/admin/*`.
 - `DEFAULT_TENANT_MRR_CENTS` — Optional admin dashboard fallback value (in cents) to estimate tenant MRR when Stripe item amounts are not available (default: `9900`).

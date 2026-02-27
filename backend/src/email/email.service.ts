@@ -125,8 +125,8 @@ export class EmailService {
     const redactedRecipient = this.redactEmail(input.to);
     if (this.emailConfig.emailDisable || !this.emailConfig.resendApiKey) {
       this.logger.log(`DEV email template=${input.template} recipient=${redactedRecipient} subject="${input.subject}"`);
-      if (input.debugLink) {
-        this.logger.log(`DEV email link template=${input.template} url=${input.debugLink}`);
+      if (input.debugLink && !this.emailConfig.isProduction) {
+        this.logger.log(`DEV email link template=${input.template} url=${this.redactDebugLink(input.debugLink)}`);
       }
       return;
     }
@@ -159,6 +159,16 @@ export class EmailService {
 
   private wrapTemplate(payload: { title: string; greeting: string; intro: string; buttonLabel: string; link: string }): string {
     return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;"><h2 style="margin:0 0 12px 0;color:#111827;">Gymstack</h2><h3 style="margin:0 0 16px 0;">${payload.title}</h3><p style="margin:0 0 12px 0;">${payload.greeting}</p><p style="margin:0 0 20px 0;">${payload.intro}</p><a href="${payload.link}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:6px;">${payload.buttonLabel}</a><p style="margin:20px 0 0 0;font-size:13px;color:#374151;">If the button does not work, copy and paste this link into your browser:</p><p style="font-size:13px;word-break:break-word;"><a href="${payload.link}">${payload.link}</a></p></div>`;
+  }
+
+
+  private redactDebugLink(link: string): string {
+    try {
+      const parsed = new URL(link);
+      return `${parsed.origin}${parsed.pathname}`;
+    } catch {
+      return '[redacted]';
+    }
   }
 
   private redactEmail(email: string): string {

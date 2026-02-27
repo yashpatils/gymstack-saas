@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { EmailConfig } from './email.config';
 import { EmailService } from './email.service';
 
@@ -33,6 +34,26 @@ describe('EmailService', () => {
       'https://api.resend.com/emails',
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+
+  it('does not log debug token links in production fallback mode', async () => {
+    const loggerSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+    const service = new EmailService({
+      ...baseConfig,
+      resendApiKey: undefined,
+      isProduction: true,
+      nodeEnv: 'production',
+    } as EmailConfig);
+
+    await service.sendVerifyEmail({
+      to: 'member@example.com',
+      token: 'secret-token',
+    });
+
+    expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('DEV email template='));
+    expect(loggerSpy).not.toHaveBeenCalledWith(expect.stringContaining('token='));
   });
 
   it('does not call resend when api key is missing', async () => {

@@ -1,15 +1,25 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { resolveRefreshTokenTtlDays } from './token-ttl.util';
 
 @Injectable()
 export class RefreshTokenService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private getRefreshTokenExpiryDate(): Date {
+    const ttlDays = resolveRefreshTokenTtlDays(this.configService.get<string>('REFRESH_TOKEN_TTL_DAYS'));
+    return new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+  }
 
   async issue(userId: string, context?: { userAgent?: string; ipAddress?: string }): Promise<string> {
     const token = this.generateToken();
     const tokenHash = this.hash(token);
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = this.getRefreshTokenExpiryDate();
 
     await this.prisma.refreshToken.create({
       data: {
@@ -45,7 +55,7 @@ export class RefreshTokenService {
         data: {
           userId: current.userId,
           tokenHash: nextTokenHash,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          expiresAt: this.getRefreshTokenExpiryDate(),
           userAgent: context?.userAgent,
           ipAddress: context?.ipAddress,
         },

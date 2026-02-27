@@ -22,6 +22,7 @@ interface JwtPayload {
   activeRole?: MembershipRole;
   activeMode?: 'OWNER' | 'MANAGER';
   qaBypass?: boolean;
+  supportMode?: boolean;
 }
 
 type SupportModeContext = {
@@ -57,7 +58,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     const userIsPlatformAdmin = isPlatformAdmin(user?.email, getPlatformAdminEmails(this.configService));
-    const supportMode = await this.resolveSupportModeContext(request.headers, request.ip, payload.sub, userIsPlatformAdmin);
+    const supportMode = await this.resolveSupportModeContext(request.headers, request.ip, payload.sub, userIsPlatformAdmin, payload.supportMode === true);
 
     const tenantId = supportMode?.tenantId ?? payload.activeTenantId;
     const locationId = supportMode?.locationId ?? payload.activeGymId;
@@ -124,6 +125,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     requestIp: string | undefined,
     userId: string,
     userIsPlatformAdmin: boolean,
+    supportModeEnabled: boolean,
   ): Promise<SupportModeContext | undefined> {
     const supportTenantIdHeader = this.getHeaderValue(headers, 'x-support-tenant-id');
     const supportLocationIdHeader = this.getHeaderValue(headers, 'x-support-location-id');
@@ -132,7 +134,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return undefined;
     }
 
-    if (!userIsPlatformAdmin) {
+    if (!userIsPlatformAdmin || !supportModeEnabled) {
+      if (supportTenantIdHeader || supportLocationIdHeader) {
+        await this.auditService.log({
+          orgId: null,
+          userId,
+          action: 'SUPPORT_IMPERSONATION_DENIED',
+          entityType: 'support_mode',
+          entityId: supportLocationIdHeader ?? supportTenantIdHeader ?? userId,
+          metadata: { reason: 'support_mode_not_enabled' },
+          ip: requestIp ?? null,
+          userAgent: this.getHeaderValue(headers, 'user-agent') ?? null,
+        });
+      }
       return undefined;
     }
 
@@ -161,7 +175,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     await this.auditService.log({
       orgId: tenantId,
       userId,
-      action: 'support_mode_assume_context',
+      action: 'SUPPORT_IMPERSONATION_START',
       entityType: 'support_mode',
       entityId: supportLocationIdHeader ?? tenantId,
       metadata: {

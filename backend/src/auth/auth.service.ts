@@ -293,6 +293,22 @@ export class AuthService implements OnModuleInit {
 
     await this.ensureTenantForLegacyOwner(user.id);
 
+    const userIsPlatformAdmin = isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService));
+
+    if (options?.adminOnly && !userIsPlatformAdmin) {
+      this.auditService.log({
+        actor: { userId: user.id, type: AuditActorType.USER, email: user.email, role: user.role },
+        tenantId: user.orgId ?? null,
+        action: 'ADMIN_LOGIN_FORBIDDEN',
+        targetType: 'user',
+        targetId: user.id,
+        metadata: { email: user.email },
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+      });
+      throw new ForbiddenException({ code: 'AUTH_ADMIN_REQUIRED', message: 'Access restricted' });
+    }
+
     const memberships = await this.prisma.membership.findMany({
       where: { userId: user.id, status: MembershipStatus.ACTIVE },
       orderBy: { createdAt: 'asc' },
@@ -392,7 +408,7 @@ export class AuthService implements OnModuleInit {
   }
 
   private async resolveLoginContext(params: {
-    user: { id: string; role: Role; orgId: string | null };
+    user: { id: string; role: Role; orgId: string | null; email: string };
     memberships: Membership[];
     tenantIdOverride?: string;
     tenantSlugOverride?: string;
@@ -428,12 +444,8 @@ export class AuthService implements OnModuleInit {
     }
 
     if (memberships.length === 0) {
-      if (isElevated) {
-        if (!this.isTruthyConfig('ADMIN_BYPASS_DEFAULT_TENANT', false)) {
-          return undefined;
-        }
-        const fallbackTenant = await this.prisma.organization.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
-        return fallbackTenant ? { tenantId: fallbackTenant.id, gymId: null, locationId: null, role: MembershipRole.TENANT_OWNER } : undefined;
+      if (isPlatformAdmin(user.email, getPlatformAdminEmails(this.configService))) {
+        return undefined;
       }
 
       const hasClientAccess = await this.prisma.clientMembership.findFirst({
@@ -508,22 +520,10 @@ export class AuthService implements OnModuleInit {
   }
 
   async adminLogin(input: LoginDto, context?: { ip?: string; userAgent?: string }): Promise<LoginResponseUnion> {
-    const loginResponse = await this.login(input, context, {
+    return this.login(input, context, {
       adminOnly: true,
       purpose: LoginOtpChallengePurpose.ADMIN_LOGIN_2SV,
     });
-
-    if (loginResponse.status === 'OTP_REQUIRED') {
-      return loginResponse;
-    }
-
-    const isAllowlisted = isPlatformAdmin(loginResponse.user.email, getPlatformAdminEmails(this.configService));
-
-    if (!isAllowlisted) {
-      throw new ForbiddenException('Access restricted');
-    }
-
-    return loginResponse;
   }
 
   async verifyLoginOtp(dto: VerifyLoginOtpDto, meta?: { ip?: string; userAgent?: string }): Promise<LoginSuccessResponseDto> {
@@ -1409,7 +1409,7 @@ export class AuthService implements OnModuleInit {
       });
     });
   }
-  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER, qaBypass = false): string {
+  private signToken(userId: string, email: string, userRole: Role, activeContext?: { tenantId: string; gymId?: string | null; locationId?: string | null; role: MembershipRole }, activeMode: ActiveMode = ActiveMode.OWNER, qaBypass = false, supportMode = false): string {
     return this.jwtService.sign({
       sub: userId,
       jti: randomBytes(16).toString('hex'),
@@ -1422,6 +1422,7 @@ export class AuthService implements OnModuleInit {
       activeRole: activeContext?.role,
       activeMode,
       qaBypass,
+      supportMode,
     });
   }
 
