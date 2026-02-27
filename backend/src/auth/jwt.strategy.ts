@@ -22,7 +22,7 @@ interface JwtPayload {
   activeRole?: MembershipRole;
   activeMode?: 'OWNER' | 'MANAGER';
   qaBypass?: boolean;
-  supportMode?: boolean;
+  supportMode?: boolean | SupportModeContext;
 }
 
 type SupportModeContext = {
