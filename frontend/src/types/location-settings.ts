@@ -1,6 +1,8 @@
 export type LocationBrandingUpdateInput = {
+  slug?: string | null;
   displayName?: string | null;
   logoUrl?: string | null;
+  heroImageUrl?: string | null;
   primaryColor?: string | null;
   accentGradient?: string | null;
   heroTitle?: string | null;
@@ -10,8 +12,10 @@ export type LocationBrandingUpdateInput = {
 export type LocationSettingsResponse = {
   id: string;
   name: string;
+  slug: string;
   displayName: string | null;
   logoUrl: string | null;
+  heroImageUrl: string | null;
   heroTitle: string | null;
   heroSubtitle: string | null;
   primaryColor: string | null;

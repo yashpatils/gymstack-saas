@@ -8,8 +8,18 @@ export class UpdateLocationBrandingDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(120)
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(2048)
   logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  heroImageUrl?: string;
 
   @IsOptional()
   @IsString()

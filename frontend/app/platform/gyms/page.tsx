@@ -6,6 +6,8 @@ import { DataTable, EmptyState, ErrorState, LoadingState, StatCard, type DataTab
 import { PageCard, PageContainer, PageGrid, PageHeader } from "../../../src/components/platform/page/primitives";
 import { listGyms, type Gym } from "../../../src/lib/gyms";
 
+const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? "gymstack.club";
+
 export default function GymsPage() {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,16 @@ export default function GymsPage() {
 
   const columns: DataTableColumn<Gym>[] = [
     { id: "name", header: "Name", cell: (gym) => gym.name, sortable: true, sortValue: (gym) => gym.name },
-    { id: "domain", header: "Domain", cell: (gym) => gym.customDomain ?? `${gym.slug}.gymstack.club` },
+    {
+      id: "domain",
+      header: "Domain",
+      cell: (gym) => {
+        if (gym.customDomain && gym.domainVerifiedAt) {
+          return gym.customDomain;
+        }
+        return `${gym.slug}.${baseDomain}`;
+      },
+    },
     { id: "timezone", header: "Timezone", cell: (gym) => gym.timezone ?? "UTC" },
     { id: "open", header: "", cell: (gym) => <Link href={`/platform/gyms/${gym.id}`} className="button secondary">Open</Link> },
   ];

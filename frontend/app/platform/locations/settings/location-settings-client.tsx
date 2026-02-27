@@ -7,6 +7,8 @@ import { useAuth } from "@/src/providers/AuthProvider";
 import { PageHeader } from "@/src/components/common/PageHeader";
 import { SectionCard } from "@/src/components/common/SectionCard";
 import { ApiFetchError, apiFetch } from "@/src/lib/apiFetch";
+import { checkGymSlugAvailability } from "@/src/lib/gyms";
+import { normalizeSlug } from "@/src/lib/slug";
 import type { LocationBrandingUpdateInput, LocationDomainSetupResponse, LocationSettingsResponse } from "@/src/types/location-settings";
 
 type LocationListItem = {
@@ -16,8 +18,10 @@ type LocationListItem = {
 };
 
 type BrandingForm = {
+  slug: string;
   displayName: string;
   logoUrl: string;
+  heroImageUrl: string;
   heroTitle: string;
   heroSubtitle: string;
   primaryColor: string;
@@ -31,8 +35,10 @@ const hostnameRegex = /^(?=.{1,253}$)(?!-)(?:[a-zA-Z0-9-]{1,63}\.)+[A-Za-z]{2,63
 
 function toBrandingForm(location: LocationSettingsResponse): BrandingForm {
   return {
+    slug: location.slug ?? "",
     displayName: location.displayName ?? "",
     logoUrl: location.logoUrl ?? "",
+    heroImageUrl: location.heroImageUrl ?? "",
     heroTitle: location.heroTitle ?? "",
     heroSubtitle: location.heroSubtitle ?? "",
     primaryColor: location.primaryColor ?? "",
@@ -53,16 +59,20 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
   const [selectedLocationId, setSelectedLocationId] = useState(initialLocationId ?? "");
   const [selectedLocation, setSelectedLocation] = useState<LocationSettingsResponse | null>(null);
   const [brandingForm, setBrandingForm] = useState<BrandingForm>({
+    slug: "",
     displayName: "",
     logoUrl: "",
+    heroImageUrl: "",
     heroTitle: "",
     heroSubtitle: "",
     primaryColor: "",
     accentGradient: "",
   });
   const [savedBrandingForm, setSavedBrandingForm] = useState<BrandingForm>({
+    slug: "",
     displayName: "",
     logoUrl: "",
+    heroImageUrl: "",
     heroTitle: "",
     heroSubtitle: "",
     primaryColor: "",
@@ -73,6 +83,8 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
   const [dnsTxtValue, setDnsTxtValue] = useState("");
   const [domainInstructions, setDomainInstructions] = useState("DNS changes may take time to propagate.");
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [slugStatus, setSlugStatus] = useState<string | null>(null);
+  const [slugTaken, setSlugTaken] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isSavingDomain, setIsSavingDomain] = useState(false);
@@ -161,6 +173,8 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
         setDnsTxtValue("");
         setNotice(null);
         setErrors({});
+        setSlugStatus(null);
+        setSlugTaken(false);
       } catch (loadError) {
         if (!active) {
           return;
@@ -184,11 +198,51 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
     };
   }, [canManageLocationSettings, router, selectedLocationId]);
 
+  useEffect(() => {
+    if (!selectedLocation) {
+      return;
+    }
+
+    const normalized = normalizeSlug(brandingForm.slug);
+    if (!normalized || normalized === selectedLocation.slug) {
+      setSlugStatus(null);
+      setSlugTaken(false);
+      setErrors((current) => ({ ...current, slug: undefined }));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void checkGymSlugAvailability(normalized)
+        .then((result) => {
+          if (!result.available) {
+            setSlugStatus(result.reason ?? 'Slug unavailable');
+            setSlugTaken(true);
+            setErrors((current) => ({ ...current, slug: result.reason ?? 'Slug unavailable' }));
+            return;
+          }
+
+          setSlugStatus(`Available: ${result.slug}`);
+          setSlugTaken(false);
+          setErrors((current) => ({ ...current, slug: undefined }));
+        })
+        .catch(() => {
+          setSlugStatus('Unable to validate slug right now.');
+          setSlugTaken(true);
+        });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [brandingForm.slug, selectedLocation]);
+
   const validate = (): FieldErrors => {
     const nextErrors: FieldErrors = {};
 
     if (brandingForm.logoUrl.trim() && !/^https?:\/\//.test(brandingForm.logoUrl.trim())) {
       nextErrors.logoUrl = "Logo URL should start with http:// or https://.";
+    }
+
+    if (brandingForm.heroImageUrl.trim() && !/^https?:\/\//.test(brandingForm.heroImageUrl.trim())) {
+      nextErrors.heroImageUrl = "Hero image URL should start with http:// or https://.";
     }
 
     if (brandingForm.primaryColor.trim() && !hexColorRegex.test(brandingForm.primaryColor.trim())) {
@@ -217,9 +271,16 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
     setNotice(null);
 
     try {
+      if (slugTaken) {
+        setErrors((current) => ({ ...current, slug: "This slug is already taken." }));
+        return;
+      }
+
       const payload: LocationBrandingUpdateInput = {
+        slug: normalizeSlug(brandingForm.slug) || null,
         displayName: brandingForm.displayName.trim() || null,
         logoUrl: brandingForm.logoUrl.trim() || null,
+        heroImageUrl: brandingForm.heroImageUrl.trim() || null,
         heroTitle: brandingForm.heroTitle.trim() || null,
         heroSubtitle: brandingForm.heroSubtitle.trim() || null,
         primaryColor: brandingForm.primaryColor.trim() || null,
@@ -234,7 +295,7 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
       const nextSaved = toBrandingForm({ ...selectedLocation, ...updated });
       setSavedBrandingForm(nextSaved);
       setBrandingForm(nextSaved);
-      setSelectedLocation((current) => (current ? { ...current, ...updated } : current));
+      setSelectedLocation((current) => (current ? { ...current, ...updated, slug: updated.slug ?? current.slug, heroImageUrl: updated.heroImageUrl ?? current.heroImageUrl } : current));
       setLocations((existing) => existing.map((item) => (
         item.id === updated.id
           ? { ...item, displayName: updated.displayName ?? item.displayName }
@@ -378,6 +439,13 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
           <SectionCard title="Branding">
             <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSaveBranding}>
               <label className="space-y-1">
+                <span className="text-xs uppercase tracking-wide text-slate-400">Subdomain slug</span>
+                <input className="input" value={brandingForm.slug} onChange={(event) => setBrandingForm((current) => ({ ...current, slug: event.target.value }))} placeholder="downtown" />
+                {errors.slug ? <p className="text-xs text-rose-300">{errors.slug}</p> : null}
+                {slugStatus ? <p className={`text-xs ${slugTaken ? "text-rose-300" : "text-emerald-300"}`}>{slugStatus}</p> : null}
+              </label>
+
+              <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Display Name</span>
                 <input className="input" value={brandingForm.displayName} onChange={(event) => setBrandingForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Downtown Gym" />
               </label>
@@ -410,6 +478,12 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
               </label>
 
               <label className="space-y-1">
+                <span className="text-xs uppercase tracking-wide text-slate-400">Hero image URL</span>
+                <input className="input" value={brandingForm.heroImageUrl} onChange={(event) => setBrandingForm((current) => ({ ...current, heroImageUrl: event.target.value }))} placeholder="https://cdn.example.com/hero.jpg" />
+                {errors.heroImageUrl ? <p className="text-xs text-rose-300">{errors.heroImageUrl}</p> : null}
+              </label>
+
+              <label className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">Hero title</span>
                 <input className="input" value={brandingForm.heroTitle} onChange={(event) => setBrandingForm((current) => ({ ...current, heroTitle: event.target.value }))} placeholder="Train with confidence" />
               </label>
@@ -420,11 +494,20 @@ export default function LocationSettingsClient({ initialLocationId }: { initialL
               </label>
 
               <div className="md:col-span-2 flex justify-end">
-                <button className="button hover:brightness-110" type="submit" disabled={isSavingBranding || !brandingDirty}>
+                <button className="button hover:brightness-110" type="submit" disabled={isSavingBranding || !brandingDirty || slugTaken}>
                   {isSavingBranding ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>
+          </SectionCard>
+
+          <SectionCard title="Preview links">
+            <div className="space-y-2 text-sm text-slate-200">
+              <p>Subdomain: <a className="text-indigo-300 underline" href={`https://${brandingForm.slug || selectedLocation.slug}.${process.env.NEXT_PUBLIC_BASE_DOMAIN ?? "gymstack.club"}`} target="_blank" rel="noreferrer">https://{brandingForm.slug || selectedLocation.slug}.{process.env.NEXT_PUBLIC_BASE_DOMAIN ?? "gymstack.club"}</a></p>
+              {selectedLocation.customDomain && selectedLocation.domainVerifiedAt ? (
+                <p>Custom domain: <a className="text-indigo-300 underline" href={`https://${selectedLocation.customDomain}`} target="_blank" rel="noreferrer">https://{selectedLocation.customDomain}</a></p>
+              ) : null}
+            </div>
           </SectionCard>
 
           <SectionCard title="Custom domain">
