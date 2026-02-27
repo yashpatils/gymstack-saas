@@ -13,11 +13,15 @@ describe('GymsController', () => {
     checkSlugAvailability: jest.fn(),
   };
 
+  const invitesService = {
+    createGymInvite: jest.fn(),
+  };
+
   let controller: GymsController;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    controller = new GymsController(gymsService as never);
+    controller = new GymsController(gymsService as never, invitesService as never);
   });
 
   it('lists gyms', async () => {

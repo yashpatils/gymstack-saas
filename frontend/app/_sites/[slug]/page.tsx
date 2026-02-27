@@ -1,14 +1,10 @@
 import { notFound } from 'next/navigation';
 import { GymLanding } from '@/app/components/gym-landing';
+import { getMainSiteUrl } from '@/src/lib/domainConfig';
 import { getPublicLocationBySlug } from '@/src/lib/sites';
 import type { SlugPageProps } from '@/src/lib/pageProps';
 
 export const dynamic = 'force-dynamic';
-
-function resolveAppUrl(): string {
-  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_WEB_URL;
-  return configuredUrl ? configuredUrl.replace(/\/$/, '') : '';
-}
 
 export default async function SiteLandingPage({ params }: SlugPageProps) {
   const data = await getPublicLocationBySlug(params.slug).catch(() => null);
@@ -28,10 +24,9 @@ export default async function SiteLandingPage({ params }: SlugPageProps) {
     );
   }
 
-  const baseUrl = resolveAppUrl();
   const title = data.branding?.heroTitle ?? data.location.displayName ?? data.location.name ?? data.location.slug;
-  const loginHref = baseUrl ? `${baseUrl}/login` : '/login';
-  const joinHref = baseUrl ? `${baseUrl}/join` : '/login';
+  const loginHref = getMainSiteUrl('/login');
+  const joinHref = getMainSiteUrl('/join');
 
   return (
     <GymLanding

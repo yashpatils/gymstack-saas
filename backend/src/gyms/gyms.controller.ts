@@ -60,7 +60,7 @@ export class GymsController {
       throw new ForbiddenException('Missing user');
     }
 
-    return this.gymsService.checkSlugAvailability({ ...user, orgId: user.activeTenantId ?? user.orgId }, query.slug);
+    return this.gymsService.checkSlugAvailability(query.slug);
   }
 
 

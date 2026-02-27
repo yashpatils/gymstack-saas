@@ -394,12 +394,7 @@ export class GymsService {
     });
   }
 
-  async checkSlugAvailability(requester: User, slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; validFormat: boolean; reason?: string }> {
-    const orgId = requester.activeTenantId ?? requester.orgId;
-    if (!orgId) {
-      throw new ForbiddenException('Missing tenant context');
-    }
-
+  async checkSlugAvailability(slugRaw: string): Promise<{ slug: string; available: boolean; reserved: boolean; validFormat: boolean; reason?: string }> {
     const validation = validateTenantSlug(slugRaw ?? '');
     if (!validation.ok) {
       return {
@@ -411,8 +406,8 @@ export class GymsService {
       };
     }
 
-    const existing = await this.prisma.gym.findUnique({ where: { slug: validation.slug }, select: { id: true, orgId: true } });
-    const available = !existing || existing.orgId === orgId;
+    const existing = await this.prisma.gym.findUnique({ where: { slug: validation.slug }, select: { id: true } });
+    const available = !existing;
 
     return {
       slug: validation.slug,
@@ -767,7 +762,7 @@ export class GymsService {
 
     const nextSlug = payload.slug?.trim();
     if (nextSlug) {
-      const availability = await this.checkSlugAvailability({ ...user, orgId: tenantId }, nextSlug);
+      const availability = await this.checkSlugAvailability(nextSlug);
       if (!availability.validFormat) {
         throw new BadRequestException(availability.reason ?? 'Slug is invalid');
       }
