@@ -30,6 +30,14 @@ export default function GymsPage() {
     };
   }, []);
 
+  const getPublicLocationHref = (gym: Gym): string => {
+    if (gym.customDomain && gym.domainVerifiedAt) {
+      return `https://${gym.customDomain}`;
+    }
+
+    return `https://${gym.slug}.${baseDomain}`;
+  };
+
   const columns: DataTableColumn<Gym>[] = [
     { id: "name", header: "Name", cell: (gym) => gym.name, sortable: true, sortValue: (gym) => gym.name },
     {
@@ -43,7 +51,20 @@ export default function GymsPage() {
       },
     },
     { id: "timezone", header: "Timezone", cell: (gym) => gym.timezone ?? "UTC" },
-    { id: "open", header: "", cell: (gym) => <Link href={`/platform/gyms/${gym.id}`} className="button secondary">Open</Link> },
+    {
+      id: "open",
+      header: "",
+      cell: (gym) => (
+        <div className="flex justify-end gap-2">
+          <a href={getPublicLocationHref(gym)} target="_blank" rel="noreferrer" className="button secondary">
+            Open public site
+          </a>
+          <Link href={`/platform/gyms/${gym.id}`} className="button secondary">
+            Manage location
+          </Link>
+        </div>
+      ),
+    },
   ];
 
   const newest = useMemo(() => {
