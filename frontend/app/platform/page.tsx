@@ -9,6 +9,16 @@ import { listGyms, type Gym } from "../../src/lib/gyms";
 import { formatDashboardMetric, mapUsersToMemberRows, type DashboardMemberRow } from "../../src/lib/platformDashboard";
 import { listUsers, type User } from "../../src/lib/users";
 
+const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? "gymstack.club";
+
+function getPublicLocationHref(gym: Gym): string {
+  if (gym.customDomain && gym.domainVerifiedAt) {
+    return `https://${gym.customDomain}`;
+  }
+
+  return `https://${gym.slug}.${baseDomain}`;
+}
+
 type DashboardSummary = {
   locations: number;
   members: number;
@@ -264,19 +274,16 @@ export default function PlatformPage() {
                   {gyms.slice(0, 8).map((gym) => (
                     <tr key={gym.id} className="text-foreground hover:bg-accent/30">
                       <td className="px-4 py-3">{gym.name}</td>
-                      <td className="max-w-[220px] truncate px-4 py-3 text-muted-foreground">
-                        {gym.customDomain ?? "Not configured"}
-                      </td>
+                      <td className="max-w-[220px] truncate px-4 py-3 text-muted-foreground">{gym.customDomain && gym.domainVerifiedAt ? gym.customDomain : `${gym.slug}.${baseDomain}`}</td>
                       <td className="px-4 py-3 text-right">
-                        {gym.customDomain ? (
+                        <div className="flex justify-end gap-2">
+                          <a href={getPublicLocationHref(gym)} target="_blank" rel="noreferrer" className="button button-sm ghost">
+                            Open public site
+                          </a>
                           <Link href={`/platform/gyms/${gym.id}`} className="button button-sm secondary">
-                            Open
+                            Manage location
                           </Link>
-                        ) : (
-                          <Link href={`/platform/gyms/${gym.id}/edit`} className="button button-sm secondary">
-                            Configure domain
-                          </Link>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
